@@ -296,7 +296,65 @@
             </span>
         </label>
 
+        <!--
+          Fatigue, and what it suppresses.
+
+          A pause with no explanation is worse than no pause: the player sees
+          the difficulty stop responding and has no way to tell that from a
+          bug. So the signal is shown as a number, alongside the switch that
+          turns the behaviour off.
+        -->
+        <div class="fatigue" [class.is-idle]="!prog.enabled" [class.is-tired]="progression.tired">
+            <span class="fatigue__name">
+                Fatigue
+                <small class="d-block text-muted">
+                    How far your recent answers sit below what the model expected of
+                    them — difficulty-adjusted, so it does not simply fall when the
+                    items get harder. Below the threshold, the estimate stops moving
+                    until you recover, so a tired hour cannot set next week lower.
+                </small>
+            </span>
+            <span class="fatigue__value">
+                {{ fatigueReading }}
+                <small class="d-block">{{ progression.tired ? "resting" : "tracking" }}</small>
+            </span>
+        </div>
+
         <div [class.is-idle]="!prog.enabled">
+            <div class="mode">
+                <label>Slump threshold
+                    <small class="text-muted d-block">Points below prediction that count as tired; 0 turns it off</small>
+                </label>
+                <span class="mode__premises">
+                    <input type="number" class="form-control form-control-sm" min="0" max="0.5" step="0.05"
+                           [disabled]="!prog.enabled" [value]="prog.fatigueThreshold"
+                           (change)="setProg('fatigueThreshold', $any($event.target).value)">
+                    <small class="text-muted">0 – 0.5</small>
+                </span>
+            </div>
+
+            <div class="mode">
+                <label>Fatigue window
+                    <small class="text-muted d-block">Answers the signal is averaged over</small>
+                </label>
+                <span class="mode__premises">
+                    <input type="number" class="form-control form-control-sm" min="6" max="40" step="1"
+                           [disabled]="!prog.enabled" [value]="prog.fatigueWindow"
+                           (change)="setProg('fatigueWindow', $any($event.target).value)">
+                    <small class="text-muted">6 – 40</small>
+                </span>
+            </div>
+
+            <label class="master mb-2">
+                <input type="checkbox" class="form-check-input"
+                       [checked]="prog.pauseWhenTired" [disabled]="!prog.enabled"
+                       (change)="setProg('pauseWhenTired', $any($event.target).checked)">
+                <span>
+                    <strong>Rest the estimate during a slump</strong>
+                    <small class="d-block text-muted">Trials still count towards recovery; they just stop moving your level.</small>
+                </span>
+            </label>
+
             <div class="mode">
                 <label>Target accuracy
                     <small class="text-muted d-block">Items are aimed just below your estimate to land here</small>

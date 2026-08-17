@@ -212,3 +212,30 @@ input[type="checkbox"]:disabled { cursor: default; }
 }
 
 .order__presets .btn { font-size: 11px; padding-inline: 10px; }
+
+/* ---- fatigue readout ---- *
+ * Sits with the progression knobs it explains. Only the tired state is
+ * coloured: a number that is always red would stop meaning anything. */
+
+.fatigue {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.fatigue__name { flex: 1; }
+
+.fatigue__value {
+    font-size: 20px;
+    font-weight: 700;
+    text-align: end;
+    line-height: 1.1;
+    color: var(--th-text-dim, #7d8ca6);
+}
+
+.fatigue__value small { font-weight: 400; font-size: 11px; }
+
+.fatigue.is-tired .fatigue__value { color: var(--th-bad, #fb7185); }

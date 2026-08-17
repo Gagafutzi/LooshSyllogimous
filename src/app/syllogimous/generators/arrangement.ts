@@ -12,7 +12,7 @@ import { NUMBER_WORDS } from "../constants/question.constants";
 import { canGenerateQuestion } from "../models/settings.models";
 import { guid } from "src/app/utils/uuid";
 import { EnumArrangements, EnumQuestionType } from "../constants/question.constants";
-import { subj } from "../utils/phrasing";
+import { hi, subj } from "../utils/phrasing";
 
 export function createArrangement(ctx: GeneratorContext, numOfPremises: number, type: EnumQuestionType.LinearArrangement | EnumQuestionType.CircularArrangement): Question {
     ctx.logger.info("createArrangement:", type);
@@ -115,6 +115,22 @@ export function createArrangement(ctx: GeneratorContext, numOfPremises: number, 
     }
 
     question.rule = words.join(", ");
+
+    /*
+     * The order itself is the derivation.
+     *
+     * Every arrangement claim is a fact about one sequence, and the reader's
+     * job was to reconstruct that sequence from pairwise premises. Showing it
+     * is therefore showing the working, not giving the game away — the item is
+     * already answered by the time this is read.
+     */
+    question.explanation = [
+        isLinear
+            ? `In order: ${words.map(w => subj(w)).join(", ")}.`
+            : `Round the circle: ${words.map(w => subj(w)).join(", ")}, and back to ${subj(words[0])}.`,
+        `${subj(a)} is at position ${hi(String(aid + 1))}, ${subj(b)} at position ${hi(String(bid + 1))}.`,
+        `so ${subj(a)} ${hi(interpolated)} ${subj(b)} is ${hi(question.isValid ? "true" : "false")}.`,
+    ];
     const metaRelationshipLookupMap: Record<string, boolean> = {};
     question.premises = premises.map(({ a, b, relationship, metaRelationships, uid }) => {
         if (settings.enabled.meta && coinFlip() && metaRelationships.length && !metaRelationshipLookupMap[uid]) {

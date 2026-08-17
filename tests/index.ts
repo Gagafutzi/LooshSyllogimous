@@ -12,5 +12,7 @@ import "./ndspace.test";
 import "./progression.test";
 import "./generators.test";
 import "./induction.test";
+import "./derivation.test";
+import "./fatigue.test";
 
 run();

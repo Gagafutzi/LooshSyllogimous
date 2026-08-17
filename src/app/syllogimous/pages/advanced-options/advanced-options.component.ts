@@ -65,6 +65,14 @@ export class AdvancedOptionsComponent {
 
     get prog() { return this.progression.config; }
 
+    /** The residual as points per hundred, or a dash before there is one. */
+    get fatigueReading() {
+        const f = this.progression.fatigue;
+        if (f === null) return "—";
+        const points = Math.round(f * 100);
+        return `${points > 0 ? "+" : ""}${points}`;
+    }
+
     setProg(key: string, raw: string | boolean) {
         const value = typeof raw === "boolean" ? raw : Number(raw);
         this.progression.set(key as any, value as any);

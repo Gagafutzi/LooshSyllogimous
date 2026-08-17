@@ -5,11 +5,12 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
+import { hi, subj } from "../utils/phrasing";
 import { GeneratorContext } from "./context";
 import { extraTransforms } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
-import { Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
+import { SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
 import { ANCHORS, anchorCoordMap } from "../utils/anchor.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion } from "../models/settings.models";
@@ -66,10 +67,46 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
             ctx.settingsOverrideService.scramble);
         question.conclusion = conclusion.text;
         question.isValid = conclusion.isValid;
+        question.explanation = explainAnchor(x, y, anchorOf, coords, axes[0]);
         return question;
     }
 
     throw new Error("Cannot generate.");
+}
+
+/**
+ * Why the two sit that way round, routed through the frame.
+ *
+ * The pair always hangs off *different* anchors — items where they share one
+ * are rejected, because those are comparable directly and skip the skill.
+ * So the derivation has to do what the player has to do: put each object on
+ * the frame's own coordinates first, and only then compare. Stating the
+ * anchors' positions is the step people leave out.
+ */
+function explainAnchor(
+    x: string,
+    y: string,
+    anchorOf: Record<string, string>,
+    coords: Record<string, number[]>,
+    axis: number,
+): string[] {
+    const [pos, neg] = SPATIAL_VOCAB.axisWords[axis];
+    const at = (n: string) => {
+        const a = anchorOf[n];
+        const delta = coords[n][axis] - coords[a][axis];
+        const word = delta === 0 ? "level with" : `${Math.abs(delta)} ${delta > 0 ? pos : neg} of`;
+        return `${subj(n)} sits ${hi(word)} ${subj(a)}, which is at ${hi(String(coords[a][axis]))}`
+            + ` — so ${subj(n)} is at ${hi(String(coords[n][axis]))}`;
+    };
+
+    const delta = coords[y][axis] - coords[x][axis];
+    return [
+        `On this dimension the anchors are what tie the two together.`,
+        at(x),
+        at(y),
+        `so ${subj(y)} is ${hi(delta > 0 ? pos : neg)} of ${subj(x)}`
+        + ` — ${Math.abs(delta)} apart.`,
+    ];
 }
 
 export function createAnchorSpaceV2(ctx: GeneratorContext, numOfPremises: number) {

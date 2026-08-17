@@ -23,7 +23,7 @@ export type DeicticAxis = "person" | "place" | "time";
 export const DEICTIC_AXES: DeicticAxis[] = ["person", "place", "time"];
 
 /** Word for each pole of each axis; index 0 is the self/proximal pole. */
-const POLES: Record<DeicticAxis, [string, string]> = {
+export const POLES: Record<DeicticAxis, [string, string]> = {
     person: ["I", "you"],
     place: ["here", "there"],
     time: ["now", "then"],

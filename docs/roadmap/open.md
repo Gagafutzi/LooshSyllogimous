@@ -5,9 +5,25 @@
 Ordered by value, not by size. The first two compound with every session played;
 the rest add capability.
 
-### 1. Finish derivation coverage
+### 1. Finish derivation coverage — **PARTLY DONE**
 
-Ten of twenty-four modes explain themselves after a wrong answer
+**Fourteen of twenty-two sampled modes now explain themselves**, up from eight.
+Added: Binary (which half failed), Anchor Space (routed through the frame),
+Deictic (the perspective shift, axis by axis), Graph Matching (the pairing, and
+the link that breaks it), and both arrangement modes (the order itself).
+
+The invariant that caught the Analogy bug is now a test — `tests/derivation.test.ts`
+asserts, for every mode, that no subject in a derivation's closing line is absent
+from what the item actually asks about. It immediately caught a fresh instance in
+the new Deictic derivation, which ended by naming the *correct* symbol on an item
+whose false conclusion names a different one; the correction moved one line up so
+the closing line answers the question that was asked.
+
+**Still uncovered:** Distinction, the Comparisons, Direction, Direction3D,
+Syllogism, Analogy, Transformation, Anchor Space v2. Analogy is the expensive
+one — it composes five different generators and needs a branch per layout.
+
+Ten of twenty-four modes explained themselves after a wrong answer
 ([4.2](done.md#42-derivation-on-error--done-composed-spaces)). The rest emit one bit for
 an item that took a minute to read. The field on `Question` and the overlay are
 shared, so each remaining mode is a generator-side change only.
@@ -22,7 +38,7 @@ Read the Analogy trap in 4.2 before starting: a mode that reuses another's layou
 inherits whatever that generator attached, and a stale `explanation` is *worse*
 than none.
 
-### 2. Fatigue detection
+### 2. Fatigue detection — **DONE**
 
 The ability model predicts P(correct) for every item it serves, so
 **observed minus predicted** over the last ~15 items is a difficulty-adjusted
@@ -33,6 +49,25 @@ This matters more than it looks: the posterior cannot distinguish "too hard" fro
 "tired", so fatigued answers are recorded as evidence of *lower ability* and set
 the next session's difficulty lower. Trials during a detected slump arguably
 should not update the posterior at all.
+
+**Built.** `ProgressionService` records `observed − predicted` per answer, using
+`pCorrect` against the estimate the item was *chosen* under — taken before the
+update, or it would be measuring the model against a posterior that had already
+seen the answer. The mean over the last `fatigueWindow` answers is the signal;
+past `fatigueThreshold` below zero it reports `tired`, and with `pauseWhenTired`
+the posterior stops moving. Trials during a slump still enter the window, which
+is what lets the slump end.
+
+Three decisions worth recording:
+
+- **Half a window minimum.** Three answers below expectation is a run of luck at
+  any ability, and acting on it would rest the estimate for everyone who started
+  slowly.
+- **The state is shown, not just acted on.** A difficulty that silently stops
+  responding is indistinguishable from a bug; Advanced Options carries the
+  reading and the switch that turns the behaviour off.
+- **The window survives a reload**, so closing the tab mid-slump does not reset
+  the judgement.
 
 ### 3. Indeterminacy
 

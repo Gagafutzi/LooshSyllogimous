@@ -10,7 +10,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getSymbols, pickUniqueItems, shuffle, areGraphsIsomorphic } from "../utils/question.utils";
 import { canGenerateQuestion } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
-import { neg, subj } from "../utils/phrasing";
+import { hi, neg, subj } from "../utils/phrasing";
 
 export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createGraphMatching");
@@ -189,5 +189,55 @@ export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number
         "Check isomorphism between premise and conclusion graphs."
     ];
 
+    question.explanation = explainGraph(words, newWords, edgeList, edgeList2, question.isValid);
+
     return question;
+}
+
+
+/** Direction-aware identity for a link, so "A -> B" and "B <- A" are one edge. */
+function edgeKey([a, rel, b]: [string, string, string]): string {
+    if (rel === "↔") return [a, b].sort().join(" ↔ ");
+    return rel === "→" ? `${a} → ${b}` : `${b} → ${a}`;
+}
+
+/**
+ * Where the two shapes agree, and where they part company.
+ *
+ * The mode's whole content is a pairing between two sets of names, so the
+ * derivation states the pairing first — that is the step a reader who got it
+ * wrong usually never made explicit, having compared the drawings by eye.
+ *
+ * When the graphs differ, the *natural* pairing is the one shown, and it is
+ * enough to exhibit one link it fails on. That is weaker than the claim being
+ * made, so the closing line says what was actually established: no pairing
+ * works, which `areGraphsIsomorphic` decided.
+ */
+function explainGraph(
+    words: string[],
+    newWords: string[],
+    edgeList: Array<[string, string, string]>,
+    edgeList2: Array<[string, string, string]>,
+    isValid: boolean,
+): string[] {
+    const pairing = words.map((w, i) => `${subj(w)}&hairsp;/&hairsp;${subj(newWords[i])}`).join(", ");
+    const lines = [`Pairing them in the order they appear: ${pairing}.`];
+
+    const mapped = new Set(edgeList.map(([a, rel, b]) =>
+        edgeKey([newWords[words.indexOf(a)], rel, newWords[words.indexOf(b)]])));
+    const present = new Set(edgeList2.map(edgeKey));
+
+    if (isValid) {
+        lines.push(`Every link in the first has a counterpart in the second under that pairing.`);
+        lines.push(`so the two shapes are the same.`);
+        return lines;
+    }
+
+    const missing = [...mapped].find(k => !present.has(k));
+    const extra = [...present].find(k => !mapped.has(k));
+    if (missing) lines.push(`Under that pairing the second is missing ${hi(missing)}.`);
+    if (extra) lines.push(`It has ${hi(extra)} instead, which the first does not.`);
+
+    lines.push(`so the two shapes differ — and no other pairing repairs it.`);
+    return lines;
 }

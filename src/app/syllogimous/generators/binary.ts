@@ -5,11 +5,18 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
+import { hi } from "../utils/phrasing";
 import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, shuffle, fixBinaryInstructions } from "../utils/question.utils";
 import { canGenerateQuestion } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
+
+/** The sub-question's own claim, however it phrased it. */
+const asClaim = (q: Question) =>
+    Array.isArray(q.conclusion) ? q.conclusion[0] : q.conclusion;
+
+const truth = (v: boolean) => hi(v ? "true" : "false");
 
 export function createBinary(ctx: GeneratorContext, numOfPremises: number) {
     ctx.logger.info("createBinary");
@@ -83,6 +90,22 @@ export function createBinary(ctx: GeneratorContext, numOfPremises: number) {
                 .replaceAll("a", String(choices[0].isValid))
                 .replaceAll("b", String(choices[1].isValid))
         );
+
+        /*
+         * Which half failed.
+         *
+         * This mode's characteristic error is not misreading the operator, it
+         * is losing track of one of the two sub-questions while working the
+         * other — and a bare "wrong" leaves the player unable to tell which
+         * happened. Stating each half's truth separately before combining them
+         * says exactly where it went, and costs nothing: both truths were just
+         * computed to decide the item.
+         */
+        question.explanation = [
+            `The first part — ${asClaim(choices[0])} — is ${truth(choices[0].isValid)}.`,
+            `The second part — ${asClaim(choices[1])} — is ${truth(choices[1].isValid)}.`,
+            `so the whole statement is ${truth(question.isValid)}.`,
+        ];
     } while (safe-- && flip !== question.isValid);
 
     if (safe <= 0) {

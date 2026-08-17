@@ -7,7 +7,7 @@ import { LadderEvent, LadderState, Outcome, ladderFor } from "../utils/progressi
 import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
     abilityUpdate, aggregate, chooseConfig, guessRateFor, initAbility, levelOf,
-    priorForNewMode, targetLevel,
+    pCorrect, priorForNewMode, targetLevel,
 } from "../utils/ability.utils";
 
 /**
@@ -41,6 +41,8 @@ import {
  */
 
 const LS_CONFIG = "syllogimous-progression-config";
+/** The rolling residual window behind fatigue detection. */
+const LS_RESIDUALS = "syllogimous-residuals";
 const LS_ABILITY = "syllogimous-ability:";
 /** Written by the pre-rework staircase; read once to migrate, never written. */
 const LS_LEGACY_STATE = "syllogimous-progression-state:";
@@ -60,6 +62,18 @@ export interface ProgressionSettings {
     decayPerDay: number;
     /** Show ability-derived skill points instead of the accumulated score. */
     derivedScore: boolean;
+    /** Answers the fatigue signal is averaged over. */
+    fatigueWindow: number;
+    /**
+     * How far below prediction counts as a slump, in probability.
+     *
+     * Nought disables the whole mechanism. 0.15 means "getting fifteen points
+     * fewer per hundred than the model expected of you", which is a large
+     * effect — the point is to catch a real decline, not noise.
+     */
+    fatigueThreshold: number;
+    /** Stop the posterior moving while a slump is detected. */
+    pauseWhenTired: boolean;
 }
 
 const DEFAULT_SETTINGS: ProgressionSettings = {
@@ -71,6 +85,9 @@ const DEFAULT_SETTINGS: ProgressionSettings = {
     crossModeSd: DEFAULT_ABILITY.crossModeSd,
     decayPerDay: DEFAULT_ABILITY.decayPerDay,
     derivedScore: true,
+    fatigueWindow: 15,
+    fatigueThreshold: 0.15,
+    pauseWhenTired: true,
 };
 
 @Injectable({ providedIn: "root" })
@@ -109,7 +126,7 @@ export class ProgressionService {
 
     private get live() { return this.config.enabled && !this.suppressed; }
 
-    constructor() { this.loadConfig(); }
+    constructor() { this.loadConfig(); this.loadResiduals(); }
 
     /* ---------------- config ---------------- */
 
@@ -208,6 +225,7 @@ export class ProgressionService {
         for (const type of Object.values(EnumQuestionType)) {
             try { localStorage.removeItem(LS_ABILITY + type); } catch { /* ignore */ }
         }
+        this.clearFatigue();
         this.configCache = {};
     }
 
@@ -367,6 +385,63 @@ export class ProgressionService {
         };
     }
 
+    /* ---------------- fatigue ---------------- */
+
+    /*
+     * Observed minus predicted, over the last few answers.
+     *
+     * The model states a probability for every item before it is served, so the
+     * gap between how often the player was right and how often the model
+     * expected them to be is a *difficulty-adjusted* signal. Raw accuracy is
+     * not: it falls when difficulty rises, which is exactly what the ladder
+     * does when things are going well.
+     *
+     * This matters more than a status readout. The posterior cannot tell "too
+     * hard" from "tired" — both look like wrong answers — so a fatigued session
+     * is recorded as evidence of lower ability and sets *tomorrow* lower too.
+     * Pausing the update during a detected slump is the cheapest way to stop a
+     * bad hour becoming a worse week.
+     */
+    private residuals: number[] = [];
+
+    private loadResiduals() {
+        try {
+            const raw = localStorage.getItem(LS_RESIDUALS);
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (Array.isArray(parsed)) this.residuals = parsed.filter(v => typeof v === "number");
+        } catch { this.residuals = []; }
+    }
+
+    private pushResidual(value: number) {
+        this.residuals = [...this.residuals, value].slice(-Math.max(4, this.config.fatigueWindow));
+        try { localStorage.setItem(LS_RESIDUALS, JSON.stringify(this.residuals)); } catch { /* private mode */ }
+    }
+
+    /**
+     * Mean residual, or null until there is enough to mean anything.
+     *
+     * Half a window is the floor. Three answers below expectation is a normal
+     * run of luck at any ability, and acting on it would pause the posterior
+     * for everyone who started slowly.
+     */
+    get fatigue(): number | null {
+        const need = Math.max(4, Math.ceil(this.config.fatigueWindow / 2));
+        if (this.residuals.length < need) return null;
+        return this.residuals.reduce((a, c) => a + c, 0) / this.residuals.length;
+    }
+
+    /** Whether the player is currently doing worse than the model expects. */
+    get tired(): boolean {
+        const f = this.fatigue;
+        return this.config.fatigueThreshold > 0 && f !== null && f <= -this.config.fatigueThreshold;
+    }
+
+    /** Cleared when a session is deliberately restarted, and by a reset. */
+    clearFatigue() {
+        this.residuals = [];
+        try { localStorage.removeItem(LS_RESIDUALS); } catch { /* private mode */ }
+    }
+
     /* ---------------- the skill number ---------------- */
 
     private aggregateNow(): Aggregate {
@@ -434,6 +509,26 @@ export class ProgressionService {
 
         // A timeout is a failure at this difficulty; the clock is part of it.
         const correct = outcome === "right";
+
+        /*
+         * Recorded before the update, so the prediction is the one the item was
+         * actually chosen under. Doing it afterwards would measure the model
+         * against a posterior that had already seen the answer.
+         */
+        const expected = pCorrect(this.abilityConfig, this.estimateFor(type).level, level, guess);
+        const tiredBefore = this.tired;
+        this.pushResidual((correct ? 1 : 0) - expected);
+
+        /*
+         * A slump already in progress stops the posterior moving. The trial is
+         * still recorded in the window — that is what lets the slump end — but
+         * it is not taken as evidence about ability, because during a slump it
+         * is not evidence about ability.
+         */
+        if (this.config.pauseWhenTired && tiredBefore) {
+            this.lastEvents = [];
+            return [];
+        }
 
         const next = abilityUpdate(
             abilityDecay(this.abilityFor(type), this.abilityConfig),
