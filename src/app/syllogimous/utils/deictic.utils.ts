@@ -15,6 +15,9 @@
  * only the count of reversals per axis matters, never their order.
  */
 
+import { subj } from "./phrasing";
+import { shuffle } from "./question.utils";
+
 export type DeicticAxis = "person" | "place" | "time";
 
 export const DEICTIC_AXES: DeicticAxis[] = ["person", "place", "time"];
@@ -39,7 +42,14 @@ export interface DeicticSpec {
     axes: DeicticAxis[];
     /** Symbol held at each cell, keyed by coordinate. */
     grid: Record<string, string>;
-    /** Reversal count per axis index; only parity matters. */
+    /**
+     * Reversal parity per axis index, 0 or 1.
+     *
+     * Parity rather than a count, because a count is what the premises can no
+     * longer say: an axis is reversed once or not at all, so there is nothing
+     * for a second reversal to record. `resolve` and `verifyAnswer` still read
+     * this as a count, which costs nothing and keeps them true to the maths.
+     */
     reversals: number[];
 }
 
@@ -77,7 +87,7 @@ export function statementFor(axes: DeicticAxis[], coord: DeicticCoord, symbol: s
         .filter(Boolean)
         .join(" ");
 
-    const wrapped = `<span class="subject">${symbol}</span>`;
+    const wrapped = subj(symbol);
     return setting
         ? `When ${subject} ${verb} ${setting}, ${subject} hold ${wrapped}`
         : `${subject} hold ${wrapped}`;
@@ -93,9 +103,20 @@ export function reversalTextFor(axis: DeicticAxis) {
  *
  * `numOfPremises` splits into grid statements plus reversals. Three axes need
  * eight statements, so the grid only widens once there is room for it.
+ *
+ * An axis reverses once or not at all. Reversing the same axis twice restores
+ * it, so a second "I am you and you are me" states nothing the first did not —
+ * it lengthens the item without deepening it, which makes the item easier than
+ * its premise count claims and misreports the work to the ability estimate.
+ *
+ * That bounds an item at 2^k + k premises: six on two axes, eleven on three,
+ * which is what the mode's maxNumOfPremises records. Asking for more than the
+ * frame can carry yields a shorter item rather than a padded one.
  */
 export function buildDeicticSpec(numOfPremises: number, symbols: string[]): DeicticSpec {
-    const axisCount = numOfPremises >= 10 ? 3 : 2;
+    // Two axes carry six premises at most, so eight is where three axes — nine
+    // premises at their shortest — is the closer answer to what was asked.
+    const axisCount = numOfPremises >= 8 ? 3 : 2;
     const axes = DEICTIC_AXES.slice(0, axisCount);
     const cells = allCoords(axisCount);
 
@@ -106,13 +127,15 @@ export function buildDeicticSpec(numOfPremises: number, symbols: string[]): Deic
     // at least one — a zero-reversal item is pure recall, not perspective work.
     const spare = Math.max(1, numOfPremises - cells.length);
     const reversals = new Array(axisCount).fill(0);
-    for (let i = 0; i < Math.min(spare, 6); i++) {
-        reversals[Math.floor(Math.random() * axisCount)]++;
-    }
-    // Guard against every axis cancelling to even parity, which would make the
-    // reversals decorative and the item solvable by ignoring them.
-    if (reversals.every(r => r % 2 === 0)) {
-        reversals[Math.floor(Math.random() * axisCount)]++;
+    /*
+     * Reversed axes are drawn rather than counted out, which is also what
+     * retires the old even-parity guard: every drawn axis lands on parity 1 and
+     * at least one is always drawn, so the reversals can never all cancel and
+     * leave an item solvable by ignoring them.
+     */
+    const reversed = shuffle(axes.map((_, i) => i)).slice(0, Math.min(spare, axisCount));
+    for (const axis of reversed) {
+        reversals[axis] = 1;
     }
 
     return { axes, grid, reversals };

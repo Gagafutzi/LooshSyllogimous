@@ -43,3 +43,5 @@ Thumbs.db
 
 # Ignore specific file
 repomix-output.txt
+# Headless test output
+/.tmp-tests

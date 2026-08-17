@@ -256,6 +256,9 @@ const ND_LADDER = [
 ];
 
 export const RUNG_LADDERS: Record<string, string[]> = {
+    // Ranking every candidate rather than picking the furthest one. Same
+    // evidence, no guess floor to speak of — so it is earned, not given.
+    "Oddest Relation":           ["rank"],
     "Distinction":               ["negation", "meta"],
     "Comparison Numerical":      LINEAR_LADDER,
     "Comparison Chronological":  LINEAR_LADDER,

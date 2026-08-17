@@ -2,6 +2,7 @@ import { FORMS, SYL_IMMEDIATE_INFERENCES, SYL_KINDS, SYL_TRUE_CONCLUSIONS, SYL_T
 import { Settings } from "../models/settings.models";
 import { PolysyllogismResult, SylKind, SylPremise } from "../models/syllogism.models";
 import { pickUniqueItems } from "./question.utils";
+import { subj } from "./phrasing";
 
 //    ____  __    ____     _____________   ____________  ___  __________  ____ 
 //   / __ \/ /   / __ \   / ____/ ____/ | / / ____/ __ \/   |/_  __/ __ \/ __ \
@@ -444,8 +445,8 @@ export function generatePolysyllogism(opts: {
 }
 
 export function formatSylPremise([a, k, b]: SylPremise, negated = false): string {
-    const A = `<span class="subject">${a}</span>`;
-    const B = `<span class="subject">${b}</span>`;
+    const A = subj(a);
+    const B = subj(b);
 
     if (!negated) {
         switch (k) {

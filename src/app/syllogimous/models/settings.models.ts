@@ -36,6 +36,9 @@ const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
     EnumQuestionType.Space5D,
     EnumQuestionType.Space6D,
     EnumQuestionType.Hierarchy,
+    EnumQuestionType.InferRelation,
+    EnumQuestionType.OddestRelation,
+    EnumQuestionType.ShapeRotation,
 ]);
 
 export function canGenerateQuestion(
@@ -156,6 +159,9 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.Transformation);
         this.initQuestionSettings(EnumQuestionType.AnchorSpace);
         this.initQuestionSettings(EnumQuestionType.AnchorSpaceV2);
+        this.initQuestionSettings(EnumQuestionType.InferRelation);
+        this.initQuestionSettings(EnumQuestionType.OddestRelation);
+        this.initQuestionSettings(EnumQuestionType.ShapeRotation);
     }
 
     initQuestionSettings(type: EnumQuestionType) {

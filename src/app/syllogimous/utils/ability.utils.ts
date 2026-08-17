@@ -236,9 +236,14 @@ export function secondsForCost(levels: number, config = DEFAULT_ABILITY): number
  * answered correctly is decisive. Feeding the real guess rate into the
  * likelihood is what makes those two trials count differently.
  */
-export function guessRateFor(answerMode: string, slots = 0, choices = 0): number {
+export function guessRateFor(answerMode: string, slots = 0, choices = 0, options = 3): number {
     if (answerMode === "choice") return choices > 0 ? 1 / choices : 0.25;
-    if (answerMode === "construct") return slots > 0 ? Math.pow(1 / 3, slots) : 0.05;
+    // Options per slot are no longer always three: a mode that asks for a rank
+    // offers one per candidate, and crediting it at a third would understate
+    // how decisive a correct answer is by orders of magnitude.
+    if (answerMode === "construct") {
+        return slots > 0 ? Math.pow(1 / Math.max(2, options), slots) : 0.05;
+    }
     return 0.5;
 }
 

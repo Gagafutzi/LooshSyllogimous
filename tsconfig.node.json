@@ -1,0 +1,35 @@
+/*
+ * Headless tests for the pure modules.
+ *
+ * `utils/`, `models/` and `constants/` import nothing from Angular — verified,
+ * and worth keeping true — so they compile to plain CommonJS and run under
+ * node. That is the whole point: checking a generator or a difficulty choice
+ * costs one `npm run test:utils` instead of booting a browser.
+ *
+ * Separate from tsconfig.spec.json, which is the karma/jasmine config and pulls
+ * in the whole Angular test harness.
+ */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./.tmp-tests",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceMap": false,
+    "importHelpers": false,
+    "types": ["node"],
+    /*
+     * The pure modules pull in a couple of models that sit next to Angular
+     * code, so its .d.ts files end up on the program. Skipping lib checks keeps
+     * this compile about *our* types — and makes it seconds rather than tens.
+     */
+    "skipLibCheck": true
+  },
+  "include": [
+    "tests/**/*.ts",
+    "src/app/syllogimous/utils/**/*.ts",
+    "src/app/syllogimous/models/**/*.ts",
+    "src/app/syllogimous/constants/**/*.ts",
+    "src/app/utils/**/*.ts"
+  ]
+}

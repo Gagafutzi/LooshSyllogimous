@@ -41,6 +41,7 @@
 import { ConstructClaim } from "../models/question.models";
 import { LINEAR_SCALES, LinearLayout, LinearScale, SPATIAL_SCALES, buildBranching, buildChain } from "./linear.utils";
 import { Transform, TransformVocab, drawTransforms, replay } from "./transformations.utils";
+import { hi, rel, subj } from "./phrasing";
 
 /* ------------------------------------------------------------------ *
  * Axes                                                                *
@@ -97,6 +98,113 @@ export function axesForDimensions(dims: number): LinearScale[] {
         if (!out.includes(s)) out.push(s);
     }
     return out.slice(0, Math.max(1, dims));
+}
+
+/* ------------------------------------------------------------------ *
+ * Axis order                                                          *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Which end of a premise an axis is read at.
+ *
+ * A premise states every axis at once, in axis-list order, so that order is
+ * the order the clauses are read in: "east, same latitude, above and later".
+ * Which one comes first is not neutral — the first clause is the one that gets
+ * a whole mind to itself, and the last is the one being held while the rest are
+ * placed. Anyone who spatialises these has a habitual order, and an item that
+ * states them the other way round is measurably harder for no reason connected
+ * to the reasoning.
+ *
+ * So it is a setting rather than a constant. These are the orders worth having
+ * as one click; anything else is reachable by moving axes individually.
+ */
+export type AxisOrdering = "spatial-first" | "spatial-last" | "longitude-last" | "reverse";
+
+export const AXIS_ORDERINGS: Array<{ id: AxisOrdering; label: string; hint: string }> = [
+    { id: "spatial-first", label: "Spatial first",
+      hint: "The default: east–west, north–south, up–down, then the rest" },
+    { id: "spatial-last", label: "Spatial last",
+      hint: "The non-spatial dimensions first, the three spatial ones after them" },
+    { id: "longitude-last", label: "Longitude last",
+      hint: "East–west moved to the very end, wherever the others sit" },
+    { id: "reverse", label: "Reverse", hint: "Flip the order end for end" },
+];
+
+/** The three axes of ordinary space, by id. */
+const SPATIAL_IDS = new Set(["east", "north", "up"]);
+
+/** Rank in the canonical stack, for restoring the preset order. */
+const CANONICAL_RANK = new Map(AXIS_CHOICES.map((s, i) => [s.id, i]));
+
+export function reorderAxisIds(ids: string[], how: AxisOrdering): string[] {
+    const out = [...ids];
+    switch (how) {
+        case "spatial-first":
+            // Stable on rank rather than a fixed list, so a stack containing
+            // scales the presets never use still comes out in a sane order.
+            return out.sort((a, b) =>
+                (CANONICAL_RANK.get(a) ?? 99) - (CANONICAL_RANK.get(b) ?? 99));
+        case "spatial-last":
+            return [...out.filter(id => !SPATIAL_IDS.has(id)), ...out.filter(id => SPATIAL_IDS.has(id))];
+        case "longitude-last":
+            return [...out.filter(id => id !== "east"), ...out.filter(id => id === "east")];
+        case "reverse":
+            return out.reverse();
+    }
+}
+
+/* ------------------------------------------------------------------ *
+ * Axis colour                                                         *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Palette slot per axis, so a dimension keeps its colour between items.
+ *
+ * Assigned by *identity*, not by position. Position would be simpler, but it
+ * would repaint every axis the moment the order is changed and would give east
+ * one colour in a 4D item and another in a 6D one — and the whole value of the
+ * colour is the association it builds up over many items. Time is violet
+ * wherever it sits in the premise.
+ *
+ * The numbers are slots into `--th-dim-N`, which the theme resolves; nothing
+ * here knows what colour anything actually is.
+ */
+const AXIS_COLOR_SLOT: Record<string, number> = {
+    east: 1, north: 2, up: 3, temporal: 4, contains: 5, quantity: 6,
+    vertical: 7, horizontal: 8,
+};
+
+/** How many slots the stylesheet defines. */
+export const DIM_SLOTS = 8;
+
+/**
+ * A colour class per axis, distinct within the stack.
+ *
+ * Two passes for the same reason `ndAxisLabels` needs two: the preferred slot
+ * may be taken by an axis this stack also contains, and two dimensions sharing
+ * a colour is worse than either of them being off its usual one.
+ */
+export function ndAxisColors(axes: AxisSpec[]): string[] {
+    const taken = new Set<number>();
+    const preferred = axes.map(a => {
+        const want = AXIS_COLOR_SLOT[a.scale.id];
+        if (want && !taken.has(want)) { taken.add(want); return want; }
+        return 0;
+    });
+
+    let next = 1;
+    return preferred.map(slot => {
+        if (slot) return dimClass(slot);
+        while (next <= DIM_SLOTS && taken.has(next)) next++;
+        const free = next <= DIM_SLOTS ? next : 1;
+        taken.add(free);
+        return dimClass(free);
+    });
+}
+
+/** The class pair for a slot: the generic hook, then the slot itself. */
+export function dimClass(slot: number): string {
+    return `dim dim-${slot}`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -365,6 +473,10 @@ export function ndTransformVocab(axes: AxisSpec[]): TransformVocab {
         axisNames: ndAxisLabels(axes),
         axisWords: axes.map(a => isCircular(a) ? a.scale.cyclic!.direction : a.scale.direction),
         link: axes.map(a => isCircular(a) ? a.scale.cyclic!.link : a.scale.link),
+        // So an operation premise paints "2 east" the same as the relation
+        // premises do. Without it the two halves of a transformed item would
+        // use the same words in different colours, which is worse than none.
+        axisClasses: ndAxisColors(axes),
     };
 }
 
@@ -423,9 +535,12 @@ export function applyNdTransforms(layout: NdLayout, transforms: Transform[]): Nd
  */
 export function describeNdAxes(axes: AxisSpec[]): string {
     const labels = ndAxisLabels(axes);
+    const colors = ndAxisColors(axes);
+    // Carries the colours too, which makes the same line a key for them —
+    // free, since it is already a list with one entry per axis.
     const parts = axes.map((a, i) => {
         const [pos, neg] = isCircular(a) ? a.scale.cyclic!.direction : a.scale.direction;
-        return `<b>${labels[i]}</b> ${pos}/${neg}`;
+        return hi(`<b>${labels[i]}</b> ${pos}/${neg}`, colors[i]);
     });
     return `Axis labels: ${parts.join(", ")}.`;
 }
@@ -491,9 +606,7 @@ export function pickDistantPair(layout: NdLayout, minSpan = 2): [string, string]
  * Phrasing                                                            *
  * ------------------------------------------------------------------ */
 
-const subj = (s: string) => `<span class="subject">${s}</span>`;
-const rel = (s: string) => `<span class="relation">${s}</span>`;
-const hi = (s: string) => `<span class="highlight">${s}</span>`;
+/** `color` is an axis colour class, for a phrase that belongs to one axis. */
 
 /** The clause one axis contributes to a premise. */
 function axisClause(axis: AxisSpec, delta: number): string {
@@ -532,17 +645,29 @@ export function renderNdPremise(
 ): string {
     const [from, to] = flip ? [edge.to, edge.from] : [edge.from, edge.to];
     const sign = flip ? -1 : 1;
+    const colors = ndAxisColors(layout.axes);
 
+    /*
+     * One span per axis rather than one around the lot.
+     *
+     * The clause list is the whole premise, and at five or six dimensions it is
+     * a run of similar-looking phrases that have to be split apart before any
+     * of them can be used. Colouring each by its axis does that splitting for
+     * the reader, and does it the same way in every premise — so the three
+     * mentions of the time axis across three premises are found by colour
+     * instead of by re-reading. Position cannot do this job once the order is
+     * configurable, and `compact` already removes clauses from the middle.
+     */
     const clauses = layout.axes
-        .map((axis, i) => ({ axis, delta: sign * edge.deltas[i] }))
+        .map((axis, i) => ({ axis, i, delta: sign * edge.deltas[i] }))
         .filter(c => !options.compact || c.delta !== 0)
-        .map(c => axisClause(c.axis, c.delta));
+        .map(c => hi(axisClause(c.axis, c.delta), colors[c.i]));
 
     // Every edge moves on at least one axis, so this cannot be empty — but a
     // hand-built layout could be, and an empty clause list reads as a bug.
     if (!clauses.length) return `${subj(to)} is at the same point as ${subj(from)}`;
 
-    return `${subj(to)} is ${hi(clauses.join(", "))} relative to ${subj(from)}`;
+    return `${subj(to)} is ${clauses.join(", ")} relative to ${subj(from)}`;
 }
 
 export function renderNdPremises(layout: NdLayout, options: NdRenderOptions = {}): string[] {
@@ -575,6 +700,10 @@ export function buildNdConclusion(
     wantValid: boolean,
 ): NdConclusion {
     const axis = layout.axes[axisIndex];
+    // The conclusion names one axis, so it is painted like that axis's clauses
+    // — which says *which* dimension is being asked about before the sentence
+    // is read, and matters most in the modes that ask about several.
+    const color = ndAxisColors(layout.axes)[axisIndex];
 
     if (isCircular(axis)) {
         const c = axis.scale.cyclic!;
@@ -582,7 +711,7 @@ export function buildNdConclusion(
         const truth = displacementOn(layout, axisIndex, a, b);
 
         const claim = wantValid ? truth : pickWrongDisplacement(truth, m);
-        return { text: displacementText(a, b, claim, m, c), isValid: claim === truth, axis: axisIndex, a, b };
+        return { text: displacementText(a, b, claim, m, c, color), isValid: claim === truth, axis: axisIndex, a, b };
     }
 
     const truth = compareOn(layout, axisIndex, a, b);
@@ -591,7 +720,7 @@ export function buildNdConclusion(
     const word = claim === 0 ? axis.scale.same : (claim > 0 ? axis.scale.above : axis.scale.below);
 
     return {
-        text: `${subj(a)} ${rel(word)} ${subj(b)}`,
+        text: `${subj(a)} ${rel(word, color)} ${subj(b)}`,
         isValid: claim === truth,
         axis: axisIndex,
         a, b,
@@ -613,15 +742,16 @@ function displacementText(
     steps: number,
     m: number,
     c: NonNullable<LinearScale["cyclic"]>,
+    color = "",
 ): string {
-    if (steps === 0) return `${subj(a)} ${rel(c.same)} ${subj(b)}`;
-    if (m % 2 === 0 && steps === m / 2) return `${subj(a)} ${rel(c.opposite)} ${subj(b)}`;
+    if (steps === 0) return `${subj(a)} ${rel(c.same, color)} ${subj(b)}`;
+    if (m % 2 === 0 && steps === m / 2) return `${subj(a)} ${rel(c.opposite, color)} ${subj(b)}`;
     // Say it the short way round, which is how anyone reads a dial.
     const forward = steps <= m / 2;
     const n = forward ? steps : m - steps;
     const dir = forward ? c.direction[0] : c.direction[1];
     const noun = n === 1 ? c.step : c.step + "s";
-    return `${subj(a)} ${rel(`is ${n} ${noun} ${dir} ${c.link}`)} ${subj(b)}`;
+    return `${subj(a)} ${rel(`is ${n} ${noun} ${dir} ${c.link}`, color)} ${subj(b)}`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -778,6 +908,8 @@ export function buildNdConstructClaim(
     b: string,
     withDistance: boolean,
 ): ConstructClaim {
+    const colors = ndAxisColors(layout.axes);
+
     const slots = layout.axes.map((axis, i) => {
         const scale = axis.scale;
 
@@ -790,6 +922,7 @@ export function buildNdConstructClaim(
             const forward = steps <= m / 2;
             return {
                 label: scale.name,
+                colorClass: colors[i],
                 directions: [c.direction[0], c.direction[1], c.same] as [string, string, string],
                 answerDirection: (steps === 0 ? 2 : (forward ? 0 : 1)) as 0 | 1 | 2,
                 answerMagnitude: steps === 0 ? 0 : (forward ? steps : m - steps),
@@ -801,6 +934,7 @@ export function buildNdConstructClaim(
         const delta = layout.coords[a][i] - layout.coords[b][i];
         return {
             label: scale.name,
+            colorClass: colors[i],
             directions: [scale.above, scale.below, scale.same] as [string, string, string],
             answerDirection: (delta === 0 ? 2 : (delta > 0 ? 0 : 1)) as 0 | 1 | 2,
             answerMagnitude: Math.abs(delta),
@@ -931,6 +1065,9 @@ export function explainNdAxis(
     if (!path || path.length < 2) return [];
 
     const axis = layout.axes[axisIndex];
+    // Every line of a derivation is about the one axis being explained, so it
+    // is painted like that axis throughout — the same cue the premises use.
+    const color = ndAxisColors(layout.axes)[axisIndex];
     const lines: string[] = [];
     let total = 0;
 
@@ -945,7 +1082,7 @@ export function explainNdAxis(
             ? `running total ${mod(total, axis.modulus!)}`
             : `running total ${total > 0 ? "+" : ""}${total}`;
         lines.push(
-            `${subj(path[i + 1])} is ${hi(word)} relative to ${subj(path[i])}`
+            `${subj(path[i + 1])} is ${hi(word, color)} relative to ${subj(path[i])}`
             + ` — ${rel(running)}`);
     }
 
@@ -967,7 +1104,7 @@ export function explainNdAxis(
         ? displacementPhrase(mod(total, axis.modulus!), axis.modulus!, axis.scale.cyclic!)
         : total === 0 ? axis.scale.same : (total > 0 ? axis.scale.above : axis.scale.below);
 
-    lines.push(`so ${subj(b)} ${rel(word)} ${subj(a)}`);
+    lines.push(`so ${subj(b)} ${rel(word, color)} ${subj(a)}`);
     return lines;
 }
 

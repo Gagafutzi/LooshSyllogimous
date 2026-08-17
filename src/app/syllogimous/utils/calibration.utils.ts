@@ -168,6 +168,18 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },
     [EnumQuestionType.Transformation]: { weight: 2.2, ceiling: 20 },
     [EnumQuestionType.AnchorSpaceV2]: { weight: 2.5, ceiling: 20 },
+    /*
+     * The induction pair. Weighted high because their premise count buys
+     * candidates to eliminate and relations to compare rather than chain to
+     * walk — a sixth candidate is a whole extra hypothesis to hold, where a
+     * sixth link in a chain is one more step of the same kind. Low ceilings for
+     * the same reason: past these the item is wider, not deeper.
+     */
+    [EnumQuestionType.InferRelation]: { weight: 2.2, ceiling: 8 },
+    [EnumQuestionType.OddestRelation]: { weight: 2.4, ceiling: 8 },
+    // Modular arithmetic over a small ring, with a derivation before it. Harder
+    // than a chain of the same length, nowhere near the composed spaces.
+    [EnumQuestionType.ShapeRotation]: { weight: 1.6, ceiling: 9 },
 };
 
 /** Real premise count for a linear-equivalent level, clamped to the mode's range. */

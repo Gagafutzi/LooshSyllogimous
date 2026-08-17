@@ -188,9 +188,14 @@
     visibility: hidden;
 }
 
+/* `:not(.dim)` so a slot that carries a dimension colour keeps it: this rule is
+ * component-scoped and would otherwise outrank the global axis palette. */
+.build__label:not(.dim) {
+    color: var(--th-text-dim, #7d8ca6);
+}
+
 .build__label {
     font-size: 0.75rem;
-    color: var(--th-text-dim, #7d8ca6);
     text-align: end;
     line-height: 1.2;
 }

@@ -3,6 +3,7 @@ import { EnumArrangements, EnumQuestionType } from "../constants/question.consta
 import { IArrangementPremise, IArrangementRelationship, Question } from "../models/question.models";
 import { Settings, Picked } from "../models/settings.models";
 import { getVisualNoiseSymbols } from "./visual-noise.utils";
+import { neg, subj } from "./phrasing";
 
 export const b2n = (b: boolean) => +b as number;
 
@@ -112,7 +113,7 @@ export function getMetaReplacer(settings: Settings, choosenPair: Picked<string>,
     const isSameAs = (relations[0] === relations[1]) === (negations[0] === negations[1]);
     const relation = getRelation(settings, EnumQuestionType.Distinction, isSameAs);
 
-    return `$1 ${relation} (<span class="subject">${a}</span> to <span class="subject">${b}</span>) to `;
+    return `$1 ${relation} (${subj(a)} to ${subj(b)}) to `;
 }
 
 export function getRelation(settings: Settings, type: EnumQuestionType, isPositive: boolean) {
@@ -138,10 +139,10 @@ export function getRelation(settings: Settings, type: EnumQuestionType, isPositi
     if (settings.enabled.negation && coinFlip()) {
         switch (relation) {
             case positive:
-                relation = `<span class="is-negated">${negative}</span>`;
+                relation = neg(negative);
                 break;
             case negative:
-                relation = `<span class="is-negated">${positive}</span>`;
+                relation = neg(positive);
                 break;
         }
     }
@@ -190,15 +191,15 @@ export function createMetaRelationships(settings: Settings, question: Question, 
 
             if (isSame) { // Same
                 if (settings.enabled.negation && coinFlip()) {
-                    newPremises.push(`<span class="subject">${a.subject}</span> relates to <span class="subject">${b.subject}</span> in the <span class="is-negated">opposite</span> way that <span class="subject">${c.subject}</span> relates to <span class="subject">${d.subject}</span>`);
+                    newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the <span class="is-negated">opposite</span> way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
                 } else {
-                    newPremises.push(`<span class="subject">${a.subject}</span> relates to <span class="subject">${b.subject}</span> in the same way that <span class="subject">${c.subject}</span> relates to <span class="subject">${d.subject}</span>`);
+                    newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the same way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
                 }
             } else { // Different
                 if (settings.enabled.negation && coinFlip()) {
-                    newPremises.push(`<span class="subject">${a.subject}</span> relates to <span class="subject">${b.subject}</span> in the <span class="is-negated">same</span> way that <span class="subject">${c.subject}</span> relates to <span class="subject">${d.subject}</span>`);
+                    newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the <span class="is-negated">same</span> way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
                 } else {
-                    newPremises.push(`<span class="subject">${a.subject}</span> relates to <span class="subject">${b.subject}</span> in the opposite way that <span class="subject">${c.subject}</span> relates to <span class="subject">${d.subject}</span>`);
+                    newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the opposite way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
                 }
             }
         }
@@ -403,7 +404,7 @@ export function interpolateArrangementRelationship(relationship: IArrangementRel
     if (settings.enabled.negation && coinFlip()) {
         // TODO: This method should return the number of negations applied
         return interpolatedWithSteps.replaceAll(/(left|right)/gi, substr =>
-            `<span class="is-negated">${(substr === "left") ? "right" : "left"}</span>`
+            neg((substr === "left") ? "right" : "left")
         );
     }
 
@@ -411,7 +412,7 @@ export function interpolateArrangementRelationship(relationship: IArrangementRel
 }
 
 export function fixBinaryInstructions(q: Question) {
-    const htmlify = (rule: string) => rule.split(", ").map(str => `<span class="subject">${str}</span>`).join(", ");
+    const htmlify = (rule: string) => rule.split(", ").map(str => subj(str)).join(", ");
     switch (q.type) {
         case EnumQuestionType.LinearArrangement: {
             return htmlify(q.rule) + " are arranged in a <b>linear</b> way.";
