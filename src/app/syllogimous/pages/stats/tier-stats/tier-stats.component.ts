@@ -10,7 +10,7 @@ import { GameService } from 'src/app/syllogimous/services/game.service';
 export class TierStatsComponent {
     TIER_SCORE_RANGES = TIER_SCORE_RANGES;
     tiers = Object.values(EnumTiers);
-    nextTier = EnumTiers.Savant;
+    nextTier = EnumTiers.HedgeWizard;
     pointsRemaining = 0;
 
     constructor(

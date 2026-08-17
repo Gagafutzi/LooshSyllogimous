@@ -20,25 +20,34 @@
     gap: 0.5rem;
 }
 
+/*
+ * Verdict tints, taken from the theme.
+ *
+ * These were pastel fills with `color: #000` on top. The theme paints .card
+ * backgrounds with !important, so the dark panel won the fill while the black
+ * text won the colour — black premises on a near-black card. Tinting from
+ * --th-ok / --th-bad instead means the state still reads at a glance and the
+ * text keeps whatever colour the theme says is legible.
+ */
 .correct {
-    background-color: #D4EDDA88;
-    color: #000;
+    background: color-mix(in srgb, var(--th-ok, #4ade80) 13%, transparent) !important;
+    border-color: color-mix(in srgb, var(--th-ok, #4ade80) 45%, transparent) !important;
 }
 
 .incorrect {
-    background-color: #F8D7DA88;
-    color: #000;
+    background: color-mix(in srgb, var(--th-bad, #fb7185) 13%, transparent) !important;
+    border-color: color-mix(in srgb, var(--th-bad, #fb7185) 45%, transparent) !important;
 }
 
 .timeout {
-    background-color: #E0E0E088;
-    color: #000;
+    background: color-mix(in srgb, var(--th-text-dim, #7d8ca6) 12%, transparent) !important;
+    border-color: color-mix(in srgb, var(--th-text-dim, #7d8ca6) 40%, transparent) !important;
 }
 
 
 .bd-left {
-    border-top: 1px solid #0006;
-    border-left: 1px solid #0006;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.2);
+    border-left: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.2);
     padding: 0.5rem;
 }
 

@@ -161,7 +161,7 @@ export class GameService implements GeneratorContext {
                 return tier as EnumTiers;
             }
         }
-        return EnumTiers.Adept;
+        return EnumTiers.Peasant;
     }
 
     get settings() {

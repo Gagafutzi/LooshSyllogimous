@@ -20,17 +20,30 @@ export enum EnumScreens {
     OtherGames = "Other Games",
 }
 
+/**
+ * The ladder, twenty-five rungs.
+ *
+ * It starts as a joke and stops being one. The bottom five are deliberately
+ * undignified — nobody is a Savant on their first evening, and a rank that
+ * flatters you at the start has nothing left to say later. From Adept on they
+ * are earnest, and the top third keeps the words that made the ladder worth
+ * climbing: Demiurge, Aeon, Numen, Ineffable.
+ *
+ * Positional. Colours, score bands and point adjustments below are all keyed by
+ * these names but ordered by rank, so renaming a rung is safe and reordering
+ * one is not.
+ */
 export enum EnumTiers {
+    Peasant = "Peasant",
+    TurnipFarmer = "Turnip Farmer",
+    HedgeWizard = "Hedge Wizard",
+    Apprentice = "Apprentice",
+    Squire = "Squire",
     Adept = "Adept",
     Scholar = "Scholar",
-    Savant = "Savant",
     Expert = "Expert",
-    Mastermind = "Mastermind",
-    Visionary = "Visionary",
     Genius = "Genius",
-    Virtuoso = "Virtuoso",
-    Luminary = "Luminary",
-    Prodigy = "Prodigy",
+    Visionary = "Visionary",
     Oracle = "Oracle",
     Sage = "Sage",
     Philosopher = "Philosopher",
@@ -49,16 +62,16 @@ export enum EnumTiers {
 }
 
 export const TIER_COLORS: Record<EnumTiers, { bgColor: string, textColor: string }> = {
-    [EnumTiers.Adept]:          { bgColor: "#F0F8FF", textColor: "#045D56" },  // Alice Blue with Teal
-    [EnumTiers.Scholar]:        { bgColor: "#ADD8E6", textColor: "#013220" },  // Light Blue with Deep Green
-    [EnumTiers.Savant]:         { bgColor: "#E6E6FA", textColor: "#4B0082" },  // Lavender with Indigo
-    [EnumTiers.Expert]:         { bgColor: "#D8BFD8", textColor: "#8B008B" },  // Thistle with Dark Magenta
-    [EnumTiers.Mastermind]:     { bgColor: "#DDA0DD", textColor: "#483D8B" },  // Plum with Dark Slate Blue
-    [EnumTiers.Visionary]:      { bgColor: "#B0E0E6", textColor: "#002366" },  // Powder Blue with Royal Blue
-    [EnumTiers.Genius]:         { bgColor: "#AFEEEE", textColor: "#004953" },  // Pale Turquoise with Deep Aqua
-    [EnumTiers.Virtuoso]:       { bgColor: "#00CED1", textColor: "#002D62" },  // Dark Turquoise with Deep Blue
-    [EnumTiers.Luminary]:       { bgColor: "#98FB98", textColor: "#006400" },  // Pale Green with Dark Green
-    [EnumTiers.Prodigy]:        { bgColor: "#FFFACD", textColor: "#556B2F" },  // Lemon Chiffon with Dark Olive Green
+    [EnumTiers.Peasant]:          { bgColor: "#F0F8FF", textColor: "#045D56" },  // Alice Blue with Teal
+    [EnumTiers.TurnipFarmer]:        { bgColor: "#ADD8E6", textColor: "#013220" },  // Light Blue with Deep Green
+    [EnumTiers.HedgeWizard]:         { bgColor: "#E6E6FA", textColor: "#4B0082" },  // Lavender with Indigo
+    [EnumTiers.Apprentice]:         { bgColor: "#D8BFD8", textColor: "#8B008B" },  // Thistle with Dark Magenta
+    [EnumTiers.Squire]:     { bgColor: "#DDA0DD", textColor: "#483D8B" },  // Plum with Dark Slate Blue
+    [EnumTiers.Adept]:      { bgColor: "#B0E0E6", textColor: "#002366" },  // Powder Blue with Royal Blue
+    [EnumTiers.Scholar]:         { bgColor: "#AFEEEE", textColor: "#004953" },  // Pale Turquoise with Deep Aqua
+    [EnumTiers.Expert]:       { bgColor: "#00CED1", textColor: "#002D62" },  // Dark Turquoise with Deep Blue
+    [EnumTiers.Genius]:       { bgColor: "#98FB98", textColor: "#006400" },  // Pale Green with Dark Green
+    [EnumTiers.Visionary]:        { bgColor: "#FFFACD", textColor: "#556B2F" },  // Lemon Chiffon with Dark Olive Green
     [EnumTiers.Oracle]:         { bgColor: "#FFDAB9", textColor: "#A0522D" },  // Peach Puff with Sienna
     [EnumTiers.Sage]:           { bgColor: "#FFC0CB", textColor: "#8B0000" },  // Pink with Dark Red
     [EnumTiers.Philosopher]:    { bgColor: "#D8BFD8", textColor: "#4A235A" },  // Thistle with Dark Purple
@@ -91,16 +104,16 @@ export const TIER_COLORS: Record<EnumTiers, { bgColor: string, textColor: string
  * of them and every one of these falls back cleanly to a system symbol font.
  */
 export const TIER_SYMBOLS: Record<EnumTiers, string> = {
-    [EnumTiers.Adept]:          "\u2726",  // ✦  four-pointed star
-    [EnumTiers.Scholar]:        "\u2727",  // ✧  its hollow twin
-    [EnumTiers.Savant]:         "\u25C8",  // ◈  diamond in a diamond
-    [EnumTiers.Expert]:         "\u2756",  // ❖  black diamond minus white X
-    [EnumTiers.Mastermind]:     "\u2B22",  // ⬢  hexagon
-    [EnumTiers.Visionary]:      "\u2B21",  // ⬡  hollow hexagon
-    [EnumTiers.Genius]:         "\u2736",  // ✶  six-pointed
-    [EnumTiers.Virtuoso]:       "\u2737",  // ✷  eight-pointed
-    [EnumTiers.Luminary]:       "\u2738",  // ✸  heavy eight-pointed
-    [EnumTiers.Prodigy]:        "\u2739",  // ✹  twelve-pointed
+    [EnumTiers.Peasant]:          "\u2726",  // ✦  four-pointed star
+    [EnumTiers.TurnipFarmer]:        "\u2727",  // ✧  its hollow twin
+    [EnumTiers.HedgeWizard]:         "\u25C8",  // ◈  diamond in a diamond
+    [EnumTiers.Apprentice]:         "\u2756",  // ❖  black diamond minus white X
+    [EnumTiers.Squire]:     "\u2B22",  // ⬢  hexagon
+    [EnumTiers.Adept]:      "\u2B21",  // ⬡  hollow hexagon
+    [EnumTiers.Scholar]:         "\u2736",  // ✶  six-pointed
+    [EnumTiers.Expert]:       "\u2737",  // ✷  eight-pointed
+    [EnumTiers.Genius]:       "\u2738",  // ✸  heavy eight-pointed
+    [EnumTiers.Visionary]:        "\u2739",  // ✹  twelve-pointed
     [EnumTiers.Oracle]:         "\u263D",  // ☽  first quarter moon
     [EnumTiers.Sage]:           "\u263E",  // ☾  last quarter moon
     [EnumTiers.Philosopher]:    "\u269A",  // ⚚  staff of Hermes
@@ -121,16 +134,16 @@ export const TIER_SYMBOLS: Record<EnumTiers, string> = {
 export const NO_DATA = "--";
 
 export const TIER_SCORE_RANGES: Record<EnumTiers, { minScore: number, maxScore: number }> = {
-    [EnumTiers.Adept]:          { minScore: -INF, maxScore:  249 },
-    [EnumTiers.Scholar]:        { minScore:  250, maxScore:  499 },
-    [EnumTiers.Savant]:         { minScore:  500, maxScore:  749 },
-    [EnumTiers.Expert]:         { minScore:  750, maxScore:  999 },
-    [EnumTiers.Mastermind]:     { minScore: 1000, maxScore: 1249 },
-    [EnumTiers.Visionary]:      { minScore: 1250, maxScore: 1499 },
-    [EnumTiers.Genius]:         { minScore: 1500, maxScore: 1749 },
-    [EnumTiers.Virtuoso]:       { minScore: 1750, maxScore: 1999 },
-    [EnumTiers.Luminary]:       { minScore: 2000, maxScore: 2249 },
-    [EnumTiers.Prodigy]:        { minScore: 2250, maxScore: 2499 },
+    [EnumTiers.Peasant]:          { minScore: -INF, maxScore:  249 },
+    [EnumTiers.TurnipFarmer]:        { minScore:  250, maxScore:  499 },
+    [EnumTiers.HedgeWizard]:         { minScore:  500, maxScore:  749 },
+    [EnumTiers.Apprentice]:         { minScore:  750, maxScore:  999 },
+    [EnumTiers.Squire]:     { minScore: 1000, maxScore: 1249 },
+    [EnumTiers.Adept]:      { minScore: 1250, maxScore: 1499 },
+    [EnumTiers.Scholar]:         { minScore: 1500, maxScore: 1749 },
+    [EnumTiers.Expert]:       { minScore: 1750, maxScore: 1999 },
+    [EnumTiers.Genius]:       { minScore: 2000, maxScore: 2249 },
+    [EnumTiers.Visionary]:        { minScore: 2250, maxScore: 2499 },
     [EnumTiers.Oracle]:         { minScore: 2500, maxScore: 2749 },
     [EnumTiers.Sage]:           { minScore: 2750, maxScore: 2999 },
     [EnumTiers.Philosopher]:    { minScore: 3000, maxScore: 3249 },
@@ -149,16 +162,16 @@ export const TIER_SCORE_RANGES: Record<EnumTiers, { minScore: number, maxScore: 
 };
 
 export const TIER_SCORE_ADJUSTMENTS: Record<EnumTiers, { increment: number, decrement: number }> = {
-    [EnumTiers.Adept]:          { increment: 10, decrement: 10 },
-    [EnumTiers.Scholar]:        { increment: 10, decrement: 10 },
-    [EnumTiers.Savant]:         { increment: 10, decrement: 10 },
-    [EnumTiers.Expert]:         { increment: 10, decrement: 10 },
-    [EnumTiers.Mastermind]:     { increment: 10, decrement: 10 },
-    [EnumTiers.Visionary]:      { increment: 10, decrement: 10 },
-    [EnumTiers.Genius]:         { increment: 10, decrement: 10 },
-    [EnumTiers.Virtuoso]:       { increment: 10, decrement: 10 },
-    [EnumTiers.Luminary]:       { increment: 10, decrement: 10 },
-    [EnumTiers.Prodigy]:        { increment: 10, decrement: 10 },
+    [EnumTiers.Peasant]:          { increment: 10, decrement: 10 },
+    [EnumTiers.TurnipFarmer]:        { increment: 10, decrement: 10 },
+    [EnumTiers.HedgeWizard]:         { increment: 10, decrement: 10 },
+    [EnumTiers.Apprentice]:         { increment: 10, decrement: 10 },
+    [EnumTiers.Squire]:     { increment: 10, decrement: 10 },
+    [EnumTiers.Adept]:      { increment: 10, decrement: 10 },
+    [EnumTiers.Scholar]:         { increment: 10, decrement: 10 },
+    [EnumTiers.Expert]:       { increment: 10, decrement: 10 },
+    [EnumTiers.Genius]:       { increment: 10, decrement: 10 },
+    [EnumTiers.Visionary]:        { increment: 10, decrement: 10 },
     [EnumTiers.Oracle]:         { increment: 10, decrement: 10 },
     [EnumTiers.Sage]:           { increment: 10, decrement: 10 },
     [EnumTiers.Philosopher]:    { increment: 10, decrement: 10 },
