@@ -3,12 +3,25 @@
         <router-outlet class="d-none"></router-outlet>
     </div>
 
-    <div *ngIf="!showBack; else showBackTemplate" footer class="playcard-toolbar">
-        <div>
+    <div *ngIf="!showBack; else showBackTemplate" footer class="playcard-toolbar tut__footer">
+        <div class="tut__checks">
             <div class="form-check">
                 <input #dontShowAnymore class="form-check-input" type="checkbox" value="" id="dontShowAnymore">
                 <label class="form-check-label" for="dontShowAnymore">
                     Don't show anymore
+                </label>
+            </div>
+
+            <!--
+              Offered here as well as on the intro, because this is the screen
+              you are on when you decide you never want to see one again.
+            -->
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="skipAllTutorials"
+                       [checked]="game.skipAllTutorials"
+                       (change)="game.skipAllTutorials = $any($event.target).checked">
+                <label class="form-check-label" for="skipAllTutorials">
+                    Skip all tutorials
                 </label>
             </div>
         </div>

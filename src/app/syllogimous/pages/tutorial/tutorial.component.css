@@ -1,0 +1,10 @@
+
+.tut__footer {
+    align-items: start;
+    gap: 16px;
+}
+
+.tut__checks {
+    display: grid;
+    gap: 6px;
+}

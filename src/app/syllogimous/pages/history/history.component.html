@@ -15,7 +15,7 @@
                 [class.correct]="q.userAnswer !== undefined && q.userAnswer === q.isValid"
                 [class.incorrect]="q.userAnswer !== undefined && q.userAnswer !== q.isValid"
             >
-                <div class="mode-title">{{q.playgroundMode ? "Playground Mode" : "Arcade Mode"}}</div>
+                <div class="mode-title">{{q.playgroundMode ? "Free Play" : "Arcade Mode"}}</div>
 
                 <button class="copy-paste" (click)="copyQuestion(q)" ngbTooltip="Click here to copy the question raw JSON data">C</button>
 

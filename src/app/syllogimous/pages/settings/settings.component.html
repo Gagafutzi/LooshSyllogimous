@@ -60,47 +60,6 @@
             </div>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header py-2 small">Performance tracker</div>
-            <div class="card-body">
-                <div class="d-grid" style="gap: 1rem;">
-                    <app-input
-                        type="range"
-                        min="10"
-                        max="30"
-                        step="5"
-                        name="trainingUnitLength"
-                        [label]="'Sample size: ' + trainingUnitLength.value + ' questions'"
-                        [ngControl]="trainingUnitLength"
-                        [noParenthesisValue]="true"
-                    ></app-input>
-    
-                    <app-input
-                        type="range"
-                        min="0"
-                        max="0.9"
-                        step="0.1"
-                        helper="Percentage of incorrect answers at which premises will decrease"
-                        name="premisesDownThreshold"
-                        [label]="'Premises decrease threshold: ' + Math.round((premisesDownThreshold.value || 0)*100) + '%'"
-                        [ngControl]="premisesDownThreshold"
-                        [noParenthesisValue]="true"
-                    ></app-input>
-        
-                    <app-input
-                        type="range"
-                        min="0.1"
-                        max="1"
-                        step="0.1"
-                        helper="Percentage of correct answers required for premises to increase"
-                        name="premisesUpThreshold"
-                        [label]="'Premises increase threshold: ' + Math.round((premisesUpThreshold.value || 0)*100) + '%'"
-                        [ngControl]="premisesUpThreshold"
-                        [noParenthesisValue]="true"
-                    ></app-input>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div footer class="playcard-toolbar">

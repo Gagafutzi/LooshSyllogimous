@@ -1,66 +1,11 @@
+<!--
+    Start no longer shows a menu. Arcade launches immediately, so the centre of
+    the screen is a question rather than a hub; the mode buttons moved to the
+    drawer and the counters to Stats, where they are not competing with the item
+    you are meant to be reading.
+-->
 <app-card>
-    <div body style="min-width: 320px; padding-top: 3rem;">
-        <app-progress-and-performance></app-progress-and-performance>
-        
-        <ul class="list-group mb-4">
-            <li class="list-group-item flex-between">
-                <b>Tier</b>
-                <div>{{ game.tier }} {{ game.score }} pts <small class="text-muted">(next {{nextTier}}<i [ngbTooltip]="pointsRemaining + ' pts left to this next level'" class="bi bi-info-circle ms-1"></i>)</small></div>
-            </li>
-    
-            <li class="list-group-item flex-between">
-                <b>Correct</b>
-                <div>{{ correctQs.length }}</div>
-            </li>
-
-            <li class="list-group-item flex-between">
-                <b>Timeout</b>
-                <div>{{ unansweredQs.length }}</div>
-            </li>
-
-            <li class="list-group-item flex-between">
-                <b>Incorrect</b>
-                <div>{{ incorrectQs.length }}</div>
-            </li>
-
-            <li class="list-group-item flex-between">
-                <b>Longest Streak</b>
-                <div>{{ longestStreak.length }}</div>
-            </li>
-        
-            <li class="list-group-item flex-between">
-                <b>Current Streak</b>
-                <div>{{ currentStreak.length }}</div>
-            </li>
-        
-            <li class="list-group-item flex-between">
-                <b>Playtime Today</b>
-                <div>{{ formatTime(timePlayedToday) }}</div>
-            </li>
-
-            <li class="list-group-item flex-between">
-                <b>Playtime This Week</b>
-                <div>{{ formatTime(timePlayedThisWeek) }}</div>
-            </li>
-        </ul>
-
-        <div class="text-center">
-            <a class="btn btn-outline-primary" (click)="router.navigate([EnumScreens.Settings])">
-                <i class="bi bi-gear"></i> Settings
-            </a>
-        </div>
-    </div>
-
-    <div footer class="text-center d-flex justify-content-center gap-3">
-        <button
-            style="width: 150px;"
-            class="btn btn-primary"
-            (click)="game.playArcadeMode()"
-        >Arcade</button>
-        <button
-            style="width: 150px;"
-            class="btn btn-outline-primary"
-            (click)="router.navigate([EnumScreens.PlaygroundMode])"
-        >Playground</button>
+    <div body style="min-width: 320px; padding-top: 3rem;" class="text-center">
+        <p class="text-muted">Starting…</p>
     </div>
 </app-card>

@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { loadColorBlindnessMode } from './syllogimous/pages/settings/settings.component';
+import { ThemeService } from './syllogimous/services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -10,7 +11,18 @@ export class AppComponent {
 
   title = 'Multi Layout';
 
-  constructor() {
+  /**
+   * `theme` is injected purely to construct it.
+   *
+   * ThemeService is `providedIn: "root"`, which makes it *lazy*, not eager —
+   * Angular builds it on first injection and nothing injected it except the
+   * Appearance page. Its constructor is what reads the saved theme out of
+   * localStorage and writes the custom properties, so on any normal load the
+   * app ran on stylesheet defaults until you happened to open Appearance, which
+   * looked exactly like the theme had been forgotten. It had not; it was never
+   * applied.
+   */
+  constructor(private theme: ThemeService) {
     loadColorBlindnessMode();
     
     const cwarn = console.warn;

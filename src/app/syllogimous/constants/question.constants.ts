@@ -2,15 +2,42 @@ export enum EnumQuestionType {
     Distinction = "Distinction",
     ComparisonNumerical = "Comparison Numerical",
     ComparisonChronological = "Comparison Chronological",
+    /*
+     * The rest of the linear-scale family (see utils/linear.utils.ts). Comparison
+     * Numerical is the quantity scale and already covers "more/less", so it is
+     * not repeated here; these are the three wordings v4 was missing.
+     */
+    LinearVertical = "Vertical Order",
+    LinearHorizontal = "Horizontal Order",
+    LinearContains = "Containment",
     Syllogism = "Syllogism",
     Direction = "Direction",
     Direction3DSpatial = "Direction3D Spatial",
     Direction3DTemporal = "Direction3D Temporal",
+    /*
+     * Composed spaces (utils/ndspace.utils.ts). The dimension count is a
+     * configuration, not a hardcoded generator: 4D is the three spatial axes
+     * plus time, 5D adds containment, 6D adds quantity, and any of that can be
+     * changed in Advanced Options.
+     */
+    Space4D = "Space 4D",
+    Space3D = "Space 3D",
+    Space5D = "Space 5D",
+    Space6D = "Space 6D",
     LinearArrangement = "Linear Arrangement",
     CircularArrangement = "Circular Arrangement",
     GraphMatching = "Graph Matching",
+    /*
+     * Directed reachability (utils/hierarchy.utils.ts). Every other mode asks
+     * where things sit; this one asks whether you can get from one to another.
+     */
+    Hierarchy = "Hierarchy",
     Analogy = "Analogy",
     Binary = "Binary",
+    Deictic = "Deictic Relations",
+    Transformation = "Transformation",
+    AnchorSpace = "Anchor Space",
+    AnchorSpaceV2 = "Anchor Space v2",
 }
 
 export enum EnumArrangements {

@@ -2,6 +2,7 @@ import { getEmojis, getStrings, NOUNS, NUMBER_WORDS } from "../constants/questio
 import { EnumArrangements, EnumQuestionType } from "../constants/question.constants";
 import { IArrangementPremise, IArrangementRelationship, Question } from "../models/question.models";
 import { Settings, Picked } from "../models/settings.models";
+import { getVisualNoiseSymbols } from "./visual-noise.utils";
 
 export const b2n = (b: boolean) => +b as number;
 
@@ -49,12 +50,45 @@ export function isPremiseLikeConclusion(premises: string[], conclusion: string) 
     return false;
 }
 
+/** Random sample without shuffling the whole source, which can be thousands long. */
+function sampleN<T>(source: T[], n: number): T[] {
+    if (source.length <= n) return [...source];
+    const seen = new Set<number>();
+    const out: T[] = [];
+    while (out.length < n) {
+        const i = Math.floor(Math.random() * source.length);
+        if (seen.has(i)) continue;
+        seen.add(i);
+        out.push(source[i]);
+    }
+    return out;
+}
+
+/**
+ * The stimulus pool for one question.
+ *
+ * Each enabled kind contributes, so selecting several mixes them within a single
+ * item rather than one kind winning outright. Contributions are balanced: the
+ * noun list is orders of magnitude larger than the noise pool, so an unweighted
+ * union would make the other kinds vanishingly rare.
+ *
+ * Re-sampled per question, so restricting each kind's share costs variety across
+ * a session rather than within it.
+ */
 export function getSymbols(settings: Settings) {
-    return settings.enabled.useEmojis
-        ? [...getEmojis()]
-        : settings.enabled.meaningfulWords
-            ? [...NOUNS]
-            : [...getStrings()];
+    const text = () => settings.enabled.meaningfulWords ? NOUNS : getStrings();
+
+    const kinds: string[][] = [];
+    if (settings.enabled.visualNoise) kinds.push(getVisualNoiseSymbols());
+    if (settings.enabled.useEmojis) kinds.push(getEmojis());
+    if (settings.enabled.useText) kinds.push(text());
+
+    // Deselecting everything would leave nothing to build a question from.
+    if (!kinds.length) return [...text()];
+    if (kinds.length === 1) return [...kinds[0]];
+
+    const per = Math.min(...kinds.map(k => k.length), 240);
+    return kinds.flatMap(k => sampleN(k, per));
 }
 
 export function getRandomSymbols(settings: Settings, length: number) {

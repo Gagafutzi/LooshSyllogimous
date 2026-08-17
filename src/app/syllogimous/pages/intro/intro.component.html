@@ -1,23 +1,60 @@
 <app-card>
     <div body class="py-3 px-md-3">
-        <h1>Welcome to Syllogimous!</h1>
-        <p>Syllogimous v4 takes classic logic challenges and turns them into a brain workout. This latest version introduces new features designed to enhance your brain training experience.</p>
-        <p>Syllogimous is based on <a href="https://en.wikipedia.org/wiki/Relational_frame_theory" target="_blank">Relational Frame Theory (RFT)</a>, a psychological theory that suggests that the fundamental process of human thought involves forming relationships between concepts. Studies indicate that training in relational skills can significantly enhance cognitive functions.</p>
-        <p>Therefore, by playing Syllogimous, you're boosting your problem-solving skills, hopefully while having fun.</p>
+        <h1>Syllogimous</h1>
 
-        <h2>Useful Links</h2>
-        <div class="d-grid justify-content-start gap-1">
-            <a href="https://groups.google.com/g/brain-training" target="_blank">Brain Training Google Groups</a>
-            <a href="https://t.me/brain_training" target="_blank">Brain Training Telegram</a>
-        </div>
+        <p class="lead">
+            A few statements. One conclusion. Does it follow?
+        </p>
+
+        <p>
+            Every question hands you a set of relations — bigger than, before,
+            left of, inside — and asks you to hold them together well enough to
+            judge a claim you were never told. Nothing is written down for you.
+            The work happens in your head, and that is the whole point.
+        </p>
+
+        <p>
+            It gets harder along several axes at once. More premises to keep
+            track of. Premises that arrive out of order, so you cannot simply
+            read forwards. Relations stated as the thing that <em>isn't</em> true.
+            Arrangements that change after you have learned them. Eventually,
+            conclusions you have to pick rather than judge.
+        </p>
+
+        <p>
+            The idea behind it is <strong>Relational Frame Theory</strong>: that
+            relating things to one another is the basic move underneath most of
+            what we call thinking, and that it can be trained like anything else.
+            Whether that transfers beyond the task itself is genuinely unsettled —
+            treat this as good practice at a hard thing, not a guaranteed upgrade.
+        </p>
+
+        <p>
+            You will start easy. If that is beneath you,
+            <strong>Calibrate</strong> places you where you actually belong in
+            about a dozen questions.
+        </p>
     </div>
     
-    <div footer class="playcard-toolbar">
-        <div>
+    <div footer class="playcard-toolbar intro__footer">
+        <div class="intro__checks">
             <div class="form-check">
                 <input #dontShowAnymore class="form-check-input" type="checkbox" value="" id="dontShowAnymore">
                 <label class="form-check-label" for="dontShowAnymore">
                     Don't show anymore
+                </label>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="skipAllTutorials"
+                       [checked]="game.skipAllTutorials"
+                       (change)="game.skipAllTutorials = $any($event.target).checked">
+                <label class="form-check-label" for="skipAllTutorials">
+                    Skip all tutorials
+                    <small class="d-block text-muted">
+                        Never interrupt a session to explain a mode, including modes
+                        you have not met yet. They stay under Learn.
+                    </small>
                 </label>
             </div>
         </div>

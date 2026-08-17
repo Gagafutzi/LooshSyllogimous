@@ -1,0 +1,138 @@
+<div class="diag">
+
+    <h2 class="mb-1">Generator diagnostics</h2>
+    <p class="text-muted mb-3">
+        Generates questions of every type through the live game service and checks
+        invariants that hold regardless of mode.
+    </p>
+
+    <div class="card p-3 mb-3">
+        <h5 class="mb-2">Types to check</h5>
+        <p class="text-muted small mb-2">
+            Unticked by default: several stock generators retry without a bound and can
+            wedge the tab. Tick them only if you want to hunt that down.
+        </p>
+        <div class="type-grid">
+            <label *ngFor="let t of allTypes" class="type" [class.risky]="!isBounded(t)">
+                <input type="checkbox" class="form-check-input"
+                       [checked]="isSelected(t)"
+                       (change)="toggle(t, $any($event.target).checked)">
+                <span>{{ t }}<small *ngIf="!isBounded(t)" class="d-block text-muted">unbounded retry</small></span>
+            </label>
+        </div>
+        <div class="preset-row mt-2">
+            <button class="btn btn-sm" (click)="selectBounded()">Safe set</button>
+            <button class="btn btn-sm" (click)="selectAll()">All types</button>
+        </div>
+
+        <label class="type mt-3">
+            <input type="checkbox" class="form-check-input"
+                   [checked]="useLiveSettings"
+                   (change)="useLiveSettings = $any($event.target).checked">
+            <span>Use live settings
+                <small class="d-block text-muted">
+                    Runs against tier + overrides + progression instead of a fixed
+                    settings object, so those layers are covered too.
+                </small>
+            </span>
+        </label>
+    </div>
+
+    <div class="card p-3 mb-3" *ngIf="lastAttempted">
+        <span class="no">Previous run stopped while testing: <strong>{{ lastAttempted }}</strong></span>
+    </div>
+
+    <div class="card p-3 mb-3">
+        <div class="run-row">
+            <button class="btn btn-primary" [disabled]="running" (click)="run()">
+                {{ running ? "Running…" : "Run checks" }}
+            </button>
+            <span class="text-muted" *ngIf="ran && !running">
+                {{ results.length }} types ·
+                <span [class.ok]="totalFailures === 0" [class.no]="totalFailures > 0">
+                    {{ totalFailures === 0 ? "all clear" : totalFailures + " issue(s)" }}
+                </span>
+            </span>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-3" *ngIf="ran">
+        <h5 class="mb-3">Results</h5>
+
+        <div class="row-head">
+            <span>Type</span><span>Made</span><span>True</span><span>neg</span><span>meta</span><span>ms</span>
+        </div>
+
+        <div class="res" *ngFor="let r of results" [attr.data-status]="statusOf(r)">
+            <div class="res__main">
+                <span class="dot" [attr.data-status]="statusOf(r)"></span>
+                <span class="nm">{{ r.type }}</span>
+                <span class="num">{{ r.generated }}/{{ r.attempted }}</span>
+                <span class="num">{{ r.truthRate }}%</span>
+                <span class="num">{{ r.negations }}</span>
+                <span class="num">{{ r.metaRelations }}</span>
+                <span class="num">{{ r.ms }}</span>
+            </div>
+            <ul class="issues" *ngIf="r.failures.length">
+                <li *ngFor="let f of r.failures">{{ f }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-3">
+        <h5 class="mb-2">Progression simulation</h5>
+        <p class="text-muted small mb-2">
+            Runs a synthetic player through the real progression service to show the
+            sawtooth: time falling, a rung claimed, the clock reset, and eventually a
+            premise rise. The ladder is restored afterwards.
+        </p>
+
+        <div class="run-row mb-2">
+            <select class="form-select form-select-sm" style="max-width: 14rem;"
+                    [value]="simType" (change)="simType = $any($event.target).value">
+                <option *ngFor="let t of allTypes" [value]="t">{{ t }}</option>
+            </select>
+            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;"
+                   min="10" max="500" [value]="simTrials"
+                   (change)="simTrials = +$any($event.target).value">
+            <span class="text-muted small">trials</span>
+            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;"
+                   min="0.3" max="1" step="0.05" [value]="simAccuracy"
+                   (change)="simAccuracy = +$any($event.target).value">
+            <span class="text-muted small">accuracy</span>
+            <button class="btn btn-sm btn-primary" [disabled]="simRunning"
+                    (click)="simulateProgression()">
+                {{ simRunning ? "Running…" : "Simulate" }}
+            </button>
+        </div>
+
+        <div *ngIf="simTrail.length">
+            <div class="row-head" style="grid-template-columns: 4rem 3rem 4rem 1fr;">
+                <span>trial</span><span>prem</span><span>secs</span><span>rungs / event</span>
+            </div>
+            <div class="res" *ngFor="let s of simTrail">
+                <div class="res__main" style="grid-template-columns: 4rem 3rem 4rem 1fr;">
+                    <span class="num">{{ s.i }}</span>
+                    <span class="num">{{ s.p }}</span>
+                    <span class="num">{{ s.t }}</span>
+                    <span class="nm">
+                        {{ s.rungs }}
+                        <strong class="ok" *ngIf="s.event">· {{ s.event }}</strong>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="issues mt-2" *ngIf="simEvents.length && !simTrail.length">
+            <div *ngFor="let e of simEvents">{{ e }}</div>
+        </div>
+    </div>
+
+    <div class="card p-3" *ngIf="sample">
+        <h5 class="mb-2">Sample item — {{ sample.type }}</h5>
+        <div class="premise" *ngFor="let p of sample.premises" [innerHTML]="p"></div>
+        <div class="concl" [innerHTML]="sample.conclusion"></div>
+        <div class="text-muted mt-1">answer: {{ sample.isValid ? "TRUE" : "FALSE" }}</div>
+    </div>
+
+</div>

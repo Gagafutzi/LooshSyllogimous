@@ -1,0 +1,106 @@
+<!-- Toggle stays fixed so the drawer is reachable from every screen. -->
+<button class="nav-toggle" (click)="toggle()" [attr.aria-expanded]="open" aria-label="Toggle options">
+    <span class="bars" [class.is-open]="open"></span>
+</button>
+
+<button class="fs-toggle" (click)="toggleFullscreen()"
+        [attr.aria-pressed]="isFullscreen"
+        [attr.aria-label]="isFullscreen ? 'Leave focus mode' : 'Focus mode'"
+        [attr.title]="isFullscreen ? 'Leave focus mode (Esc)' : 'Focus mode'">
+    <!-- Four corner brackets; they turn inward when already fullscreen. -->
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+        <ng-container *ngIf="!isFullscreen">
+            <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+        </ng-container>
+        <ng-container *ngIf="isFullscreen">
+            <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+        </ng-container>
+    </svg>
+</button>
+
+<div class="nav-scrim" [class.is-open]="open" (click)="toggle()"></div>
+
+<aside class="side-nav" [class.is-open]="open">
+
+    <header class="side-nav__head">
+        <span class="brand">SYLLOGIMOUS</span>
+        <!-- Tier and score used to sit in the game card header; the card now shows
+             only the question and its timer. -->
+        <div class="nav-status">
+            <span class="nav-status__tier">{{ game.tier }}</span>
+            <span class="nav-status__score">{{ game.score }} pts</span>
+        </div>
+        <!-- Time goals live here now; the rest of the counters are on Stats. -->
+        <div class="nav-goals">
+            <div class="goal" *ngFor="let g of goals">
+                <div class="goal__head">
+                    <span class="goal__label">{{ g.label }}</span>
+                    <!-- Percentage is noise at a glance; it appears on hover. -->
+                    <span class="goal__pct">{{ g.value() }}%</span>
+                </div>
+                <div class="goal__track">
+                    <i [style.width.%]="g.value()"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="side-nav__body">
+        <ng-container *ngFor="let group of nav">
+
+            <a *ngIf="group.href"
+               class="group__head group__head--link"
+               [href]="group.href" target="_blank" rel="noopener noreferrer">
+                <span class="group__icon">{{ group.icon }}</span>
+                <span class="group__label">{{ group.label }}</span>
+                <span class="group__ext" aria-hidden="true">↗</span>
+            </a>
+
+            <div class="group" *ngIf="!group.href">
+                <button class="group__head" (click)="toggleGroup(group, $event)">
+                    <span class="group__icon">{{ group.icon }}</span>
+                    <span class="group__label">{{ group.label }}</span>
+                    <span class="group__chev" [class.is-open]="group.open">›</span>
+                </button>
+
+                <div class="group__items" *ngIf="group.open">
+                    <ng-container *ngFor="let item of group.children">
+
+                        <!-- leaf -->
+                        <a *ngIf="item.link"
+                           class="leaf"
+                           [routerLink]="item.link"
+                           routerLinkActive="is-active"
+                           (click)="onNavigate()">{{ item.label }}</a>
+
+                        <!-- action -->
+                        <button *ngIf="item.action"
+                                class="leaf leaf--action"
+                                (click)="runAction(item, $event)">
+                            <span>{{ item.label }}</span>
+                            <span class="leaf__state" *ngIf="item.state">{{ item.state() }}</span>
+                        </button>
+
+                        <!-- nested group -->
+                        <div class="subgroup" *ngIf="!item.link && !item.action && item.children">
+                            <button class="subgroup__head" (click)="toggleGroup(item, $event)">
+                                <span>{{ item.label }}</span>
+                                <span class="group__chev" [class.is-open]="item.open">›</span>
+                            </button>
+                            <div class="subgroup__items" *ngIf="item.open">
+                                <a *ngFor="let sub of item.children"
+                                   class="leaf leaf--deep"
+                                   [routerLink]="sub.link"
+                                   routerLinkActive="is-active"
+                                   (click)="onNavigate()">{{ sub.label }}</a>
+                            </div>
+                        </div>
+
+                    </ng-container>
+                </div>
+            </div>
+
+        </ng-container>
+    </nav>
+
+</aside>

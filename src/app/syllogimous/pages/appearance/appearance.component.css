@@ -1,0 +1,54 @@
+.appearance {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--th-gap, 14px);
+}
+
+.preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.control {
+    display: grid;
+    grid-template-columns: 1fr minmax(160px, 240px);
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.control:first-of-type { border-top: 0; }
+
+.control label { margin: 0; }
+
+.range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.range-wrap .form-range { flex: 1; }
+
+.range-wrap output {
+    min-width: 4.5ch;
+    text-align: right;
+    color: var(--th-accent, #22d3ee);
+    font-variant-numeric: tabular-nums;
+}
+
+input[type="color"] {
+    inline-size: 100%;
+    block-size: 34px;
+    padding: 2px;
+    background: transparent;
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* Stack the label above the control once the two-column grid gets cramped. */
+@media (max-width: 560px) {
+    .control { grid-template-columns: 1fr; }
+}

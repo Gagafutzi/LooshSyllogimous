@@ -1,0 +1,315 @@
+.calib {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: var(--th-gap, 14px);
+}
+
+.calib__bar {
+    block-size: 5px;
+    border-radius: 999px;
+    background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+    overflow: hidden;
+}
+
+.calib__bar i {
+    display: block;
+    block-size: 100%;
+    border-radius: inherit;
+    background: var(--th-accent, #22d3ee);
+    transition: width .25s ease;
+}
+
+.calib__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-block-start: 8px;
+    font-size: 11.5px;
+    color: var(--th-text-dim, #7d8ca6);
+}
+
+/* ---- one-at-a-time stage ---- */
+
+.calib__clock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-block-end: 14px;
+}
+
+.calib__clock .calib__bar {
+    flex: 1;
+}
+
+.calib__secs {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--th-text-dim, #7d8ca6);
+    min-inline-size: 34px;
+    text-align: end;
+}
+
+/* Running out is worth noticing: there is no going back to re-read. */
+.calib__clock.is-critical .calib__bar i {
+    background: var(--th-bad, #fb7185);
+}
+
+.calib__clock.is-critical .calib__secs {
+    color: var(--th-bad, #fb7185);
+}
+
+/*
+ * Fixed height so the card does not jump between a one-line premise and a
+ * three-line conclusion — a moving answer button invites misclicks.
+ */
+.calib__stage {
+    display: grid;
+    place-content: center;
+    gap: 6px;
+    text-align: center;
+    min-block-size: 130px;
+    padding: 10px 6px;
+    border-radius: calc(var(--th-radius, 14px) * 0.6);
+    background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.06);
+}
+
+.calib__slide {
+    font-size: 1.15rem;
+    line-height: 1.5;
+}
+
+.calib__dots {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-block-start: 12px;
+}
+
+.calib__dots i {
+    inline-size: 5px;
+    block-size: 5px;
+    border-radius: 999px;
+    background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.18);
+    transition: inline-size .2s ease, background .2s ease;
+}
+
+.calib__dots i.seen {
+    background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.45);
+}
+
+.calib__dots i.here {
+    inline-size: 16px;
+    background: var(--th-accent, #22d3ee);
+}
+
+.calib__breakdown summary {
+    cursor: pointer;
+}
+
+.calib__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 4px 16px;
+    margin-block-start: 8px;
+    font-size: 12.5px;
+}
+
+.calib__grid > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--th-text-dim, #7d8ca6);
+    padding-block: 2px;
+    border-block-end: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.08);
+}
+
+.calib__grid b {
+    color: var(--th-accent, #22d3ee);
+    font-variant-numeric: tabular-nums;
+}
+
+.calib__answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-block-start: 16px;
+}
+
+.calib__result {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.calib__level {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--th-accent, #22d3ee);
+    line-height: 1;
+}
+
+.calib__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Stimulus glyphs sit inline with premise text. */
+.calib__slide ::ng-deep svg,
+.calib__slide ::ng-deep img {
+    vertical-align: middle;
+    margin-inline: 2px;
+}
+
+.calib__score {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-block-start: 10px;
+}
+
+.calib__pts {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--th-ok, #4ade80);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Construction slots — same layout as the game screen, scoped here too. */
+/* ---- conclusion building ---- */
+
+.build {
+    display: grid;
+    gap: 6px;
+}
+
+.build__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* Compactness hides what is missing, so the count says it outright. */
+.build__left {
+    font-size: 0.75rem;
+    color: var(--th-bad, #fb7185);
+    font-variant-numeric: tabular-nums;
+}
+
+.build__left.is-done { color: var(--th-ok, #4ade80); }
+
+.build__claim {
+    display: grid;
+    gap: 5px;
+    padding: 7px 0;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.build__claim:first-of-type { border-top: 0; }
+
+.build__pair {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1rem;
+}
+
+.build__arrow { color: var(--th-text-dim, #7d8ca6); }
+
+/*
+ * Two columns where there is room. Six axes as six full-width rows is a lot of
+ * vertical scrolling for what is really a short form.
+ */
+.build__grid {
+    display: grid;
+    /*
+     * Wide enough that the longest relation fits before it doubles up. At a
+     * narrower minimum two columns appeared on the standard card and truncated
+     * "is 2 steps anticlockwise from" to "is 2 steps" — which hides the very
+     * thing the player just chose.
+     */
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    gap: 4px 12px;
+}
+
+/* label · direction · distance */
+.build__slot {
+    display: grid;
+    grid-template-columns: minmax(3.5rem, max-content) minmax(0, 1fr) 4.2rem;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.build__mag {
+    inline-size: 100%;
+    text-align: center;
+    font-size: 0.78rem;
+    padding-inline: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Not merely disabled — irrelevant. "Same" has no distance. */
+.build__mag.is-idle {
+    opacity: 0.25;
+    visibility: hidden;
+}
+
+.build__label {
+    font-size: 0.75rem;
+    color: var(--th-text-dim, #7d8ca6);
+    text-align: end;
+    line-height: 1.2;
+}
+
+/*
+ * The theme paints every input with `background: ... !important`, which wipes
+ * the select's own dropdown arrow. Drawing it on the wrapper is the one place
+ * that cannot be overridden by that rule.
+ */
+.build__pick {
+    position: relative;
+    display: block;
+    min-inline-size: 0;
+}
+
+.build__pick::after {
+    content: "\25BE";
+    position: absolute;
+    inset-inline-end: 8px;
+    inset-block-start: 50%;
+    translate: 0 -50%;
+    pointer-events: none;
+    opacity: 0.55;
+    font-size: 0.7em;
+}
+
+.build__pick select {
+    inline-size: 100%;
+    padding-inline: 8px 22px;
+    font-size: 0.78rem;
+    text-transform: none;
+    /* An unset slot reads as unfinished rather than as a valid choice. */
+    opacity: 0.6;
+}
+
+.build__pick.is-set select {
+    opacity: 1;
+    color: var(--th-accent) !important;
+    border-color: rgba(var(--th-accent-rgb, 34, 211, 238), 0.55) !important;
+}
+
+@media (max-width: 560px) {
+    .build__grid { grid-template-columns: 1fr; }
+    .build__slot { grid-template-columns: 1fr 4.2rem; gap: 4px; }
+    .build__label { grid-column: 1 / -1; text-align: start; }
+}
+
+.calib__difficulty {
+    /* Not a premise count; kept visually distinct from the one beside it. */
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+}

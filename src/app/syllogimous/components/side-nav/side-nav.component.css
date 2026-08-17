@@ -1,0 +1,309 @@
+/* Reads entirely from the theme variables, so the drawer restyles with the
+ * rest of the app rather than needing its own palette. */
+
+:host {
+    --nav-w: 268px;
+    --accent-rgb: var(--th-accent-rgb, 34, 211, 238);
+}
+
+/* ---- toggle ---- */
+
+.nav-toggle {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1050;
+    inline-size: 40px;
+    block-size: 40px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--th-panel, #0d1420) 70%, transparent);
+    -webkit-backdrop-filter: blur(var(--th-blur, 14px));
+    backdrop-filter: blur(var(--th-blur, 14px));
+    cursor: pointer;
+    box-shadow: 0 0 var(--th-glow, 10px) rgba(var(--accent-rgb), 0.2);
+}
+
+.bars, .bars::before, .bars::after {
+    display: block;
+    inline-size: 16px;
+    block-size: 2px;
+    border-radius: 2px;
+    background: var(--th-accent, #22d3ee);
+    transition: transform .18s ease, opacity .18s ease;
+}
+
+.bars::before, .bars::after { content: ""; position: absolute; }
+.bars::before { transform: translateY(-5px); }
+.bars::after  { transform: translateY(5px); }
+
+.bars.is-open { background: transparent; }
+.bars.is-open::before { transform: rotate(45deg); }
+.bars.is-open::after  { transform: rotate(-45deg); }
+
+/* ---- scrim ---- */
+
+.nav-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1030;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+}
+
+.nav-scrim.is-open { opacity: 1; pointer-events: auto; }
+
+/* ---- drawer ---- */
+
+.side-nav {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 1040;
+    inline-size: var(--nav-w);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+    background: color-mix(in srgb, var(--th-panel, #0d1420) 88%, transparent);
+    -webkit-backdrop-filter: blur(calc(var(--th-blur, 14px) * 1.5));
+    backdrop-filter: blur(calc(var(--th-blur, 14px) * 1.5));
+    border-inline-end: 1px solid rgba(var(--accent-rgb), 0.25);
+    box-shadow: 4px 0 calc(var(--th-glow, 10px) * 2) rgba(var(--accent-rgb), 0.1);
+}
+
+.side-nav.is-open { transform: translateX(0); }
+
+.side-nav__head {
+    padding: 16px 16px 12px 60px;   /* clears the fixed toggle */
+    border-block-end: 1px solid rgba(var(--accent-rgb), 0.18);
+}
+
+.brand {
+    display: block;
+    color: var(--th-accent, #22d3ee);
+    font-weight: 700;
+    letter-spacing: .14em;
+    font-size: 13px;
+}
+
+.side-nav__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 10px 24px;
+}
+
+/* ---- groups ---- */
+
+.group { margin-block-end: 4px; }
+
+.group__head, .subgroup__head {
+    inline-size: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 11px;
+    background: transparent;
+    border: 0;
+    border-radius: calc(var(--th-radius, 14px) * 0.7);
+    color: var(--th-text, #d7e3f4);
+    cursor: pointer;
+    text-align: start;
+    font-size: 13px;
+}
+
+.group__head:hover, .subgroup__head:hover { background: rgba(var(--accent-rgb), 0.08); }
+
+.group__icon { color: var(--th-accent, #22d3ee); inline-size: 14px; }
+.group__label { flex: 1; letter-spacing: .05em; }
+
+.group__chev {
+    color: var(--th-text-dim, #7d8ca6);
+    transition: transform .18s ease;
+}
+
+.group__chev.is-open { transform: rotate(90deg); }
+
+.group__items { padding-inline-start: 10px; }
+
+/* ---- leaves ---- */
+
+.leaf {
+    display: block;
+    padding: 7px 12px;
+    margin-block: 1px;
+    border-radius: calc(var(--th-radius, 14px) * 0.6);
+    color: var(--th-text-dim, #7d8ca6);
+    text-decoration: none;
+    font-size: 12.5px;
+    border-inline-start: 2px solid transparent;
+}
+
+.leaf:hover { color: var(--th-text, #d7e3f4); background: rgba(var(--accent-rgb), 0.07); }
+
+.leaf.is-active {
+    color: var(--th-accent, #22d3ee);
+    background: rgba(var(--accent-rgb), 0.12);
+    border-inline-start-color: var(--th-accent, #22d3ee);
+}
+
+.leaf--deep { font-size: 12px; padding-inline-start: 18px; }
+
+.subgroup__head { font-size: 12.5px; color: var(--th-text-dim, #7d8ca6); }
+.subgroup__items { padding-inline-start: 8px; }
+
+/* Desktop docks the drawer rather than overlaying, but it still has to honour
+ * .is-open — forcing translateX(0) here made the toggle a no-op above 900px. */
+@media (min-width: 901px) {
+    .nav-scrim { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .side-nav, .nav-scrim, .group__chev, .bars, .bars::before, .bars::after {
+        transition: none;
+    }
+}
+
+/* Action items sit in the same rhythm as navigation leaves, but are buttons. */
+.leaf--action {
+    inline-size: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: transparent;
+    border: 0;
+    border-inline-start: 2px solid transparent;
+    font-family: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+
+.leaf__state {
+    color: var(--th-accent, #22d3ee);
+    font-size: 11px;
+    letter-spacing: .06em;
+}
+
+/* Tier + score, relocated out of the game card. */
+.nav-status {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-block-start: 4px;
+}
+
+.nav-status__tier {
+    color: var(--th-accent, #22d3ee);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+.nav-status__score {
+    color: var(--th-text-dim, #7d8ca6);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Time goals. Label always readable; percentage on hover only. */
+.nav-goals {
+    margin-block-start: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.goal__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-block-end: 4px;
+}
+
+.goal__label {
+    color: var(--th-text-dim, #7d8ca6);
+    font-size: 11px;
+    letter-spacing: .04em;
+    white-space: nowrap;
+}
+
+.goal__pct {
+    color: var(--th-accent, #22d3ee);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+.goal:hover .goal__pct,
+.goal:focus-within .goal__pct { opacity: 1; }
+
+.goal__track {
+    block-size: 5px;
+    border-radius: 999px;
+    background: rgba(var(--accent-rgb), 0.12);
+    overflow: hidden;
+}
+
+.goal__track i {
+    display: block;
+    block-size: 100%;
+    border-radius: inherit;
+    background: var(--th-accent, #22d3ee);
+    box-shadow: 0 0 calc(var(--th-glow, 10px) * 0.7) rgba(var(--accent-rgb), 0.5);
+    transition: width .3s ease;
+}
+
+/* Fullscreen toggle — mirrors the drawer toggle, opposite corner. */
+.fs-toggle {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 1050;
+    inline-size: 40px;
+    block-size: 40px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--th-panel, #0d1420) 70%, transparent);
+    -webkit-backdrop-filter: blur(var(--th-blur, 14px));
+    backdrop-filter: blur(var(--th-blur, 14px));
+    cursor: pointer;
+    box-shadow: 0 0 var(--th-glow, 10px) rgba(var(--accent-rgb), 0.2);
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.fs-toggle:hover {
+    border-color: rgba(var(--accent-rgb), 0.7);
+    box-shadow: 0 0 calc(var(--th-glow, 10px) * 1.6) rgba(var(--accent-rgb), 0.35);
+}
+
+.fs-toggle svg {
+    inline-size: 18px;
+    block-size: 18px;
+    fill: none;
+    stroke: var(--th-accent, #22d3ee);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* External link row — same rhythm as a group header, but it navigates away. */
+.group__head--link {
+    text-decoration: none;
+    color: var(--th-text, #d7e3f4);
+}
+
+.group__ext {
+    color: var(--th-text-dim, #7d8ca6);
+    font-size: 11px;
+}
+
+.group__head--link:hover .group__ext { color: var(--th-accent, #22d3ee); }

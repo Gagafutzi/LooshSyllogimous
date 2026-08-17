@@ -1,0 +1,112 @@
+.diag {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--th-gap, 14px);
+}
+
+.run-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.ok { color: var(--th-ok, #4ade80); }
+.no { color: var(--th-bad, #fb7185); }
+
+.row-head,
+.res__main {
+    display: grid;
+    grid-template-columns: 14px 1fr 4.5rem 3.5rem 3rem 3rem 3rem;
+    align-items: center;
+    gap: 8px;
+}
+
+.row-head {
+    grid-template-columns: 1fr 4.5rem 3.5rem 3rem 3rem 3rem;
+    padding: 0 0 6px 22px;
+    font-size: 11px;
+    letter-spacing: .06em;
+    color: var(--th-text-dim, #7d8ca6);
+}
+
+.res {
+    padding: 7px 0;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.res:first-of-type { border-top: 0; }
+
+.dot {
+    inline-size: 8px;
+    block-size: 8px;
+    border-radius: 50%;
+    background: var(--th-text-dim, #7d8ca6);
+}
+
+.dot[data-status="ok"]   { background: var(--th-ok, #4ade80); }
+.dot[data-status="warn"] { background: #fbbf24; }
+.dot[data-status="fail"] { background: var(--th-bad, #fb7185); }
+
+.nm { font-size: 13px; }
+
+.num {
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--th-text-dim, #7d8ca6);
+}
+
+.issues {
+    margin: 5px 0 0 22px;
+    padding-inline-start: 14px;
+    font-size: 12px;
+    color: var(--th-bad, #fb7185);
+}
+
+.premise,
+.concl {
+    padding: 7px 11px;
+    margin-block-end: 5px;
+    border-radius: calc(var(--th-radius, 14px) * 0.6);
+    background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.06);
+    font-size: 13.5px;
+}
+
+.concl {
+    margin-block-start: 10px;
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.3);
+    background: transparent;
+}
+
+/* Anchor glyphs and noise stimuli sit inline with the text. */
+.premise ::ng-deep svg,
+.concl ::ng-deep svg {
+    vertical-align: middle;
+    margin-inline: 2px;
+}
+
+@media (max-width: 560px) {
+    .row-head { display: none; }
+    .res__main { grid-template-columns: 14px 1fr 4rem; }
+    .res__main .num:last-child { display: none; }
+}
+
+.type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 6px 14px;
+}
+
+.type {
+    display: flex;
+    align-items: start;
+    gap: 9px;
+    margin: 0;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+.type.risky span { color: var(--th-text-dim, #7d8ca6); }
+
+.preset-row { display: flex; gap: 8px; flex-wrap: wrap; }

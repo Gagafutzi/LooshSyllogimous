@@ -19,13 +19,32 @@ export interface Picked<T> {
     remaining: T[];
 }
 
+/**
+ * Non-basic types normally require two basic types to be enabled, because
+ * Analogy and Binary *compose* other questions and have nothing to build from
+ * otherwise. These types are non-basic only in the sense that nothing composes
+ * them — they generate standalone, so that requirement does not apply.
+ */
+const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
+    EnumQuestionType.GraphMatching,
+    EnumQuestionType.Deictic,
+    EnumQuestionType.Transformation,
+    EnumQuestionType.AnchorSpace,
+    EnumQuestionType.AnchorSpaceV2,
+    EnumQuestionType.Space3D,
+    EnumQuestionType.Space4D,
+    EnumQuestionType.Space5D,
+    EnumQuestionType.Space6D,
+    EnumQuestionType.Hierarchy,
+]);
+
 export function canGenerateQuestion(
     questionType: EnumQuestionType,
     numOfPremises: number,
     settings: Settings
 ) {
     const enoughPremises = numOfPremises >= settings.question[questionType].minNumOfPremises;
-    if (settings.question[questionType].basic || questionType === EnumQuestionType.GraphMatching) {
+    if (settings.question[questionType].basic || SELF_CONTAINED_TYPES.has(questionType)) {
         return enoughPremises;
     }
     return enoughPremises && getNumOfEnabledQuestions(settings, true) >= 2;
@@ -116,15 +135,27 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.Distinction);
         this.initQuestionSettings(EnumQuestionType.ComparisonNumerical);
         this.initQuestionSettings(EnumQuestionType.ComparisonChronological);
+        this.initQuestionSettings(EnumQuestionType.LinearVertical);
+        this.initQuestionSettings(EnumQuestionType.LinearHorizontal);
+        this.initQuestionSettings(EnumQuestionType.LinearContains);
         this.initQuestionSettings(EnumQuestionType.Syllogism);
         this.initQuestionSettings(EnumQuestionType.LinearArrangement);
         this.initQuestionSettings(EnumQuestionType.CircularArrangement);
         this.initQuestionSettings(EnumQuestionType.Direction);
         this.initQuestionSettings(EnumQuestionType.Direction3DSpatial);
         this.initQuestionSettings(EnumQuestionType.Direction3DTemporal);
+        this.initQuestionSettings(EnumQuestionType.Space4D);
+        this.initQuestionSettings(EnumQuestionType.Space3D);
+        this.initQuestionSettings(EnumQuestionType.Space5D);
+        this.initQuestionSettings(EnumQuestionType.Space6D);
         this.initQuestionSettings(EnumQuestionType.GraphMatching);
+        this.initQuestionSettings(EnumQuestionType.Hierarchy);
         this.initQuestionSettings(EnumQuestionType.Analogy);
         this.initQuestionSettings(EnumQuestionType.Binary);
+        this.initQuestionSettings(EnumQuestionType.Deictic);
+        this.initQuestionSettings(EnumQuestionType.Transformation);
+        this.initQuestionSettings(EnumQuestionType.AnchorSpace);
+        this.initQuestionSettings(EnumQuestionType.AnchorSpaceV2);
     }
 
     initQuestionSettings(type: EnumQuestionType) {
@@ -137,7 +168,7 @@ export class Settings {
         );
     }
 
-    setEnable(prop: "useEmojis" | "meaningfulWords" | "meta" | "negation", value: boolean) {
+    setEnable(prop: "useEmojis" | "meaningfulWords" | "meta" | "negation" | "visualNoise" | "useText", value: boolean) {
         this.enabled[prop] = value;
         return this;
     }

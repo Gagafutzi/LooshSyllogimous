@@ -40,6 +40,12 @@ import { EnumScreens } from './constants/game.constants';
 import { TiersMatrixComponent } from './pages/tiers-matrix/tiers-matrix.component';
 import { OtherGamesComponent } from './pages/other-games/other-games.component';
 import { SettingsComponent } from './pages/settings/settings.component';
+import { AppearanceComponent } from './pages/appearance/appearance.component';
+import { SideNavComponent } from './components/side-nav/side-nav.component';
+import { AdvancedOptionsComponent } from './pages/advanced-options/advanced-options.component';
+import { DiagnosticsComponent } from './pages/diagnostics/diagnostics.component';
+import { CalibrationComponent } from './pages/calibration/calibration.component';
+import { TutorialGenericComponent } from './pages/tutorial/tutorial-generic/tutorial-generic.component';
 import { TutorialGraphMatchingComponent } from './pages/tutorial/graph-matching/graph-matching.component';
 
 const routes: Routes = [
@@ -49,12 +55,16 @@ const routes: Routes = [
         children: [
             { path: "", redirectTo: EnumScreens.Intro, pathMatch: "full" },
             { path: EnumScreens.Intro, component: IntroComponent },
-            { path: EnumScreens.Start, component: StartComponent },
+            { path: EnumScreens.Start, component: StartComponent, runGuardsAndResolvers: 'always' },
             { path: EnumScreens.Game, component: GameComponent },
             { path: EnumScreens.Stats, component: StatsComponent },
             { path: EnumScreens.History, component: HistoryComponent },
             { path: EnumScreens.Feedback, component: FeedbackComponent },
             { path: EnumScreens.Settings, component: SettingsComponent },
+            { path: EnumScreens.Appearance, component: AppearanceComponent },
+            { path: EnumScreens.AdvancedOptions, component: AdvancedOptionsComponent },
+            { path: EnumScreens.Diagnostics, component: DiagnosticsComponent },
+            { path: EnumScreens.Calibration, component: CalibrationComponent },
             { path: EnumScreens.Tutorials, component: TutorialsComponent },
             {
                 path: EnumScreens.Tutorial,
@@ -72,6 +82,7 @@ const routes: Routes = [
                     { path: EnumQuestionType.GraphMatching, component: TutorialGraphMatchingComponent },
                     { path: EnumQuestionType.Analogy, component: TutorialAnalogyComponent },
                     { path: EnumQuestionType.Binary, component: TutorialBinaryComponent },
+                    { path: '**', component: TutorialGenericComponent },
                 ]
             },
             { path: EnumScreens.TiersMatrix, component: TiersMatrixComponent },
@@ -120,6 +131,12 @@ const routes: Routes = [
         TiersMatrixComponent,
         OtherGamesComponent,
         SettingsComponent,
+        AppearanceComponent,
+        SideNavComponent,
+        AdvancedOptionsComponent,
+        DiagnosticsComponent,
+        CalibrationComponent,
+        TutorialGenericComponent,
     ],
     imports: [
         CommonModule,

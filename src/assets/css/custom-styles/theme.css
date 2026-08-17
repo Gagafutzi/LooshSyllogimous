@@ -1,0 +1,644 @@
+/*
+ * Theme layer.
+ *
+ * Every visual decision below reads from a custom property, so the appearance
+ * page can rewrite the look at runtime by setting variables on <html> — no
+ * stylesheet swapping, no rebuild. Defaults reproduce a Hyprland-style rice:
+ * near-black blue-tinted base, electric cyan accent, floating translucent
+ * panels with blur, visible gaps, thin glowing borders, monospace throughout.
+ *
+ * Loaded last, so it wins over thickstrap/bootstrap without !important spam
+ * except where Bootstrap uses its own component-level variables.
+ */
+
+:root {
+    /* ---- palette ---- */
+    --th-bg:            #05070c;
+    --th-bg-2:          #090d16;
+    --th-panel:         #0d1420;
+    --th-accent:        #22d3ee;
+    --th-accent-2:      #38bdf8;
+    --th-text:          #d7e3f4;
+    --th-text-dim:      #7d8ca6;
+    --th-ok:            #4ade80;
+    --th-bad:           #fb7185;
+
+    /* ---- form ---- */
+    --th-radius:        14px;
+    --th-gap:           14px;
+    --th-border-width:  1px;
+    --th-panel-alpha:   0.55;      /* panel translucency */
+    --th-blur:          14px;      /* backdrop blur radius */
+    --th-glow:          10px;      /* accent bloom around borders */
+    --th-font: "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --th-font-size:     15px;
+    --th-wallpaper:     radial-gradient(1200px 700px at 70% -10%, #0e2c3f 0%, transparent 60%),
+                        radial-gradient(900px 600px at 10% 110%, #0a1e30 0%, transparent 55%);
+
+    /* ---- derived (do not set directly; the service writes the inputs) ---- */
+    --th-accent-rgb: 34, 211, 238;
+    --th-border: var(--th-border-width) solid rgba(var(--th-accent-rgb), 0.28);
+    --th-bloom: 0 0 var(--th-glow) rgba(var(--th-accent-rgb), 0.16);
+}
+
+/* ------------------------------------------------------------------ *
+ * Base surface                                                        *
+ * ------------------------------------------------------------------ */
+
+html, body {
+    background: var(--th-bg) !important;
+    background-image: var(--th-wallpaper) !important;
+    background-attachment: fixed !important;
+    color: var(--th-text);
+    font-family: var(--th-font) !important;
+    font-size: var(--th-font-size);
+}
+
+body * { font-family: var(--th-font); }
+
+/* The root component paints its own pastel gradient across the whole viewport,
+ * which would sit on top of the themed body backdrop. Clear it so the backdrop
+ * (and therefore panel translucency) is actually visible. */
+app-syllogimous,
+app-root {
+    background: transparent !important;
+    background-image: none !important;
+}
+
+/* Routed pages render as siblings of <router-outlet>, and the drawer is
+ * position:fixed, so nothing reserves its width. Reserve it here once the
+ * drawer is docked; below that breakpoint it overlays with a scrim instead. */
+@media (min-width: 901px) {
+    app-syllogimous > *:not(app-side-nav):not(router-outlet) {
+        margin-inline-start: var(--nav-w, 268px);
+        transition: margin-inline-start .22s ease;
+    }
+
+    /* Collapsed: hand the reserved space back to the page. The drawer is
+     * position:fixed, so only a root-level class can signal this globally. */
+    :root.nav-collapsed app-syllogimous > *:not(app-side-nav):not(router-outlet) {
+        margin-inline-start: 0;
+    }
+}
+
+/* Bootstrap drives most colours through its own variables — redirecting them
+ * here is cheaper and far less brittle than overriding each component. */
+body {
+    --bs-body-bg: transparent;
+    --bs-body-color: var(--th-text);
+    --bs-border-radius: var(--th-radius);
+    --bs-link-color: var(--th-accent);
+    --bs-link-hover-color: var(--th-accent-2);
+    --bs-primary: var(--th-accent);
+    --bs-emphasis-color: var(--th-text);
+    --bs-secondary-color: var(--th-text-dim);
+}
+
+/* ------------------------------------------------------------------ *
+ * Floating panels — the defining move of the reference rice           *
+ * ------------------------------------------------------------------ */
+
+.card,
+.modal-content,
+.offcanvas,
+.dropdown-menu,
+.list-group-item,
+.accordion-item,
+.holy-grail__main > *,
+.toast {
+    background: color-mix(in srgb, var(--th-panel) calc(var(--th-panel-alpha) * 100%), transparent) !important;
+    -webkit-backdrop-filter: blur(var(--th-blur));
+    backdrop-filter: blur(var(--th-blur));
+    border: var(--th-border) !important;
+    border-radius: var(--th-radius) !important;
+    box-shadow: var(--th-bloom);
+    color: var(--th-text);
+}
+
+.card + .card,
+.list-group-item + .list-group-item { margin-top: var(--th-gap); }
+
+.list-group { gap: var(--th-gap); background: transparent; }
+.list-group-item { border-radius: var(--th-radius) !important; }
+
+/* ------------------------------------------------------------------ *
+ * Controls — pill chips, as in the bar of the reference              *
+ * ------------------------------------------------------------------ */
+
+.btn {
+    border-radius: 999px !important;
+    border: var(--th-border);
+    /* Enough fill to read as a surface. At 0.07 a button was indistinguishable
+       from the card behind it until you hovered. */
+    background: rgba(var(--th-accent-rgb), 0.13);
+    color: var(--th-text);
+    font-family: var(--th-font);
+    letter-spacing: .02em;
+    transition: background .15s, box-shadow .15s, border-color .15s;
+}
+
+.btn:hover {
+    background: rgba(var(--th-accent-rgb), 0.24);
+    border-color: rgba(var(--th-accent-rgb), 0.55);
+    box-shadow: 0 0 calc(var(--th-glow) * 1.4) rgba(var(--th-accent-rgb), 0.3);
+    color: var(--th-text);
+}
+
+/*
+ * Outline buttons.
+ *
+ * thickstrap.css paints these `rgba(var(--app-gray_0), 1)` — solid white on this
+ * palette — through `.btn[class*="btn-outline"]`, which outspecifies the plain
+ * `.btn` rule above and so wins. The result was a white pill carrying near-white
+ * text at 1.3:1, which is not readable by any measure.
+ *
+ * Matched selector rather than !important, so the semantic variants below can
+ * still take over.
+ */
+.btn[class*="btn-outline"] {
+    background: rgba(var(--th-accent-rgb), 0.13);
+    border-color: rgba(var(--th-accent-rgb), 0.45);
+    color: var(--th-text);
+}
+
+.btn[class*="btn-outline"]:hover {
+    background: rgba(var(--th-accent-rgb), 0.24);
+    border-color: rgba(var(--th-accent-rgb), 0.7);
+    color: var(--th-text);
+}
+
+.btn-primary,
+.btn-success,
+.btn[class*="btn-outline-primary"] {
+    background: rgba(var(--th-accent-rgb), 0.2);
+    border-color: rgba(var(--th-accent-rgb), 0.6);
+    color: var(--th-accent);
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.btn[class*="btn-outline-primary"]:hover {
+    background: rgba(var(--th-accent-rgb), 0.32);
+    color: var(--th-accent);
+}
+
+.btn-danger { color: var(--th-bad); border-color: rgba(251, 113, 133, .5); background: rgba(251,113,133,.18); }
+
+.btn-danger:hover { color: var(--th-bad); background: rgba(251, 113, 133, .3); }
+
+/* Text-like inputs only. A blanket `input` selector also hits radios, checkboxes,
+ * ranges and colour swatches, and forcing a background and border onto those
+ * erases their checked/thumb rendering — the control still toggles, it just stops
+ * showing it. */
+.form-control, .form-select, textarea, select,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]) {
+    background: rgba(0, 0, 0, 0.35) !important;
+    border: var(--th-border) !important;
+    border-radius: calc(var(--th-radius) * 0.6) !important;
+    color: var(--th-text) !important;
+    font-family: var(--th-font);
+}
+
+/* ------------------------------------------------------------------ *
+ * Form controls, drawn rather than tinted                             *
+ * ------------------------------------------------------------------ *
+ * accent-color only tints the browser's own widget, so the shape, size
+ * and focus ring stayed foreign to the theme — and sliders came out
+ * essentially unstyled. These are drawn from the theme variables, so a
+ * theme change carries the controls with it.                          */
+
+input[type="checkbox"],
+input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-grid;
+    place-content: center;
+    inline-size: 1.15em;
+    block-size: 1.15em;
+    flex: 0 0 auto;
+    vertical-align: -0.2em;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.3) !important;
+    background-image: none !important;   /* Bootstrap draws its own tick */
+    border: 1.5px solid rgba(var(--th-accent-rgb), 0.45) !important;
+    border-radius: calc(var(--th-radius) * 0.28);
+    transition: background .13s, border-color .13s, box-shadow .13s;
+}
+
+input[type="radio"] { border-radius: 50%; }
+
+input[type="checkbox"]:hover,
+input[type="radio"]:hover {
+    border-color: rgba(var(--th-accent-rgb), 0.85) !important;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+    background: var(--th-accent) !important;
+    border-color: var(--th-accent) !important;
+    box-shadow: 0 0 calc(var(--th-glow) * 0.9) rgba(var(--th-accent-rgb), 0.45);
+}
+
+/* Tick drawn with a rotated corner, so there is no icon font or asset. */
+input[type="checkbox"]::after {
+    content: "";
+    inline-size: 0.3em;
+    block-size: 0.62em;
+    margin-block-start: -0.12em;
+    border: solid var(--th-bg);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0);
+    transition: transform .13s ease;
+}
+
+input[type="checkbox"]:checked::after { transform: rotate(45deg) scale(1); }
+
+input[type="radio"]::after {
+    content: "";
+    inline-size: 0.45em;
+    block-size: 0.45em;
+    border-radius: 50%;
+    background: var(--th-bg);
+    transform: scale(0);
+    transition: transform .13s ease;
+}
+
+input[type="radio"]:checked::after { transform: scale(1); }
+
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--th-accent-rgb), 0.3);
+}
+
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* ---- range ---- */
+
+input[type="range"] {
+    appearance: none;
+    -webkit-appearance: none;
+    inline-size: 100%;
+    background: transparent !important;
+    border: 0 !important;
+    block-size: 20px;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    block-size: 5px;
+    border-radius: 999px;
+    background: rgba(var(--th-accent-rgb), 0.14);
+    border: 1px solid rgba(var(--th-accent-rgb), 0.2);
+}
+
+input[type="range"]::-moz-range-track {
+    block-size: 5px;
+    border-radius: 999px;
+    background: rgba(var(--th-accent-rgb), 0.14);
+    border: 1px solid rgba(var(--th-accent-rgb), 0.2);
+}
+
+/* Filled portion, so the value reads at a glance. Firefox only. */
+input[type="range"]::-moz-range-progress {
+    block-size: 5px;
+    border-radius: 999px;
+    background: var(--th-accent);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    inline-size: 15px;
+    block-size: 15px;
+    border-radius: 50%;
+    background: var(--th-accent);
+    border: 2px solid var(--th-bg);
+    box-shadow: 0 0 calc(var(--th-glow) * 1.1) rgba(var(--th-accent-rgb), 0.55);
+    /* Centre the thumb on a 5px track: (5 - 15) / 2 - 1 for the border. */
+    margin-block-start: -6px;
+    transition: transform .12s ease;
+}
+
+input[type="range"]::-moz-range-thumb {
+    inline-size: 15px;
+    block-size: 15px;
+    border-radius: 50%;
+    background: var(--th-accent);
+    border: 2px solid var(--th-bg);
+    box-shadow: 0 0 calc(var(--th-glow) * 1.1) rgba(var(--th-accent-rgb), 0.55);
+}
+
+input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.12); }
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(0.94); }
+
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px rgba(var(--th-accent-rgb), 0.28);
+}
+
+input[type="range"]:disabled { opacity: 0.4; cursor: default; }
+
+/* ---- small buttons pick up the theme's shape, not a fixed pill ---- */
+
+.btn-sm {
+    border-radius: calc(var(--th-radius) * 0.7) !important;
+    padding-inline: 0.85rem;
+}
+
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--th-accent-rgb), 0.3);
+}
+
+.btn:disabled, .btn.disabled { opacity: 0.45; }
+
+/* Bootstrap's own checked styling, re-pointed at the accent. */
+.form-check-input:checked {
+    background-color: var(--th-accent) !important;
+    border-color: var(--th-accent) !important;
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 2px rgba(var(--th-accent-rgb), 0.3) !important;
+}
+
+/*
+ * A checked label is marked by colour and weight only. Filling the background
+ * behind running text reads as a highlighter stripe, not a selection — the box
+ * itself already carries the state.
+ */
+input[type="radio"]:checked + label,
+input[type="checkbox"]:checked + label {
+    color: var(--th-accent) !important;
+    font-weight: 600;
+}
+
+/* Button-shaped toggles are the exception: there the fill *is* the affordance. */
+.btn-check:checked + .btn {
+    color: var(--th-accent) !important;
+    background: rgba(var(--th-accent-rgb), 0.16) !important;
+    border-color: rgba(var(--th-accent-rgb), 0.6) !important;
+    font-weight: 700;
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 2px rgba(var(--th-accent-rgb), 0.25) !important;
+    border-color: rgba(var(--th-accent-rgb), 0.7) !important;
+}
+
+.form-check-input:checked { background-color: var(--th-accent); border-color: var(--th-accent); }
+
+/* ------------------------------------------------------------------ *
+ * Typography                                                          *
+ * ------------------------------------------------------------------ */
+
+h1, h2, h3, h4, h5, h6 { color: var(--th-text); letter-spacing: -.01em; }
+a { color: var(--th-accent); text-decoration-color: rgba(var(--th-accent-rgb), .4); }
+hr { border-color: rgba(var(--th-accent-rgb), .2); }
+.text-muted, small { color: var(--th-text-dim) !important; }
+
+/* The card's "More" menu is retired: its navigation was already duplicated in the
+ * side drawer, and its four save-data actions now live there too (System group),
+ * both calling the same SystemActionsService. Hidden rather than deleted so the
+ * component — which also restores darkmode on boot — keeps running. */
+app-card-dropdown {
+    display: none !important;
+}
+
+/* The game card is now only the question and its timer. Tier and score moved to
+ * the drawer header, which leaves the card header holding nothing but the (now
+ * hidden) More menu. */
+.playcard-header {
+    display: none !important;
+}
+
+/* Anchor markers. Colour lives here rather than in a style attribute, because
+ * Angular's sanitizer strips inline styles from [innerHTML] bindings — the same
+ * reason these are characters and not <svg>. */
+.anchor {
+    font-size: 1.15em;
+    line-height: 1;
+    padding-inline: 0.12em;
+    vertical-align: -0.05em;
+    text-shadow: 0 0 calc(var(--th-glow) * 0.7) currentColor;
+}
+
+.anchor--star     { color: #8b85f0; }
+.anchor--circle   { color: #17ebeb; }
+.anchor--triangle { color: #f2d94e; }
+.anchor--diamond  { color: #f0555f; }
+
+/* The premise/conclusion tokens are the thing you actually stare at. */
+.subject {
+    color: var(--th-accent);
+    font-weight: 700;
+    text-shadow: 0 0 calc(var(--th-glow) * 0.8) rgba(var(--th-accent-rgb), 0.45);
+}
+
+/* ------------------------------------------------------------------ *
+ * Misc chrome                                                         *
+ * ------------------------------------------------------------------ */
+
+.badge { border-radius: 999px; background: rgba(var(--th-accent-rgb), .15) !important; color: var(--th-accent) !important; }
+.progress { background: rgba(255,255,255,.05); border-radius: 999px; }
+.progress-bar { background: var(--th-accent); }
+.nav-link { color: var(--th-text-dim); }
+.nav-link.active { color: var(--th-accent) !important; background: rgba(var(--th-accent-rgb), .1) !important; border-radius: 999px; }
+.table { color: var(--th-text); --bs-table-color: var(--th-text); --bs-table-bg: transparent; }
+.modal-backdrop.show { opacity: .75; }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(var(--th-accent-rgb), .28);
+    border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(var(--th-accent-rgb), .5); }
+::selection { background: rgba(var(--th-accent-rgb), .3); color: #fff; }
+
+/* Respect users who ask for less motion; the glow transitions are decorative. */
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Focus mode                                                          *
+ * ------------------------------------------------------------------ *
+ * The question fills the viewport and everything else goes away. The
+ * toggle itself must survive, or there is no way back out without the
+ * keyboard.                                                           */
+
+:root.focus-mode .side-nav,
+:root.focus-mode .nav-toggle,
+:root.focus-mode .nav-scrim {
+    display: none !important;
+}
+
+/* Reserved drawer width is meaningless once the drawer is gone. */
+:root.focus-mode app-syllogimous > *:not(app-side-nav):not(router-outlet) {
+    margin-inline-start: 0 !important;
+}
+
+/* The backdrop is decoration; it competes with the premises. */
+:root.focus-mode body {
+    background-image: none !important;
+}
+
+:root.focus-mode .playcard {
+    position: fixed;
+    inset: 0;
+    z-index: 1035;
+    display: flex;
+    flex-direction: column;
+    max-inline-size: none !important;
+    max-block-size: none !important;
+    inline-size: 100vw;
+    block-size: 100vh;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--th-bg) !important;
+}
+
+:root.focus-mode .playcard .card-body,
+:root.focus-mode .playcard .playcard-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Bigger type, since there is nothing else to look at. */
+:root.focus-mode .playcard .subject { font-size: 1.05em; }
+
+@media (min-width: 901px) {
+    :root.focus-mode .playcard .playcard-body {
+        padding-inline: clamp(1rem, 8vw, 10rem);
+    }
+}
+
+/* ------------------------------------------------------------------ *
+ * Answer buttons                                                      *
+ * ------------------------------------------------------------------ *
+ * Scoped to the game card: .btn-success and .btn-danger are also used by
+ * Reset controls elsewhere, which should stay quiet chips.
+ *
+ * Every value is derived, so these follow the theme rather than being a
+ * second palette to maintain: colour from --th-ok / --th-bad, corner from
+ * --th-radius, weight from --th-border-width, bloom from --th-glow. The
+ * generic .btn rule pins a pill shape, so the radius is restated here to
+ * let the theme's own shape come through.
+ */
+
+.playcard .btn-lg.btn-success,
+.playcard .btn-lg.btn-danger {
+    border-radius: calc(var(--th-radius) * 1.15) !important;
+    border-width: calc(var(--th-border-width) * 2) !important;
+    border-style: solid;
+    padding-block: 0.85rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    transition: background .15s, border-color .15s, box-shadow .18s, transform .1s;
+}
+
+.playcard .btn-lg.btn-success {
+    color: var(--th-ok) !important;
+    background: color-mix(in srgb, var(--th-ok) 12%, transparent) !important;
+    border-color: color-mix(in srgb, var(--th-ok) 50%, transparent) !important;
+}
+
+.playcard .btn-lg.btn-danger {
+    color: var(--th-bad) !important;
+    background: color-mix(in srgb, var(--th-bad) 12%, transparent) !important;
+    border-color: color-mix(in srgb, var(--th-bad) 50%, transparent) !important;
+}
+
+.playcard .btn-lg.btn-success:hover {
+    background: color-mix(in srgb, var(--th-ok) 26%, transparent) !important;
+    border-color: var(--th-ok) !important;
+    box-shadow: 0 0 calc(var(--th-glow) * 2) color-mix(in srgb, var(--th-ok) 40%, transparent);
+    transform: translateY(-1px);
+}
+
+.playcard .btn-lg.btn-danger:hover {
+    background: color-mix(in srgb, var(--th-bad) 26%, transparent) !important;
+    border-color: var(--th-bad) !important;
+    box-shadow: 0 0 calc(var(--th-glow) * 2) color-mix(in srgb, var(--th-bad) 40%, transparent);
+    transform: translateY(-1px);
+}
+
+/* A press should read as a press, not just a colour change. */
+.playcard .btn-lg.btn-success:active,
+.playcard .btn-lg.btn-danger:active {
+    transform: translateY(1px);
+    box-shadow: none;
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Verdict                                                             *
+ * ------------------------------------------------------------------ *
+ * A banner across the top. It used to be a pill centred in the
+ * viewport, which put it squarely on top of the premises — the one
+ * part of the screen you are still reading when it appears, and it
+ * covered words mid-sentence. Out of the way is the whole point: the
+ * answer is already given, so the verdict only has to be noticed.
+ *
+ * Sits at 1040, below the corner toggles at 1050, so the strip passes
+ * behind them rather than blanking them out for the second it shows. */
+
+.verdict-box {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 1040;
+    display: grid;
+    place-items: center;
+    /* Tall enough that the 40px corner toggles sit inside the strip
+       rather than straddling its edge. */
+    min-block-size: 56px;
+    /* Keeps the word clear of those toggles on a narrow screen. */
+    padding: 0.6rem 4.5rem;
+    border-block-end: calc(var(--th-border-width) * 2) solid currentColor;
+    background: color-mix(in srgb, currentColor 12%, var(--th-panel));
+    -webkit-backdrop-filter: blur(var(--th-blur));
+    backdrop-filter: blur(var(--th-blur));
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    pointer-events: none;
+    animation: verdict-in .18s ease-out;
+}
+
+.verdict-box[data-verdict="correct"] {
+    color: var(--th-ok);
+    box-shadow: 0 2px calc(var(--th-glow) * 2.4) color-mix(in srgb, var(--th-ok) 40%, transparent);
+}
+
+.verdict-box[data-verdict="wrong"] {
+    color: var(--th-bad);
+    box-shadow: 0 2px calc(var(--th-glow) * 2.4) color-mix(in srgb, var(--th-bad) 40%, transparent);
+}
+
+.verdict-box[data-verdict="timeout"] {
+    color: var(--th-text-dim);
+    box-shadow: 0 2px calc(var(--th-glow) * 1.6) rgba(var(--th-accent-rgb), 0.25);
+}
+
+/* Slides down out of the edge it is attached to. */
+@keyframes verdict-in {
+    from { opacity: 0; translate: 0 -100%; }
+    to   { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .verdict-box { animation: none; }
+}

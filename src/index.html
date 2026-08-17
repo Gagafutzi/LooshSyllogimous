@@ -11,6 +11,24 @@
     gtag('config', 'G-XX6PV4G4TX');
   </script>
   <meta charset="utf-8">
+  <script>
+    /*
+     * Apply the saved theme before the app boots.
+     *
+     * Angular cannot do this until it has loaded, which is long enough to show
+     * a frame of the stylesheet's default palette. These are the declarations
+     * ThemeService last resolved, replayed verbatim — the mapping from theme
+     * keys to custom properties stays in that one file.
+     */
+    try {
+      var themeVars = JSON.parse(localStorage.getItem('syllogimous-theme-vars') || 'null');
+      if (themeVars) {
+        for (var name in themeVars) {
+          document.documentElement.style.setProperty(name, themeVars[name]);
+        }
+      }
+    } catch (e) { /* corrupt or unavailable storage: fall back to the defaults */ }
+  </script>
   <title>Syllogimous v4</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">

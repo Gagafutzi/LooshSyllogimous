@@ -1,0 +1,177 @@
+<div class="calib">
+
+    <h2 class="mb-1">Quick calibration</h2>
+    <p class="text-muted mb-3">
+        A dozen or so questions to find your starting level, so you do not have to
+        climb from the bottom. One premise at a time, no going back, on a clock —
+        the same conditions the levels you are being placed into are played under.
+    </p>
+
+    <div class="card p-3 mb-3" *ngIf="error">
+        <span class="no">{{ error }}</span>
+    </div>
+
+    <!-- idle -->
+    <div class="card p-3" *ngIf="!started && !finished">
+        <p class="text-muted mb-3">
+            Answer honestly and do not guess if you genuinely cannot tell — a guess
+            that happens to land pushes the estimate up and starts you too high.
+            Running out of time counts as a miss.
+        </p>
+        <button class="btn btn-primary" (click)="start()">Begin calibration</button>
+    </div>
+
+    <!-- running -->
+    <ng-container *ngIf="started && !finished && question">
+        <div class="card p-3 mb-3">
+            <div class="calib__bar" aria-hidden="true">
+                <i [style.width.%]="progressPct"></i>
+            </div>
+            <!--
+              The level is not a premise count and must not sit next to one
+              looking like a second opinion on the same quantity — a 5-premise
+              6D item at level 12 was being read as a 12-premise item.
+            -->
+            <div class="calib__meta">
+                <span>{{ question.type }} &middot; {{ question.premises.length }} premises</span>
+                <span class="calib__difficulty">difficulty {{ state.level }}/{{ config.maxLevel }}</span>
+            </div>
+        </div>
+
+        <div class="card p-3">
+            <div class="calib__clock" [class.is-critical]="timeCritical">
+                <div class="calib__bar" aria-hidden="true">
+                    <i [style.width.%]="timePct"></i>
+                </div>
+                <span class="calib__secs">{{ remainingSeconds }}s</span>
+            </div>
+
+            <div class="calib__stage" *ngIf="slide as s">
+                <small class="text-muted">{{ s.label }}</small>
+                <div class="calib__slide" [innerHTML]="s.html"></div>
+            </div>
+
+            <div class="calib__dots" aria-hidden="true">
+                <i *ngFor="let s of slides; let i = index"
+                   [class.seen]="i < slideIndex"
+                   [class.here]="i === slideIndex"></i>
+            </div>
+
+            <button class="btn btn-lg w-100 mt-2" *ngIf="!atEnd" (click)="next()">
+                Next <i class="bi bi-arrow-right"></i>
+            </button>
+
+            <!--
+              Construction: state the relation instead of judging one. This is
+              what makes twenty items enough — a true/false placement cannot
+              separate a lucky run from an understood one at this sample size.
+            -->
+            <div class="build" *ngIf="atEnd && question.answerMode === 'construct'">
+                <div class="build__head">
+                    <span class="small text-muted">State the relation</span>
+                    <span class="build__left" [class.is-done]="constructComplete">{{ slotsLeft }}</span>
+                </div>
+                <div class="build__claim" *ngFor="let claim of question.construct; let ci = index">
+                    <div class="build__pair">
+                        <!--
+                          innerHTML, not interpolation: a stimulus is not always
+                          a word. Emoji and visual-noise stimuli are HTML
+                          fragments, so interpolating printed the raw source as
+                          literal text.
+                        -->
+                        <span class="subject" [innerHTML]="claim.a"></span>
+                        <span class="build__arrow">&rarr;</span>
+                        <span class="subject" [innerHTML]="claim.b"></span>
+                    </div>
+                    <!--
+                      Selects rather than button rows. Every axis has to be
+                      answered, so the list length is fixed and long; as wrapping
+                      rows of buttons a five-axis item ran past the card twice
+                      over. A select is one line whatever the option count, and
+                      it shows the current choice without needing a highlight.
+                    -->
+                    <div class="build__grid">
+                        <label class="build__slot" *ngFor="let slot of claim.slots; let si = index">
+                            <span class="build__label">{{ slot.label }}</span>
+                            <span class="build__pick" [class.is-set]="picks[ci] && picks[ci][si].direction >= 0">
+                                <select class="form-select form-select-sm"
+                                        [value]="picks[ci] && picks[ci][si].direction >= 0 ? picks[ci][si].direction : ''"
+                                        (change)="pickDirection(ci, si, $any($event.target).value)">
+                                    <option value="" disabled>choose&hellip;</option>
+                                    <option value="0">{{ short(slot.directions[0]) }}</option>
+                                    <option value="1">{{ short(slot.directions[1]) }}</option>
+                                    <option value="2">{{ short(slot.directions[2]) }}</option>
+                                </select>
+                            </span>
+                            <!--
+                              "Same" has no distance to state, so the box goes
+                              blank rather than sitting there inviting a number
+                              that would be ignored.
+                            -->
+                            <input class="form-control form-control-sm build__mag"
+                                   type="number" min="1" step="1"
+                                   [class.is-idle]="!needsMagnitude(ci, si, slot)"
+                                   [disabled]="!needsMagnitude(ci, si, slot)"
+                                   [value]="picks[ci] ? picks[ci][si].magnitude : 1"
+                                   (change)="pickMagnitude(ci, si, $any($event.target).value)">
+                        </label>
+                    </div>
+                </div>
+            
+                <button class="btn btn-lg w-100 mt-2"
+                        [class.btn-primary]="constructComplete"
+                        [disabled]="!constructComplete"
+                        (click)="submitConstruction()">
+                    {{ constructComplete ? 'Submit' : slotsLeft }}
+                </button>
+            </div>
+
+            <div class="calib__answers" *ngIf="atEnd && question.answerMode !== 'construct'">
+                <button class="btn btn-lg btn-success" (click)="answer(true)">True</button>
+                <button class="btn btn-lg btn-danger" (click)="answer(false)">False</button>
+            </div>
+        </div>
+    </ng-container>
+
+    <!-- result -->
+    <div class="card p-3" *ngIf="finished && estimate">
+        <h5 class="mb-2">Your starting level</h5>
+
+        <div class="calib__result">
+            <span class="calib__level">{{ estimate.level }}</span>
+            <span class="text-muted">linear-equivalent premises</span>
+        </div>
+
+        <div class="calib__score">
+            <span class="calib__pts">{{ score }}</span>
+            <span class="text-muted">starting points</span>
+        </div>
+
+        <p class="text-muted small mt-2 mb-3">
+            From {{ estimate.trials }} items, pinned to within
+            &plusmn;{{ estimate.standardError }} premises.
+            Your median solve time was {{ estimate.medianSeconds }}s, which is
+            what separates this score from someone placed at the same level.
+        </p>
+
+        <details class="calib__breakdown mb-3">
+            <summary class="text-muted small">What that is worth in each mode</summary>
+            <div class="calib__grid">
+                <div *ngFor="let p of placements">
+                    <span>{{ p.type }}</span>
+                    <b>{{ p.premises }}p</b>
+                </div>
+            </div>
+        </details>
+
+        <div class="calib__actions">
+            <button class="btn btn-primary" *ngIf="!applied" (click)="apply()">
+                Use this level
+            </button>
+            <span class="ok" *ngIf="applied">Applied to every enabled mode.</span>
+            <button class="btn btn-sm" (click)="retake()">Retake</button>
+            <button class="btn btn-sm btn-primary" *ngIf="applied" (click)="play()">Play</button>
+        </div>
+    </div>
+
+</div>

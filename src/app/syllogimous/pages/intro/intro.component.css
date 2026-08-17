@@ -1,0 +1,39 @@
+
+/* Two stacked options need room; the toolbar's default row layout squashes
+   the second label against the button. */
+.intro__footer {
+    align-items: start;
+    gap: 16px;
+}
+
+.intro__checks {
+    display: grid;
+    gap: 8px;
+}
+
+.intro__checks .form-check-label small {
+    line-height: 1.3;
+}
+
+/* The toolbar is a flex row; without this the two-line label steals the
+   button's width and squeezes "Skip Intro" into a circle. */
+.intro__footer > div:last-child {
+    flex-shrink: 0;
+}
+
+.intro__footer .btn {
+    white-space: nowrap;
+}
+
+/*
+ * Align the box with the first line of the label, not the middle of the block.
+ * The theme lays .form-check out as a centred flex row, which reads fine for a
+ * one-line label and badly for a three-line one.
+ */
+.intro__checks .form-check {
+    align-items: start;
+}
+
+.intro__checks .form-check-input {
+    margin-block-start: 0.2em;
+}

@@ -5,14 +5,26 @@ export class TypeBasedStats {
     [EnumQuestionType.Distinction] = new TypeBasedStatsInner(EnumQuestionType.Distinction);
     [EnumQuestionType.ComparisonNumerical] = new TypeBasedStatsInner(EnumQuestionType.ComparisonNumerical);
     [EnumQuestionType.ComparisonChronological] = new TypeBasedStatsInner(EnumQuestionType.ComparisonChronological);
+    [EnumQuestionType.LinearVertical] = new TypeBasedStatsInner(EnumQuestionType.LinearVertical);
+    [EnumQuestionType.LinearHorizontal] = new TypeBasedStatsInner(EnumQuestionType.LinearHorizontal);
+    [EnumQuestionType.LinearContains] = new TypeBasedStatsInner(EnumQuestionType.LinearContains);
     [EnumQuestionType.LinearArrangement] = new TypeBasedStatsInner(EnumQuestionType.LinearArrangement);
     [EnumQuestionType.CircularArrangement] = new TypeBasedStatsInner(EnumQuestionType.CircularArrangement);
     [EnumQuestionType.Direction] = new TypeBasedStatsInner(EnumQuestionType.Direction);
     [EnumQuestionType.Direction3DSpatial] = new TypeBasedStatsInner(EnumQuestionType.Direction3DSpatial);
     [EnumQuestionType.Direction3DTemporal] = new TypeBasedStatsInner(EnumQuestionType.Direction3DTemporal);
+    [EnumQuestionType.Space4D] = new TypeBasedStatsInner(EnumQuestionType.Space4D);
+    [EnumQuestionType.Space3D] = new TypeBasedStatsInner(EnumQuestionType.Space3D);
+    [EnumQuestionType.Space5D] = new TypeBasedStatsInner(EnumQuestionType.Space5D);
+    [EnumQuestionType.Space6D] = new TypeBasedStatsInner(EnumQuestionType.Space6D);
     [EnumQuestionType.GraphMatching] = new TypeBasedStatsInner(EnumQuestionType.GraphMatching);
+    [EnumQuestionType.Hierarchy] = new TypeBasedStatsInner(EnumQuestionType.Hierarchy);
     [EnumQuestionType.Analogy] = new TypeBasedStatsInner(EnumQuestionType.Analogy);
     [EnumQuestionType.Binary] = new TypeBasedStatsInner(EnumQuestionType.Binary);
+    [EnumQuestionType.Deictic] = new TypeBasedStatsInner(EnumQuestionType.Deictic);
+    [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);
+    [EnumQuestionType.AnchorSpace] = new TypeBasedStatsInner(EnumQuestionType.AnchorSpace);
+    [EnumQuestionType.AnchorSpaceV2] = new TypeBasedStatsInner(EnumQuestionType.AnchorSpaceV2);
 }
 
 export class TypeBasedStatsInner {

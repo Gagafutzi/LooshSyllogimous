@@ -2,10 +2,19 @@
     text-align: right;
 }
 
+/*
+ * `width: auto` is set inline by the template, and in the centred card body
+ * that resolves to shrink-to-fit — i.e. max-content. A wrapping flex row of
+ * relation buttons has a max-content width equal to the whole row unwrapped,
+ * which sized this to six thousand pixels and pushed the premises off the
+ * card. Capping at the container is what "auto" was always meant to mean here.
+ */
 .battlefield {
     font-size: 1.5rem;
     line-height: 1.3;
     margin-block: 1rem;
+    max-inline-size: 100%;
+    min-inline-size: 0;
 }
 
 .timerbar-wrap {
@@ -26,16 +35,319 @@
     gap: 0.75rem;
 }
 
-.instructions {
+/*
+ * The per-item setup line. Deliberately quiet and unheaded: it is a condition
+ * of the question, not something to read first. Mode rules used to sit here at
+ * 1.4rem with an "Instructions" heading and competed with the premises for
+ * attention every single question.
+ */
+.setup {
     display: grid;
-    gap: 0.5rem;
-    font-size: 1.4rem;
-    line-height: 1.1;
-    margin-block: 0.5rem;
+    gap: 0.3rem;
+    font-size: 1rem;
+    line-height: 1.3;
+    color: var(--th-text-dim, #7d8ca6);
 }
-.notes {
+
+/* ---- choice answering ---- */
+
+.choices {
     display: grid;
-    gap: 0.25rem;
-    font-size: 1.2rem;
+    gap: 8px;
+}
+
+/*
+ * Full-width rows rather than a 2x2 grid: the candidates are sentences of
+ * uneven length, and a grid makes the short one look like the odd one out.
+ */
+.choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: start;
+    /* Tight: four of these share the footer with the card body above them. */
+    padding: 6px 12px;
+    inline-size: 100%;
+    font-size: 0.92rem;
+    line-height: 1.25;
+}
+
+.choice__key {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    border-radius: 999px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--th-accent, #22d3ee);
+    background: color-mix(in srgb, var(--th-accent, #22d3ee) 16%, transparent);
+}
+
+.choice-list {
+    display: grid;
+    gap: 6px;
+    margin-block-start: 4px;
+}
+
+.choice-list > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ---- conclusion building ---- */
+
+/* Says why the form is absent, rather than leaving a gap. */
+.build__wait {
+    padding: 14px 0;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--th-text-dim, #7d8ca6);
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+
+.build {
+    display: grid;
+    gap: 6px;
+}
+
+.build__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* Compactness hides what is missing, so the count says it outright. */
+.build__left {
+    font-size: 0.75rem;
+    color: var(--th-bad, #fb7185);
+    font-variant-numeric: tabular-nums;
+}
+
+.build__left.is-done { color: var(--th-ok, #4ade80); }
+
+.build__claim {
+    display: grid;
+    gap: 5px;
+    padding: 7px 0;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.build__claim:first-of-type { border-top: 0; }
+
+.build__pair {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1rem;
+}
+
+.build__arrow { color: var(--th-text-dim, #7d8ca6); }
+
+/*
+ * Two columns where there is room. Six axes as six full-width rows is a lot of
+ * vertical scrolling for what is really a short form.
+ */
+.build__grid {
+    display: grid;
+    /*
+     * Wide enough that the longest relation fits before it doubles up. At a
+     * narrower minimum two columns appeared on the standard card and truncated
+     * "is 2 steps anticlockwise from" to "is 2 steps" — which hides the very
+     * thing the player just chose.
+     */
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    gap: 4px 12px;
+}
+
+/* label · direction · distance */
+.build__slot {
+    display: grid;
+    grid-template-columns: minmax(3.5rem, max-content) minmax(0, 1fr) 4.2rem;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.build__mag {
+    inline-size: 100%;
+    text-align: center;
+    font-size: 0.78rem;
+    padding-inline: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Not merely disabled — irrelevant. "Same" has no distance. */
+.build__mag.is-idle {
+    opacity: 0.25;
+    visibility: hidden;
+}
+
+.build__label {
+    font-size: 0.75rem;
+    color: var(--th-text-dim, #7d8ca6);
+    text-align: end;
     line-height: 1.2;
 }
+
+/*
+ * The theme paints every input with `background: ... !important`, which wipes
+ * the select's own dropdown arrow. Drawing it on the wrapper is the one place
+ * that cannot be overridden by that rule.
+ */
+.build__pick {
+    position: relative;
+    display: block;
+    min-inline-size: 0;
+}
+
+.build__pick::after {
+    content: "\25BE";
+    position: absolute;
+    inset-inline-end: 8px;
+    inset-block-start: 50%;
+    translate: 0 -50%;
+    pointer-events: none;
+    opacity: 0.55;
+    font-size: 0.7em;
+}
+
+.build__pick select {
+    inline-size: 100%;
+    padding-inline: 8px 22px;
+    font-size: 0.78rem;
+    text-transform: none;
+    /* An unset slot reads as unfinished rather than as a valid choice. */
+    opacity: 0.6;
+}
+
+.build__pick.is-set select {
+    opacity: 1;
+    color: var(--th-accent) !important;
+    border-color: rgba(var(--th-accent-rgb, 34, 211, 238), 0.55) !important;
+}
+
+@media (max-width: 560px) {
+    .build__grid { grid-template-columns: 1fr; }
+    .build__slot { grid-template-columns: 1fr 4.2rem; gap: 4px; }
+    .build__label { grid-column: 1 / -1; text-align: start; }
+}
+
+/*
+ * Instant slide changes.
+ *
+ * `[animation]="false"` already stops ngb-carousel adding the classes that
+ * drive the slide, so nothing animates today. This is belt-and-braces against
+ * Bootstrap's own `.carousel-item { transition: transform .6s }` ever being
+ * triggered by a future version: stepping through premises is reading, and a
+ * six-hundred-millisecond slide between them is latency, not polish.
+ */
+::ng-deep .carousel-item,
+::ng-deep .carousel-inner {
+    transition: none !important;
+}
+
+/* ---- answer buttons ---- */
+
+/*
+ * The button is a transparent hit target; `.answer__face` is what you see.
+ *
+ * Splitting the two is what lets a theme give the answers an arbitrary
+ * silhouette without shrinking the target. `clip-path` participates in hit
+ * testing, so clipping the button itself would make its corners dead — the
+ * wrong trade on the control that gets hit fastest.
+ *
+ * Every value derives from --th-ok / --th-bad, the same pair the calibration
+ * screen's plain buttons use, so there is one palette rather than two. The
+ * defaults reproduce the outlined chip these were before.
+ */
+.answer {
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0.15rem !important;
+}
+
+.answer__face {
+    display: grid;
+    place-items: center;
+    min-height: 4.2rem;
+    padding: 0.6rem 1rem;
+    border-radius: calc(var(--th-radius, 14px) * 1.15);
+    border: calc(var(--th-border-width, 1px) * 2) solid transparent;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    clip-path: var(--th-answer-shape, none);
+    transition: transform 120ms ease, filter 120ms ease, background 150ms ease;
+}
+
+.answer__face--yes {
+    background: color-mix(in srgb, var(--th-ok, #4ade80) var(--th-answer-fill, 12%), transparent);
+    border-color: color-mix(in srgb, var(--th-ok, #4ade80) 50%, transparent);
+    color: var(--th-ok-ink, var(--th-ok, #4ade80));
+}
+
+.answer__face--no {
+    background: color-mix(in srgb, var(--th-bad, #fb7185) var(--th-answer-fill, 12%), transparent);
+    border-color: color-mix(in srgb, var(--th-bad, #fb7185) 50%, transparent);
+    color: var(--th-bad-ink, var(--th-bad, #fb7185));
+}
+
+/*
+ * A clipped face has no border left to outline it, so definition comes from a
+ * drop-shadow — that follows the silhouette, where box-shadow would draw the
+ * rectangle the clip just removed.
+ */
+.answer:hover .answer__face {
+    transform: translateY(-1px) scale(1.03);
+    filter: drop-shadow(0 0 var(--th-glow, 10px) var(--th-accent, #22d3ee));
+}
+
+.answer:active .answer__face {
+    transform: scale(0.97);
+}
+
+/* ---- error review ---- */
+
+/*
+ * Sits over the card rather than beside it: the point is that it is read, and
+ * anything reachable by ignoring it will be ignored.
+ */
+.review {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 1rem;
+    padding: clamp(1rem, 5vw, 4rem);
+    background: color-mix(in srgb, var(--th-bg, #05070c) 88%, transparent);
+    backdrop-filter: blur(6px);
+}
+
+.review__title {
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--th-text-dim, #7d8ca6);
+}
+
+.review__steps {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0;
+    padding-inline-start: 1.4rem;
+    max-inline-size: min(38rem, 100%);
+    line-height: 1.45;
+}
+
+.review__steps li::marker { color: var(--th-text-dim, #7d8ca6); }
+
+.review__go { margin-top: 0.5rem; }

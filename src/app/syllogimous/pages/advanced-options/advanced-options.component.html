@@ -1,0 +1,383 @@
+<div class="adv">
+
+    <h2 class="mb-1">Advanced options</h2>
+    <p class="text-muted mb-3">
+        Override what the tier decides: pick which modes appear and how many premises each gets.
+    </p>
+
+    <div class="card p-3 mb-3">
+        <label class="master">
+            <input type="checkbox"
+                   class="form-check-input"
+                   [checked]="active"
+                   (change)="setActive($any($event.target).checked)">
+            <span>
+                <strong>Use my settings instead of the tier</strong>
+                <small class="d-block text-muted">
+                    Off means stock v4 behaviour — the tier picks everything.
+                </small>
+            </span>
+        </label>
+    </div>
+
+    <div class="card p-3 mb-3" [class.is-idle]="!active">
+        <div class="d-flex justify-content-between align-items-baseline mb-3">
+            <h5 class="m-0">Question types</h5>
+            <small class="text-muted">{{ enabledCount() }} of {{ rows.length }} on</small>
+        </div>
+
+        <div class="mode" *ngFor="let row of rows">
+            <label class="mode__name">
+                <input type="checkbox"
+                       class="form-check-input"
+                       [disabled]="!active"
+                       [checked]="modeOf(row).enabled"
+                       (change)="toggleMode(row, $any($event.target).checked)">
+                <span>
+                    {{ row.type }}
+                    <small class="text-muted d-block">{{ row.group }}</small>
+                </span>
+            </label>
+
+            <span class="mode__premises">
+                <input type="number"
+                       class="form-control form-control-sm"
+                       [disabled]="!active || !modeOf(row).enabled"
+                       [min]="row.min" [max]="row.max"
+                       [value]="modeOf(row).numOfPremises"
+                       (change)="setPremises(row, $any($event.target).value)">
+                <small class="text-muted">premises ({{ row.min }}–{{ row.max }})</small>
+
+                <ng-container *ngIf="hasDepth(row)">
+                    <input type="number"
+                           class="form-control form-control-sm mt-1"
+                           [disabled]="!active || !modeOf(row).enabled"
+                           min="0" max="6"
+                           [value]="depthOf(row)"
+                           (change)="setDepth(row, $any($event.target).value)">
+                    <small class="text-muted">extra transforms (0–6)</small>
+                </ng-container>
+            </span>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-3" [class.is-idle]="!active">
+        <h5 class="mb-3">Transformations &amp; stimuli</h5>
+
+        <div class="mode">
+            <label>Premise scramble
+                <small class="text-muted d-block">
+                    0 keeps premises in chain order; 100 shuffles freely. Transformation
+                    steps always stay in sequence.
+                </small>
+            </label>
+            <span class="mode__premises">
+                <input type="number" class="form-control form-control-sm"
+                       min="0" max="100" step="5"
+                       [disabled]="!active" [value]="scramble"
+                       (change)="setScramble($any($event.target).value)">
+                <small class="text-muted">0–100</small>
+            </span>
+        </div>
+
+        <label class="flag">
+            <input type="checkbox" class="form-check-input" [disabled]="!active"
+                   [checked]="flags.meta" (change)="setFlag('meta', $any($event.target).checked)">
+            <span>Meta relations
+                <small class="d-block text-muted">Premises that relate other premises</small>
+            </span>
+        </label>
+
+        <label class="flag">
+            <input type="checkbox" class="form-check-input" [disabled]="!active"
+                   [checked]="flags.negation" (change)="setFlag('negation', $any($event.target).checked)">
+            <span>Negation
+                <small class="d-block text-muted">Invert relations, forcing a second reasoning step</small>
+            </span>
+        </label>
+
+        <label class="flag">
+            <input type="checkbox" class="form-check-input" [disabled]="!active"
+                   [checked]="flags.meaningfulWords" (change)="setFlag('meaningfulWords', $any($event.target).checked)">
+            <span>Meaningful words
+                <small class="d-block text-muted">Real nouns instead of nonsense tokens</small>
+            </span>
+        </label>
+
+        <label class="flag">
+            <input type="checkbox" class="form-check-input" [disabled]="!active"
+                   [checked]="flags.useText" (change)="setFlag('useText', $any($event.target).checked)">
+            <span>Text stimuli
+                <small class="d-block text-muted">Words or letter triples, per the setting above</small>
+            </span>
+        </label>
+
+        <label class="flag">
+            <input type="checkbox" class="form-check-input" [disabled]="!active"
+                   [checked]="flags.useEmojis" (change)="setFlag('useEmojis', $any($event.target).checked)">
+            <span>Emoji stimuli
+                <small class="d-block text-muted">Harder to subvocalise than letters</small>
+            </span>
+        </label>
+
+        <label class="flag">
+            <input type="checkbox" class="form-check-input" [disabled]="!active"
+                   [checked]="flags.visualNoise" (change)="setFlag('visualNoise', $any($event.target).checked)">
+            <span>Visual noise stimuli
+                <small class="d-block text-muted">Abstract patterns that resist naming. Selected kinds are mixed within a question.</small>
+            </span>
+        </label>
+    </div>
+
+    <div class="card p-3 mb-3" [class.is-idle]="!active">
+        <h5 class="mb-1">Scale modes</h5>
+        <p class="text-muted small mb-3">
+            Applies to Comparison Numerical, Comparison Chronological, Vertical Order,
+            Horizontal Order and Containment. Normally these are earned rung by rung —
+            <em>Ladder</em> leaves that alone.
+        </p>
+
+        <div class="lin" *ngFor="let row of linearRows">
+            <span class="lin__name">
+                {{ row.label }}
+                <small class="d-block text-muted">{{ row.hint }}</small>
+            </span>
+            <span class="lin__tri" role="group" [attr.aria-label]="row.label">
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="linearOf(row.key) === null"
+                        (click)="setLinear(row.key, null)">Ladder</button>
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="linearOf(row.key) === false"
+                        (click)="setLinear(row.key, false)">Off</button>
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="linearOf(row.key) === true"
+                        (click)="setLinear(row.key, true)">On</button>
+            </span>
+        </div>
+
+        <div class="lin">
+            <span class="lin__name">
+                Relation edits
+                <small class="d-block text-muted">
+                    Premises that rewrite an earlier relation instead of moving
+                    anything: reverse one, exchange two, or copy one onto another.
+                    You hold the statements as data and edit them. Composed
+                    spaces only; blank defers to the ladder.
+                </small>
+            </span>
+            <span class="mode__premises">
+                <input type="number" class="form-control form-control-sm"
+                       min="0" max="4" placeholder="&mdash;"
+                       [disabled]="!active" [value]="editCount"
+                       (change)="setEditCount($any($event.target).value)">
+                <small class="text-muted">0&ndash;4</small>
+            </span>
+        </div>
+
+        <div class="lin">
+            <span class="lin__name">
+                Transformations
+                <small class="d-block text-muted">
+                    Premises that move things after the layout is described. They come
+                    out of the premise budget rather than adding to it, so the item does
+                    not silently get longer. Blank defers to the ladder.
+                </small>
+            </span>
+            <span class="mode__premises">
+                <input type="number" class="form-control form-control-sm"
+                       min="0" max="4" placeholder="—"
+                       [disabled]="!active" [value]="linearTransforms"
+                       (change)="setLinearTransforms($any($event.target).value)">
+                <small class="text-muted">0–4</small>
+            </span>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-3" [class.is-idle]="!active">
+        <h5 class="mb-1">Composed spaces</h5>
+        <p class="text-muted small mb-3">
+            4D, 5D and 6D are the same generator with different axis lists, so the
+            dimensions are yours to choose. Each premise states every axis at once,
+            which is what makes them hard — you carry several independent
+            accumulations through one chain.
+        </p>
+
+        <div class="lin">
+            <span class="lin__name">
+                Looping axes
+                <small class="d-block text-muted">
+                    A looped axis wraps around, so ordering stops meaning anything
+                    and the question becomes displacement instead: how many steps
+                    round, or whether two things sit opposite. Only axes with a
+                    circular reading can loop.
+                </small>
+            </span>
+            <span class="lin__tri" role="group" aria-label="Looping axes">
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="circularAxes === null"
+                        (click)="setCircularAxes(null)">Ladder</button>
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="circularAxes === 0"
+                        (click)="setCircularAxes(0)">0</button>
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="circularAxes === 1"
+                        (click)="setCircularAxes(1)">1</button>
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="circularAxes === 2"
+                        (click)="setCircularAxes(2)">2</button>
+            </span>
+        </div>
+
+        <div class="axes" *ngFor="let dims of spaceDims">
+            <div class="axes__head">
+                <strong>{{ dims }}D axes</strong>
+                <small class="text-muted" *ngIf="isPreset(dims)">default</small>
+                <button type="button" class="btn btn-sm" *ngIf="!isPreset(dims)"
+                        [disabled]="!active" (click)="resetAxes(dims)">Reset</button>
+            </div>
+
+            <div class="axes__chips">
+                <button type="button" class="btn btn-sm axis"
+                        *ngFor="let a of axisChoices"
+                        [disabled]="!active"
+                        [class.is-on]="axesOf(dims).includes(a.id)"
+                        (click)="toggleAxis(dims, a.id)">
+                    {{ a.label }}<span class="axis__words">{{ a.words }}</span><span class="axis__loop" *ngIf="a.canLoop" title="can be looped">↻</span>
+                </button>
+            </div>
+
+            <small class="axes__note" *ngIf="axisWarning(dims)">{{ axisWarning(dims) }}</small>
+            <small class="text-muted d-block" *ngIf="!axisWarning(dims)">
+                {{ loopableCount(dims) }} of these can be looped.
+            </small>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-3">
+        <h5 class="mb-2">Fluid progression</h5>
+        <p class="text-muted small mb-2">
+            Every mode carries an estimate of your ability on one difficulty scale,
+            and each item is built to sit just below it. Premises, modifiers and the
+            clock are all on that scale, so they trade against each other.
+        </p>
+
+        <label class="master mb-2">
+            <input type="checkbox" class="form-check-input"
+                   [checked]="prog.enabled"
+                   (change)="setProg('enabled', $any($event.target).checked)">
+            <span>
+                <strong>Use fluid progression</strong>
+                <small class="d-block text-muted">Takes over the countdown, the premise count and the modifiers.</small>
+            </span>
+        </label>
+
+        <div [class.is-idle]="!prog.enabled">
+            <div class="mode">
+                <label>Target accuracy
+                    <small class="text-muted d-block">Items are aimed just below your estimate to land here</small>
+                </label>
+                <span class="mode__premises">
+                    <input type="number" class="form-control form-control-sm" min="0.5" max="0.95" step="0.05"
+                           [disabled]="!prog.enabled" [value]="prog.targetAccuracy"
+                           (change)="setProg('targetAccuracy', $any($event.target).value)">
+                    <small class="text-muted">0.5 – 0.95</small>
+                </span>
+            </div>
+
+            <div class="mode">
+                <label>Longest limit
+                    <small class="text-muted d-block">The clock only appears once structure runs out</small>
+                </label>
+                <span class="mode__premises">
+                    <input type="number" class="form-control form-control-sm" min="10" max="300"
+                           [disabled]="!prog.enabled" [value]="prog.ceilingSeconds"
+                           (change)="setProg('ceilingSeconds', $any($event.target).value)">
+                    <small class="text-muted">seconds</small>
+                </span>
+            </div>
+
+            <div class="mode">
+                <label>Structure before length
+                    <small class="text-muted d-block">Past this, premises rise only once every modifier is in play</small>
+                </label>
+                <span class="mode__premises">
+                    <input type="number" class="form-control form-control-sm" min="3" max="12"
+                           [disabled]="!prog.enabled" [value]="prog.structureBefore"
+                           (change)="setProg('structureBefore', $any($event.target).value)">
+                    <small class="text-muted">premises</small>
+                </span>
+            </div>
+
+            <div class="mode">
+                <label>Carry-over between modes
+                    <small class="text-muted d-block">
+                        How much being good at one mode says about a new one. Lower
+                        means a mode you have never played starts closer to your
+                        overall level; higher means each is measured from scratch.
+                    </small>
+                </label>
+                <span class="mode__premises">
+                    <input type="number" class="form-control form-control-sm" min="0.5" max="8" step="0.5"
+                           [disabled]="!prog.enabled" [value]="prog.crossModeSd"
+                           (change)="setProg('crossModeSd', $any($event.target).value)">
+                    <small class="text-muted">levels</small>
+                </span>
+            </div>
+
+            <div class="mode">
+                <label>Decay while idle
+                    <small class="text-muted d-block">
+                        Uncertainty added per day away. Nothing is taken back — the
+                        estimate simply loosens, so returning re-measures you quickly.
+                    </small>
+                </label>
+                <span class="mode__premises">
+                    <input type="number" class="form-control form-control-sm" min="0" max="1" step="0.05"
+                           [disabled]="!prog.enabled" [value]="prog.decayPerDay"
+                           (change)="setProg('decayPerDay', $any($event.target).value)">
+                    <small class="text-muted">levels / day</small>
+                </span>
+            </div>
+
+            <label class="flag">
+                <input type="checkbox" class="form-check-input" [disabled]="!prog.enabled"
+                       [checked]="prog.derivedScore"
+                       (change)="setProg('derivedScore', $any($event.target).checked)">
+                <span>Skill points from ability
+                    <small class="d-block text-muted">
+                        Show the estimate itself rather than a running total of answers.
+                        It can fall, and grinding easy items lowers it rather than raising it.
+                    </small>
+                </span>
+            </label>
+
+            <button class="btn btn-sm btn-danger mt-3" [disabled]="!prog.enabled"
+                    (click)="resetLadders()">Reset all estimates</button>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-3">
+        <h5 class="mb-2">Tier cheat</h5>
+        <p class="text-muted small mb-2">
+            For testing. Jumps the score so tier-gated modes can be reached without
+            playing to them. Currently <strong>{{ currentTier }}</strong>,
+            {{ currentScore }} pts.
+        </p>
+        <div class="run-row mb-2">
+            <select class="form-select form-select-sm" style="max-width: 14rem;"
+                    (change)="jumpToTier($any($event.target).value)">
+                <option value="">Jump to tier…</option>
+                <option *ngFor="let t of tiers" [value]="t">{{ t }}</option>
+            </select>
+            <button class="btn btn-sm" (click)="nudgeScore(250)">+250 pts</button>
+            <button class="btn btn-sm" (click)="nudgeScore(-250)">−250 pts</button>
+        </div>
+    </div>
+
+    <div class="card p-3">
+        <h5 class="mb-2">Reset</h5>
+        <p class="text-muted mb-2">Clears every override and returns to tier-driven settings.</p>
+        <button class="btn btn-sm btn-danger" (click)="reset()">Reset advanced options</button>
+    </div>
+
+</div>

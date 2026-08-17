@@ -34,6 +34,7 @@
               "src/assets/css/custom-styles/layout.css",
               "src/assets/css/custom-styles/module.css",
               "src/assets/css/custom-styles/util.css",
+              "src/assets/css/custom-styles/theme.css",
               "src/styles.css"
             ],
             "scripts": [

@@ -56,7 +56,7 @@ export class StatsExportService {
             const row = [
                 index + 1,
                 this.formatDateTime(q.createdAt),
-                q.playgroundMode ? 'Playground' : 'Arcade',
+                q.playgroundMode ? 'Free Play' : 'Arcade',
                 q.type,
                 q.premises.length,
                 timeTaken.toFixed(1),

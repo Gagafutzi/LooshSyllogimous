@@ -2,9 +2,20 @@ import { EnumQuestionType } from "./question.constants";
 import { EnumScreens } from "./game.constants";
 
 export const LS_DONT_SHOW = "SYL_DONT_SHOW:";
+/**
+ * Suppress every per-mode tutorial, including modes not met yet.
+ *
+ * Separate from the per-mode `LS_DONT_SHOW:` keys because those can only be set
+ * by dismissing a tutorial you have already been shown — which is no use to
+ * someone who knows the game and does not want to be interrupted sixteen more
+ * times to say so.
+ */
+export const LS_SKIP_TUTORIALS = "SYL_SKIP_TUTORIALS";
 export const LS_HISTORY = "SYL_HISTORY";
 export const LS_TIMER = "SYL_TIMER_TYPE";
 export const LS_GAME_MODE = "SYL_GAME_MODE";
+export const LS_CAROUSEL_ADVANCE = "SYL_CAROUSEL_ADVANCE";
+export const LS_CAROUSEL_SECONDS = "SYL_CAROUSEL_SECONDS";
 export const LS_DAILY_PROGRESS = "SYL_DAILY_PROGRESS";
 export const LS_PG_SETTINGS = "SYL_PG_SETTINGSv1";
 export const LS_DAILY_GOAL = "SYL_DAILY_GOAL";
@@ -18,9 +29,12 @@ export const LS_COLOR_BLINDNESS_MODE = "SYL_COLOR_BLINDNESS_MODE";
 export const LS_SYLLOGISM_GENERATOR = "SYL_SYLLOGISM_GENERATOR";
 
 export const LS_PROPS = [
+    LS_SKIP_TUTORIALS,
     LS_HISTORY,
     LS_TIMER,
     LS_GAME_MODE,
+    LS_CAROUSEL_ADVANCE,
+    LS_CAROUSEL_SECONDS,
     LS_DAILY_PROGRESS,
     LS_PG_SETTINGS,
     LS_DAILY_GOAL,
