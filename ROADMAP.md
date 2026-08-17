@@ -13,12 +13,12 @@ no ordering.
 
 | | |
 |---|---|
-| [Next up](docs/roadmap/open.md#next-up) | what to build, in order |
-| [Proposed modes](docs/roadmap/open.md#proposed-modes) | specced but unbuilt |
-| [Smaller fixes](docs/roadmap/open.md#smaller-fixes) | known rough edges |
-| [Done](docs/roadmap/done.md) | with the reasoning, and the traps found |
-| [Reference](docs/roadmap/reference.md) | rules that keep biting |
-| [Superseded](docs/roadmap/superseded.md) | kept only to explain what replaced them |
+| [Next up](roadmap/open.md#next-up) | what to build, in order |
+| [Proposed modes](roadmap/open.md#proposed-modes) | specced but unbuilt |
+| [Smaller fixes](roadmap/open.md#smaller-fixes) | known rough edges |
+| [Done](roadmap/done.md) | with the reasoning, and the traps found |
+| [Reference](roadmap/reference.md) | rules that keep biting |
+| [Superseded](roadmap/superseded.md) | kept only to explain what replaced them |
 
 ---
 
@@ -31,7 +31,7 @@ no ordering.
   checked this way, and most of the entries record something the check caught
   that inspection did not.
 - **Difficulty is structure, not length.** Premise count is the axis of last
-  resort; see [4.0](docs/roadmap/done.md#40-one-ability-estimate--done-utilsabilityutilsts).
+  resort; see [4.0](roadmap/done.md#40-one-ability-estimate--done-utilsabilityutilsts).
 - **The Vercel build's JS is unavailable.** `Syllogimous.html` is a DOM snapshot
   referencing `syllogimous.min.js` without containing it, so anything unique to
   that build is written from scratch, using the snapshot only as a
@@ -57,10 +57,10 @@ runtime in a way `tsc` cannot catch:
 
 ---
 
-The body of this document is split by section under `docs/roadmap/`,
+The body of this document is split by section under `roadmap/`,
 so a question about one phase costs one file rather than all of them.
 
-- [Open](docs/roadmap/open.md) — 495 lines
-- [Done](docs/roadmap/done.md) — 1315 lines
-- [Reference](docs/roadmap/reference.md) — 27 lines
-- [Superseded](docs/roadmap/superseded.md) — 451 lines
+- [Open](roadmap/open.md) — 495 lines
+- [Done](roadmap/done.md) — 1315 lines
+- [Reference](roadmap/reference.md) — 27 lines
+- [Superseded](roadmap/superseded.md) — 451 lines
