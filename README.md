@@ -1,15 +1,3 @@
-# Syllogimous v4
-
-Syllogimous v4 is now available! Try it now at: [Syllogimous v4](https://4skinskywalker.github.io/Syllogimous-v4/)
-
-## TODO
-- Allow customization of the start of the week.
-- Introduce a setting to adjust the density of directions.
-- Enable non-stepped, generic directions in direction questions.
-- Define meta relationships for directional and arrangement settings.
-- Introduce a new question type focused on hierarchy.
-- Add a switch to change between performance-based and tier-based number of premises.
-
 ## Attribution-NonCommercial 3.0 Unported (CC BY-NC 3.0)
 
 ### You are free to:
