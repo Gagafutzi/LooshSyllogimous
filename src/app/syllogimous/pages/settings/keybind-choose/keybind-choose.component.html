@@ -1,0 +1,25 @@
+<div class="keys">
+    <div class="keys__row" *ngFor="let row of rows">
+        <span class="keys__name">
+            {{ row.label }}
+            <small class="d-block text-muted" *ngIf="row.hint">{{ row.hint }}</small>
+        </span>
+
+        <!--
+          The button is what listens, so the key that opened capture cannot be
+          the key that gets bound.
+        -->
+        <button type="button" class="btn btn-sm keys__key"
+                [class.is-listening]="capturing === row.action"
+                (click)="listen(row.action)"
+                (keydown)="capture($event)"
+                [attr.aria-label]="'Rebind ' + row.label">
+            {{ capturing === row.action ? "press a key…" : (keys.binds[row.action] ? label(keys.binds[row.action]) : "unbound") }}
+        </button>
+    </div>
+
+    <div class="keys__foot">
+        <small class="text-muted">Number keys always answer a choice item.</small>
+        <button type="button" class="btn btn-sm" (click)="reset()">Reset to arrows</button>
+    </div>
+</div>

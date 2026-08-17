@@ -1,4 +1,4 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { GameService } from '../../services/game.service';
 import { StatsService } from '../../services/stats.service';
@@ -10,6 +10,7 @@ import { GameTimerService } from '../../services/game-timer.service';
 import { ConstructSlot } from '../../models/question.models';
 import { ProgressionService } from '../../services/progression.service';
 import { SlotAnswer, blankPicks, slotsRemaining } from '../../utils/construct.utils';
+import { KeybindService } from '../../services/keybind.service';
 
 @Component({
     selector: 'app-game',
@@ -34,6 +35,7 @@ export class GameComponent {
         public gameTimerService: GameTimerService,
         private statsService: StatsService,
         public progressionService: ProgressionService,
+        public keys: KeybindService,
         private router: Router,
     ) {
         this.timerType = localStorage.getItem(LS_TIMER) || '0';
@@ -314,26 +316,85 @@ export class GameComponent {
         this.game.checkConstruction(this.picks);
     }
 
+    /** The carousel, so the keyboard can step it as the buttons do. */
+    @ViewChild("carousel") carousel?: { next(): void; prev(): void };
+
     /**
-     * Number keys answer a choice item.
+     * Playing from the keyboard.
      *
-     * Choice mode puts four buttons where two used to be, and hunting for the
-     * right one with a mouse spends the time budget on aiming rather than
-     * reasoning. Ignored while a verdict is showing, so a late keypress cannot
-     * answer the next question before it is read.
+     * The answer buttons swap sides between questions on purpose, so the mouse
+     * is a poor instrument here — you cannot aim until you have read, and the
+     * aiming comes out of the time budget. Up and down mean the same thing
+     * whatever the buttons are doing.
+     *
+     * Number keys still answer a choice item directly: four buttons is more
+     * hunting than two, and 1–4 is faster than any binding could be.
      */
     @HostListener("document:keydown", ["$event"])
     onKey(event: KeyboardEvent) {
-        if (this.game.question.answerMode !== "choice") return;
+        // Never while a verdict is up: a late keypress would answer the next
+        // question before it has been read.
         if (this.game.verdict) return;
-        if (event.metaKey || event.ctrlKey || event.altKey) return;
 
-        const index = Number(event.key) - 1;
-        if (!Number.isInteger(index)) return;
-        if (index < 0 || index >= this.game.question.choices.length) return;
+        // Typing in the conclusion builder is typing, not playing.
+        const target = event.target as HTMLElement | null;
+        if (target?.closest("input, select, textarea")) return;
 
-        event.preventDefault();
-        this.game.checkChoice(index);
+        if (this.game.review.length) {
+            // The one thing worth doing while the explanation is up.
+            if (this.keys.actionFor(event) === "submit") {
+                event.preventDefault();
+                this.game.dismissReview();
+            }
+            return;
+        }
+
+        if (this.game.question.answerMode === "choice") {
+            const index = Number(event.key) - 1;
+            if (Number.isInteger(index) && index >= 0 && index < this.game.question.choices.length) {
+                event.preventDefault();
+                this.game.checkChoice(index);
+                return;
+            }
+        }
+
+        const action = this.keys.actionFor(event);
+        if (!action) return;
+
+        switch (action) {
+            case "answerTrue":
+                if (this.game.question.answerMode === "construct") {
+                    // The same key submits what has been built: on that mode
+                    // there is no true or false to press, and a second binding
+                    // for "the affirmative action" would be one to remember.
+                    if (this.constructComplete) { event.preventDefault(); this.submitConstruction(); }
+                    return;
+                }
+                if (this.game.question.answerMode !== "boolean") return;
+                event.preventDefault();
+                this.game.checkQuestion(true);
+                return;
+
+            case "answerFalse":
+                if (this.game.question.answerMode !== "boolean") return;
+                event.preventDefault();
+                this.game.checkQuestion(false);
+                return;
+
+            case "next":
+                if (this.gameMode === "0") return;
+                event.preventDefault();
+                this.carousel?.next();
+                return;
+
+            case "prev":
+                // Game mode 2 is the no-going-back carousel; the button is
+                // disabled there, and the key must not be a way around it.
+                if (this.gameMode === "0" || this.gameMode === "2") return;
+                event.preventDefault();
+                this.carousel?.prev();
+                return;
+        }
     }
 
     kickTimer = async () => {

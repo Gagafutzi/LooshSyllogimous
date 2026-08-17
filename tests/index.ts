@@ -15,5 +15,6 @@ import "./induction.test";
 import "./derivation.test";
 import "./fatigue.test";
 import "./profiles.test";
+import "./keybind.test";
 
 run();

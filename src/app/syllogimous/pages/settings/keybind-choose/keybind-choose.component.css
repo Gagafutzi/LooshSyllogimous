@@ -1,0 +1,31 @@
+.keys { display: grid; gap: 0.5rem; }
+
+.keys__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.keys__name { flex: 1; line-height: 1.25; }
+
+/* Wide enough that "press a key…" does not resize the row when capture opens. */
+.keys__key {
+    min-width: 8.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.keys__key.is-listening {
+    background: color-mix(in srgb, var(--th-accent) 22%, transparent) !important;
+    border-color: rgba(var(--th-accent-rgb, 34, 211, 238), 0.6) !important;
+    color: var(--th-accent) !important;
+}
+
+.keys__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
