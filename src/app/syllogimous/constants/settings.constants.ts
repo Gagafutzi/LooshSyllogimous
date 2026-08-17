@@ -194,11 +194,17 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 20,
         basic: false
     },
-    // Needs 4 premises to state a 2-axis grid plus at least one reversal.
+    /*
+     * Needs 4 premises to state a 2-axis grid plus at least one reversal, and
+     * tops out at 11: three axes is eight grid statements, and each axis
+     * reverses once or not at all, so there are three reversals to state and no
+     * twelfth thing to say. Asking for twenty used to be answered with the same
+     * reversal restated five times over.
+     */
     [EnumQuestionType.Deictic]: {
         enabled: true,
         minNumOfPremises: 5,
-        maxNumOfPremises: 20,
+        maxNumOfPremises: 11,
         basic: false
     },
     [EnumQuestionType.Transformation]: {
@@ -220,6 +226,36 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         enabled: true,
         minNumOfPremises: 3,
         maxNumOfPremises: 20,
+        basic: false
+    },
+    /*
+     * Both induction modes size their own structure from the premise count —
+     * how many candidate relations to eliminate, how many relations to compare
+     * — so the caps here are about how wide that can get, not how long a chain
+     * is. Above their ceilings the item stops getting harder and starts getting
+     * longer, which is the axis of last resort.
+     */
+    [EnumQuestionType.InferRelation]: {
+        enabled: true,
+        minNumOfPremises: 4,
+        maxNumOfPremises: 8,
+        basic: false
+    },
+    [EnumQuestionType.OddestRelation]: {
+        enabled: true,
+        minNumOfPremises: 6,
+        maxNumOfPremises: 8,
+        basic: false
+    },
+    /*
+     * Premises here buy objects on corners and turns to carry, and the polygon
+     * caps the first — eight corners hold at most seven objects, so there is
+     * nothing above this ceiling but more turns of the same kind.
+     */
+    [EnumQuestionType.ShapeRotation]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 9,
         basic: false
     },
 }

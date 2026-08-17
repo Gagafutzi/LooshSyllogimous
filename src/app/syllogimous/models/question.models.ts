@@ -47,10 +47,24 @@ export interface ConstructClaim {
 export interface ConstructSlot {
     /** Which dimension this slot is for, e.g. "Up-down". */
     label: string;
-    /** [normal, reversed, same] — e.g. above / below / at the same height as. */
-    directions: [string, string, string];
-    /** 0 = normal, 1 = reversed, 2 = same. */
-    answerDirection: 0 | 1 | 2;
+    /**
+     * Axis colour class, matching how the premises painted this dimension.
+     *
+     * Absent on the one-axis modes, which have nothing to tell apart.
+     */
+    colorClass?: string;
+    /**
+     * The options offered, in order.
+     *
+     * Three of them — [normal, reversed, same] — for a slot that states a
+     * relation, and that triple is a convention the distance rules depend on:
+     * `slotSatisfied` reads index 2 as "same", which has no distance. A slot
+     * that only asks *which* of several answers is right may offer any number,
+     * and must then set `asksDistance` false.
+     */
+    directions: string[];
+    /** Index into `directions`. 0 = normal, 1 = reversed, 2 = same. */
+    answerDirection: number;
     /** Steps along the axis. Zero when the answer is "same". */
     answerMagnitude: number;
     /**
@@ -124,6 +138,15 @@ export class Question {
     answerMode: "boolean" | "choice" | "construct" = "boolean";
     /** Candidate conclusions, in display order. Choice mode only. */
     choices: string[] = [];
+    /**
+     * What the choices are being asked *for*.
+     *
+     * Choice mode began as "which of these conclusions follows", and the screen
+     * said so. Modes that offer corner names, or relations to identify, are
+     * choosing among something other than conclusions, and the stock wording
+     * then describes the wrong task. Blank keeps the original phrasing.
+     */
+    choicePrompt = "";
     /** Index into `choices` of the one that follows. */
     correctChoice = -1;
     userChoice?: number;

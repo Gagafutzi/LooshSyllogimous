@@ -10,7 +10,10 @@ import { ProgressionService } from "../../services/progression.service";
 import { GameService } from "../../services/game.service";
 import { EnumTiers, ORDERED_TIERS, TIER_SCORE_RANGES } from "../../constants/game.constants";
 import { ladderFor } from "../../utils/progression.utils";
-import { AXIS_CHOICES, axesForDimensions, axisWordConflicts } from "../../utils/ndspace.utils";
+import {
+    AXIS_CHOICES, AXIS_ORDERINGS, AxisOrdering, axesForDimensions, axisWordConflicts,
+    ndAxisColors, reorderAxisIds,
+} from "../../utils/ndspace.utils";
 
 interface Row {
     type: EnumQuestionType;
@@ -179,6 +182,43 @@ export class AdvancedOptionsComponent {
     }
 
     resetAxes(dims: number) { this.overrides.setAxes(dims, []); }
+
+    /* ---- axis order ---- */
+
+    orderings = AXIS_ORDERINGS;
+
+    /**
+     * The stack in reading order, carrying the colour each axis is painted in.
+     *
+     * Colours come from the same function the generator uses, so the strip is
+     * a legend for the premises rather than a second opinion about them.
+     */
+    orderedAxes(dims: number) {
+        const scales = this.axesOf(dims)
+            .map(id => AXIS_CHOICES.find(s => s.id === id))
+            .filter((s): s is typeof AXIS_CHOICES[number] => !!s);
+        const colors = ndAxisColors(scales.map(scale => ({ scale })));
+        return scales.map((s, i) => ({ id: s.id, label: s.name, color: colors[i] }));
+    }
+
+    /**
+     * Move one axis one place through the premise.
+     *
+     * Saves the whole list, including when nothing was overridden yet — the
+     * preset order is a perfectly good starting point to nudge, and there is
+     * no other way to express "the default, but time first".
+     */
+    moveAxis(dims: number, index: number, delta: number) {
+        const ids = [...this.axesOf(dims)];
+        const to = index + delta;
+        if (to < 0 || to >= ids.length) return;
+        [ids[index], ids[to]] = [ids[to], ids[index]];
+        this.overrides.setAxes(dims, ids);
+    }
+
+    applyOrdering(dims: number, how: AxisOrdering) {
+        this.overrides.setAxes(dims, reorderAxisIds(this.axesOf(dims), how));
+    }
 
     isPreset(dims: number) {
         return !this.overrides.state.space?.axes?.[dims]?.length;

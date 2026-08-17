@@ -17,6 +17,8 @@
  * `TransformVocab` supplies the words.
  */
 
+import { hi, subj } from "./phrasing";
+
 export type Coord = number[];
 export type CoordMap = Record<string, Coord>;
 
@@ -91,6 +93,13 @@ export interface TransformVocab {
     link: string[];
     /** Unit noun for stated distances, e.g. "step". Omit for bare numbers. */
     unit?: string;
+    /**
+     * Colour class per axis, when the caller paints dimensions.
+     *
+     * Absent in a one-axis space, where there is nothing to tell apart — and
+     * absent means uncoloured, so the linear family is untouched.
+     */
+    axisClasses?: string[];
 }
 
 export const SPATIAL_VOCAB: TransformVocab = {
@@ -349,10 +358,16 @@ function pickTwo<T>(xs: T[]): [T, T] {
  * Phrasing                                                            *
  * ------------------------------------------------------------------ */
 
-const subj = (s: string) => `<span class="subject">${s}</span>`;
-const hi = (s: string) => `<span class="highlight">${s}</span>`;
 
-/** "2 east and 1 above", or "" when the displacement is zero. */
+/** The axis's colour class, or nothing when the caller does not paint axes. */
+const axisColor = (vocab: TransformVocab, axis: number) => vocab.axisClasses?.[axis] ?? "";
+
+/**
+ * "2 east and 1 above", or "" when the displacement is zero.
+ *
+ * Each part is wrapped on its own so a two-axis move is two colours, matching
+ * how the relation premises state the same two axes.
+ */
 function offsetWords(axes: number[], offset: number[], vocab: TransformVocab): string {
     const parts: string[] = [];
     axes.forEach((ax, i) => {
@@ -360,7 +375,7 @@ function offsetWords(axes: number[], offset: number[], vocab: TransformVocab): s
         if (delta === 0) return;
         const [pos, neg] = vocab.axisWords[ax];
         const unit = vocab.unit ? ` ${vocab.unit}${Math.abs(delta) === 1 ? "" : "s"}` : "";
-        parts.push(`${Math.abs(delta)}${unit} ${delta > 0 ? pos : neg}`);
+        parts.push(hi(`${Math.abs(delta)}${unit} ${delta > 0 ? pos : neg}`, axisColor(vocab, ax)));
     });
     return parts.join(" and ");
 }
@@ -381,12 +396,24 @@ function axisLabel(axes: number[], vocab: TransformVocab): string {
 
 /** "X-mirrored" in a space with axes to distinguish, plain "mirrored" in a line. */
 function labelled(label: string, word: string): string {
-    return label ? `${hi(label)}-${word}` : word;
+    return label ? `${label}-${word}` : word;
+}
+
+/**
+ * An axis label, painted when it names exactly one axis.
+ *
+ * A label spanning two axes ("XT") or all of them has no single colour to
+ * take, so it stays plain rather than picking one of them and implying the
+ * operation belongs to it.
+ */
+function axisLabelHtml(label: string, axes: number[], vocab: TransformVocab): string {
+    return hi(label, axes.length === 1 ? axisColor(vocab, axes[0]) : "");
 }
 
 export function describeTransform(t: Transform, vocab: TransformVocab = SPATIAL_VOCAB): string {
     const axes = axesOf(t);
-    const label = axisLabel(axes, vocab);
+    const plain = axisLabel(axes, vocab);
+    const label = plain ? axisLabelHtml(plain, axes, vocab) : "";
     const allAxes = axes.length >= vocab.axisNames.length && vocab.axisNames.length > 1;
 
     switch (t.kind) {
@@ -395,31 +422,36 @@ export function describeTransform(t: Transform, vocab: TransformVocab = SPATIAL_
         case "set":
             if (allAxes) return `every coordinate of ${subj(t.b)} is set to that of ${subj(t.a)}`;
             return label
-                ? `${hi(label)} of ${subj(t.b)} is set to ${hi(label)} of ${subj(t.a)}`
+                ? `${label} of ${subj(t.b)} is set to ${label} of ${subj(t.a)}`
                 : `${subj(t.b)} is set to the position of ${subj(t.a)}`;
         case "scale":
             return `${subj(t.b)} is ${labelled(label, "scaled")} ${hi(formatFactor(t.scale ?? SCALE_FACTOR))} from ${subj(t.a)}`;
         case "rotate": {
             const [m, n] = t.plane!;
-            const planeName = vocab.axisNames[m] + vocab.axisNames[n];
+            // Each letter takes its own axis's colour: a plane is exactly the
+            // two dimensions it exchanges, and saying which two is the whole
+            // content of the name.
+            const planeName = hi(vocab.axisNames[m], axisColor(vocab, m))
+                + hi(vocab.axisNames[n], axisColor(vocab, n));
             const deg = t.clockwise ? "90°↷" : "-90°↺";
-            return `${subj(t.b)} is ${hi(planeName)}-rotated ${deg} around ${subj(t.a)}`;
+            return `${subj(t.b)} is ${planeName}-rotated ${deg} around ${subj(t.a)}`;
         }
         case "place": {
+            // Already one span per axis, so nothing is wrapped again here.
             const words = offsetWords(axes, t.offset ?? [], vocab);
             // Every drawn offset is non-zero, but a hand-built one need not be.
             if (!words) return `${subj(t.b)} is moved onto ${subj(t.a)}`;
             // One axis can borrow that axis's connector; a mix of axes ends on
             // whichever word came last, and "relative to" survives any of them.
             const tail = axes.length === 1
-                ? joinAnchor(hi(words), axes[0], subj(t.a), vocab)
-                : `${hi(words)} relative to ${subj(t.a)}`;
+                ? joinAnchor(words, axes[0], subj(t.a), vocab)
+                : `${words} relative to ${subj(t.a)}`;
             return `${subj(t.b)} is moved to ${tail}`;
         }
         case "translate": {
             const words = offsetWords(axes, t.offset ?? [], vocab);
             if (!words) return `${subj(t.b)} stays where it is`;
-            return `${subj(t.b)} moves ${hi(words)}`;
+            return `${subj(t.b)} moves ${words}`;
         }
         case "swap":
             return `${subj(t.a)} and ${subj(t.b)} swap places`;

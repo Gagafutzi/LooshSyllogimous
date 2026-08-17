@@ -163,3 +163,52 @@ input[type="checkbox"]:disabled { cursor: default; }
     margin-block-start: 8px;
     color: var(--th-bad, #fb7185);
 }
+
+/* ---- axis order ---- *
+ * Reads left to right the way the premise does, so the control looks like the
+ * thing it changes. The chips above answer "which dimensions"; this answers
+ * "in what order", and they are kept apart because conflating them is how the
+ * order ended up being a side effect of the sequence you clicked things in. */
+
+.order {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin-block-start: 10px;
+}
+
+.order__step {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+}
+
+.order__name {
+    /* Falls back to the body colour when no dimension class is applied. */
+    font-weight: 600;
+    padding-inline: 2px;
+}
+
+.order__nudge {
+    border: 0;
+    background: transparent;
+    color: var(--th-text-dim, #7d8ca6);
+    line-height: 1;
+    padding: 2px 3px;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+.order__nudge:hover:not(:disabled) { color: var(--th-accent); }
+.order__nudge:disabled { opacity: 0.25; cursor: default; }
+
+.order__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-block-start: 8px;
+}
+
+.order__presets .btn { font-size: 11px; padding-inline: 10px; }

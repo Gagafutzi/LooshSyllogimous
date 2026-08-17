@@ -28,6 +28,7 @@
 
 import { ConstructClaim } from "../models/question.models";
 import { TransformVocab } from "./transformations.utils";
+import { neg, subj } from "./phrasing";
 
 /* ------------------------------------------------------------------ *
  * Scales                                                              *
@@ -305,7 +306,7 @@ function orderEdges(
     edges: Array<[string, string]>,
     neighbors: Record<string, string[]>,
 ): Array<[string, string]> {
-    const key = (a: string, b: string) => [a, b].slice().sort().join(" ");
+    const key = (a: string, b: string) => [a, b].slice().sort().join("\u0000");
     const byKey = new Map(edges.map(e => [key(e[0], e[1]), e]));
     const out: Array<[string, string]> = [];
     const seen = new Set<string>();
@@ -414,9 +415,8 @@ export function pickDistantPair(layout: LinearLayout): [string, string] | null {
  * Rendering                                                           *
  * ------------------------------------------------------------------ */
 
-const subj = (s: string) => `<span class="subject">${s}</span>`;
 const rel = (s: string) => `<span class="relation">${s}</span>`;
-const negated = (s: string) => `<span class="relation"><span class="is-negated">${s}</span></span>`;
+const negated = (s: string) => `<span class="relation">${neg(s)}</span>`;
 
 /** -1 = a below b, 0 = same, 1 = a above b. */
 export type Comparison = -1 | 0 | 1;
@@ -595,7 +595,7 @@ export function buildConclusionSet(
     for (let guard = 0; out.length < count && guard < count * 40; guard++) {
         const pair = pickDistantPair(layout);
         if (!pair) break;
-        const key = [...pair].sort().join(" ");
+        const key = [...pair].sort().join("\u0000");
         if (used.has(key)) continue;
         used.add(key);
         out.push(buildConclusion(scale, layout, pair[0], pair[1], wantValid[out.length], options));

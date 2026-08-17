@@ -89,8 +89,17 @@ export class GameComponent {
         this.timerTimeSeconds = 0;
 
         // Progression owns the clock when it is on: the shrinking limit *is* the
-        // difficulty, so a fixed or stats-derived timer would fight it.
-        const ladderSeconds = this.progressionService.timeLimitFor(this.game.question.type);
+        // difficulty, so a fixed or stats-derived timer would fight it. It
+        // returns null when the player has the timer off, so "Timer disabled"
+        // means no countdown here either.
+        //
+        // Free Play is the exception. It runs on settings the player wrote
+        // themselves and its answers are never recorded, so no ladder is driving
+        // that item — a limit computed for a configuration it was not built from
+        // is the wrong number as well as an unasked-for one.
+        const ladderSeconds = this.game.playgroundSettings
+            ? null
+            : this.progressionService.timeLimitFor(this.game.question.type);
         if (ladderSeconds != null) {
             this.timerTimeSeconds = ladderSeconds;
             this.kickTimer();

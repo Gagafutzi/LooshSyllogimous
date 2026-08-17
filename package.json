@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "start": "ng serve",
+    "test:utils": "tsc -p tsconfig.node.json && NODE_PATH=.tmp-tests node .tmp-tests/tests/index.js",
     "prep-deploy:dev": "ng build --configuration=development --output-path docs --base-href /LooshSyllogimous/ && node -e \"require('fs').copyFileSync('docs/index.html', 'docs/404.html')\"",
     "prep-deploy:prod": "ng build --configuration=production --output-path docs --base-href /LooshSyllogimous/ && node -e \"require('fs').copyFileSync('docs/index.html', 'docs/404.html')\""
   },

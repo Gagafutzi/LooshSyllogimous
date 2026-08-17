@@ -39,6 +39,30 @@
     --th-accent-rgb: 34, 211, 238;
     --th-border: var(--th-border-width) solid rgba(var(--th-accent-rgb), 0.28);
     --th-bloom: 0 0 var(--th-glow) rgba(var(--th-accent-rgb), 0.16);
+
+    /*
+     * Dimension colours, one slot per axis of a composed space.
+     *
+     * Eight hues exactly 45° apart, so no two are ever mistaken for each other.
+     * Overwritten on boot by ThemeService, which swaps in a darker set when the
+     * panel is light — no colour is readable on both #05070c and #f4f1ea, so
+     * this is two palettes chosen by the theme rather than one compromise — and
+     * which moves any hue too close to the accent to the end of the list, since
+     * the accent is what subjects are painted in. These are the dark set in
+     * base order: a fallback for the first frame, not the applied palette.
+     *
+     * Deliberately not derived from the accent. Six hues rotated off one accent
+     * are six colours that look alike, and telling them apart at a glance is
+     * the entire job.
+     */
+    --th-dim-1: #f1af8e;
+    --th-dim-2: #e4ee77;
+    --th-dim-3: #8bee77;
+    --th-dim-4: #77eebc;
+    --th-dim-5: #77c6ee;
+    --th-dim-6: #bcb6f6;
+    --th-dim-7: #e7a4f4;
+    --th-dim-8: #f4a4c5;
 }
 
 /* ------------------------------------------------------------------ *
@@ -438,6 +462,32 @@ app-card-dropdown {
     font-weight: 700;
     text-shadow: 0 0 calc(var(--th-glow) * 0.8) rgba(var(--th-accent-rgb), 0.45);
 }
+
+/*
+ * One colour per dimension, in the composed-space modes.
+ *
+ * A six-axis premise is six similar-looking clauses that have to be pulled
+ * apart before any of them is usable, and the same axis has to be found again
+ * in every other premise. Colour does both without adding a word.
+ *
+ * Colour is the *second* cue, never the only one: every clause still says
+ * which axis it is ("east", "same latitude"), so nothing is lost if the hues
+ * are indistinguishable to the reader — which is why this needs no colour
+ * blindness variant of its own.
+ */
+.dim { font-weight: 600; }
+.dim-1 { color: var(--th-dim-1); }
+.dim-2 { color: var(--th-dim-2); }
+.dim-3 { color: var(--th-dim-3); }
+.dim-4 { color: var(--th-dim-4); }
+.dim-5 { color: var(--th-dim-5); }
+.dim-6 { color: var(--th-dim-6); }
+.dim-7 { color: var(--th-dim-7); }
+.dim-8 { color: var(--th-dim-8); }
+
+/* A label is not the thing being read, so it carries its dimension's colour
+ * at less than full strength. */
+.build__label.dim { font-weight: 600; opacity: 0.9; }
 
 /* ------------------------------------------------------------------ *
  * Misc chrome                                                         *

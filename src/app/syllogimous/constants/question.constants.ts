@@ -38,6 +38,9 @@ export enum EnumQuestionType {
     Transformation = "Transformation",
     AnchorSpace = "Anchor Space",
     AnchorSpaceV2 = "Anchor Space v2",
+    InferRelation = "Infer the Relation",
+    OddestRelation = "Oddest Relation",
+    ShapeRotation = "Shape and Rotation",
 }
 
 export enum EnumArrangements {

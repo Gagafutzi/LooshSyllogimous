@@ -246,6 +246,31 @@
                 </button>
             </div>
 
+            <!--
+              Order, shown as the premise reads it.
+
+              Separate from the chips above because they answer different
+              questions — which dimensions the space has, and which one you
+              meet first. The arrows move an axis one place; the buttons under
+              them are the orders worth having as one click.
+            -->
+            <div class="order">
+                <span class="order__step" *ngFor="let a of orderedAxes(dims); let i = index">
+                    <button type="button" class="order__nudge" [disabled]="!active || i === 0"
+                            (click)="moveAxis(dims, i, -1)" [attr.aria-label]="'Move ' + a.label + ' earlier'">◀</button>
+                    <span class="order__name" [ngClass]="a.color">{{ a.label }}</span>
+                    <button type="button" class="order__nudge"
+                            [disabled]="!active || i === orderedAxes(dims).length - 1"
+                            (click)="moveAxis(dims, i, 1)" [attr.aria-label]="'Move ' + a.label + ' later'">▶</button>
+                </span>
+            </div>
+
+            <div class="order__presets">
+                <button type="button" class="btn btn-sm" *ngFor="let o of orderings"
+                        [disabled]="!active" [title]="o.hint"
+                        (click)="applyOrdering(dims, o.id)">{{ o.label }}</button>
+            </div>
+
             <small class="axes__note" *ngIf="axisWarning(dims)">{{ axisWarning(dims) }}</small>
             <small class="text-muted d-block" *ngIf="!axisWarning(dims)">
                 {{ loopableCount(dims) }} of these can be looped.

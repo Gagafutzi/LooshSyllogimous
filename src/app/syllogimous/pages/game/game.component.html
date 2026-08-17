@@ -78,7 +78,7 @@
                     <ng-template ngbSlide [id]="slideId('choices')">
                         <div style="display: grid; place-items: center;">
                             <div>
-                                <small class="text-muted">Which follows?</small>
+                                <small class="text-muted">{{ game.question.choicePrompt || "Which follows?" }}</small>
                                 <div class="choice-list">
                                     <div *ngFor="let c of game.question.choices; let i = index">
                                         <span class="choice__key">{{ i + 1 }}</span>
@@ -145,7 +145,7 @@
               in the game for no added information.
             -->
             <div *ngIf="game.question.answerMode === 'choice'" class="small text-muted">
-                Which of the statements below follows?
+                {{ game.question.choicePrompt || "Which of the statements below follows?" }}
             </div>
 
             <ng-container *ngIf="game.question.answerMode !== 'choice' && game.question.answerMode !== 'construct'">
@@ -202,15 +202,20 @@
                 -->
                 <div class="build__grid">
                     <label class="build__slot" *ngFor="let slot of claim.slots; let si = index">
-                        <span class="build__label">{{ slot.label }}</span>
+                        <!-- Painted like the premises painted this dimension,
+                             so a row of six slots is matched to the clauses
+                             they answer by colour rather than by reading. -->
+                        <span class="build__label" [ngClass]="slot.colorClass">{{ slot.label }}</span>
                         <span class="build__pick" [class.is-set]="picks[ci] && picks[ci][si].direction >= 0">
                             <select class="form-select form-select-sm"
                                     [value]="picks[ci] && picks[ci][si].direction >= 0 ? picks[ci][si].direction : ''"
                                     (change)="pickDirection(ci, si, $any($event.target).value)">
                                 <option value="" disabled>choose&hellip;</option>
-                                <option value="0">{{ short(slot.directions[0]) }}</option>
-                                <option value="1">{{ short(slot.directions[1]) }}</option>
-                                <option value="2">{{ short(slot.directions[2]) }}</option>
+                                <!-- However many the slot offers: three for a
+                                     relation, one per candidate when a mode
+                                     asks you to rank or measure. -->
+                                <option *ngFor="let d of slot.directions; let di = index"
+                                        [value]="di">{{ short(d) }}</option>
                             </select>
                         </span>
                         <!--

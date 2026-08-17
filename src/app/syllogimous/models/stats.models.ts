@@ -25,6 +25,9 @@ export class TypeBasedStats {
     [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);
     [EnumQuestionType.AnchorSpace] = new TypeBasedStatsInner(EnumQuestionType.AnchorSpace);
     [EnumQuestionType.AnchorSpaceV2] = new TypeBasedStatsInner(EnumQuestionType.AnchorSpaceV2);
+    [EnumQuestionType.InferRelation] = new TypeBasedStatsInner(EnumQuestionType.InferRelation);
+    [EnumQuestionType.OddestRelation] = new TypeBasedStatsInner(EnumQuestionType.OddestRelation);
+    [EnumQuestionType.ShapeRotation] = new TypeBasedStatsInner(EnumQuestionType.ShapeRotation);
 }
 
 export class TypeBasedStatsInner {

@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { EnumQuestionType } from "../constants/question.constants";
+import { LS_TIMER } from "../constants/local-storage.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { Settings } from "../models/settings.models";
 import { LadderEvent, LadderState, Outcome, ladderFor } from "../utils/progression.utils";
@@ -221,7 +222,43 @@ export class ProgressionService {
      */
     private configCache: Partial<Record<EnumQuestionType, ConfigChoice>> = {};
 
+    /** The timer preference the cached choices were built under. */
+    private cachedUntimed?: boolean;
+
+    /**
+     * Whether the player has turned the clock off.
+     *
+     * The ladder spends difficulty on time once a mode has no structure left to
+     * add, and it used to do that whatever the timer preference said — so
+     * "Timer disabled" still produced a countdown, on exactly the modes the
+     * player was strongest in. That is where the report came from: the setting
+     * looked mode-dependent because only the modes that had run out of rungs
+     * reached for the clock.
+     *
+     * Read here rather than ignored at the screen, because the clock is part of
+     * the configuration an item is *scored* at: `record` values an answer at the
+     * level of the config it was built from, so an item that was never timed
+     * must not be built as though it had been.
+     */
+    private get untimed() {
+        // Unset reads as "0" everywhere else in the app, and unreadable is
+        // treated the same: not knowing the preference is not a reason to
+        // impose a clock.
+        try { return (localStorage.getItem(LS_TIMER) || "0") === "0"; }
+        catch { return true; }
+    }
+
     configFor(type: EnumQuestionType): ConfigChoice {
+        // Part of the choice, so a change of preference invalidates every
+        // cached one. Nothing else observes that key, and the alternative —
+        // having the settings screen call in — leaves the cache stale for
+        // anyone who edits storage directly or lands mid-session.
+        const untimed = this.untimed;
+        if (untimed !== this.cachedUntimed) {
+            this.cachedUntimed = untimed;
+            this.configCache = {};
+        }
+
         const hit = this.configCache[type];
         if (hit) return hit;
 
@@ -238,6 +275,7 @@ export class ProgressionService {
             ladder: ladderFor(type),
             target,
             structureBefore: this.config.structureBefore,
+            untimed,
         }, cfg);
 
         this.configCache[type] = choice;
@@ -246,7 +284,11 @@ export class ProgressionService {
 
     /* ---------------- application ---------------- */
 
-    /** Countdown length for this question, or null when progression is off. */
+    /**
+     * Countdown length for this question, or null when there is none: with
+     * progression off, with the timer preference off, or when the configuration
+     * is already at or past the target on structure alone.
+     */
     timeLimitFor(type: EnumQuestionType): number | null {
         if (!this.config.enabled) return null;
         const seconds = this.configFor(type).seconds;
@@ -376,7 +418,7 @@ export class ProgressionService {
         type: EnumQuestionType,
         outcome: Outcome,
         _answerSeconds: number,
-        item?: { answerMode?: string; slots?: number; choices?: number },
+        item?: { answerMode?: string; slots?: number; choices?: number; options?: number },
     ): LadderEvent[] {
         if (!this.config.enabled) { this.lastEvents = []; return []; }
 
@@ -387,7 +429,8 @@ export class ProgressionService {
             seconds: before.seconds,
         }, this.abilityConfig);
 
-        const guess = guessRateFor(item?.answerMode ?? "boolean", item?.slots ?? 0, item?.choices ?? 0);
+        const guess = guessRateFor(
+            item?.answerMode ?? "boolean", item?.slots ?? 0, item?.choices ?? 0, item?.options ?? 3);
 
         // A timeout is a failure at this difficulty; the clock is part of it.
         const correct = outcome === "right";

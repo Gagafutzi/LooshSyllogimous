@@ -177,7 +177,7 @@ export class DiagnosticsComponent {
     get ran() { return this.results.length > 0; }
 
     /** Invariants that hold for every mode regardless of its internal model. */
-    private check(q: Question, requested: number, out: string[], type?: EnumQuestionType) {
+    private check(q: Question, requested: number, out: string[]) {
         if (!q) { out.push("returned nothing"); return; }
         if (typeof q.isValid !== "boolean") out.push("isValid is not a boolean");
         if (!q.premises?.length) out.push("no premises");
@@ -190,12 +190,11 @@ export class DiagnosticsComponent {
         if (q.premises.some(p => strip(p) === concl)) out.push("conclusion restates a premise");
 
         // Premises must be distinct; a duplicate is usually a generator revisiting
-        // the same pair. Deictic is the exception — repeating a reversal is its
-        // parity mechanic, since applying one twice deliberately cancels.
-        if (type !== EnumQuestionType.Deictic) {
-            const seen = new Set(q.premises.map(strip));
-            if (seen.size !== q.premises.length) out.push("duplicate premises");
-        }
+        // the same pair. Deictic used to be exempt on the grounds that repeating a
+        // reversal is its parity mechanic — but parity is what the *spec* records,
+        // and stating the reversal twice only restates it, so it holds this too.
+        const seen = new Set(q.premises.map(strip));
+        if (seen.size !== q.premises.length) out.push("duplicate premises");
 
         /*
          * No single premise may name both objects the conclusion asks about.
@@ -311,7 +310,7 @@ export class DiagnosticsComponent {
                     res.negations += q?.negations ?? 0;
                     res.metaRelations += q?.metaRelations ?? 0;
                     const out: string[] = [];
-                    this.check(q, n, out, type);
+                    this.check(q, n, out);
                     for (const o of out) {
                         if (!res.failures.includes(o)) res.failures.push(o);
                     }

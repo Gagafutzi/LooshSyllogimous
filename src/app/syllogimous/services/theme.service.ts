@@ -178,6 +178,85 @@ export class ThemeService {
         return [1, 2, 3].map(i => parseInt(m[i], 16)).join(", ");
     }
 
+    /** Relative luminance, for deciding what a colour has to be read against. */
+    private luminance(hex: string) {
+        const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+        if (!m) return 0;
+        const [r, g, b] = [1, 2, 3].map(i => {
+            const c = parseInt(m[i], 16) / 255;
+            return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+
+    /**
+     * One colour per dimension of a composed space, chosen for the background.
+     *
+     * Two sets rather than one, because there is no colour that reads on both
+     * a near-black panel and a paper-white one — a single palette would have to
+     * be a mid grey-ish compromise that is neither legible nor distinguishable.
+     * Same hues either way, so a dimension keeps its identity across themes;
+     * only the lightness flips. Every entry clears 4.5:1 against the panel of
+     * every shipped preset.
+     *
+     * Derived rather than authored, like `--th-accent-rgb`: it goes into the
+     * same resolved-variables blob, so the boot script in index.html replays it
+     * with the rest and there is no flash of the wrong palette.
+     */
+    private static readonly DIM_DARK = [
+        "#f1af8e", "#e4ee77", "#8bee77", "#77eebc",
+        "#77c6ee", "#bcb6f6", "#e7a4f4", "#f4a4c5",
+    ];
+
+    private static readonly DIM_LIGHT = [
+        "#b84b14", "#6a730d", "#207c0e", "#0e7c4e",
+        "#1274a5", "#6255ec", "#b417d3", "#d31766",
+    ];
+
+    /** Hue in degrees, or null for a colour that has none to speak of. */
+    private hueOf(hex: string): number | null {
+        const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+        if (!m) return null;
+        const [r, g, b] = [1, 2, 3].map(i => parseInt(m[i], 16) / 255);
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        if (max - min < 0.04) return null;
+        const d = max - min;
+        const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        return (h * 60 + 360) % 360;
+    }
+
+    /**
+     * The palette, turned so no dimension wears the theme's accent.
+     *
+     * Subjects are painted with the accent in every mode, and they are the
+     * other thing being scanned for — a dimension in the same hue undoes the
+     * separation this palette exists to create. On the default theme that is
+     * exactly what happened: cyan accent, cyan east–west.
+     *
+     * Reordering rather than recolouring keeps every contrast figure intact:
+     * anything within 40° of the accent moves to the end, where only a seven-
+     * or eight-axis space would reach it. The eight hues sit exactly 45° apart,
+     * so an 80°-wide window holds at most two of them — six clear ones always
+     * remain, which is as many as any preset space uses.
+     *
+     * Which dimension gets which hue therefore depends on the theme, and that
+     * is the right thing to give up: the association only has to hold while you
+     * are looking at one.
+     */
+    private dimPalette(theme: Theme, light: boolean): string[] {
+        const base = light ? ThemeService.DIM_LIGHT : ThemeService.DIM_DARK;
+        const accent = this.hueOf(String(theme.accent));
+        if (accent == null) return base;
+
+        const apart = (a: number, b: number) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+        const clashes = (color: string) => {
+            const h = this.hueOf(color);
+            return h != null && apart(h, accent) <= 40;
+        };
+
+        return [...base.filter(c => !clashes(c)), ...base.filter(clashes)];
+    }
+
     apply(theme: Theme = this.theme) {
         const root = document.documentElement;
         const vars: Record<string, string> = {};
@@ -189,6 +268,12 @@ export class ThemeService {
         }
         // Accent is consumed both as a colour and as bare channels for rgba().
         vars["--th-accent-rgb"] = this.rgbOf(String(theme.accent));
+
+        // Measured on the panel, which is what premise text actually sits on;
+        // the page background can differ from it by a lot under a wallpaper.
+        const light = this.luminance(String(theme.panel)) > 0.4;
+        this.dimPalette(theme, light)
+            .forEach((color, i) => { vars[`--th-dim-${i + 1}`] = color; });
 
         for (const [name, value] of Object.entries(vars)) root.style.setProperty(name, value);
 
