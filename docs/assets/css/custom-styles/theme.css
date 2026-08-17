@@ -55,6 +55,7 @@
      * are six colours that look alike, and telling them apart at a glance is
      * the entire job.
      */
+    --th-dim-strength: 100%;
     --th-dim-1: #f1af8e;
     --th-dim-2: #e4ee77;
     --th-dim-3: #8bee77;
@@ -475,15 +476,17 @@ app-card-dropdown {
  * are indistinguishable to the reader — which is why this needs no colour
  * blindness variant of its own.
  */
+/* Mixed toward the body colour rather than switched off, so the strength dial
+ * has a useful middle: at 0% every clause is simply text. */
 .dim { font-weight: 600; }
-.dim-1 { color: var(--th-dim-1); }
-.dim-2 { color: var(--th-dim-2); }
-.dim-3 { color: var(--th-dim-3); }
-.dim-4 { color: var(--th-dim-4); }
-.dim-5 { color: var(--th-dim-5); }
-.dim-6 { color: var(--th-dim-6); }
-.dim-7 { color: var(--th-dim-7); }
-.dim-8 { color: var(--th-dim-8); }
+.dim-1 { color: color-mix(in srgb, var(--th-dim-1) var(--th-dim-strength), var(--th-text)); }
+.dim-2 { color: color-mix(in srgb, var(--th-dim-2) var(--th-dim-strength), var(--th-text)); }
+.dim-3 { color: color-mix(in srgb, var(--th-dim-3) var(--th-dim-strength), var(--th-text)); }
+.dim-4 { color: color-mix(in srgb, var(--th-dim-4) var(--th-dim-strength), var(--th-text)); }
+.dim-5 { color: color-mix(in srgb, var(--th-dim-5) var(--th-dim-strength), var(--th-text)); }
+.dim-6 { color: color-mix(in srgb, var(--th-dim-6) var(--th-dim-strength), var(--th-text)); }
+.dim-7 { color: color-mix(in srgb, var(--th-dim-7) var(--th-dim-strength), var(--th-text)); }
+.dim-8 { color: color-mix(in srgb, var(--th-dim-8) var(--th-dim-strength), var(--th-text)); }
 
 /* A label is not the thing being read, so it carries its dimension's colour
  * at less than full strength. */
