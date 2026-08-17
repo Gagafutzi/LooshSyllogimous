@@ -11,7 +11,7 @@ import { Injectable } from "@angular/core";
 export type ThemeKey =
     | "bg" | "bg2" | "panel" | "accent" | "accent2" | "text" | "textDim"
     | "ok" | "bad" | "okInk" | "badInk" | "answerShape" | "answerFill"
-    | "radius" | "gap" | "borderWidth" | "panelAlpha" | "blur" | "glow"
+    | "radius" | "gap" | "borderWidth" | "panelAlpha" | "blur" | "glow" | "dimStrength"
     | "font" | "fontSize" | "wallpaper";
 
 export interface ThemeControl {
@@ -47,6 +47,15 @@ export const THEME_CONTROLS: ThemeControl[] = [
     { key: "panelAlpha",  label: "Panel opacity", cssVar: "--th-panel-alpha",  kind: "range", min: 0.1, max: 1, step: 0.05, unit: "",   group: "Form", hint: "Lower is more see-through" },
     { key: "blur",        label: "Backdrop blur", cssVar: "--th-blur",         kind: "range", min: 0,  max: 40, step: 1,    unit: "px", group: "Form" },
     { key: "glow",        label: "Accent glow",   cssVar: "--th-glow",         kind: "range", min: 0,  max: 40, step: 1,    unit: "px", group: "Form" },
+    /*
+     * How strongly the composed-space modes paint each dimension.
+     *
+     * A dial rather than a switch, and 0 is the switch: at nought every clause
+     * takes the body colour and the feature is off. Between the two it mixes
+     * toward the text colour, which is the useful middle — the colours are a
+     * grouping cue, and some players want them present but quiet.
+     */
+    { key: "dimStrength", label: "Dimension colours", cssVar: "--th-dim-strength", kind: "range", min: 0, max: 100, step: 10, unit: "%", group: "Palette", hint: "How strongly each dimension is coloured in the composed spaces; 0 turns it off" },
 
     { key: "fontSize",  label: "Font size", cssVar: "--th-font-size",  kind: "range", min: 11, max: 24, step: 1, unit: "px", group: "Typography" },
     { key: "font",      label: "Font stack", cssVar: "--th-font",      kind: "text",  group: "Typography" },
@@ -72,7 +81,7 @@ const MOONLIT: Theme = {
     text: "#d7e3f4", textDim: "#7d8ca6",
     // Matches what theme.css already declared, so existing themes are unchanged.
     ok: "#4ade80", bad: "#fb7185", okInk: "#4ade80", badInk: "#fb7185",
-    answerShape: "none", answerFill: 12,
+    answerShape: "none", answerFill: 12, dimStrength: 100,
     radius: 14, gap: 14, borderWidth: 1, panelAlpha: 0.55, blur: 14, glow: 10,
     fontSize: 15,
     font: `"JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace`,

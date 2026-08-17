@@ -1,0 +1,181 @@
+/*
+ * Copied from the Advanced Options page rather than shared.
+ *
+ * Angular scopes component styles, so markup that moved out of that page needed
+ * its rules to move with it — and the page still uses .mode and .is-idle for
+ * the panels that stayed. Duplicating a dozen rules is the cheaper half of that
+ * trade; the alternative is a global stylesheet for two components.
+ */
+
+/* Dim, but keep readable, so you can see what you would be editing. */
+.is-idle { opacity: 0.55; }
+
+.mode {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.mode:first-of-type { border-top: 0; }
+
+.mode__premises {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    gap: 2px;
+}
+
+.mode__premises input {
+    inline-size: 5.5rem;
+    text-align: end;
+}
+
+.mode__premises { align-items: start; }
+
+/* ---- scale-mode modifiers ---- */
+
+.lin {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+    padding: 10px 0;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.lin:first-of-type { border-top: 0; }
+
+.lin__name small { line-height: 1.35; }
+
+/* Segmented, because the three states are one choice and reading them as
+   three separate buttons invites clicking two of them. */
+.lin__tri {
+    display: inline-flex;
+    flex-shrink: 0;
+    border-radius: calc(var(--th-radius, 14px) * 0.7);
+    overflow: hidden;
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.28);
+}
+
+.lin__tri .btn {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-inline: 11px;
+    font-size: 12px;
+}
+
+.lin__tri .btn + .btn {
+    border-inline-start: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.2) !important;
+}
+
+.lin__tri .btn.is-on {
+    background: color-mix(in srgb, var(--th-accent) 22%, transparent) !important;
+    color: var(--th-accent) !important;
+}
+
+/* ---- composed-space axis picker ---- */
+
+.axes {
+    padding: 10px 0;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.axes__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-block-end: 8px;
+}
+
+.axes__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Chips, not checkboxes: the order they are switched on is the axis order, and
+   a row of checkboxes reads as an unordered set. */
+.axis {
+    font-size: 12px;
+    padding-inline: 10px;
+    opacity: 0.55;
+}
+
+.axis.is-on {
+    opacity: 1;
+    background: color-mix(in srgb, var(--th-accent) 22%, transparent) !important;
+    border-color: rgba(var(--th-accent-rgb, 34, 211, 238), 0.6) !important;
+    color: var(--th-accent) !important;
+}
+
+.axis__words {
+    margin-inline-start: 6px;
+    opacity: 0.6;
+    text-transform: none;
+    font-size: 0.9em;
+}
+
+.axis__loop {
+    margin-inline-start: 5px;
+    opacity: 0.7;
+}
+
+.axes__note {
+    display: block;
+    margin-block-start: 8px;
+    color: var(--th-bad, #fb7185);
+}
+
+/* ---- axis order ---- *
+ * Reads left to right the way the premise does, so the control looks like the
+ * thing it changes. The chips above answer "which dimensions"; this answers
+ * "in what order", and they are kept apart because conflating them is how the
+ * order ended up being a side effect of the sequence you clicked things in. */
+
+.order {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin-block-start: 10px;
+}
+
+.order__step {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+}
+
+.order__name {
+    /* Falls back to the body colour when no dimension class is applied. */
+    font-weight: 600;
+    padding-inline: 2px;
+}
+
+.order__nudge {
+    border: 0;
+    background: transparent;
+    color: var(--th-text-dim, #7d8ca6);
+    line-height: 1;
+    padding: 2px 3px;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+.order__nudge:hover:not(:disabled) { color: var(--th-accent); }
+
+.order__nudge:disabled { opacity: 0.25; cursor: default; }
+
+.order__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-block-start: 8px;
+}
+
+.order__presets .btn { font-size: 11px; padding-inline: 10px; }

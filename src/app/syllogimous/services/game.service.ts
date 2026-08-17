@@ -464,6 +464,9 @@ export class GameService implements GeneratorContext {
     }
 
     playArcadeMode() {
+        // A modifier chosen for a practice run must not follow you into a
+        // scored one; the Advanced Options master switch still governs there.
+        this.settingsOverrideService.playgroundActive = false;
         this.playgroundSettings = undefined;
         this.play();
     }

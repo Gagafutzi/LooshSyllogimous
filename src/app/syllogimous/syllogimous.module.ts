@@ -46,6 +46,7 @@ import { AdvancedOptionsComponent } from './pages/advanced-options/advanced-opti
 import { DiagnosticsComponent } from './pages/diagnostics/diagnostics.component';
 import { CalibrationComponent } from './pages/calibration/calibration.component';
 import { TutorialGenericComponent } from './pages/tutorial/tutorial-generic/tutorial-generic.component';
+import { ModeModifiersComponent } from './components/mode-modifiers/mode-modifiers.component';
 import { TutorialGraphMatchingComponent } from './pages/tutorial/graph-matching/graph-matching.component';
 
 const routes: Routes = [
@@ -137,6 +138,7 @@ const routes: Routes = [
         DiagnosticsComponent,
         CalibrationComponent,
         TutorialGenericComponent,
+        ModeModifiersComponent,
     ],
     imports: [
         CommonModule,

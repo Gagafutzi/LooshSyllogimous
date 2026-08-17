@@ -167,8 +167,22 @@ export class SettingsOverrideService {
         try { return fn(); } finally { this.suppressed = before; }
     }
 
+    /**
+     * Set for the length of a Free Play session.
+     *
+     * The master switch above means "use my settings instead of the tier",
+     * which is the right question on the Advanced Options page and the wrong
+     * one in Free Play — there the player's settings *are* the session, and
+     * asking them to also arm a global override would be asking twice. Cleared
+     * when arcade mode starts, so a modifier set for a practice run does not
+     * follow you into a scored one.
+     */
+    playgroundActive = false;
+
     /** Whether this layer should be consulted at all right now. */
-    private get live() { return this.state.active && !this.suppressed; }
+    private get live() {
+        return (this.state.active || this.playgroundActive) && !this.suppressed;
+    }
 
     /** Full shuffle unless the user has opted in, matching prior behaviour. */
     get scramble(): number {

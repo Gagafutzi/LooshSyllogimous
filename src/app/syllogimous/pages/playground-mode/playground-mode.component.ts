@@ -4,6 +4,7 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { IDynamicField } from 'src/app/shared/components/dynamic-form/dynamic-form.component';
 import { areSettingsInvalid, QuestionSettings, Settings } from 'src/app/syllogimous/models/settings.models';
 import { GameService } from 'src/app/syllogimous/services/game.service';
+import { SettingsOverrideService } from 'src/app/syllogimous/services/settings-override.service';
 import { EnumScreens } from '../../constants/game.constants';
 import { EnumQuestionType } from '../../constants/question.constants';
 import { LS_PG_SETTINGS } from '../../constants/local-storage.constants';
@@ -36,6 +37,7 @@ export class PlaygroundModeComponent {
         public router: Router,
         private modalService: NgbModal,
         private game: GameService,
+        private overrides: SettingsOverrideService,
     ) {
         const settings = this.loadPlaygroundSettings() || new Settings();
 
@@ -120,6 +122,7 @@ export class PlaygroundModeComponent {
             return;
         }
 
+        this.overrides.playgroundActive = true;
         this.game.playgroundSettings = settings;
         console.log("Playground settings", settings);
         this.savePlaygroundSettings(settings);

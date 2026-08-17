@@ -1,0 +1,167 @@
+    <div class="card p-3 mb-3" [class.is-idle]="!enabled">
+        <h5 class="mb-1">Scale modes</h5>
+        <p class="text-muted small mb-3">
+            Applies to Comparison Numerical, Comparison Chronological, Vertical Order,
+            Horizontal Order and Containment. Normally these are earned rung by rung —
+            <em>Ladder</em> leaves that alone.
+        </p>
+
+        <div class="lin">
+            <span class="lin__name">
+                Premise scramble
+                <small class="d-block text-muted">
+                    0 keeps premises in chain order, so the chain can be walked as
+                    written; 100 shuffles freely and you have to find the links.
+                    Transformation steps always stay in sequence — their order is
+                    what they mean.
+                </small>
+            </span>
+            <span class="mode__premises">
+                <input type="number" class="form-control form-control-sm"
+                       min="0" max="100" step="5"
+                       [disabled]="!enabled" [value]="scramble"
+                       (change)="setScramble($any($event.target).value)">
+                <small class="text-muted">0&ndash;100</small>
+            </span>
+        </div>
+
+        <div class="lin" *ngFor="let row of linearRows">
+            <span class="lin__name">
+                {{ row.label }}
+                <small class="d-block text-muted">{{ row.hint }}</small>
+            </span>
+            <span class="lin__tri" role="group" [attr.aria-label]="row.label">
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="linearOf(row.key) === null"
+                        (click)="setLinear(row.key, null)">Ladder</button>
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="linearOf(row.key) === false"
+                        (click)="setLinear(row.key, false)">Off</button>
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="linearOf(row.key) === true"
+                        (click)="setLinear(row.key, true)">On</button>
+            </span>
+        </div>
+
+        <div class="lin">
+            <span class="lin__name">
+                Relation edits
+                <small class="d-block text-muted">
+                    Premises that rewrite an earlier relation instead of moving
+                    anything: reverse one, exchange two, or copy one onto another.
+                    You hold the statements as data and edit them. Composed
+                    spaces only; blank defers to the ladder.
+                </small>
+            </span>
+            <span class="mode__premises">
+                <input type="number" class="form-control form-control-sm"
+                       min="0" max="4" placeholder="&mdash;"
+                       [disabled]="!enabled" [value]="editCount"
+                       (change)="setEditCount($any($event.target).value)">
+                <small class="text-muted">0&ndash;4</small>
+            </span>
+        </div>
+
+        <div class="lin">
+            <span class="lin__name">
+                Transformations
+                <small class="d-block text-muted">
+                    Premises that move things after the layout is described. They come
+                    out of the premise budget rather than adding to it, so the item does
+                    not silently get longer. Blank defers to the ladder.
+                </small>
+            </span>
+            <span class="mode__premises">
+                <input type="number" class="form-control form-control-sm"
+                       min="0" max="4" placeholder="—"
+                       [disabled]="!enabled" [value]="linearTransforms"
+                       (change)="setLinearTransforms($any($event.target).value)">
+                <small class="text-muted">0–4</small>
+            </span>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-3" [class.is-idle]="!enabled">
+        <h5 class="mb-1">Composed spaces</h5>
+        <p class="text-muted small mb-3">
+            4D, 5D and 6D are the same generator with different axis lists, so the
+            dimensions are yours to choose. Each premise states every axis at once,
+            which is what makes them hard — you carry several independent
+            accumulations through one chain.
+        </p>
+
+        <div class="lin">
+            <span class="lin__name">
+                Looping axes
+                <small class="d-block text-muted">
+                    A looped axis wraps around, so ordering stops meaning anything
+                    and the question becomes displacement instead: how many steps
+                    round, or whether two things sit opposite. Only axes with a
+                    circular reading can loop.
+                </small>
+            </span>
+            <span class="lin__tri" role="group" aria-label="Looping axes">
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="circularAxes === null"
+                        (click)="setCircularAxes(null)">Ladder</button>
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="circularAxes === 0"
+                        (click)="setCircularAxes(0)">0</button>
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="circularAxes === 1"
+                        (click)="setCircularAxes(1)">1</button>
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="circularAxes === 2"
+                        (click)="setCircularAxes(2)">2</button>
+            </span>
+        </div>
+
+        <div class="axes" *ngFor="let dims of spaceDims">
+            <div class="axes__head">
+                <strong>{{ dims }}D axes</strong>
+                <small class="text-muted" *ngIf="isPreset(dims)">default</small>
+                <button type="button" class="btn btn-sm" *ngIf="!isPreset(dims)"
+                        [disabled]="!enabled" (click)="resetAxes(dims)">Reset</button>
+            </div>
+
+            <div class="axes__chips">
+                <button type="button" class="btn btn-sm axis"
+                        *ngFor="let a of axisChoices"
+                        [disabled]="!enabled"
+                        [class.is-on]="axesOf(dims).includes(a.id)"
+                        (click)="toggleAxis(dims, a.id)">
+                    {{ a.label }}<span class="axis__words">{{ a.words }}</span><span class="axis__loop" *ngIf="a.canLoop" title="can be looped">↻</span>
+                </button>
+            </div>
+
+            <!--
+              Order, shown as the premise reads it.
+
+              Separate from the chips above because they answer different
+              questions — which dimensions the space has, and which one you
+              meet first. The arrows move an axis one place; the buttons under
+              them are the orders worth having as one click.
+            -->
+            <div class="order">
+                <span class="order__step" *ngFor="let a of orderedAxes(dims); let i = index">
+                    <button type="button" class="order__nudge" [disabled]="!enabled || i === 0"
+                            (click)="moveAxis(dims, i, -1)" [attr.aria-label]="'Move ' + a.label + ' earlier'">◀</button>
+                    <span class="order__name" [ngClass]="a.color">{{ a.label }}</span>
+                    <button type="button" class="order__nudge"
+                            [disabled]="!enabled || i === orderedAxes(dims).length - 1"
+                            (click)="moveAxis(dims, i, 1)" [attr.aria-label]="'Move ' + a.label + ' later'">▶</button>
+                </span>
+            </div>
+
+            <div class="order__presets">
+                <button type="button" class="btn btn-sm" *ngFor="let o of orderings"
+                        [disabled]="!enabled" [title]="o.hint"
+                        (click)="applyOrdering(dims, o.id)">{{ o.label }}</button>
+            </div>
+
+            <small class="axes__note" *ngIf="axisWarning(dims)">{{ axisWarning(dims) }}</small>
+            <small class="text-muted d-block" *ngIf="!axisWarning(dims)">
+                {{ loopableCount(dims) }} of these can be looped.
+            </small>
+        </div>
+    </div>
