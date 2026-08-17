@@ -464,9 +464,6 @@ export class GameService implements GeneratorContext {
     }
 
     playArcadeMode() {
-        // A modifier chosen for a practice run must not follow you into a
-        // scored one; the Advanced Options master switch still governs there.
-        this.settingsOverrideService.playgroundActive = false;
         this.playgroundSettings = undefined;
         this.play();
     }
@@ -528,7 +525,17 @@ export class GameService implements GeneratorContext {
         this.question.userAnswer = value;
         this.question.answeredAt = Date.now();
         this.question.timerTypeOnAnswer = localStorage.getItem(LS_TIMER) || "0";
-        this.question.playgroundMode = this.settings === this.playgroundSettings;
+        /*
+         * Unscored, because the active profile says so.
+         *
+         * This used to mean "the Free Play page is driving", which is why it
+         * compared object identity against a settings object. The page is gone;
+         * the property it provided — answers that do not teach the model —
+         * belongs to a profile now, and `playgroundSettings` survives only as
+         * the hook Diagnostics uses to force a full settings object.
+         */
+        this.question.playgroundMode =
+            !!this.playgroundSettings || this.settingsOverrideService.practice;
 
         const type = this.question.type;
         const isQuestionValid = this.question.userAnswer === this.question.isValid;

@@ -14,5 +14,6 @@ import "./generators.test";
 import "./induction.test";
 import "./derivation.test";
 import "./fatigue.test";
+import "./profiles.test";
 
 run();

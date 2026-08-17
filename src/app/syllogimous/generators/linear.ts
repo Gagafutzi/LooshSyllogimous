@@ -39,7 +39,7 @@ export function linearScaleFor(ctx: GeneratorContext, type: EnumQuestionType): L
  * Which structural modifiers are live for this mode right now.
  *
  * Two sources, in that order: what the ladder has earned, then anything
- * Advanced Options forces. Forcing wins because it is an explicit choice,
+ * Customise forces. Forcing wins because it is an explicit choice,
  * and because there is otherwise no way to see these without climbing.
  */
 export function linearFeatures(ctx: GeneratorContext, type: EnumQuestionType) {

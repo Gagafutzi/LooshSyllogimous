@@ -371,7 +371,7 @@ export class ProgressionService {
     /**
      * A ladder-shaped view of the current configuration, for the UI.
      *
-     * Kept because Advanced Options and Diagnostics display it. `recent` is
+     * Kept because Customise and Diagnostics display it. `recent` is
      * always empty: there is no rolling window any more, and reporting a fake
      * one would be worse than reporting none.
      */

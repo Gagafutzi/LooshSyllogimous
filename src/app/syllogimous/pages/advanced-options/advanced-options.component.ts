@@ -86,6 +86,31 @@ export class AdvancedOptionsComponent {
 
     resetLadders() { this.progression.resetAll(); }
 
+    /* ---- profiles ---- */
+
+    newProfileName = "";
+
+    get profiles() { return this.overrides.profiles; }
+    get activeProfileId() { return this.overrides.state.activeProfile; }
+
+    saveCurrent() {
+        const name = this.newProfileName.trim() || `Profile ${this.profiles.length + 1}`;
+        this.overrides.saveProfile(name);
+        this.newProfileName = "";
+    }
+
+    use(id: string) { this.overrides.useProfile(id); }
+    stopUsing() { this.overrides.clearProfile(); }
+    duplicate(id: string) { this.overrides.duplicateProfile(id); }
+    rename(id: string, name: string) { this.overrides.renameProfile(id, name.trim() || "Untitled"); }
+    setPractice(id: string, on: boolean) { this.overrides.setProfilePractice(id, on); }
+
+    /** Deleting is the one destructive control here, so it asks. */
+    remove(id: string) {
+        const profile = this.profiles.find(p => p.id === id);
+        if (profile && confirm(`Delete "${profile.name}"?`)) this.overrides.deleteProfile(id);
+    }
+
     get active() { return this.overrides.state.active; }
     get flags() { return this.overrides.state.flags; }
 

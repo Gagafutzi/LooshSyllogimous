@@ -13,7 +13,9 @@ export class StatsService {
     ) { }
 
     calcStats = (timerType?: "0" | "1" | "2") => {
-        const questions = this.game.questions.filter(q => q.playgroundMode === !!this.game.playgroundSettings);
+        // Practice answers are excluded by definition — not counting towards
+        // stats is what "practice" means.
+        const questions = this.game.questions.filter(q => !q.playgroundMode);
         const types = Object.values(EnumQuestionType).filter(qt => Object.values(EnumQuestionType).includes(qt));
         const typeBasedStats = new TypeBasedStats();
 

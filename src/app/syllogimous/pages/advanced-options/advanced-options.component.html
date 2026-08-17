@@ -1,9 +1,62 @@
 <div class="adv">
 
-    <h2 class="mb-1">Advanced options</h2>
+    <h2 class="mb-1">Customise</h2>
     <p class="text-muted mb-3">
-        Override what the tier decides: pick which modes appear and how many premises each gets.
+        Decide what the game serves you: which modes appear, how many premises each
+        gets, and how an item is built. Save any of it as a profile and switch
+        between them.
     </p>
+
+    <!--
+      Profiles. This is what Free Play became: that page could configure a
+      session and play it unscored, but the configuration was never kept and
+      reached only a fraction of what the generators read.
+    -->
+    <div class="card p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-baseline mb-2">
+            <h5 class="m-0">Profiles</h5>
+            <small class="text-muted" *ngIf="!profiles.length">none saved yet</small>
+        </div>
+
+        <p class="text-muted small mb-3">
+            A profile is everything on this page under a name. Editing while one is
+            loaded saves into it, so there is nothing to remember to press. Mark one
+            <strong>practice</strong> and its answers stop counting towards your score,
+            your stats and the ability estimate — somewhere to try a punishing
+            configuration without teaching the model you are worse than you are.
+        </p>
+
+        <div class="profile" *ngFor="let p of profiles" [class.is-on]="p.id === activeProfileId">
+            <span class="profile__name">
+                <input class="form-control form-control-sm" [value]="p.name"
+                       (change)="rename(p.id, $any($event.target).value)"
+                       [attr.aria-label]="'Profile name'">
+                <label class="profile__practice">
+                    <input type="checkbox" class="form-check-input" [checked]="p.practice"
+                           (change)="setPractice(p.id, $any($event.target).checked)">
+                    <small>practice — not scored</small>
+                </label>
+            </span>
+            <span class="profile__acts">
+                <button type="button" class="btn btn-sm"
+                        [class.is-on]="p.id === activeProfileId"
+                        (click)="use(p.id)">{{ p.id === activeProfileId ? "In use" : "Use" }}</button>
+                <button type="button" class="btn btn-sm" (click)="duplicate(p.id)">Copy</button>
+                <button type="button" class="btn btn-sm" (click)="remove(p.id)">Delete</button>
+            </span>
+        </div>
+
+        <div class="profile__new">
+            <input class="form-control form-control-sm" placeholder="New profile name"
+                   [value]="newProfileName" (input)="newProfileName = $any($event.target).value"
+                   (keyup.enter)="saveCurrent()">
+            <button type="button" class="btn btn-sm" (click)="saveCurrent()">
+                Save current settings
+            </button>
+            <button type="button" class="btn btn-sm" *ngIf="activeProfileId"
+                    (click)="stopUsing()">Stop using</button>
+        </div>
+    </div>
 
     <div class="card p-3 mb-3">
         <label class="master">

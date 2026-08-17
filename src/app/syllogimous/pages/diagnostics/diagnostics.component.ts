@@ -125,7 +125,7 @@ export class DiagnosticsComponent {
      */
     async simulateProgression() {
         if (!this.progression.config.enabled) {
-            this.simEvents = ["Enable fluid progression in Advanced Options first."];
+            this.simEvents = ["Enable fluid progression in Customise first."];
             return;
         }
 

@@ -97,7 +97,7 @@ export class GameComponent {
         // themselves and its answers are never recorded, so no ladder is driving
         // that item — a limit computed for a configuration it was not built from
         // is the wrong number as well as an unasked-for one.
-        const ladderSeconds = this.game.playgroundSettings
+        const ladderSeconds = this.game.question.playgroundMode
             ? null
             : this.progressionService.timeLimitFor(this.game.question.type);
         if (ladderSeconds != null) {

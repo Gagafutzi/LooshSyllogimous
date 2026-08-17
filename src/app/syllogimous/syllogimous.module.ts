@@ -32,7 +32,6 @@ import { TypeBasedStatsComponent } from './pages/stats/type-based-stats/type-bas
 import { StatsExportService } from './services/stats-export.service';
 import { CardDropdownComponent } from './components/card/card-dropdown/card-dropdown.component';
 import { TimerChooseComponent } from './pages/settings/timer-choose/timer-choose.component';
-import { PlaygroundModeComponent } from './pages/playground-mode/playground-mode.component';
 import { DailyProgressComponent } from './components/progress-and-performance/progress-and-performance.component';
 import { GameModeChooseComponent } from './pages/settings/game-mode-choose/game-mode-choose.component';
 import { EnumQuestionType } from './constants/question.constants';
@@ -87,7 +86,6 @@ const routes: Routes = [
                 ]
             },
             { path: EnumScreens.TiersMatrix, component: TiersMatrixComponent },
-            { path: EnumScreens.PlaygroundMode, component: PlaygroundModeComponent },
             { path: EnumScreens.OtherGames, component: OtherGamesComponent },
         ]
     }
@@ -125,7 +123,6 @@ const routes: Routes = [
         TimeBasedStatsComponent,
         TypeBasedStatsComponent,
         CardDropdownComponent,
-        PlaygroundModeComponent,
         TimerChooseComponent,
         DailyProgressComponent,
         GameModeChooseComponent,

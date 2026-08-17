@@ -81,7 +81,7 @@ const capacity = (n: number) => Math.ceil(n / 2) - 1;
 /**
  * Whether the item asks for every distance rather than just the furthest.
  *
- * Earned on the mode's own ladder, or forced from Advanced Options through the
+ * Earned on the mode's own ladder, or forced from Customise through the
  * same flag the other families use for construction answering — so the one
  * control means the same thing everywhere.
  */

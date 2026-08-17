@@ -80,6 +80,33 @@ export interface SpaceOverrides {
 
 export const DEFAULT_SPACE: SpaceOverrides = { axes: {}, circularAxes: null };
 
+/**
+ * A named configuration, saved so it can be come back to.
+ *
+ * This is what replaced Free Play. That page let you configure a session and
+ * play it unscored, but the configuration lived nowhere — every visit started
+ * from the last one, there was no way to keep two of them, and the settings it
+ * could reach were a subset of what the generators actually read. A profile is
+ * the same idea made durable: the whole override state, under a name, with the
+ * unscored flag as a property of the profile rather than of a separate mode.
+ */
+export interface Profile {
+    id: string;
+    name: string;
+    /**
+     * Answers do not count towards score, stats or the ability estimate.
+     *
+     * Free Play's one genuinely distinct behaviour, kept because it is worth
+     * keeping: somewhere to try a punishing configuration without teaching the
+     * model that you are worse than you are.
+     */
+    practice: boolean;
+    /** The saved settings. Everything in OverrideState except the profile list. */
+    config: ProfileConfig;
+}
+
+export type ProfileConfig = Omit<OverrideState, "profiles" | "activeProfile">;
+
 export interface OverrideState {
     active: boolean;
     /** 0 = premises in chain order, 100 = freely shuffled. */
@@ -95,6 +122,10 @@ export interface OverrideState {
     };
     linear: LinearFeatureFlags;
     space: SpaceOverrides;
+    /** Saved configurations, in the order they were made. */
+    profiles: Profile[];
+    /** Which one is loaded, or "" for the unsaved working state. */
+    activeProfile: string;
 }
 
 const LS_OVERRIDES = "syllogimous-advanced-options";
@@ -106,6 +137,8 @@ const DEFAULT_STATE: OverrideState = {
     flags: { meta: true, negation: true, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false },
     linear: { ...DEFAULT_LINEAR_FEATURES },
     space: { axes: {}, circularAxes: null },
+    profiles: [],
+    activeProfile: "",
 };
 
 @Injectable({ providedIn: "root" })
@@ -167,21 +200,95 @@ export class SettingsOverrideService {
         try { return fn(); } finally { this.suppressed = before; }
     }
 
-    /**
-     * Set for the length of a Free Play session.
-     *
-     * The master switch above means "use my settings instead of the tier",
-     * which is the right question on the Advanced Options page and the wrong
-     * one in Free Play — there the player's settings *are* the session, and
-     * asking them to also arm a global override would be asking twice. Cleared
-     * when arcade mode starts, so a modifier set for a practice run does not
-     * follow you into a scored one.
-     */
-    playgroundActive = false;
-
     /** Whether this layer should be consulted at all right now. */
     private get live() {
-        return (this.state.active || this.playgroundActive) && !this.suppressed;
+        return this.state.active && !this.suppressed;
+    }
+
+    /* ---------------- profiles ---------------- */
+
+    get profiles() { return this.state.profiles ?? []; }
+
+    get activeProfile(): Profile | undefined {
+        return this.profiles.find(p => p.id === this.state.activeProfile);
+    }
+
+    /**
+     * Whether the active profile is unscored.
+     *
+     * False when nothing is loaded, so the working state always counts — a
+     * player who never opens this page is never quietly practising.
+     */
+    get practice(): boolean {
+        return !!this.activeProfile?.practice && this.state.active;
+    }
+
+    /** The part of the state a profile carries. */
+    private snapshot(): ProfileConfig {
+        const { profiles, activeProfile, ...config } = this.state;
+        return JSON.parse(JSON.stringify(config));
+    }
+
+    saveProfile(name: string, practice = false): string {
+        const id = `p${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
+        this.state.profiles = [...this.profiles, { id, name, practice, config: this.snapshot() }];
+        this.state.activeProfile = id;
+        this.save();
+        return id;
+    }
+
+    /**
+     * Load a profile into the working state.
+     *
+     * Switching also turns the layer on: choosing a profile is choosing to use
+     * it, and leaving the master switch off would make the click do nothing
+     * visible — the commonest way a settings screen loses someone's trust.
+     */
+    useProfile(id: string) {
+        const profile = this.profiles.find(p => p.id === id);
+        if (!profile) return;
+        const profiles = this.profiles;
+        this.state = {
+            ...JSON.parse(JSON.stringify(profile.config)),
+            profiles,
+            activeProfile: id,
+            active: true,
+        };
+        this.save();
+    }
+
+    /** Stop using any profile, leaving its settings in place to edit freely. */
+    clearProfile() {
+        this.state.activeProfile = "";
+        this.save();
+    }
+
+    renameProfile(id: string, name: string) {
+        this.state.profiles = this.profiles.map(p => p.id === id ? { ...p, name } : p);
+        this.save();
+    }
+
+    setProfilePractice(id: string, practice: boolean) {
+        this.state.profiles = this.profiles.map(p => p.id === id ? { ...p, practice } : p);
+        this.save();
+    }
+
+    duplicateProfile(id: string) {
+        const source = this.profiles.find(p => p.id === id);
+        if (!source) return;
+        const copy: Profile = {
+            ...JSON.parse(JSON.stringify(source)),
+            id: `p${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`,
+            name: `${source.name} copy`,
+        };
+        this.state.profiles = [...this.profiles, copy];
+        this.save();
+    }
+
+    deleteProfile(id: string) {
+        this.state.profiles = this.profiles.filter(p => p.id !== id);
+        if (this.state.activeProfile === id) this.state.activeProfile = "";
+        this.save();
     }
 
     /** Full shuffle unless the user has opted in, matching prior behaviour. */
@@ -214,7 +321,7 @@ export class SettingsOverrideService {
      * Forced value for one structural modifier, or null to defer to the ladder.
      *
      * Reads null when the override layer is switched off entirely, so turning
-     * Advanced Options off restores ladder control rather than pinning whatever
+     * Customise off restores ladder control rather than pinning whatever
      * was last set.
      */
     linearOverride<K extends keyof LinearFeatureFlags>(key: K): LinearFeatureFlags[K] | null {
@@ -279,7 +386,21 @@ export class SettingsOverrideService {
         this.save();
     }
 
+    /**
+     * Persist, and keep the loaded profile in step.
+     *
+     * Editing with a profile active writes through to it rather than silently
+     * diverging — a settings page that forgets what you just changed the moment
+     * you leave it is worse than one with no profiles at all. Explicit "save"
+     * buttons were the alternative, and they are the thing people forget.
+     */
     save() {
+        const active = this.state.activeProfile;
+        if (active && this.profiles.some(p => p.id === active)) {
+            const config = this.snapshot();
+            this.state.profiles = this.profiles.map(
+                p => p.id === active ? { ...p, config } : p);
+        }
         try { localStorage.setItem(LS_OVERRIDES, JSON.stringify(this.state)); } catch { /* private mode */ }
     }
 
@@ -296,6 +417,9 @@ export class SettingsOverrideService {
                     space: { ...DEFAULT_SPACE, ...(parsed.space ?? {}), axes: parsed.space?.axes ?? {} },
                     modes: parsed.modes ?? {},
                     scrambleFactor: parsed.scrambleFactor ?? 100,
+                    // Absent in states saved before profiles existed.
+                    profiles: Array.isArray(parsed.profiles) ? parsed.profiles : [],
+                    activeProfile: parsed.activeProfile ?? "",
                 };
             }
         } catch { this.state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }

@@ -239,3 +239,38 @@ input[type="checkbox"]:disabled { cursor: default; }
 .fatigue__value small { font-weight: 400; font-size: 11px; }
 
 .fatigue.is-tired .fatigue__value { color: var(--th-bad, #fb7185); }
+
+/* ---- profiles ---- */
+
+.profile {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.profile.is-on { background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.06); }
+
+.profile__name { flex: 1; display: grid; gap: 6px; }
+.profile__practice { display: flex; align-items: center; gap: 6px; color: var(--th-text-dim); }
+.profile__acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.profile__acts .btn { font-size: 11px; padding-inline: 10px; }
+
+.profile__acts .btn.is-on {
+    background: color-mix(in srgb, var(--th-accent) 22%, transparent) !important;
+    border-color: rgba(var(--th-accent-rgb, 34, 211, 238), 0.6) !important;
+    color: var(--th-accent) !important;
+}
+
+.profile__new {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.12);
+}
+
+.profile__new input { max-width: 16rem; }

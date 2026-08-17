@@ -11,7 +11,7 @@ type LinearToggle = Exclude<keyof LinearFeatureFlags, "transforms" | "edits">;
 /**
  * How an item is built, as opposed to which items appear.
  *
- * Lifted out of the Advanced Options page because it was only reachable from
+ * Lifted out of the Customise page because it was only reachable from
  * there, while the settings it writes are read by the generators directly — so
  * they were already in force during Free Play, with no way to see or change
  * them from the screen that is *about* configuring a session. Two pages, one

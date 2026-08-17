@@ -83,7 +83,6 @@ export class SideNavComponent {
                 // actions look like one.
                 { label: "New question",     link: ["/", EnumScreens.Start] },
                 { label: "Current question", link: ["/", EnumScreens.Game] },
-                { label: "Free play",        link: ["/", EnumScreens.PlaygroundMode] },
             ]
         },
         {
@@ -96,10 +95,12 @@ export class SideNavComponent {
         {
             label: "Options", open: true, icon: "⚙", children: [
                 { label: "Calibrate",  link: ["/", EnumScreens.Calibration] },
-                { label: "Game modes", link: ["/", EnumScreens.Settings] },
-                { label: "Advanced",   link: ["/", EnumScreens.AdvancedOptions] },
-                { label: "Appearance", link: ["/", EnumScreens.Appearance] },
-                { label: "Diagnostics", link: ["/", EnumScreens.Diagnostics] },
+                { label: "Display & timer", link: ["/", EnumScreens.Settings] },
+                { label: "Customise",       link: ["/", EnumScreens.AdvancedOptions] },
+                { label: "Appearance",      link: ["/", EnumScreens.Appearance] },
+                // Diagnostics is a generator test rig, not a setting. Still
+                // routed — it is reached by URL when something needs checking —
+                // but off the menu, where it only ever confused.
             ]
         },
         {

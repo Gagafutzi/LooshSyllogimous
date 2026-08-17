@@ -18,7 +18,7 @@ export enum EnumQuestionType {
      * Composed spaces (utils/ndspace.utils.ts). The dimension count is a
      * configuration, not a hardcoded generator: 4D is the three spatial axes
      * plus time, 5D adds containment, 6D adds quantity, and any of that can be
-     * changed in Advanced Options.
+     * changed in Customise.
      */
     Space4D = "Space 4D",
     Space3D = "Space 3D",

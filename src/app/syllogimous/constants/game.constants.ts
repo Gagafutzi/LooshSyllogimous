@@ -11,7 +11,6 @@ export enum EnumScreens {
     History = "History",
     Tutorials = "Tutorials",
     Stats = "Stats",
-    PlaygroundMode = "Free Play",
     Settings = "Settings",
     Appearance = "Appearance",
     AdvancedOptions = "Advanced Options",
