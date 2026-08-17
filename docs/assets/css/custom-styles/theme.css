@@ -457,6 +457,16 @@ app-card-dropdown {
 .anchor--triangle { color: #f2d94e; }
 .anchor--diamond  { color: #f0555f; }
 
+/* Tier sigils. Sized up slightly and given air, because at body size a
+ * sixteen-pointed asterisk collapses into a blob. */
+.tier-sigil {
+    font-size: 1.15em;
+    line-height: 1;
+    margin-inline-end: 0.4em;
+    vertical-align: -0.06em;
+    opacity: 0.95;
+}
+
 /* The premise/conclusion tokens are the thing you actually stare at. */
 .subject {
     color: var(--th-accent);
