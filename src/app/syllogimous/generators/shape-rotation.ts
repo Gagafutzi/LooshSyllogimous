@@ -151,9 +151,8 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
         question.bucket = [...words];
         question.premises = premises;
         question.setup = [
-            `The ${shape.name}'s corners are `
-            + shape.corners.map(c => hi(c)).join(", ")
-            + ". Objects are carried round with it.",
+            `Corners: ` + shape.corners.map(c => hi(c)).join(", ")
+            + ". Objects turn with the shape.",
         ];
 
         // Asking where something ended up, or what a turn left alone.

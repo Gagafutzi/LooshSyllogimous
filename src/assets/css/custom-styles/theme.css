@@ -90,6 +90,24 @@ app-root {
     background-image: none !important;
 }
 
+/*
+ * Half the drawer's width, or nothing when it is not reserving space.
+ *
+ * A backdrop is painted on <body>, which spans the whole window, while the
+ * question card is centred in what is left after the drawer. Anything in the
+ * wallpaper that is meant to sit *behind the card* — the Loosh summoning circle
+ * — has to be pushed by half the drawer to line up, and pushed back when the
+ * drawer collapses.
+ */
+:root { --nav-offset: 0px; }
+
+@media (min-width: 901px) {
+    :root { --nav-offset: calc(var(--nav-w, 268px) / 2); }
+}
+
+/* Wins over the media query on specificity, so order does not matter here. */
+:root.nav-collapsed { --nav-offset: 0px; }
+
 /* Routed pages render as siblings of <router-outlet>, and the drawer is
  * position:fixed, so nothing reserves its width. Reserve it here once the
  * drawer is docked; below that breakpoint it overlays with a scrim instead. */

@@ -1,22 +1,38 @@
 <app-card>
     <div body>
-        <div class="mb-3">
-            <div><b>Tier</b> <span class="tier-sigil">{{ sigil(tier) }}</span>{{tier}}</div>
-            <div><b>Question Type</b> {{questionType}}</div>
-        </div>
+        <!--
+          The readout sits beside the grid, not above it.
 
-        <div class="matrix">
-            <ng-container *ngFor="let item of entriesOfMatrix; let i = index">
-                <div [ngClass]="'tier-'+i" [class.current-tier]="i === userTierIdx">
-                    <ng-container *ngFor="let numOfPremises of item[1]; let j = index">
-                        <span 
-                            [ngClass]="'question-type-'+j"
-                            [class.cell-selected]="i === cellSelI && j === cellSelJ"
-                            (click)="showDetails(i, j)"
-                        >{{numOfPremises}}</span>
-                    </ng-container>
+          Clicking a cell updates it, and above the grid that meant scrolling
+          back up to read what you had just clicked — the one thing the click
+          was for. Sticky, so it stays in view however far down the grid you are.
+        -->
+        <div class="tiers">
+            <div class="matrix">
+                <ng-container *ngFor="let item of entriesOfMatrix; let i = index">
+                    <div [ngClass]="'tier-'+i" [class.current-tier]="i === userTierIdx">
+                        <ng-container *ngFor="let numOfPremises of item[1]; let j = index">
+                            <span
+                                [ngClass]="'question-type-'+j"
+                                [class.cell-selected]="i === cellSelI && j === cellSelJ"
+                                (click)="showDetails(i, j)"
+                            >{{numOfPremises}}</span>
+                        </ng-container>
+                    </div>
+                </ng-container>
+            </div>
+
+            <aside class="tiers__readout">
+                <div class="tiers__row">
+                    <small class="text-muted d-block">Tier</small>
+                    <span class="tier-sigil">{{ sigil(tier) }}</span>{{ tier || "—" }}
                 </div>
-            </ng-container>
+                <div class="tiers__row">
+                    <small class="text-muted d-block">Mode</small>
+                    {{ questionType || "—" }}
+                </div>
+                <small class="text-muted">Each cell is the premise count that tier gets.</small>
+            </aside>
         </div>
     </div>
 </app-card>

@@ -180,15 +180,15 @@ export const THEME_PRESETS: Record<string, Theme> = {
         font: `"Cinzel", "Trajan Pro", Georgia, "Times New Roman", serif`,
         wallpaper:
             // Tick marks around the circle, faint enough to be texture.
-            "repeating-conic-gradient(from 0deg at 50% 46%, " +
+            "repeating-conic-gradient(from 0deg at calc(50% + var(--nav-offset, 0px)) 46%, " +
                 "rgba(212,175,55,0.13) 0deg 0.5deg, transparent 0.5deg 11.25deg), " +
             // The circle itself: crimson ring, gold ring, crimson outer.
-            "radial-gradient(circle at 50% 46%, " +
+            "radial-gradient(circle at calc(50% + var(--nav-offset, 0px)) 46%, " +
                 "transparent 0 31%, rgba(255,45,85,0.34) 31% 31.5%, " +
                 "transparent 31.5% 34%, rgba(212,175,55,0.26) 34% 34.4%, " +
                 "transparent 34.4% 45%, rgba(255,45,85,0.16) 45% 45.4%, transparent 45.4%), " +
             // The light it is lit by.
-            "radial-gradient(900px 640px at 50% 46%, #40091c 0%, transparent 62%), " +
+            "radial-gradient(900px 640px at calc(50% + var(--nav-offset, 0px)) 46%, #40091c 0%, transparent 62%), " +
             "radial-gradient(1200px 800px at 78% -12%, #2a0712 0%, transparent 58%), " +
             "radial-gradient(700px 700px at 12% 112%, #1a0410 0%, transparent 60%)",
     },

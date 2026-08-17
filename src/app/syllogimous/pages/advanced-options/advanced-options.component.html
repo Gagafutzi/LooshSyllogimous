@@ -2,16 +2,11 @@
 
     <h2 class="mb-1">Customise</h2>
     <p class="text-muted mb-3">
-        Decide what the game serves you: which modes appear, how many premises each
-        gets, and how an item is built. Save any of it as a profile and switch
-        between them.
+        Which modes appear, how long they are, and how an item is built. Save any
+        of it as a profile.
     </p>
 
-    <!--
-      Profiles. This is what Free Play became: that page could configure a
-      session and play it unscored, but the configuration was never kept and
-      reached only a fraction of what the generators read.
-    -->
+    <!-- Profiles: what Free Play became, made durable. -->
     <div class="card p-3 mb-3">
         <div class="d-flex justify-content-between align-items-baseline mb-2">
             <h5 class="m-0">Profiles</h5>
@@ -19,11 +14,9 @@
         </div>
 
         <p class="text-muted small mb-3">
-            A profile is everything on this page under a name. Editing while one is
-            loaded saves into it, so there is nothing to remember to press. Mark one
-            <strong>practice</strong> and its answers stop counting towards your score,
-            your stats and the ability estimate — somewhere to try a punishing
-            configuration without teaching the model you are worse than you are.
+            Everything on this page, under a name. Edits go into the loaded profile —
+            nothing to press. <strong>Practice</strong> profiles do not count towards
+            score, stats or your level.
         </p>
 
         <div class="profile" *ngFor="let p of profiles" [class.is-on]="p.id === activeProfileId">
@@ -171,9 +164,8 @@
     <div class="card p-3 mb-3">
         <h5 class="mb-2">Fluid progression</h5>
         <p class="text-muted small mb-2">
-            Every mode carries an estimate of your ability on one difficulty scale,
-            and each item is built to sit just below it. Premises, modifiers and the
-            clock are all on that scale, so they trade against each other.
+            One ability estimate per mode; each item is built to sit just below it.
+            Premises, modifiers and the clock all trade against each other.
         </p>
 
         <label class="master mb-2">
@@ -198,10 +190,9 @@
             <span class="fatigue__name">
                 Fatigue
                 <small class="d-block text-muted">
-                    How far your recent answers sit below what the model expected of
-                    them — difficulty-adjusted, so it does not simply fall when the
-                    items get harder. Below the threshold, the estimate stops moving
-                    until you recover, so a tired hour cannot set next week lower.
+                    How far below expectation you are answering. Say the model
+                    predicted 8 of your last 10 and you got 5 — that reads &minus;30.
+                    Past the threshold your level rests until you recover.
                 </small>
             </span>
             <span class="fatigue__value">
@@ -213,7 +204,7 @@
         <div [class.is-idle]="!prog.enabled">
             <div class="mode">
                 <label>Slump threshold
-                    <small class="text-muted d-block">Points below prediction that count as tired; 0 turns it off</small>
+                    <small class="text-muted d-block">0.15 = 15 points below. 0 turns it off</small>
                 </label>
                 <span class="mode__premises">
                     <input type="number" class="form-control form-control-sm" min="0" max="0.5" step="0.05"
@@ -241,13 +232,13 @@
                        (change)="setProg('pauseWhenTired', $any($event.target).checked)">
                 <span>
                     <strong>Rest the estimate during a slump</strong>
-                    <small class="d-block text-muted">Trials still count towards recovery; they just stop moving your level.</small>
+                    <small class="d-block text-muted">They still count towards recovery.</small>
                 </span>
             </label>
 
             <div class="mode">
                 <label>Target accuracy
-                    <small class="text-muted d-block">Items are aimed just below your estimate to land here</small>
+                    <small class="text-muted d-block">0.8 = right about 4 times in 5</small>
                 </label>
                 <span class="mode__premises">
                     <input type="number" class="form-control form-control-sm" min="0.5" max="0.95" step="0.05"

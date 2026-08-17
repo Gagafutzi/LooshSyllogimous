@@ -131,8 +131,8 @@ export function createInferRelation(ctx: GeneratorContext, numOfPremises: number
         question.conclusion = "";
 
         question.setup = [
-            `<b>${OPERATOR}</b> stands for one of the relations below, and means the `
-            + "same thing every time it appears. Work out which one it is.",
+            `<b>${OPERATOR}</b> is one of the relations below, the same one every `
+            + "time. Which?",
         ];
 
         question.explanation = explainInference(

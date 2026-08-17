@@ -115,7 +115,7 @@ export const TIER_SYMBOLS: Record<EnumTiers, string> = {
     [EnumTiers.Eidolon]:        "\u25C9",  // ◉  fisheye
     [EnumTiers.Numen]:          "\u2609",  // ☉  the sun
     [EnumTiers.Ineffable]:      "\u27C1",  // ⟁  triangle within a triangle
-    [EnumTiers.Absolute]:       "\u2B24",  // ⬤  filled circle: nothing left to add
+    [EnumTiers.Absolute]:       "\u269D",  // ⚝  outlined star: the one past the stars
 };
 
 export const NO_DATA = "--";

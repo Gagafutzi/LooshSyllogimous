@@ -178,10 +178,9 @@ export function createOddestRelation(ctx: GeneratorContext, numOfPremises: numbe
         question.conclusion = "";
 
         question.setup = [
-            "On each dimension separately, <b>most</b> of these relations point the "
-            + "same way. That is the pattern — it is never stated.",
-            "Distance is the <b>number of dimensions</b> on which a relation departs "
-            + "from what the others agree on.",
+            "On each dimension, <b>most</b> of these point the same way. That is the "
+            + "pattern — it is never stated.",
+            "Distance = <b>how many dimensions</b> a relation departs from it on.",
         ];
 
         if (ranking(ctx)) {
@@ -213,7 +212,7 @@ export function createOddestRelation(ctx: GeneratorContext, numOfPremises: numbe
                 return claims;
             }, []);
             question.answerMode = "construct";
-            question.setup.push("State how far <b>each</b> of them is from the pattern.");
+            question.setup.push("State how far <b>each</b> one is.");
         } else {
             const order = shuffle([...Array(count).keys()]);
             question.choices = order.map(i => labels[i]);

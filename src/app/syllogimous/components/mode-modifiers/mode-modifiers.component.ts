@@ -44,32 +44,32 @@ export class ModeModifiersComponent {
         {
             key: "branching",
             label: "Branching premises (180)",
-            hint: "Each object attaches to an arbitrary earlier one, either way round, so the premises stop forming a chain",
+            hint: "Not a chain: A–B, A–C, B–D",
         },
         {
             key: "overlap",
             label: "Overlapping positions",
-            hint: "Two things can land in the same place, which makes the third relation a real answer. Needs branching",
+            hint: "Two things can share a place, so “same” becomes a real answer. Needs branching",
         },
         {
             key: "multiConclusion",
             label: "Multiple conclusions",
-            hint: "Two or three claims; answer true only if every one of them follows",
+            hint: "Two or three claims; true only if all of them follow",
         },
         {
             key: "chooseConclusion",
             label: "Choose the conclusion",
-            hint: "Four claims, exactly one follows. No true/false to guess at",
+            hint: "Four claims, one follows. No coin to flip",
         },
         {
             key: "constructConclusion",
             label: "Build the conclusion",
-            hint: "State the relation yourself, one dimension at a time, instead of judging one",
+            hint: "State the relation yourself, one dimension at a time",
         },
         {
             key: "constructDistance",
             label: "…and the distance",
-            hint: "Also ask how far, not only which way. Off is the easy form — direction alone",
+            hint: "How far as well as which way",
         },
         {
             key: "compact",
@@ -79,7 +79,7 @@ export class ModeModifiersComponent {
         {
             key: "analogy",
             label: "Analogy conclusions",
-            hint: "Judge whether two relations match instead of naming one. Matches on direction, not distance. Composed spaces only",
+            hint: "Does A→B match C→D? Direction only, not distance",
         },
     ];
 
