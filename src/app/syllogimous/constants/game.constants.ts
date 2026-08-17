@@ -76,6 +76,48 @@ export const TIER_COLORS: Record<EnumTiers, { bgColor: string, textColor: string
     [EnumTiers.Absolute]:       { bgColor: "#111827", textColor: "#F9FAFB" },
 };
 
+/**
+ * A mark per tier, escalating from geometry to the celestial.
+ *
+ * Twenty-five names is more than anyone holds in order, and the colours alone
+ * do not rank — a pale blue and a pale green say nothing about which is higher.
+ * The symbols do: they start as plain four-pointed stars and simple polygons,
+ * gain points and complexity through the middle, and end on astronomical and
+ * void-like marks. Progress becomes legible at a glance, from the shape rather
+ * than from remembering that Virtuoso outranks Genius.
+ *
+ * Chosen from ranges with broad font coverage — geometric shapes, dingbat stars
+ * and a handful of astronomical signs — because the app's own fonts carry none
+ * of them and every one of these falls back cleanly to a system symbol font.
+ */
+export const TIER_SYMBOLS: Record<EnumTiers, string> = {
+    [EnumTiers.Adept]:          "\u2726",  // ✦  four-pointed star
+    [EnumTiers.Scholar]:        "\u2727",  // ✧  its hollow twin
+    [EnumTiers.Savant]:         "\u25C8",  // ◈  diamond in a diamond
+    [EnumTiers.Expert]:         "\u2756",  // ❖  black diamond minus white X
+    [EnumTiers.Mastermind]:     "\u2B22",  // ⬢  hexagon
+    [EnumTiers.Visionary]:      "\u2B21",  // ⬡  hollow hexagon
+    [EnumTiers.Genius]:         "\u2736",  // ✶  six-pointed
+    [EnumTiers.Virtuoso]:       "\u2737",  // ✷  eight-pointed
+    [EnumTiers.Luminary]:       "\u2738",  // ✸  heavy eight-pointed
+    [EnumTiers.Prodigy]:        "\u2739",  // ✹  twelve-pointed
+    [EnumTiers.Oracle]:         "\u263D",  // ☽  first quarter moon
+    [EnumTiers.Sage]:           "\u263E",  // ☾  last quarter moon
+    [EnumTiers.Philosopher]:    "\u269A",  // ⚚  staff of Hermes
+    [EnumTiers.Mystic]:         "\u2734",  // ✴  eight-pointed black star
+    [EnumTiers.Transcendent]:   "\u273A",  // ✺  sixteen-pointed asterisk
+    [EnumTiers.Ascendant]:      "\u27E1",  // ⟡  concave-sided diamond
+    [EnumTiers.Paragon]:        "\u2B1F",  // ⬟  black pentagon
+    [EnumTiers.Archon]:         "\u29EB",  // ⧫  black lozenge
+    [EnumTiers.Empyrean]:       "\u2735",  // ✵  eight-pointed pinwheel
+    [EnumTiers.Demiurge]:       "\u29C9",  // ⧉  two joined squares
+    [EnumTiers.Aeon]:           "\u221E",  // ∞  infinity
+    [EnumTiers.Eidolon]:        "\u25C9",  // ◉  fisheye
+    [EnumTiers.Numen]:          "\u2609",  // ☉  the sun
+    [EnumTiers.Ineffable]:      "\u27C1",  // ⟁  triangle within a triangle
+    [EnumTiers.Absolute]:       "\u2B24",  // ⬤  filled circle: nothing left to add
+};
+
 export const NO_DATA = "--";
 
 export const TIER_SCORE_RANGES: Record<EnumTiers, { minScore: number, maxScore: number }> = {

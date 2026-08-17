@@ -135,35 +135,62 @@ export const THEME_PRESETS: Record<string, Theme> = {
         wallpaper: "radial-gradient(900px 600px at 50% 0%, #062d16 0%, transparent 70%)",
     },
     /*
-     * Crimson on near-black, lit from above like a summoning circle.
+     * Devil nobility: crimson, black, and gold.
      *
-     * Red on black is the classic legibility trap — a deep blood red looks the
-     * part and then fails the moment it carries a highlighted relation word, so
-     * the accent sits at a bright rose rather than a dark crimson and the body
-     * text is warmed off-white instead of red. The atmosphere is carried by the
-     * backdrop and the glow, which nothing has to be read against.
+     * The palette is forced rather than chosen. A deep Gremory crimson —
+     * #d81e3f, the colour the aesthetic actually wants — measures 3.9:1 against
+     * this panel, and the accent is what *subjects* are painted in, so it would
+     * fail the one job it has. The bright crimson stays as the accent, and the
+     * nobility register is carried by **gold** in the second slot at 9.3:1,
+     * where it drives links, hovers and the card's own sheen.
+     *
+     * The panel is blacker than it was. At #2b0a14 it read mauve, which is a
+     * dusty, faded colour and the opposite of what is wanted; crimson on near-
+     * black is the whole idea, and the panel should be the black half.
+     *
+     * The backdrop is a summoning circle, drawn in gradients rather than
+     * shipped as an image: two rings — crimson inner, gold outer — over a
+     * conic spoke pattern for the tick marks, and a low crimson wash beneath.
+     * It sits behind a 94%-opaque panel, so it is atmosphere at the edges of
+     * the screen and never something a premise has to be read against.
      */
     "Loosh": {
         ...MOONLIT,
-        bg: "#0a0406", bg2: "#140609", panel: "#2b0a14",
-        accent: "#ff2d55", accent2: "#ff7a92",
-        text: "#f6e7ea", textDim: "#c49aa3",
-        // Crimson for yes, near-black for no: red already means "accent"
-        // everywhere else here, so a red "false" would read as the emphasis.
-        ok: "#ff2d55", bad: "#43101f",
-        // Dark ink on the bright heart: white on this crimson is 3.65:1, which
-        // passes only because the label is large. 5.48:1 does not need the excuse.
-        okInk: "#1a0106", badInk: "#f6e7ea", answerFill: 100,
-        // Nearly opaque on purpose. The backdrop is a bright crimson wash, and
+        bg: "#07030a", bg2: "#12060c", panel: "#1b060e",
+        // Crimson leads, gold ennobles. Gold cannot lead: it is what the eye
+        // goes to first, and the thing worth looking at is the question.
+        accent: "#ff2d55", accent2: "#d4af37",
+        text: "#f6e6ea", textDim: "#c09aa6",
+        // Crimson for yes, dried blood for no: red already means "accent"
+        // everywhere here, so a red "false" would read as the emphasis.
+        ok: "#ff2d55", bad: "#3d0a17",
+        // Dark ink on the bright heart; the pale one on the dark half.
+        okInk: "#1a0106", badInk: "#f6e6ea", answerFill: 100,
+        /*
+         * A cut gem rather than a pill.
+         *
+         * Applied to an inner face, never the button, so what can be clicked
+         * stays rectangular — these are hit under time pressure.
+         */
+        answerShape: "polygon(7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%, 0 50%)",
+        // Nearly opaque on purpose: the backdrop is a bright crimson wash, and
         // at the usual translucency it bled through and turned the premise card
-        // a washed-out mauve — the panel has to hold its own colour for the
-        // text on it to sit on something deliberate.
-        radius: 10, glow: 18, panelAlpha: 0.94, blur: 10,
+        // a washed-out mauve.
+        radius: 8, glow: 20, panelAlpha: 0.94, blur: 10,
         font: `"Cinzel", "Trajan Pro", Georgia, "Times New Roman", serif`,
         wallpaper:
-            "radial-gradient(1100px 700px at 72% -12%, #5c1020 0%, transparent 62%), " +
-            "radial-gradient(900px 620px at 8% 112%, #2e0714 0%, transparent 58%), " +
-            "radial-gradient(600px 600px at 50% 50%, #17040a 0%, transparent 70%)",
+            // Tick marks around the circle, faint enough to be texture.
+            "repeating-conic-gradient(from 0deg at 50% 46%, " +
+                "rgba(212,175,55,0.13) 0deg 0.5deg, transparent 0.5deg 11.25deg), " +
+            // The circle itself: crimson ring, gold ring, crimson outer.
+            "radial-gradient(circle at 50% 46%, " +
+                "transparent 0 31%, rgba(255,45,85,0.34) 31% 31.5%, " +
+                "transparent 31.5% 34%, rgba(212,175,55,0.26) 34% 34.4%, " +
+                "transparent 34.4% 45%, rgba(255,45,85,0.16) 45% 45.4%, transparent 45.4%), " +
+            // The light it is lit by.
+            "radial-gradient(900px 640px at 50% 46%, #40091c 0%, transparent 62%), " +
+            "radial-gradient(1200px 800px at 78% -12%, #2a0712 0%, transparent 58%), " +
+            "radial-gradient(700px 700px at 12% 112%, #1a0410 0%, transparent 60%)",
     },
 };
 

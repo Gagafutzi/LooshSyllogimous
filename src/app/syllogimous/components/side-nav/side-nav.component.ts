@@ -1,5 +1,5 @@
 import { Component } from "@angular/core";
-import { EnumScreens } from "../../constants/game.constants";
+import { EnumScreens, TIER_SYMBOLS } from "../../constants/game.constants";
 import { EnumQuestionType } from "../../constants/question.constants";
 import { SystemActionsService } from "../../services/system-actions.service";
 import { GameService } from "../../services/game.service";
@@ -67,6 +67,8 @@ export class SideNavComponent {
      * leaves neither piece of text anywhere to sit. Two lines of markup here
      * beat continuing to fight it.
      */
+    TIER_SYMBOLS = TIER_SYMBOLS;
+
     goals = [
         { label: 'Daily goal',  value: () => this.progress.calcDailyProgress(this.progress.getToday()) },
         { label: 'Weekly goal', value: () => this.progress.calcWeeklyProgress(this.progress.getToday()) },

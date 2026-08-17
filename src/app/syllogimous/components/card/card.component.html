@@ -10,12 +10,12 @@
                     [autoClose]="'outside'"
                     triggers="click"
                 >
-                    {{ game.tier }} <i class="bi bi-info-circle"></i>
+                    <span class="tier-sigil">{{ TIER_SYMBOLS[game.tier] }}</span>{{ game.tier }} <i class="bi bi-info-circle"></i>
                 </span>
                 <ng-template #tierTooltip>
                     <div class="text-start">
                         <div *ngFor="let tier of tiers">
-                            <span class="badge" style="width: 80px;" [style.backgroundColor]="TIER_COLORS[tier].bgColor" [style.color]="TIER_COLORS[tier].textColor">{{ tier }}</span> {{ (TIER_SCORE_RANGES[tier].maxScore === Infinity) ? "above" : "" }} {{ (TIER_SCORE_RANGES[tier].minScore === -Infinity) ? "" : TIER_SCORE_RANGES[tier].minScore }} {{ (TIER_SCORE_RANGES[tier].maxScore === Infinity) ? "" : (TIER_SCORE_RANGES[tier].minScore === -Infinity) ? "below" : "-" }} {{ (TIER_SCORE_RANGES[tier].maxScore === Infinity) ? "" : (TIER_SCORE_RANGES[tier].maxScore + 1) }} pts
+                            <span class="badge" style="width: 80px;" [style.backgroundColor]="TIER_COLORS[tier].bgColor" [style.color]="TIER_COLORS[tier].textColor"><span class="tier-sigil">{{ TIER_SYMBOLS[tier] }}</span>{{ tier }}</span> {{ (TIER_SCORE_RANGES[tier].maxScore === Infinity) ? "above" : "" }} {{ (TIER_SCORE_RANGES[tier].minScore === -Infinity) ? "" : TIER_SCORE_RANGES[tier].minScore }} {{ (TIER_SCORE_RANGES[tier].maxScore === Infinity) ? "" : (TIER_SCORE_RANGES[tier].minScore === -Infinity) ? "below" : "-" }} {{ (TIER_SCORE_RANGES[tier].maxScore === Infinity) ? "" : (TIER_SCORE_RANGES[tier].maxScore + 1) }} pts
                         </div>
                     </div>
                 </ng-template>

@@ -27,7 +27,7 @@
         <!-- Tier and score used to sit in the game card header; the card now shows
              only the question and its timer. -->
         <div class="nav-status">
-            <span class="nav-status__tier">{{ game.tier }}</span>
+            <span class="nav-status__tier"><span class="tier-sigil">{{ TIER_SYMBOLS[game.tier] }}</span>{{ game.tier }}</span>
             <span class="nav-status__score">{{ game.score }} pts</span>
         </div>
         <!-- Time goals live here now; the rest of the counters are on Stats. -->

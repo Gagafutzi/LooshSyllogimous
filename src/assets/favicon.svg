@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Syllogimous">
+    <!--
+      A relational triad inside a ring.
+
+      Three terms and the relations between them is what every mode in this app
+      is, and it is the rare logo that is literal without being a diagram. Drawn
+      for 16px first: at that size the ring and three dots are all that survive,
+      so the triangle's strokes are heavy and the nodes are large enough to read
+      as deliberate rather than as artefacts.
+
+      SVG rather than another PNG so it stays sharp at every size and weighs
+      about a kilobyte. The PNG set stays for the platforms that ignore this.
+    -->
+    <defs>
+        <radialGradient id="field" cx="50%" cy="40%" r="75%">
+            <stop offset="0%" stop-color="#2a0812"/>
+            <stop offset="100%" stop-color="#08030a"/>
+        </radialGradient>
+    </defs>
+
+    <circle cx="32" cy="32" r="32" fill="url(#field)"/>
+
+    <!-- The ring, gold: the one element that reads at favicon size. -->
+    <circle cx="32" cy="32" r="27" fill="none" stroke="#d4af37" stroke-width="1.6" opacity="0.9"/>
+    <circle cx="32" cy="32" r="23" fill="none" stroke="#d4af37" stroke-width="0.7" opacity="0.45"/>
+
+    <!-- Relations first, so the nodes sit on top of the joins. -->
+    <path d="M32 15 L47.5 42 L16.5 42 Z" fill="none" stroke="#ff2d55"
+          stroke-width="2.6" stroke-linejoin="round" opacity="0.95"/>
+
+    <circle cx="32" cy="15" r="5.4" fill="#ff2d55"/>
+    <circle cx="47.5" cy="42" r="5.4" fill="#ff2d55"/>
+    <circle cx="16.5" cy="42" r="5.4" fill="#ff2d55"/>
+</svg>
