@@ -475,6 +475,14 @@ app-card-dropdown {
 .anchor--triangle { color: #f2d94e; }
 .anchor--diamond  { color: #f0555f; }
 
+/* Junk-shape stimuli sit inline in a premise, so they take the line's size
+ * rather than a fixed one. */
+svg.junk {
+    inline-size: 1.15em;
+    block-size: 1.15em;
+    vertical-align: -0.18em;
+}
+
 /* Tier sigils. Sized up slightly and given air, because at body size a
  * sixteen-pointed asterisk collapses into a blob. */
 .tier-sigil {
