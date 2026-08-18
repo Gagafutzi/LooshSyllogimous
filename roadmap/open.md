@@ -7,7 +7,6 @@ left, in full:
 | | why it is still here |
 |---|---|
 | **Pricing width into difficulty** ([5](#5-realized-width-as-a-difficulty-axis--partly-done)) | the dial and the fit both exist; the coefficient needs answered items with the dial off its default to fit against. |
-| **Graph matching over other modes** ([P4](#p4-graph-matching-extended--done-two-of-three-utilsgraphdistutilsts)) | per-mode work: each mode would have to expose its layout as an edge list. |
 | **Set Hierarchy syllogism** | never specced beyond one line. Quantified set logic already exists in Syllogism; what a hierarchy adds needs deciding before anything is written — the same discipline [P8](#p8-boolean-concept-learning--settled-as-a-presentation-of-p11) got, and possibly the same answer. |
 
 The rest of this file is kept as the record of what was decided and why,
@@ -313,7 +312,7 @@ Eleven are specced below. In rough cost order:
 | ~~P1 facing space~~ | **built** — rung `facing`, `utils/facing.utils.ts` |
 | ~~P2 knights and knaves~~ | **built** — the mode, and the speaker modifier as rung `speakers` |
 | ~~P8 boolean concepts~~ | **settled** — it is P11 with the question reversed; rung `state-rule` |
-| ~~P4 graph matching extended~~ | **built** — `which-differs` and `distance` rungs; the over-other-modes half is open |
+| ~~P4 graph matching extended~~ | **built** — all three parts: `which-differs`, `distance`, `as-relations` |
 | ~~Relational Web~~ | **built** — `generators/relational-web.ts`, `utils/web.utils.ts` |
 | **Set Hierarchy syllogism** | quantified set logic over proof networks; also never built |
 
@@ -546,7 +545,7 @@ would not.
 Two puzzles stacked, costed at 2.2 — the arrangement cannot be started until the
 liars are found.
 
-## P4. Graph matching, extended — **DONE** (two of three), `utils/graphdist.utils.ts`
+## P4. Graph matching, extended — **DONE**, `utils/graphdist.utils.ts`
 
 **More than two graphs — built**, rung `which-differs`. Three or four groups,
 one not isomorphic to the rest, answered by choice. Which one differs is
@@ -581,11 +580,31 @@ is searched for every time, and the test that matters is the one asserting the
 edit count and the distance genuinely disagree — if they never did, the search
 would be unnecessary and the module pointless.
 
-**Over other modes — still open.** Building the two graphs out of relational
-premises, one spatial and one temporal, is composition of parts already built,
-but it is per-mode work: each mode would have to expose its layout as an edge
-list. Cheaper now that [Nested Spaces](#p7-nested-spaces--done-generatorsnestedts)
-exists, which already states two independent structures over one object set.
+**Over other modes — DONE**, rung `as-relations`. Composition of parts already
+built, as predicted, and it needed no per-mode work at all: the earlier note
+had this backwards. Nothing has to expose its layout as an edge list, because
+the traffic runs the other way — a graph is *rendered* as comparisons on a
+scale, using vocabulary the scale family already carries.
+
+The mapping is exact in both directions: a one-way link is a comparison, a
+two-way one is a statement of sameness. So the structures match exactly when the
+graphs are isomorphic, decided by the same search the other two forms use.
+
+**The reason to want it is not that it was cheap.** With both graphs drawn as
+arrows, the two premise sets are written in the same words, so they can be lined
+up by eye: match the text, match the structure. Giving one set a spatial
+vocabulary and the other a temporal one closes that route — nothing can be
+compared until both have been abstracted away from what they say into what shape
+they are, which is the operation the mode exists to train and the one its own
+presentation was letting people skip.
+
+Scale pairs are chosen to share no phrase at all. Quantity and Height say
+exactly the same things, so a reader could only tell which set a statement
+belonged to by where it sat on the page, which reopens the shortcut.
+
+One thing worth stating in the setup rather than leaving implicit: the question
+is about the statements *as made*. A chain of comparisons implies more than it
+states, and those implications are not part of the pattern being matched.
 
 ## P8. Boolean concept learning — **SETTLED**, as a presentation of P11
 

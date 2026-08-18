@@ -113,6 +113,14 @@ export const RUNG_COST: Record<string, number> = {
     collide: 1.5,
     "state-rule": 1.1,
     "which-differs": 1.2,
+    /*
+     * Costed above naming the odd one out and below counting the changes. The
+     * comparison itself is the base mode's, but neither set can be lined up
+     * against the other until both have been abstracted out of their own
+     * vocabulary — and that step is the one the arrow presentation let people
+     * skip by matching text.
+     */
+    "as-relations": 1.3,
     distance: 2.0,
     compound: 1.2,
     undetermined: 1.4,

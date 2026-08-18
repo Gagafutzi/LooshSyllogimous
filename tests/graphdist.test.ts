@@ -146,6 +146,7 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { createGraphMatching } from "../src/app/syllogimous/generators/graph-matching";
+import { LINEAR_SCALES } from "../src/app/syllogimous/utils/linear.utils";
 
 function context(rung: string): GeneratorContext {
     const settings = new Settings();
@@ -239,3 +240,98 @@ test("the stated distance is the true minimum, not the number of edits made", ()
 
     assert(checked >= 20, `only ${checked} distance items appeared`);
 });
+
+/**
+ * The same comparison, stated in two different vocabularies.
+ *
+ * With both graphs drawn as arrows the two premise sets are written in the same
+ * words, so they can be lined up by eye — match the text, match the structure.
+ * One spatial vocabulary and one temporal closes that route: nothing can be
+ * compared until both have been abstracted out of what they say into what shape
+ * they are.
+ *
+ * Checked by reading both halves back into graphs through the scale
+ * vocabularies and re-deciding isomorphism, which is the same search the arrow
+ * forms use — so if the wording ever stopped mapping onto the structure
+ * faithfully, this would disagree with the item.
+ */
+test("relational phrasing preserves the structure it is stating", () => {
+    const ctx = context("as-relations");
+    let checked = 0, matching = 0;
+
+    for (let run = 0; run < 60 && checked < 25; run++) {
+        const q = seeded(run * 4547 + 17, () => createGraphMatching(ctx, 5));
+        if (!String(q.conclusion).includes("same structure")) continue;
+
+        const groups = readRelationGroups(q.premises);
+        assert(groups.length === 2, `expected two sets, got ${groups.length}`);
+        assert(groups[0].length >= 4 && groups[1].length >= 4, "a set was nearly empty");
+
+        const same = isomorphicByDistance(groups[0], groups[1]);
+        assert(same === q.isValid,
+            `the structures ${same ? "match" : "differ"} but the item says ${q.isValid}`);
+
+        if (q.isValid) matching++;
+        checked++;
+    }
+
+    assert(checked >= 25, `only ${checked} relational items appeared`);
+    assert(matching > 5 && matching < checked - 5,
+        `${matching} of ${checked} matched — the answer should not be guessable`);
+});
+
+test("the two vocabularies never share a phrase", () => {
+    /*
+     * The whole point of the form. Quantity and Height say exactly the same
+     * things, so a reader could only tell which set a statement belonged to by
+     * where it sat on the page — which is the text-matching shortcut this form
+     * exists to close, reopened.
+     */
+    const ctx = context("as-relations");
+
+    for (let run = 0; run < 40; run++) {
+        const q = seeded(run * 971 + 29, () => createGraphMatching(ctx, 5));
+        if (!String(q.conclusion).includes("same structure")) continue;
+
+        const [first, second] = q.premises
+            .map(p => p.replace(/<[^>]+>/g, "").trim())
+            .filter(p => p.endsWith(":"))
+            .map(p => p.slice(0, -1));
+
+        const scaleOf = (name: string) => Object.values(LINEAR_SCALES).find(s => s.name === name)!;
+        const a = scaleOf(first), b = scaleOf(second);
+        assert(!!a && !!b, `unknown scale heading: ${first} / ${second}`);
+
+        const words = (s: typeof a) => new Set([s.above, s.below, s.same]);
+        for (const w of words(b)) {
+            assert(!words(a).has(w), `both sets can say "${w}"`);
+        }
+    }
+});
+
+/** Both halves back into graphs, read through whichever scale each uses. */
+function readRelationGroups(premises: string[]): GraphEdge[][] {
+    const groups: GraphEdge[][] = [];
+
+    for (const raw of premises) {
+        const line = raw.replace(/<[^>]+>/g, "").trim();
+        if (line.endsWith(":")) { groups.push([]); continue; }
+        if (!groups.length) continue;
+
+        // Longest phrase first: "is at the same time as" contains no other
+        // phrase, but short ones can sit inside longer ones in principle.
+        const phrases = Object.values(LINEAR_SCALES).flatMap(s => [
+            { text: s.above, rel: "→" as const },
+            { text: s.below, rel: "←" as const },
+            { text: s.same, rel: "↔" as const },
+        ]).sort((x, y) => y.text.length - x.text.length);
+
+        const hit = phrases.find(p => line.includes(` ${p.text} `));
+        assert(!!hit, `no known relation in: ${line}`);
+
+        const [a, b] = line.split(` ${hit!.text} `);
+        groups[groups.length - 1].push([a.trim(), hit!.rel, b.trim()]);
+    }
+
+    return groups;
+}

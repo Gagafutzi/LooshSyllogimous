@@ -313,7 +313,7 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * changes needed is a measurement, and strictly harder — you have to find
      * the best matching rather than establish that none exists.
      */
-    "Graph Matching":            ["which-differs", "distance"],
+    "Graph Matching":            ["which-differs", "as-relations", "distance"],
     "Analogy":                   ["negation", "meta"],
     "Binary":                    ["negation", "meta"],
     "Deictic Relations":         ["extra-reversal", "third-axis"],

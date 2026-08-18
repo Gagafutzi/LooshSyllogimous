@@ -11,6 +11,7 @@ import { coinFlip, getSymbols, pickUniqueItems, shuffle, areGraphsIsomorphic } f
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 import { hi, neg, subj } from "../utils/phrasing";
+import { LINEAR_SCALES, LinearScale } from "../utils/linear.utils";
 import {
     GraphEdge, MAX_DISTANCE_NODES, editDistance, oddGraphOut,
 } from "../utils/graphdist.utils";
@@ -29,14 +30,15 @@ export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number
      * match?" stays the common case, and a rung adds a way of being asked
      * rather than taking one away.
      */
-    const forms: Array<"which" | "distance"> = [];
+    const forms: Array<"which" | "distance" | "relations"> = [];
     if (ctx.hasRung(type, "which-differs")) forms.push("which");
     if (ctx.hasRung(type, "distance")) forms.push("distance");
+    if (ctx.hasRung(type, "as-relations")) forms.push("relations");
 
     if (forms.length && Math.random() < forms.length / (forms.length + 1)) {
         const form = forms[Math.floor(Math.random() * forms.length)];
-        const built = form === "which"
-            ? buildWhichDiffers(ctx, numOfPremises)
+        const built = form === "which" ? buildWhichDiffers(ctx, numOfPremises)
+            : form === "relations" ? buildAsRelations(ctx, numOfPremises)
             : buildDistance(ctx, numOfPremises);
         if (built) return built;
         // Falling through rather than failing: a draw can simply not produce a
@@ -445,4 +447,121 @@ function buildDistance(ctx: GeneratorContext, numOfPremises: number): Question |
     }
 
     return null;
+}
+
+/**
+ * The same two structures, stated as relations rather than as arrows.
+ *
+ * "Pure composition of parts already built", as the roadmap had it, and it
+ * turned out to be — but the reason to want it is not that it is cheap. With
+ * both graphs drawn as arrows, the two premise sets are written in the same
+ * words, so they can be lined up by eye: match the text, match the structure.
+ * Give one graph a spatial vocabulary and the other a temporal one and that
+ * route closes. Nothing can be compared until both have been abstracted away
+ * from what they say into what shape they are, which is the operation the mode
+ * exists to train and the one its own presentation was letting people skip.
+ *
+ * The mapping is exact and the same in both directions: a one-way link is a
+ * comparison, a two-way one is a statement of sameness. So the structures match
+ * exactly when the graphs are isomorphic, decided by the same search the other
+ * two forms use.
+ */
+function buildAsRelations(ctx: GeneratorContext, numOfPremises: number): Question | null {
+    const settings = ctx.settings;
+    const nodes = Math.max(4, Math.min(6, numOfPremises));
+
+    const pair = pickScalePair();
+    if (!pair) return null;
+    const [first, second] = pair;
+
+    for (let attempt = 0; attempt < 200; attempt++) {
+        const symbols = getSymbols(settings);
+        const picked = pickUniqueItems(symbols, nodes * 2).picked;
+        if (picked.length < nodes * 2) return null;
+
+        const left = picked.slice(0, nodes);
+        const right = picked.slice(nodes);
+
+        const base = drawGraph(left);
+        let other = relabel(base, left, right);
+
+        const same = coinFlip();
+        if (!same) {
+            // Perturbed until it genuinely differs: a change can land where the
+            // relabelling makes it equivalent, and an item claiming "different"
+            // about two matching structures is simply wrong.
+            let guard = 0;
+            do { other = perturb(other); } while (editDistance(base, other) === 0 && guard++ < 40);
+            if (editDistance(base, other) === 0) continue;
+        }
+
+        const question = new Question(EnumQuestionType.GraphMatching);
+        question.bucket = picked;
+        question.premises = [
+            `${hi(first.name)}:`, ...asRelations(base, first),
+            `${hi(second.name)}:`, ...asRelations(other, second),
+        ];
+        question.conclusion = `The two sets describe the ${hi("same structure")}`;
+        question.isValid = same;
+        question.setup = [
+            "Two sets of statements about different things, in different terms."
+            + " The question is whether the <b>pattern of statements</b> is the"
+            + " same &mdash; which links exist, and which way each one runs.",
+            "Compare the statements as made, not what they add up to: a chain of"
+            + " comparisons implies more than it states, and those implications"
+            + " are not part of the pattern.",
+        ];
+        question.explanation = [
+            `Read as shape, a one-way statement is a link with a direction and a`
+            + ` sameness statement is a link with none.`,
+            same
+                ? `Every one of the first set's links can be matched onto the second's,`
+                  + ` name for name, running the same way.`
+                : `No matching of the names lines every link up: at least one runs the`
+                  + ` other way, or is not there at all.`,
+            `so the two ${same ? "do" : "do not"} describe the same structure`,
+        ];
+        return question;
+    }
+
+    return null;
+}
+
+/** Two scales that share no words, so neither can be read as the other. */
+function pickScalePair(): [LinearScale, LinearScale] | null {
+    const usable = Object.values(LINEAR_SCALES)
+        // A scale whose two directions read the same cannot state which way a
+        // link runs, which is exactly what has to be compared.
+        .filter(s => s.above !== s.below);
+
+    const words = (s: LinearScale) => new Set([s.above, s.below, s.same]);
+    const pairs: Array<[LinearScale, LinearScale]> = [];
+
+    for (const a of usable) {
+        for (const b of usable) {
+            if (a === b) continue;
+            const wa = words(a), wb = words(b);
+            // Quantity and Height share their whole vocabulary; a reader could
+            // not tell which set a statement belonged to except by position.
+            if ([...wb].some(w => wa.has(w))) continue;
+            pairs.push([a, b]);
+        }
+    }
+
+    return pairs.length ? pairs[Math.floor(Math.random() * pairs.length)] : null;
+}
+
+/**
+ * A graph's links as comparisons on one scale.
+ *
+ * Worded with `above`/`below`/`same` rather than the `direction` and `tie`
+ * words. Those are bare adjectives for building clause lists — "higher",
+ * "same amount" — and reading as a sentence needs the full phrase the scale
+ * also carries: "is more than", "is at the same time as".
+ */
+function asRelations(edges: GraphEdge[], scale: LinearScale): string[] {
+    return edges.map(([a, rel, b]) => {
+        const phrase = rel === "→" ? scale.above : rel === "←" ? scale.below : scale.same;
+        return `${subj(a)} ${hi(phrase)} ${subj(b)}`;
+    });
 }
