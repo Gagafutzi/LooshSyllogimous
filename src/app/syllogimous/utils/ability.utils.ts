@@ -94,6 +94,7 @@ export const RUNG_COST: Record<string, number> = {
     identify: 1.0,
     apply: 1.6,
     compose: 1.4,
+    sequence: 1.8,
 
     "min-span-3": 0.8,
     cycles: 1.5,

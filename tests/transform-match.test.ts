@@ -202,3 +202,50 @@ test("a compose item shows both steps and lands where it says", () => {
 
     assert(checked >= 15, `only ${checked} compose items were checkable`);
 });
+
+/**
+ * Sequence induction: three terms, produce the fourth.
+ *
+ * Checked the way a reader would: work the step out from the first pair, apply
+ * it to the third term, and see whether that is the option marked correct. And
+ * separately, that the step is recoverable from *every* consecutive pair — a
+ * reader works from whichever pair they look at, so an ambiguous later
+ * transition gives the item an answer the item does not support. That is the
+ * same trap as the compose form's halfway structure, which is where it was
+ * first caught.
+ */
+test("a sequence extends by the step it actually shows", () => {
+    const ctx = context(["sequence"]);
+    let checked = 0;
+
+    for (let run = 0; run < 90 && checked < 20; run++) {
+        const q = seeded(run * 8191 + 13, () => createTransformMatch(ctx, 3));
+        if (q.answerMode !== "choice" || !String(q.choicePrompt).includes("fourth")) continue;
+
+        const terms = q.premises.map(parse);
+
+        // Every consecutive pair names the same step, and names it uniquely.
+        const steps = [0, 1].map(i =>
+            mapPool().filter(m => sameStructure(applyMap(terms[i], m), terms[i + 1])));
+        steps.forEach((matches, i) => {
+            assert(matches.length === 1,
+                `step ${i + 1} is satisfied by ${matches.length} maps, so it is not identified`);
+        });
+        assert(describeMap(steps[0][0]) === describeMap(steps[1][0]),
+            "the two steps shown are different maps, so there is no sequence");
+
+        const fourth = applyMap(terms[2], steps[0][0]);
+        const marked = parse(q.choices[q.correctChoice]);
+        assert(sameStructure(fourth, marked),
+            "the option marked correct is not where the shown step leads");
+
+        // And no other option is also where it leads.
+        q.choices.forEach((c, i) => {
+            if (i === q.correctChoice) return;
+            assert(!sameStructure(parse(c), fourth), "a second option is also correct");
+        });
+        checked++;
+    }
+
+    assert(checked >= 20, `only ${checked} sequence items were checkable`);
+});

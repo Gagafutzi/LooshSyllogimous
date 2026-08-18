@@ -37,6 +37,7 @@ function forms(ctx: GeneratorContext, type: EnumQuestionType) {
         identify: ctx.hasRung(type, "identify"),
         apply: ctx.hasRung(type, "apply"),
         compose: ctx.hasRung(type, "compose"),
+        sequence: ctx.hasRung(type, "sequence"),
     };
 }
 
@@ -63,10 +64,11 @@ export function createTransformMatch(ctx: GeneratorContext, numOfPremises: numbe
     const pointCount = Math.max(2, Math.min(6, numOfPremises));
     const live = forms(ctx, type);
 
-    const choices: Array<"verify" | "identify" | "apply" | "compose"> = ["verify"];
+    const choices: Array<"verify" | "identify" | "apply" | "compose" | "sequence"> = ["verify"];
     if (live.identify) choices.push("identify");
     if (live.apply) choices.push("apply");
     if (live.compose) choices.push("compose");
+    if (live.sequence) choices.push("sequence");
     const form = choices[Math.floor(Math.random() * choices.length)];
 
     for (let attempt = 0; attempt < 300; attempt++) {
@@ -84,6 +86,7 @@ export function createTransformMatch(ctx: GeneratorContext, numOfPremises: numbe
         const built = form === "verify" ? buildVerify(question, order, source)
             : form === "identify" ? buildIdentify(question, order, source)
             : form === "compose" ? buildCompose(question, order, second, source)
+            : form === "sequence" ? buildSequence(question, order, source)
             : buildApply(question, order, second, source);
 
         if (!built) continue;
@@ -313,6 +316,89 @@ function buildCompose(
         claimTrue
             ? `so it does end where the claim says`
             : `so it does not end where the claim says`,
+    ];
+    return true;
+}
+
+/* ---------------- sequence ---------------- */
+
+/**
+ * Three terms of a sequence; produce the fourth.
+ *
+ * The same machinery as `apply`, with the map composed with itself rather than
+ * carried across to a different structure — so verification stays coordinate
+ * equality on labelled points, and the mode gains extrapolation without gaining
+ * an engine.
+ *
+ * It is a genuinely different demand, though, which is why it is its own rung.
+ * `apply` shows the rule working twice and asks for a third instance;
+ * a sequence shows one rule *iterating*, so the reader has to notice that the
+ * step from the first to the second term is the same step as from the second to
+ * the third before there is anything to extend.
+ */
+function buildSequence(question: Question, order: string[], source: Structure): boolean {
+    /*
+     * Tripling three times reaches eighty-one, which is arithmetic stamina
+     * rather than induction. Doubling is kept; the rest are the maps whose
+     * repeated application stays in a readable range.
+     */
+    const usable = mapPool().filter(m => !(m.kind === "scale" && m.factor === 3));
+    const step = usable[Math.floor(Math.random() * usable.length)];
+
+    const terms = [source];
+    for (let i = 0; i < 3; i++) terms.push(applyMap(terms[terms.length - 1], step));
+    const answer = terms[3];
+
+    /*
+     * Every term has to identify the step, not just the first.
+     *
+     * A reader works from whichever pair they look at, so if the second-to-third
+     * transition is ambiguous the item has an answer the item does not support.
+     * The same trap as the compose form's halfway structure, which is where it
+     * was caught.
+     */
+    const pool = mapPool();
+    if (terms.slice(0, 3).some(t => !distinguishing(t, pool))) return false;
+    if (terms.some((t, i) => i > 0 && sameStructure(t, terms[i - 1]))) return false;
+
+    const seen = new Set([signature(answer)]);
+    const distinct: Structure[] = [];
+    for (const candidate of [
+        // Plausible misreadings first: the step not taken, taken twice, or
+        // taken backwards. A random wrong position could be dismissed without
+        // working out the rule at all.
+        terms[2],
+        applyMap(applyMap(terms[2], step), step),
+        ...pool.map(m => applyMap(terms[2], m)),
+    ]) {
+        const k = signature(candidate);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        distinct.push(candidate);
+    }
+    if (distinct.length < 3) return false;
+
+    const options = [answer, ...distinct.slice(0, 3)];
+    shuffle(options);
+
+    question.premises = [
+        `First: ${describeStructure(terms[0], order)}`,
+        `Second: ${describeStructure(terms[1], order)}`,
+        `Third: ${describeStructure(terms[2], order)}`,
+    ];
+    question.answerMode = "choice";
+    question.choicePrompt = "What comes fourth?";
+    question.choices = options.map(s => describeStructure(s, order));
+    question.correctChoice = options.findIndex(s => signature(s) === signature(answer));
+    question.conclusion = describeStructure(answer, order);
+    question.isValid = true;
+    question.explanation = [
+        `First to second: ${hi(describeMap(step))}.`,
+        `Second to third: the same again.`,
+        ...order.map(n =>
+            `${describeStructure({ [n]: terms[2][n] }, [n])} becomes`
+            + ` ${describeStructure({ [n]: answer[n] }, [n])}`),
+        `so the fourth is ${describeStructure(answer, order)}`,
     ];
     return true;
 }

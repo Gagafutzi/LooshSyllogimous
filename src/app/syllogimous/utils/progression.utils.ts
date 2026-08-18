@@ -266,7 +266,7 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * away more of what was given — which map, then the map's effect on a
      * different structure, then two maps at once.
      */
-    "Transformation Matching":   ["identify", "apply", "compose"],
+    "Transformation Matching":   ["identify", "apply", "compose", "sequence"],
     // Earned: until then in- and out-degree identify the node, which is
     // counting rather than seeing.
     "Relational Web":            ["structural"],
