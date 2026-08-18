@@ -42,6 +42,7 @@ export enum EnumQuestionType {
     OddestRelation = "Oddest Relation",
     ShapeRotation = "Shape and Rotation",
     RelationalWeb = "Relational Web",
+    StimulusFunction = "Stimulus Function",
 }
 
 export enum EnumArrangements {

@@ -9,7 +9,7 @@ import { GeneratorContext } from "./context";
 import { IArrangementPremise, Question } from "../models/question.models";
 import { coinFlip, getCircularWays, getLinearWays, getSymbols, metarelateArrangement, pickUniqueItems, horizontalShuffleArrangement, shuffle, interpolateArrangementRelationship } from "../utils/question.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { guid } from "src/app/utils/uuid";
 import { EnumArrangements, EnumQuestionType } from "../constants/question.constants";
 import { hi, subj } from "../utils/phrasing";
@@ -22,6 +22,9 @@ export function createArrangement(ctx: GeneratorContext, numOfPremises: number, 
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const numOfEls = numOfPremises + 1;
     const isLinear = type === EnumQuestionType.LinearArrangement;

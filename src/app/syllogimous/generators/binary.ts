@@ -9,7 +9,7 @@ import { hi } from "../utils/phrasing";
 import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, shuffle, fixBinaryInstructions } from "../utils/question.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 
 /** The sub-question's own claim, however it phrased it. */
@@ -27,6 +27,9 @@ export function createBinary(ctx: GeneratorContext, numOfPremises: number) {
     if (!canGenerateQuestion(topType, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(topType, numOfPremises);
 
     const operands = [];
     const operandNames = [];

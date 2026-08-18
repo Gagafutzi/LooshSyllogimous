@@ -12,7 +12,7 @@ import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
 import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, buildNdLayout, describeNdAxes, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremises } from "../utils/ndspace.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
@@ -43,6 +43,9 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     /*
      * This generator enforces its own ceiling rather than trusting the

@@ -61,6 +61,7 @@ import { createInferRelation } from "../generators/infer-relation";
 import { createOddestRelation } from "../generators/oddest-relation";
 import { createShapeRotation } from "../generators/shape-rotation";
 import { createRelationalWeb } from "../generators/relational-web";
+import { createStimulusFunction } from "../generators/stimulus-function";
 import { GeneratorContext } from "../generators/context";
 
 /**
@@ -268,6 +269,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.OddestRelation]: () => createOddestRelation(this, numOfPremises),
             [EnumQuestionType.ShapeRotation]: () => createShapeRotation(this, numOfPremises),
             [EnumQuestionType.RelationalWeb]: () => createRelationalWeb(this, numOfPremises),
+            [EnumQuestionType.StimulusFunction]: () => createStimulusFunction(this, numOfPremises),
         }[questionType];
 
         if (!creator) return creator;
@@ -287,6 +289,9 @@ export class GameService implements GeneratorContext {
             }
         };
     }
+
+    /** The GeneratorContext setting; read here so no generator touches storage. */
+    get syllogismGenerator() { return getSyllogismGeneratorValue(); }
 
     /**
      * The GeneratorContext capability. Binary composes two other questions and

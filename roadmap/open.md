@@ -158,7 +158,7 @@ Eleven are specced below. In rough cost order:
 |---|---|
 | [P6 shape and rotation](#p6-shape-and-rotation) | cheapest — an *n*-gon's rotations are already `AxisSpec` with `modulus: n` |
 | ~~P9 infer the relation~~ | **built** — `generators/infer-relation.ts` |
-| [P12 transformation of function](#p12-transformation-of-stimulus-function) | RFT's missing third pillar, over layouts that already exist |
+| ~~P12 transformation of function~~ | **built** — `generators/stimulus-function.ts` |
 | ~~P11 oddest relation out~~ | **built** — `generators/oddest-relation.ts` |
 | [P10 sequence induction](#p10-sequence-induction) | Phase D with the mapping applied *n* times |
 | [P7 nested spatial](#p7-nested-spatial--mixed-dimensionality-with-deliberate-interference) | mixed dimensionality with deliberate interference |
@@ -496,7 +496,7 @@ it to about 1%, and is the obvious rung.
 
 ---
 
-## P12. Transformation of stimulus function
+## P12. Transformation of stimulus function — **DONE**
 
 RFT's third pillar, and entirely absent. The app has mutual entailment and
 combinatorial entailment thoroughly; it has nothing where a property attached to
@@ -508,23 +508,33 @@ one object propagates through the relational network.
 A different cognitive operation from deriving a relation, central to the theory
 the project descends from, and cheap — it builds on layouts that already exist.
 
+**Built.** One thing the sketch above leaves out and the mode needs: the frame
+that carries the function has to be *stated*, and half the time it must run
+against the scale — "heavier means **less** dangerous". Otherwise the answer is
+always the extreme of the scale and the property never has to be carried at all,
+which makes it a scale mode with extra words.
+
+The anchor is drawn from the middle and never allowed to be the answer, for the
+same reason: if the object the property was attached to is the one being asked
+about, nothing was transformed.
+
 ---
 
 ## Smaller fixes
 
-### Premise caps never reviewed
+### Premise caps never reviewed — **DONE**
 
-Analogy, Binary and Deictic Relations reach **13 premises** at level 20, Anchor
-Space 11. Analogy and Binary are acceptable at length by explicit decision;
-Deictic and Anchor Space were never reviewed and probably want the treatment
-[2.10](done.md#210-length-is-not-width--done) gave the composed spaces.
+Deictic capped at 8 (eight cells is the whole grid at three axes, so past that
+the premises repeat rather than add) and Anchor Space at 8 (past it the item is
+longer rather than harder). Analogy and Binary keep their length by the earlier
+explicit decision.
 
-### Only one generator enforces its own ceiling
+### Only one generator enforces its own ceiling — **DONE**
 
-`canGenerateQuestion` checks the *floor* only, so every generator trusts its
-caller for the maximum. Every real call site happens to clamp first.
-`createNdSpace` clamps itself because its cap is a claim about what is answerable
-at that width; the rest do not.
+`clampPremises` in `settings.models.ts`, applied in all seventeen generators
+that take a premise count. A cap is a claim about what is answerable at that
+size, and depending on three unrelated call sites to keep it is the kind of
+thing that stays true until it does not.
 
 ### Rung costs are guesses
 
@@ -533,10 +543,12 @@ at that width; the rest do not.
 is to fit it against answered items rather than argue about it. A few hundred
 logged trials would do it.
 
-### The tier cheat is inert
+### The tier cheat is inert — **DONE**
 
-Advanced Options can still set a score, but tier now follows ability, so nothing
-happens. It would need to seed posteriors instead.
+It seeds the posteriors now, through the same `applyCalibration` the placement
+test uses, and sets the score mid-band so a wobble does not immediately fall out
+of the tier that was asked for. The level-for-tier inversion is approximate and
+says so.
 
 ### Argument swap
 
@@ -555,7 +567,7 @@ arguments.
 ### Cosmetic
 
 - Start screen: daily/weekly goal bars clip their labels (monospace is wider than
-  the original sans).
+  the original sans). **Still open.**
 - `angular.json` style changes need a dev-server restart — webpack config, not
   hot-reloaded.
 

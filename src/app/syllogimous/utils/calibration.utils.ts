@@ -183,6 +183,9 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // A node is worth more than a premise: there is no reading to do and the
     // whole load is structural.
     [EnumQuestionType.RelationalWeb]: { weight: 2.0, ceiling: 10 },
+    // A chain plus one property carried along it: harder than the chain alone,
+    // and the extra step does not grow with length.
+    [EnumQuestionType.StimulusFunction]: { weight: 1.3, ceiling: 8 },
 };
 
 /** Real premise count for a linear-equivalent level, clamped to the mode's range. */

@@ -11,7 +11,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { DeicticSpec, POLES, allCoords, answerFor, buildDeicticSpec, coordKey, reversalTextFor, statementFor, verifyAnswer } from "../utils/deictic.utils";
 import { scrambleByFactor } from "../utils/premise-order.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 
 export function createDeictic(ctx: GeneratorContext, numOfPremises: number) {
@@ -23,6 +23,9 @@ export function createDeictic(ctx: GeneratorContext, numOfPremises: number) {
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const question = new Question(type);
 

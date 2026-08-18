@@ -48,10 +48,8 @@ export class QuestionMapComponent {
 
         if (this.map) return;
 
-        // `buckets` is [group][?][word] in the distinction generator, so it is
-        // flattened one level before being shown as two columns.
         if (q.buckets?.length) {
-            this.groups = q.buckets.map(g => (g as unknown as string[][]).flat());
+            this.groups = q.buckets.map(g => [...g]);
         } else if (q.bucket?.length) {
             this.chain = [...q.bucket];
         }

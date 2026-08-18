@@ -13,7 +13,7 @@ import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, creat
 import { CoordMap, Transform, describeTransform, drawTransforms, replay } from "../utils/transformations.utils";
 import { LINEAR_SCALES, LinearLayout, LinearScale, buildBranching, buildChain, buildConclusion, buildConclusionSet, buildConstructClaim, compare, explainLinear, hasTies, pickDistantPair, renderPremises, vocabFor } from "../utils/linear.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
 import { subj } from "../utils/phrasing";
@@ -95,6 +95,9 @@ export function createComparison(ctx: GeneratorContext, numOfPremises: number, t
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const length = numOfPremises + 1;
     const question = new Question(type);

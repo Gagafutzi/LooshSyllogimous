@@ -11,12 +11,12 @@
  */
 
 /*
- * A localStorage, because one generator still reads one.
+ * A localStorage, for the services that persist settings.
  *
- * `createSyllogism` asks storage which of the three algorithms to use. That is
- * a generator reaching past its context for global state — the one place the
- * split did not manage to sever — so it is shimmed here rather than pretended
- * away. If that read ever moves onto GeneratorContext, this can go.
+ * No *generator* needs it any more — the last one that reached past its
+ * context for the syllogism algorithm now takes it as a member — but
+ * ProgressionService, SettingsOverrideService and KeybindService are all
+ * storage-backed by design, and they are tested directly.
  */
 if (typeof (globalThis as any).localStorage === "undefined") {
     const store = new Map<string, string>();

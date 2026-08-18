@@ -35,6 +35,16 @@ export interface GeneratorContext {
     forceConstruction: "off" | "direction" | "distance";
 
     /**
+     * Which syllogism algorithm the player picked.
+     *
+     * The last thing a generator reached past its context for: `createSyllogism`
+     * read this straight out of `localStorage`, which made it the one generator
+     * that could not be run without a browser-shaped global. It is a setting,
+     * so it comes in with the other settings.
+     */
+    readonly syllogismGenerator: string;
+
+    /**
      * Another question, built from the same settings.
      *
      * Only Binary needs it — it composes two other questions. Passed as a

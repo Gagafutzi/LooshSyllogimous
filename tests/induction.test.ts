@@ -14,6 +14,7 @@ import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
+import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
 import { Settings } from "../src/app/syllogimous/models/settings.models";
@@ -34,6 +35,7 @@ function context(): GeneratorContext {
             hasRung: () => false, depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
+        syllogismGenerator: "canyon",
         random: () => { throw new Error("not needed"); },
     };
 }
@@ -186,4 +188,44 @@ test("shape-rotation asks both kinds of question", () => {
     }
     assert(modes.has("choice"), "no position item was ever generated");
     assert(modes.has("boolean"), "no invariance item was ever generated");
+});
+
+/* ------------------------------------------------------------------ *
+ * P12 — Transformation of stimulus function                           *
+ * ------------------------------------------------------------------ */
+
+test("stimulus function states which object carries the property", () => {
+    for (let run = 0; run < 20; run++) {
+        const q = seeded(run * 5233 + 3, () => createStimulusFunction(context(), 5));
+        const setup = q.setup.map(plain).join(" ");
+        assert(/\bis\b/.test(setup), "no object was said to have the property");
+        assert(/makes something/.test(setup),
+            "the frame carrying the property was never stated, so it cannot be carried");
+    }
+});
+
+test("the frame runs both ways across a run of items", () => {
+    /*
+     * Half the time the property runs *against* the scale. Without that, "find
+     * the extreme" answers every item without ever carrying the property, and
+     * the mode is a scale mode with extra words.
+     */
+    const directions = new Set<string>();
+    for (let run = 0; run < 40; run++) {
+        const q = seeded(run * 911 + 7, () => createStimulusFunction(context(), 5));
+        directions.add(/makes something less/.test(plain(q.setup.join(" "))) ? "against" : "with");
+    }
+    equal(directions.size, 2, "the frame never reversed, so the extreme is always the answer");
+});
+
+test("the anchor is never the answer", () => {
+    // The property has to move to be transformed; if the object it was
+    // attached to is the answer, nothing was carried anywhere.
+    for (let run = 0; run < 25; run++) {
+        const q = seeded(run * 1237 + 11, () => createStimulusFunction(context(), 5));
+        if (q.answerMode !== "choice") continue;
+        const anchor = /^(.*?) is /.exec(plain(q.setup[0]))?.[1];
+        assert(anchor && plain(q.choices[q.correctChoice]) !== anchor,
+            "the object carrying the property was also the answer");
+    }
 });

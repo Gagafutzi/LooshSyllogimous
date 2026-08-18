@@ -9,7 +9,7 @@ import { GeneratorContext } from "./context";
 import { IDirection3DProposition, IDirectionProposition, Question } from "../models/question.models";
 import { coinFlip, getSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { guid } from "src/app/utils/uuid";
 import { EnumQuestionType } from "../constants/question.constants";
 import { neg, subj } from "../utils/phrasing";
@@ -23,6 +23,9 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const numOfEls = numOfPremises + 1;
     const symbols = getSymbols(settings);

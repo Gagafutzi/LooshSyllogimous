@@ -8,7 +8,7 @@
 import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getSymbols, pickUniqueItems, shuffle, areGraphsIsomorphic } from "../utils/question.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 import { hi, neg, subj } from "../utils/phrasing";
 
@@ -21,6 +21,9 @@ export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const numOfEls = numOfPremises + 1;
     const symbols = getSymbols(settings);

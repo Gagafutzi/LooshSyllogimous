@@ -36,6 +36,7 @@ function context(structural = false): GeneratorContext {
             depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
+        syllogismGenerator: "canyon",
         random: () => { throw new Error("not needed"); },
     };
 }

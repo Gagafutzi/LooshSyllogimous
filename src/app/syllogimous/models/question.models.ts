@@ -170,7 +170,15 @@ export class Question {
     // Technical fields
     rule = "";
     bucket: string[] = [];
-    buckets: string[][][] = [];
+    /**
+     * Which group each stimulus landed in, for the modes that partition.
+     *
+     * Two groups of words. It was three levels deep — groups of one-element
+     * arrays — so membership was tested by array *identity*, which worked only
+     * because the very same reference was pushed and then looked up. Flattened
+     * to what it means, so the test is value equality and the words are words.
+     */
+    buckets: string[][] = [];
     /**
      * Where everything ended up, keyed by word, one entry per axis.
      *

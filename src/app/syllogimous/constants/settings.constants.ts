@@ -201,10 +201,14 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
      * twelfth thing to say. Asking for twenty used to be answered with the same
      * reversal restated five times over.
      */
+        /*
+     * Eight cells is the whole grid at three axes, so past that the
+     * premises repeat rather than add: length without width.
+     */
     [EnumQuestionType.Deictic]: {
         enabled: true,
         minNumOfPremises: 5,
-        maxNumOfPremises: 11,
+        maxNumOfPremises: 8,
         basic: false
     },
     [EnumQuestionType.Transformation]: {
@@ -215,10 +219,14 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
     },
     // One premise per object, and a pair anchored to different markers is
     // needed for the frame to matter — so three is the useful floor.
+        /*
+     * Objects hang off four anchors; past eight the item is longer
+     * rather than harder, which is the axis of last resort.
+     */
     [EnumQuestionType.AnchorSpace]: {
         enabled: true,
         minNumOfPremises: 3,
-        maxNumOfPremises: 20,
+        maxNumOfPremises: 8,
         basic: false
     },
     // Needs 2 objects plus at least one transform.
@@ -267,6 +275,12 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         enabled: true,
         minNumOfPremises: 3,
         maxNumOfPremises: 10,
+        basic: false
+    },
+    [EnumQuestionType.StimulusFunction]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 8,
         basic: false
     },
 }

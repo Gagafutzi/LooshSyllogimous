@@ -40,6 +40,7 @@ const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
     EnumQuestionType.OddestRelation,
     EnumQuestionType.ShapeRotation,
     EnumQuestionType.RelationalWeb,
+    EnumQuestionType.StimulusFunction,
 ]);
 
 export function canGenerateQuestion(
@@ -52,6 +53,20 @@ export function canGenerateQuestion(
         return enoughPremises;
     }
     return enoughPremises && getNumOfEnabledQuestions(settings, true) >= 2;
+}
+
+/**
+ * The premise count a mode will actually accept.
+ *
+ * `canGenerateQuestion` checks the *floor* only, so every generator has been
+ * trusting its caller for the maximum. Every real call site happens to clamp
+ * first, which is exactly the kind of thing that stays true until it does not
+ * — a cap is a claim about what is answerable at that size, and a claim worth
+ * making is worth not depending on three unrelated callers to keep.
+ */
+export function clampPremises(type: EnumQuestionType, numOfPremises: number): number {
+    const params = QUESTION_TYPE_SETTING_PARAMS[type];
+    return Math.max(params.minNumOfPremises, Math.min(params.maxNumOfPremises, numOfPremises));
 }
 
 export function areSettingsInvalid(settings: Settings) {
@@ -164,6 +179,7 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.OddestRelation);
         this.initQuestionSettings(EnumQuestionType.ShapeRotation);
         this.initQuestionSettings(EnumQuestionType.RelationalWeb);
+        this.initQuestionSettings(EnumQuestionType.StimulusFunction);
     }
 
     initQuestionSettings(type: EnumQuestionType) {

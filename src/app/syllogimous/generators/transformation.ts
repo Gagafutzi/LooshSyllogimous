@@ -11,7 +11,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { CoordMap, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
 import { scrambleLeading } from "../utils/premise-order.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 
 export function createTransformation(ctx: GeneratorContext, numOfPremises: number) {
@@ -23,6 +23,9 @@ export function createTransformation(ctx: GeneratorContext, numOfPremises: numbe
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const question = new Question(type);
 

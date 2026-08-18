@@ -25,7 +25,7 @@
 
 import { EnumQuestionType } from "../constants/question.constants";
 import { Question } from "../models/question.models";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { shuffle } from "../utils/question.utils";
 import { hi, subj } from "../utils/phrasing";
 import {
@@ -68,6 +68,9 @@ export function createRelationalWeb(ctx: GeneratorContext, numOfPremises: number
     if (!canGenerateQuestion(type, numOfPremises, ctx.settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const n = nodeCount(numOfPremises);
     // Enough arrows to have structure, few enough to see it.

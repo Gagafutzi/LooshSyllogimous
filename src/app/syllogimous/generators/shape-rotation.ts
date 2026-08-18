@@ -37,7 +37,7 @@
 
 import { EnumQuestionType } from "../constants/question.constants";
 import { Question } from "../models/question.models";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { getRandomSymbols, shuffle } from "../utils/question.utils";
 import { hi, rel, subj } from "../utils/phrasing";
 import { GeneratorContext } from "./context";
@@ -87,6 +87,9 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const order = orderFor(numOfPremises);
     const shape = SHAPES[order];

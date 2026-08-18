@@ -157,7 +157,11 @@ export function createMetaRelationships(settings: Settings, question: Question, 
 
         let subjects: { value: number, subject: string }[] = [];
         if (question.type === EnumQuestionType.Distinction) {
-            subjects = question.buckets.reduce((a, c, i) => [...a, ...c.map(b => ({ value: i, subject: b[0] }))], [] as typeof subjects);
+            // `subject: b`, not `b[0]`: a bucket entry is the word itself. It
+            // used to be a one-element array, so the old index took the word
+            // out of it; against a plain string it takes the first letter, and
+            // the lookup below then finds nothing.
+            subjects = question.buckets.reduce((a, c, i) => [...a, ...c.map(b => ({ value: i, subject: b }))], [] as typeof subjects);
         } else {
             subjects = question.bucket.map((c, i, a) => ({ value: (a.length - i), subject: c }), []);
         }

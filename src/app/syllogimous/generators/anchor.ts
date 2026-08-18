@@ -13,7 +13,7 @@ import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/q
 import { SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
 import { ANCHORS, anchorCoordMap } from "../utils/anchor.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 
 export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) {
@@ -25,6 +25,9 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const question = new Question(type);
     const objectCount = numOfPremises;

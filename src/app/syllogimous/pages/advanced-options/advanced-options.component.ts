@@ -47,12 +47,35 @@ export class AdvancedOptionsComponent {
     get currentTier() { return this.game.tier; }
     get currentScore() { return this.game.score; }
 
-    /** Jumps the score to the bottom of the chosen tier. */
+    /**
+     * Jump to a tier, by seeding the ability estimate.
+     *
+     * Setting the score used to do this. It stopped working when tier began
+     * following ability rather than an accumulated total: the number moved and
+     * the tier did not, so the control silently did nothing. Tier is now a
+     * *reading* of ability, so the only way to move it is to move that — which
+     * is what the placement test does, and this reuses it.
+     */
     jumpToTier(name: string) {
-        const min = TIER_SCORE_RANGES[name as EnumTiers]?.minScore;
-        if (min == null) return;
-        // The lowest tier opens at -Infinity, which is not a usable score.
-        this.game.score = Number.isFinite(min) ? min : 0;
+        const index = ORDERED_TIERS.indexOf(name as EnumTiers);
+        if (index < 0) return;
+
+        // Mid-band, so a wobble in the estimate does not immediately fall out
+        // of the tier that was asked for.
+        const min = TIER_SCORE_RANGES[name as EnumTiers].minScore;
+        this.game.score = Number.isFinite(min) ? min + 120 : 0;
+        this.progression.applyCalibration(this.levelForTier(index), 0);
+    }
+
+    /**
+     * A level that lands in the requested tier.
+     *
+     * Tier bands are 250 points wide and skill points come from the aggregate
+     * ability, so this inverts that roughly rather than exactly — close enough
+     * for a testing control, and honest about being approximate.
+     */
+    private levelForTier(index: number) {
+        return 2 + index * 0.9;
     }
 
     nudgeScore(delta: number) { this.game.score = this.game.score + delta; }

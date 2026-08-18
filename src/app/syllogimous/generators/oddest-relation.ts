@@ -32,7 +32,7 @@
 
 import { EnumQuestionType } from "../constants/question.constants";
 import { Question } from "../models/question.models";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { getRandomSymbols, shuffle } from "../utils/question.utils";
 import { ConstructClaim } from "../models/question.models";
 import { hi, subj } from "../utils/phrasing";
@@ -101,6 +101,9 @@ export function createOddestRelation(ctx: GeneratorContext, numOfPremises: numbe
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const count = relationCount(numOfPremises);
     // Distances 0..count-1 need that many deviations in total, and every one

@@ -9,9 +9,9 @@ import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, shuffle } from "../utils/question.utils";
 import { generatePolysyllogism, formatSylPremise, getRandomRuleValid, getRandomRuleInvalid, getSyllogism } from "../utils/syllogism.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
-import { getSyllogismGeneratorValue, SyllogismGenerator } from "../pages/settings/game-mode-choose/game-mode-choose.component";
+import { SyllogismGenerator } from "../pages/settings/game-mode-choose/game-mode-choose.component";
 
 export function createSyllogismAll(ctx: GeneratorContext, numOfPremises: number) {
     ctx.logger.info("createSyllogismAll");
@@ -31,6 +31,9 @@ export function createSyllogismFredo(ctx: GeneratorContext, numOfPremises: numbe
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const length = numOfPremises + 1;
     const question = new Question(type);
@@ -106,7 +109,7 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
 }
 
 export function createSyllogism(ctx: GeneratorContext, numOfPremises: number) {
-    switch (getSyllogismGeneratorValue()) {
+    switch (ctx.syllogismGenerator) {
         case SyllogismGenerator.All:
             return createSyllogismAll(ctx, numOfPremises);
         case SyllogismGenerator.Fredo:

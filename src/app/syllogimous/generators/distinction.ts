@@ -8,7 +8,7 @@
 import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 import { subj } from "../utils/phrasing";
 
@@ -22,15 +22,20 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
         throw new Error("Cannot generate.");
     }
 
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
+
     const length = numOfPremises + 1;
     const symbols = getRandomSymbols(settings, length);
     const question = new Question(type);
 
     do {
         const rnd = Math.floor(Math.random() * symbols.length);
-        const first = symbols.splice(rnd, 1)
+        // splice returns an array; take the element, so what reaches subj()
+        // is the word it claims to be rather than an array coerced to one.
+        const first = symbols.splice(rnd, 1)[0];
         let prev = first;
-        let curr: string[] = [];
+        let curr = "";
 
         question.buckets = [[prev], []];
         let prevBucket = 0;
@@ -39,7 +44,7 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
 
         for (let i = 0; i < length - 1; i++) {
             const rnd = Math.floor(Math.random() * symbols.length);
-            curr = symbols.splice(rnd, 1);
+            curr = symbols.splice(rnd, 1)[0];
 
             const isSameAs = coinFlip();
             const relation = getRelation(settings, type, isSameAs);

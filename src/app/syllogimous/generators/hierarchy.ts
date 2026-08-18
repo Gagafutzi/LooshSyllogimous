@@ -10,7 +10,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { HierarchyLayout, buildHierarchy, buildHierarchyQuerySet, explainHierarchy, pickHierarchyQuery, renderHierarchyConclusion, renderHierarchyPremise } from "../utils/hierarchy.utils";
 import { scrambleByFactor } from "../utils/premise-order.utils";
-import { canGenerateQuestion } from "../models/settings.models";
+import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
 import { HIERARCHY_NOTE } from "./notes";
@@ -32,6 +32,9 @@ export function createHierarchy(ctx: GeneratorContext, numOfPremises: number): Q
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
     }
+
+    // The mode\'s own ceiling, not the caller\'s idea of it.
+    numOfPremises = clampPremises(type, numOfPremises);
 
     const feat = hierarchyFeatures(ctx);
 

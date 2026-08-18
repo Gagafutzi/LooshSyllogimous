@@ -39,6 +39,7 @@ import { createInferRelation } from "../src/app/syllogimous/generators/infer-rel
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
+import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
 
 /**
  * A context with nothing switched on.
@@ -64,6 +65,7 @@ function context(settings: Settings): GeneratorContext {
             depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
+        syllogismGenerator: "canyon",
         random: () => { throw new Error("no composed question available in this test"); },
     };
 }
@@ -105,6 +107,7 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.OddestRelation, createOddestRelation],
     [EnumQuestionType.ShapeRotation, createShapeRotation],
     [EnumQuestionType.RelationalWeb, createRelationalWeb],
+    [EnumQuestionType.StimulusFunction, createStimulusFunction],
 ];
 
 for (const [type, make] of GENERATORS) {

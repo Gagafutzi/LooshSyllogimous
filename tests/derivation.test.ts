@@ -49,6 +49,7 @@ import { createInferRelation } from "../src/app/syllogimous/generators/infer-rel
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
+import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
 
 function context(): GeneratorContext {
     const settings = new Settings();
@@ -64,6 +65,7 @@ function context(): GeneratorContext {
             hasRung: () => false, depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
+        syllogismGenerator: "canyon",
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;
@@ -93,6 +95,7 @@ const MODES: Array<[EnumQuestionType, (c: GeneratorContext, n: number) => Questi
     [EnumQuestionType.OddestRelation, createOddestRelation],
     [EnumQuestionType.ShapeRotation, createShapeRotation],
     [EnumQuestionType.RelationalWeb, createRelationalWeb],
+    [EnumQuestionType.StimulusFunction, createStimulusFunction],
 ];
 
 /** Everything the item actually asks about. */

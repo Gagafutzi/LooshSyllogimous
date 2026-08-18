@@ -22,14 +22,14 @@
 /**
  * A stimulus: a word, an emoji, or a visual-noise fragment.
  *
- * Takes `unknown` and stringifies, because that is exactly what the template
- * interpolation it replaced did. Extracting this turned up several generators
- * that hand it a one-element array straight from `splice`, and two that hand it
- * an optional — all of which the old `${...}` coerced silently. Tightening
- * those call sites is worth doing and is *not* this change: moving the markup
- * into one place must not alter a single character of output.
+ * Typed as a string now. Extracting this helper turned up generators handing it
+ * a one-element array straight from `splice` and others handing it an optional,
+ * all of which the template interpolation it replaced coerced silently; those
+ * call sites have since been fixed, so the signature can say what it means.
+ * `undefined` is still tolerated because two arrangement paths legitimately
+ * build a claim before both ends are known.
  */
-export const subj = (s: unknown) => `<span class="subject">${s}</span>`;
+export const subj = (s: string | undefined) => `<span class="subject">${s}</span>`;
 
 /**
  * A relation word, optionally painted as one dimension's.
