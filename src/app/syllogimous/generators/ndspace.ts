@@ -10,12 +10,13 @@ import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
-import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, buildNdLayout, describeNdAxes, determinedOn, medianByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
+import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, medianByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
 import { hi, subj } from "../utils/phrasing";
+import { SPEAKERS_NOTE, describeStatement, drawClaims, solve } from "../utils/knaves.utils";
 import {
     Egocentric, FACING_NOTE, OPPOSITE, bearingPlane, describeBearing, describeEgocentric,
     describeFacing, egocentric,
@@ -148,6 +149,19 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
         if (transforms.length < transformCount) continue;
         const final = transforms.length ? applyNdTransforms(edited, transforms) : edited;
 
+        /*
+         * Who reports what, decided before the conclusion is.
+         *
+         * A knave's report is false, so it tells the reader nothing — which
+         * means the queried pair has to be pinned down by the honest reports
+         * alone. Marking the lied-about edges as unstated is exactly the
+         * machinery under-specification already uses, so the conclusion picker
+         * refuses anything the truthful premises leave open without needing to
+         * know that liars are the reason.
+         */
+        const reported = feat.speakers ? assignSpeakers(ctx, layout) : null;
+        if (feat.speakers && !reported) continue;
+
         const question = new Question(type);
         const extraPremises: string[] = [];
         if (!fillNdConclusion(
@@ -155,10 +169,12 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
 
         // Order-independent like the relations themselves, so scrambled in with
         // them rather than pinned to the end where it would stand out.
-        const stated = [
-            ...renderNdPremises(layout, { compact: feat.compact }),
-            ...extraPremises,
-        ];
+        const stated = reported
+            ? [...reported.premises, ...extraPremises]
+            : [
+                ...renderNdPremises(layout, { compact: feat.compact }),
+                ...extraPremises,
+            ];
         const mutations = [
             ...edits.map(e => renderNdEdit(layout, e)),
             ...transforms.map(t => describeTransform(t, vocab)),
@@ -171,6 +187,25 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
                 stated.length,
                 ctx.settingsOverrideService.scramble)
             : scrambleByFactor(stated, ctx.settingsOverrideService.scramble);
+        /*
+         * Who was lying comes first in the derivation, because it comes first
+         * in the work: the arrangement cannot be read at all until the false
+         * reports are set aside. Without these lines the explanation would show
+         * a tidy walk through premises and never say why the other ones were
+         * ignored.
+         */
+        if (reported) {
+            const kind = (i: number) => reported.world[i] ? "knight" : "knave";
+            question.explanation = [
+                `Only one reading fits what they say about each other: `
+                + reported.names.map((n, i) => `${subj(n)} a ${hi(kind(i))}`).join(", ") + ".",
+                `So the reports from `
+                + reported.names.filter((_, i) => !reported.world[i]).map(n => subj(n)).join(" and ")
+                + ` are false and say nothing about where anything is.`,
+                ...question.explanation,
+            ];
+        }
+
         question.bucket = [...words];
         // Post-operation, so the picture matches the question asked.
         question.wordCoordMap = { ...final.coords };
@@ -233,6 +268,14 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
     const facing = (forcedFacing === null ? ladder("facing") : !!forcedFacing)
         && edits === 0 && transforms === 0;
 
+    /*
+     * Reported relations, some of them by liars. Same exclusions as
+     * under-specification and for the same reason: it is a claim about the
+     * premise set as stated, and operations that rewrite or move things make
+     * "as stated" a moving target.
+     */
+    const speakers = ladder("speakers") && edits === 0 && transforms === 0;
+
     const indeterminate = (forcedOpen === null ? ladder("indeterminate") : !!forcedOpen)
         && edits === 0 && transforms === 0
         /*
@@ -245,6 +288,7 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
         && !compact;
 
     return {
+        speakers,
         facing,
         indeterminate,
         branching: pick("branching", "branching"),
@@ -519,7 +563,7 @@ export function fillNdConclusion(ctx: GeneratorContext,
      */
     const live = layout.axes.map((_, i) => i).filter(i => axisBites(pair[0], pair[1], i));
     if (!live.length) return false;
-    const settled = feat.indeterminate
+    const settled = feat.indeterminate || feat.speakers
         ? live.filter(i => determinedOn(layout, i, pair[0], pair[1]))
         : live;
     if (!settled.length) return false;
@@ -562,6 +606,7 @@ export function ndSetup(ctx: GeneratorContext,
     if (feat.compact) lines.push(COMPACT_NOTE);
     if (feat.indeterminate) lines.push(INDETERMINATE_NOTE);
     if (feat.facing) lines.push(FACING_NOTE);
+    if (feat.speakers) lines.push(SPEAKERS_NOTE);
     if (edited) lines.push(EDIT_NOTE);
     /*
      * Same argument as the loop note below: the axis key is the one thing
@@ -670,3 +715,82 @@ function fillFacingConclusion(
 }
 
 const sub = (a: [number, number], b: [number, number]): [number, number] => [a[0] - b[0], a[1] - b[1]];
+
+/**
+ * Attribute the relations to speakers, some of whom lie.
+ *
+ * This is the modifier half of Knights and Knaves, and it generalises the
+ * negation modifier exactly as intended: negation marks a premise inverted and
+ * tells you which, while a knave makes inversion a hidden property of a person
+ * that must be deduced first and then applied to everything they said.
+ *
+ * A knave's report is falsified by flipping a *subset* of its axes rather than
+ * all of them. Flipping all of them would make it recoverable — reverse it and
+ * read on — and "says false things" does not mean "says the exact opposite".
+ * So a lie carries no information, which is why the edges it covers are marked
+ * unstated and the conclusion picker then refuses any pair they were holding
+ * together.
+ *
+ * Mutates `layout.edges` to record that, which is deliberate: the conclusion is
+ * chosen afterwards and has to see the same premise set the reader will.
+ */
+function assignSpeakers(ctx: GeneratorContext, layout: NdLayout) {
+    const settings = ctx.settings;
+    const count = Math.max(2, Math.min(3, layout.edges.length - 1));
+    if (count < 2) return null;
+
+    for (let attempt = 0; attempt < 60; attempt++) {
+        const world = Array.from({ length: count }, () => coinFlip());
+        // Both kinds must appear, or the puzzle half of the item is inert.
+        if (world.every(w => w) || world.every(w => !w)) continue;
+
+        const claims = drawClaims(world, false);
+        if (!claims) continue;
+        if (solve(claims).length !== 1) continue;
+
+        // Speaker names must not be objects in the arrangement, or "Ash says
+        // Ash is north of Bee" reads as a claim about the speaker's position.
+        const names = getRandomSymbols(settings, count + layout.words.length)
+            .filter(n => !layout.words.includes(n))
+            .slice(0, count);
+        if (names.length < count) continue;
+
+        const order = layout.edges.map((_, i) => i);
+        shuffle(order);
+        const who = new Map<number, number>();
+        order.forEach((edge, i) => who.set(edge, i % count));
+
+        // Every speaker has to say something about the arrangement, or their
+        // type is deducible and useless.
+        if (new Set(who.values()).size < count) continue;
+
+        const premises: string[] = claims.map((c, i) => describeStatement(i, c, names));
+
+        layout.edges.forEach((edge, i) => {
+            const speaker = who.get(i)!;
+            const honest = world[speaker];
+
+            if (honest) {
+                premises.push(`${subj(names[speaker])} says: ${renderNdPremise(layout, edge, false)}`);
+                return;
+            }
+
+            // A non-empty proper subset, so the report is wrong but not simply
+            // reversed. `stated` records that it is unusable either way.
+            const flip = layout.axes.map(() => coinFlip());
+            if (flip.every(f => !f)) flip[Math.floor(Math.random() * flip.length)] = true;
+
+            const lie: NdEdge = {
+                ...edge,
+                deltas: edge.deltas.map((d, ax) => (flip[ax] ? -d : d)),
+            };
+            premises.push(`${subj(names[speaker])} says: ${renderNdPremise(layout, lie, false)}`);
+            edge.stated = layout.axes.map(() => false);
+        });
+
+        shuffle(premises);
+        return { premises, world, names };
+    }
+
+    return null;
+}

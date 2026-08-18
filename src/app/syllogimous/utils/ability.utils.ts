@@ -80,6 +80,12 @@ export const RUNG_COST: Record<string, number> = {
      * from inside.
      */
     facing: 1.8,
+    /*
+     * Two puzzles stacked: work out who is lying, then work out the
+     * arrangement from what is left. Dearer than either alone because the
+     * second cannot start until the first is finished.
+     */
+    speakers: 2.2,
 
     circular: 1.2,
     "circular-2": 0.8,

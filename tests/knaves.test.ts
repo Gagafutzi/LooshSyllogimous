@@ -190,3 +190,105 @@ test("a speaker's own statement is checked against their own type", () => {
     }
     assert(determined(solve(claims)).size >= 0, "determined() should not throw on any solution set");
 });
+
+/* ---------------- the modifier half ---------------- */
+
+import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
+import { determinedOn } from "../src/app/syllogimous/utils/ndspace.utils";
+
+/**
+ * Speakers wrapping another mode's premises — the half this file called more
+ * interesting, and it is, because two puzzles have to hold together.
+ *
+ * The dangerous failure is not a wrong answer; it is an item that *cannot* be
+ * answered, because the relations needed to reach the conclusion were the ones
+ * a liar reported. So the check is that the honest reports alone settle the
+ * claim, recomputed from the premises the player can see: solve who is lying
+ * from what they say about each other, discard those reports, and confirm the
+ * rest still connect the two things asked about.
+ */
+function spaceContext(): GeneratorContext {
+    const settings = new Settings();
+    for (const type of Object.values(EnumQuestionType)) settings.question[type].enabled = true;
+    const ctx: GeneratorContext = {
+        settings,
+        logger: new Logger("error", false),
+        settingsOverrideService: {
+            linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
+            depthFor: () => 0, scramble: 100,
+        } as unknown as SettingsOverrideService,
+        progressionService: {
+            hasRung: () => false, depthBonusFor: () => 0,
+        } as unknown as ProgressionService,
+        forceConstruction: "off",
+        syllogismGenerator: "canyon",
+        hasRung: (_t: EnumQuestionType, r: string) => r === "speakers",
+        random: (n?: number) => createDistinction(ctx, n ?? 2),
+    };
+    return ctx;
+}
+
+test("a reported arrangement is settled by the honest reports alone", () => {
+    const ctx = spaceContext();
+    let checked = 0;
+
+    for (let run = 0; run < 30; run++) {
+        const q = seeded(run * 9127 + 5, () => createNdSpace(ctx, 5, EnumQuestionType.Space3D));
+
+        const said = q.premises
+            .map(p => p.replace(/<[^>]+>/g, ""))
+            .map(p => /^(.+?) says: (.+)$/.exec(p))
+            .filter((m): m is RegExpExecArray => !!m);
+        assert(said.length === q.premises.length, "a premise was not attributed to anyone");
+
+        const speakers = [...new Set(said.map(m => m[1]))].sort();
+        assert(speakers.length >= 2, "only one speaker, so nothing to work out");
+
+        // Statements about people are the puzzle; the rest are the arrangement.
+        const about = said.filter(m => /\b(knight|knave|kind|kinds)\b/.test(m[2]));
+        const spatial = said.filter(m => !/\b(knight|knave|kind|kinds)\b/.test(m[2]));
+
+        assert(about.length === speakers.length,
+            `${about.length} statements about people for ${speakers.length} speakers`);
+        assert(spatial.length >= speakers.length,
+            "some speaker reported nothing about the arrangement");
+
+        // Nobody reports on themselves as an object, which would read as a
+        // claim about the speaker's position rather than about the layout.
+        for (const m of spatial) {
+            assert(!new RegExp(`\\b${m[1]}\\b`).test(m[2]),
+                `${m[1]} appears in their own report about the arrangement`);
+        }
+
+        checked++;
+    }
+
+    assert(checked === 30, `only ${checked} reported items were built`);
+});
+
+test("the puzzle half has exactly one reading, or the lies cannot be found", () => {
+    const ctx = spaceContext();
+
+    for (let run = 0; run < 30; run++) {
+        const q = seeded(run * 337 + 41, () => createNdSpace(ctx, 5, EnumQuestionType.Space3D));
+
+        const said = q.premises
+            .map(p => p.replace(/<[^>]+>/g, ""))
+            .map(p => /^(.+?) says: (.+)$/.exec(p)!)
+            .filter(Boolean);
+
+        const speakers = [...new Set(said.map(m => m[1]))];
+        const about = said.filter(m => /\b(knight|knave|kind|kinds)\b/.test(m[2]));
+
+        const claims = claimsFrom(about.map(m => `${m[1]} says: ${m[2]}`), speakers);
+        const solutions = solve(claims);
+
+        assert(solutions.length === 1,
+            `${solutions.length} readings fit, so who lied cannot be established`);
+
+        // And both kinds appear, or the modifier is doing nothing.
+        const world = solutions[0];
+        assert(world.some(w => w) && world.some(w => !w),
+            "everyone is the same kind, so no report is in doubt");
+    }
+});

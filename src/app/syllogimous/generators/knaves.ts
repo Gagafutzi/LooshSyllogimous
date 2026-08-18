@@ -15,7 +15,7 @@ import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 import { hi, subj } from "../utils/phrasing";
 import {
-    Claim, KNAVES_NOTE, describeClaim, describeStatement, determined, holds, solve,
+    Claim, KNAVES_NOTE, describeClaim, describeStatement, determined, drawClaims, holds, solve,
 } from "../utils/knaves.utils";
 
 export function createKnaves(ctx: GeneratorContext, numOfPremises: number): Question {
@@ -58,13 +58,8 @@ export function createKnaves(ctx: GeneratorContext, numOfPremises: number): Ques
         // it: every statement about kinds is uniformly true or uniformly false.
         if (world.every(w => w === world[0])) continue;
 
-        const claims: Claim[] = [];
-        for (let i = 0; i < speakers; i++) {
-            const claim = drawClaim(i, speakers, world, compound);
-            if (!claim) break;
-            claims.push(claim);
-        }
-        if (claims.length < speakers) continue;
+        const claims = drawClaims(world, compound);
+        if (!claims) continue;
 
         const solutions = solve(claims);
         if (!solutions.length) continue;
@@ -84,64 +79,6 @@ export function createKnaves(ctx: GeneratorContext, numOfPremises: number): Ques
     }
 
     throw new Error("Cannot generate.");
-}
-
-/**
- * A statement for speaker `i` that is true exactly when they are a knight.
- *
- * That biconditional is the entire constraint, so building it in rather than
- * searching for it is what makes generation cheap: any claim at all can be used
- * once its truth in the intended world is known, because a speaker whose claim
- * is false is simply made a knave — except that the world is already fixed, so
- * the claim is drawn and then kept only if its truth matches.
- */
-function drawClaim(i: number, n: number, world: boolean[], compound: boolean): Claim | null {
-    const others = [...Array(n).keys()].filter(k => k !== i);
-
-    for (let guard = 0; guard < 60; guard++) {
-        const candidate = draw(i, others, compound);
-        if (!candidate) continue;
-        if (holds(candidate, world) === world[i]) return candidate;
-    }
-    return null;
-}
-
-function draw(i: number, others: number[], compound: boolean): Claim | null {
-    if (!others.length) return null;
-    const one = () => others[Math.floor(Math.random() * others.length)];
-
-    const kinds = compound
-        ? ["is", "self", "same", "differ", "any", "all"]
-        : ["is", "self", "same", "differ"];
-    const kind = kinds[Math.floor(Math.random() * kinds.length)];
-
-    switch (kind) {
-        case "self":   return { kind: "is", who: i, knight: coinFlip() };
-        case "is":     return { kind: "is", who: one(), knight: coinFlip() };
-        case "same":   return pair(i, others, "same");
-        case "differ": return pair(i, others, "differ");
-        default: {
-            if (others.length < 2) return null;
-            const shuffled = [...others];
-            shuffle(shuffled);
-            return { kind: kind as "any" | "all", who: shuffled.slice(0, 2), knight: coinFlip() };
-        }
-    }
-}
-
-function pair(i: number, others: number[], kind: "same" | "differ"): Claim | null {
-    /*
-     * The pair may include the speaker. "X and I are different kinds" is a
-     * legitimate and useful statement — a knave saying it is claiming something
-     * false about a pair they are in — and excluding it would drop the whole
-     * class of self-involving comparisons.
-     */
-    const pool = coinFlip() ? [i, ...others] : others;
-    if (pool.length < 2) return null;
-    const shuffled = [...pool];
-    shuffle(shuffled);
-    const [a, b] = shuffled;
-    return a === b ? null : { kind, a, b };
 }
 
 function fillConclusion(

@@ -254,7 +254,7 @@ Eleven are specced below. In rough cost order:
 | ~~P10 sequence induction~~ | **built** — rung `sequence` on Transformation Matching |
 | ~~P7 nested spaces~~ | **built** — `generators/nested.ts` |
 | ~~P1 facing space~~ | **built** — rung `facing`, `utils/facing.utils.ts` |
-| ~~P2 knights and knaves~~ | **built** as a mode — the speaker *modifier* is still open |
+| ~~P2 knights and knaves~~ | **built** — the mode, and the speaker modifier as rung `speakers` |
 | ~~P8 boolean concepts~~ | **settled** — it is P11 with the question reversed; rung `state-rule` |
 | ~~P4 graph matching extended~~ | **built** — `which-differs` and `distance` rungs; the over-other-modes half is open |
 | ~~Relational Web~~ | **built** — `generators/relational-web.ts`, `utils/web.utils.ts` |
@@ -436,15 +436,32 @@ re-solve every generated item from the premises the player is shown and check
 the claim against **every** reading, which is the only definition of "true" that
 stays right when more than one fits.
 
-### The modifier half is still open
+### The modifier half — **DONE** for the composed spaces, rung `speakers`
 
-Wrapping another mode's premises in speakers is the more interesting half, and
-the claim that it "costs almost nothing extra" needs qualifying now the first
-half exists. Attributing premises to speakers is easy; making a knave's premise
-*false* is not uniformly easy, because each mode falsifies its own claims
-differently and a false premise has to stay consistent with a layout the
-generator already committed to. Worth doing, but it is per-mode work rather than
-one wrapper.
+Wrapping another mode's premises in speakers turned out to compose with
+[under-specification](#3-indeterminacy--done-rung-indeterminate-on-the-composed-spaces)
+rather than needing per-mode falsification, which is what made it cheap after
+all — though not for the reason originally given.
+
+The move: **a knave's report is false, so it tells the reader nothing**, and the
+queried pair therefore has to be pinned down by the honest reports alone. That
+is exactly what `determinedOn` already decides, so marking the lied-about
+relations as unstated makes the conclusion picker refuse anything the truthful
+premises leave open, without it needing to know that liars are the reason.
+
+A lie flips a *subset* of its axes, never all of them. Flipping all would make
+it recoverable — reverse it and read on — and "says false things" does not mean
+"says the exact opposite". The subset is what makes a lie genuinely worthless
+and the composition sound.
+
+It stays on the composed spaces rather than becoming universal, and the original
+caveat is why: making a premise false is not uniformly easy, and this works
+because `renderNdPremise` builds from a delta vector rather than from text. The
+scale family would work the same way. Modes that assemble sentences directly
+would not.
+
+Two puzzles stacked, costed at 2.2 — the arrangement cannot be started until the
+liars are found.
 
 ## P4. Graph matching, extended — **DONE** (two of three), `utils/graphdist.utils.ts`
 
