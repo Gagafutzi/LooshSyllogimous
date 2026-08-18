@@ -8,7 +8,8 @@
 import { assert, equal, seeded, test } from "./harness";
 import {
     AXIS_CHOICES, DIMENSION_AXES, applyNdEdits, axesForDimensions, buildNdLayout,
-    medianByWidth, ndAxisColors, ndWidth, renderNdEdit, renderNdPremise, reorderAxisIds,
+    drawNdTransforms, medianByWidth, ndAxisColors, ndWidth, renderNdEdit, renderNdPremise,
+    reorderAxisIds,
 } from "../src/app/syllogimous/utils/ndspace.utils";
 import { AxisSpec } from "../src/app/syllogimous/utils/ndspace.utils";
 
@@ -162,4 +163,52 @@ test("exchanging a premise's arguments is reversing its relation", () => {
             }
         }
     });
+});
+
+/**
+ * The last v3 port: which dimension a transformation acts on.
+ *
+ * v4 drew that uniformly, which is the "remaining fidelity gap" the roadmap
+ * recorded. It matters for a concrete reason — an operation along an axis the
+ * two objects barely differ on changes little the conclusion can ask about, and
+ * two operations in a row on the same axis read as one.
+ *
+ * Measured rather than asserted in principle: over three thousand layouts a
+ * uniform draw puts about 26% of operations on an axis where the pair is level
+ * and repeats the previous axis about 13% of the time. The thresholds here sit
+ * well below both, so a regression to uniform fails rather than passing quietly
+ * with worse items.
+ */
+test("transformations act on axes the objects actually differ on", () => {
+    const axes = axesForDimensions(5).map(scale => ({ scale }));
+    const words = ["Ash", "Bee", "Cat", "Dog", "Elk", "Fox"];
+
+    const { flat, repeated, total } = seeded(5501, () => {
+        let flat = 0, repeated = 0, total = 0;
+
+        for (let run = 0; run < 1200; run++) {
+            const layout = buildNdLayout(words, axes, {});
+            let last = -1;
+
+            for (const t of drawNdTransforms(layout, 3)) {
+                const axis = (t as { dimensions?: number[] }).dimensions?.[0]
+                    ?? (t as { dimension?: number }).dimension
+                    ?? (t as { plane?: [number, number] }).plane?.[0]
+                    ?? -1;
+                if (axis < 0) continue;
+
+                total++;
+                if (layout.coords[t.a][axis] === layout.coords[t.b][axis]) flat++;
+                if (axis === last) repeated++;
+                last = axis;
+            }
+        }
+        return { flat, repeated, total };
+    });
+
+    assert(total > 2000, `only ${total} operations were drawn`);
+    assert(flat / total < 0.15,
+        `${(100 * flat / total).toFixed(1)}% of operations act on an axis the pair is level on`);
+    assert(repeated / total < 0.10,
+        `${(100 * repeated / total).toFixed(1)}% of operations repeat the previous axis`);
 });

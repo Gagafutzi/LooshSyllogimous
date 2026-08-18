@@ -701,10 +701,34 @@ Tested by asserting the two framings move every object to the same place while
 reading differently — if they ever computed different layouts, one of the two
 wordings would be lying.
 
-### Unfinished ports from v3 — **PARTLY DONE**
+### Unfinished ports from v3 — **DONE**
 
-- **Chain heuristics** (`space-hard-mode.js`) — the remaining part of 1.1. Still open.
+- ~~Chain heuristics~~ (`space-hard-mode.js`) — ported as an axis *ranking*.
 - ~~Presentation modifiers~~ — all three ported.
+
+**Chain heuristics.** v3's `directionize` chose which dimension to transform
+along by measuring accumulated spread among the objects involved, and avoided
+the dimension it had just used. v4 drew uniformly, which this file recorded as a
+fidelity gap affecting texture rather than correctness. It affects rather more
+than texture: an operation along an axis the pair is level on changes little the
+conclusion can ask about, and two operations in a row on the same axis read as
+one.
+
+Ported as `rankAxes` on the draw options rather than as v3's chain machinery —
+v4's operations are pairwise, so the analogue of accumulated spread along a
+chain is the gap between the two objects involved. v3's nineteen-in-twenty split
+between "take the best" and "take any" came across too: always taking the top
+makes the choice predictable to anyone who notices, which is its own shortcut.
+
+Measured over 3,600 operations:
+
+| | on a level axis | repeating the last axis |
+|---|---|---|
+| uniform draw | 26.2% | 12.9% |
+| ranked draw | 5.5% | 6.4% |
+
+The test asserts thresholds well below the uniform figures, so a regression
+fails rather than passing quietly with worse items.
 
 **Wide premises** merge consecutive links into one sentence: "A is under B,
 which is under C". Same relations, half the sentences, and harder for a reason

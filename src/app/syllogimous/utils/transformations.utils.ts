@@ -220,6 +220,15 @@ export function replay(initial: CoordMap, transforms: Transform[]): CoordMap {
  * ------------------------------------------------------------------ */
 
 export interface TransformDrawOptions {
+    /**
+     * Axes worth acting on for this pair, best first.
+     *
+     * Ported from v3's `directionize`, which is the last piece of its
+     * hard-mode heuristics. Returning an empty list falls back to a uniform
+     * draw over `axes`.
+     */
+    rankAxes?: (a: string, b: string, lastAxis: number) => number[];
+
     /** Number of axes the space has. */
     dims: number;
     /** Kinds allowed; defaults to everything the dimensionality supports. */
@@ -294,6 +303,8 @@ export function drawTransforms(
 
     const out: Transform[] = [];
     const seen = new Set<string>();
+    // Which axis the last operation acted on, so the ranking can avoid it.
+    let lastAxis = -1;
 
     for (let guard = 0; out.length < count && guard < count * 30; guard++) {
         const [b, a] = pickTwo(names);
@@ -305,9 +316,27 @@ export function drawTransforms(
         const axisCount = Math.random() < multiChance
             ? 1 + Math.floor(Math.random() * (dims - 1)) + 1
             : 1;
-        const usable = options.axes ?? [...Array(dims).keys()];
+        /*
+         * Which axis to act on, ranked rather than drawn uniformly.
+         *
+         * v3 chose the dimension carrying the most accumulated spread among the
+         * objects involved, and avoided the one it had just used. Both matter
+         * for the same reason: an operation along an axis the pair barely
+         * differ on changes little that the conclusion can ask about, and two
+         * operations running on the same axis read as one.
+         *
+         * The nineteen-in-twenty split is v3's as well. Always taking the top
+         * makes the choice predictable to anyone who notices, which is its own
+         * shortcut.
+         */
+        const ranked = options.rankAxes?.(a, b, lastAxis);
+        const usable = ranked?.length ? ranked : (options.axes ?? [...Array(dims).keys()]);
         if (!usable.length) break;
-        const axes = pickN(usable, Math.min(axisCount, usable.length));
+
+        const axes = ranked?.length && Math.random() < 0.95
+            ? usable.slice(0, Math.min(axisCount, usable.length))
+            : pickN(usable, Math.min(axisCount, usable.length));
+        lastAxis = axes[0] ?? lastAxis;
 
         let t: Transform;
         switch (kind) {

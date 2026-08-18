@@ -555,9 +555,26 @@ export function drawNdTransforms(layout: NdLayout, count: number): Transform[] {
         .map((a, i) => (isCircular(a) || isParity(a) ? -1 : i))
         .filter(i => i >= 0);
 
+    /*
+     * The axes this pair actually differ on, widest first, minus the one just
+     * used. v3's `directionize` measured accumulated spread along a chain; the
+     * operations here are pairwise, so the same idea is the gap between the two
+     * objects involved.
+     */
+    const rankAxes = (a: string, b: string, lastAxis: number) => {
+        const spread = movable
+            .map(i => ({ i, gap: Math.abs(layout.coords[a][i] - layout.coords[b][i]) }))
+            .filter(({ i }) => i !== lastAxis)
+            .sort((x, y) => y.gap - x.gap);
+
+        // All flat means the ranking has nothing to say; let the caller draw.
+        return spread.some(({ gap }) => gap > 0) ? spread.map(({ i }) => i) : [];
+    };
+
     return drawTransforms(layout.words, count, {
         dims: layout.axes.length,
         axes: movable,
+        rankAxes,
         rotationAxes: straight,
         // Premise steps are one unit, so a stated jump of three reads as a
         // different order of magnitude from everything around it.
