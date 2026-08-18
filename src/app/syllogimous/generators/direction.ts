@@ -95,7 +95,10 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
     }
 
     if (safe < 1) {
-        ctx.logger.error("MAXIMUM ITERATION COUNT REACHED!");
+        // Recovered from, by redrawing on the next line — so a warning rather
+        // than an error, but worth keeping: it means the pair-drawing loop is
+        // running tight for this configuration.
+        ctx.logger.warn("Pair search hit its iteration cap; redrawing");
         return createDirection(ctx, numOfPremises);
     }
 
@@ -161,7 +164,15 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
 
     // Sanity check, this fixes a bug with analogy questions
     if (new Set(premises.map(x => x.pair[0][0])).size !== coords.length) {
-        ctx.logger.error("Missing subject in premises");
+        /*
+         * Logged as a rejected draw, not an error.
+         *
+         * It happens on perfectly ordinary generation — the pairing can leave
+         * an object unmentioned, and the answer is to draw again, which the
+         * next line does. Logging it at error level meant a healthy run printed
+         * hundreds of them, which is how a log stops being read at all.
+         */
+        ctx.logger.info("Missing subject in premises; redrawing");
         return createDirection(ctx, numOfPremises);
     }
 
@@ -444,7 +455,10 @@ export function createDirection3D(ctx: GeneratorContext, numOfPremises: number, 
     }
 
     if (safe < 1) {
-        ctx.logger.error("MAXIMUM ITERATION COUNT REACHED!");
+        // Recovered from, by redrawing on the next line — so a warning rather
+        // than an error, but worth keeping: it means the pair-drawing loop is
+        // running tight for this configuration.
+        ctx.logger.warn("Pair search hit its iteration cap; redrawing");
         return createDirection3D(ctx, numOfPremises, type);
     }
 

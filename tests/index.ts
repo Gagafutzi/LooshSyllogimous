@@ -27,5 +27,6 @@ import "./facing.test";
 import "./knaves.test";
 import "./nested.test";
 import "./graphdist.test";
+import "./combinations.test";
 
 run();
