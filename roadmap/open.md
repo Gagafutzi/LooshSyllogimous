@@ -170,7 +170,7 @@ Weight 2.1 per point with a ceiling of six: each point is a coordinate pair to
 check rather than one relation to append, and the work is finding a rule rather
 than following one, so a four-point item is nothing like a four-premise chain.
 
-### 5. Realized width as a difficulty axis
+### 5. Realized width as a difficulty axis — **PARTLY DONE**
 
 **Measurement done** (`ndWidth`, `ndLiveAxes` in `ndspace.utils.ts`); the dial and
 its calibration are not.
@@ -210,13 +210,35 @@ Three conclusions, one of which kills half the idea:
   linear. Premises add chain to traverse; width adds state to hold. Separate
   quantities, so width is an added term and never a replacement.
 
-**What is left.** `tieChance` is the natural knob — lower it and axes go live and
-spread widens. Making width a target means drawing candidate layouts and keeping
-the one nearest a requested value, which needs no formula. What it *does* need is
-the coefficient converting bits to levels, and that should be **fitted against
-answered items rather than guessed** — the same argument as `RUNG_COST`. A first
-attempt at an analytic expectation predicted 6.18 bits where measurement said
-5.07, which is why there is no formula in the code.
+**What was done — the noise, not the dial.** Two things were tangled together
+here. Using width as a *dial* needs the bits-to-levels coefficient, and the
+argument above is right that it should be fitted against answered items rather
+than guessed. Holding width *steady* is a different problem, and it is the one
+carrying the cost: the ±1 level of noise is there whether or not anyone ever
+turns a dial.
+
+Composed-space layouts are now drawn nine at a time and the median by width is
+kept. Measured over 3,000 items at 6D with six objects:
+
+| | mean | sd | range |
+|---|---|---|---|
+| one draw | 10.07 | 0.98 | 6.6 – 13.5 |
+| median of nine | 10.08 | 0.41 | 8.8 – 11.5 |
+
+The middle does not move, so difficulty is unchanged; the tails go, which is
+where the noise was. No coefficient is involved, and it is self-calibrating —
+the median of a sample from whatever configuration is in play, with no table to
+keep in step with the axis presets. Nine is enough for the median to sit
+reliably in the body of the distribution and cheap enough that generation cost
+does not move.
+
+The test asserts the spread narrows *and the mean does not*, because a change
+that made every item easier would show the same reduced spread and would be
+wrong.
+
+**Still open: the dial.** Targeting a requested width, and the coefficient to
+convert bits into levels. Both want fitting data — the same argument as
+`RUNG_COST`, and the same answer: measure it rather than guess it.
 
 ### 6+. New modes
 

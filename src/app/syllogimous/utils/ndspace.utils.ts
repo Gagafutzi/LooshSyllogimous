@@ -1338,6 +1338,32 @@ export function ndWidth(layout: NdLayout): number {
     }, 0);
 }
 
+/**
+ * The typical layout of a batch, rather than whichever one came out first.
+ *
+ * Two composed-space items the model scores identically can differ twofold in
+ * how much has to be held: six-dimensional items at six objects measured 6.6 to
+ * 13.3 bits over three thousand draws, sd about one bit. At roughly eleven
+ * levels for ten bits, that is about **a level of noise going straight into the
+ * ability posterior**, against a psychometric slope of 1.6 — the model is being
+ * told about difficulty that its own scale does not represent.
+ *
+ * Drawing a handful and keeping the median removes most of that without needing
+ * the bits-to-levels coefficient at all. That coefficient is what a *dial*
+ * would need, and the roadmap is right that it should be fitted against
+ * answered items rather than guessed; holding the quantity steady is a
+ * different problem and needs no constant. It is also self-calibrating: the
+ * median of a sample from this configuration, whatever this configuration
+ * happens to be, with no table to keep in step with the axis presets.
+ */
+export function medianByWidth(candidates: NdLayout[]): NdLayout {
+    if (candidates.length < 2) return candidates[0];
+    const ranked = candidates
+        .map(layout => ({ layout, width: ndWidth(layout) }))
+        .sort((a, b) => a.width - b.width);
+    return ranked[Math.floor(ranked.length / 2)].layout;
+}
+
 /** Axes carrying any difference at all; the rest are declared but inert. */
 export function ndLiveAxes(layout: NdLayout): number {
     return layout.axes.filter((_, i) =>

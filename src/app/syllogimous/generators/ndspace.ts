@@ -10,7 +10,7 @@ import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
-import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, buildNdLayout, describeNdAxes, determinedOn, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
+import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, buildNdLayout, describeNdAxes, determinedOn, medianByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
@@ -110,11 +110,24 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
 
     for (let attempt = 0; attempt < 300; attempt++) {
         const words = getRandomSymbols(settings, objectCount);
+
+        /*
+         * Nine draws, keep the middle one by width.
+         *
+         * Width — the bits needed to locate an object, summed over axes — varies
+         * about twofold between items the difficulty model scores identically,
+         * which is roughly a level of noise in the posterior. Nine is enough
+         * for the median to sit reliably in the body of the distribution and
+         * cheap enough that generation cost does not move; the tails are what
+         * carry the noise.
+         */
+        const drawn = medianByWidth(
+            Array.from({ length: 9 }, () =>
+                buildNdLayout(words, axes, { branching: feat.branching })));
+
         const layout = feat.indeterminate
-            ? withholdClauses(
-                buildNdLayout(words, axes, { branching: feat.branching }),
-                1 + Math.floor(Math.random() * 2))
-            : buildNdLayout(words, axes, { branching: feat.branching });
+            ? withholdClauses(drawn, 1 + Math.floor(Math.random() * 2))
+            : drawn;
 
         /*
          * Edits rewrite the stated relations; transformations move objects

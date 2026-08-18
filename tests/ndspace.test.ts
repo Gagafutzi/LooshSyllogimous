@@ -7,8 +7,8 @@
 
 import { assert, equal, seeded, test } from "./harness";
 import {
-    AXIS_CHOICES, DIMENSION_AXES, axesForDimensions, buildNdLayout, ndAxisColors,
-    renderNdPremise, reorderAxisIds,
+    AXIS_CHOICES, DIMENSION_AXES, axesForDimensions, buildNdLayout, medianByWidth,
+    ndAxisColors, ndWidth, renderNdPremise, reorderAxisIds,
 } from "../src/app/syllogimous/utils/ndspace.utils";
 import { AxisSpec } from "../src/app/syllogimous/utils/ndspace.utils";
 
@@ -81,4 +81,52 @@ test("a compact premise drops the no-difference clauses and keeps the rest colou
         assert(count(compact) <= count(full), "compact stated more clauses than full");
         assert(count(compact) > 0, "compact stated nothing at all");
     });
+});
+
+/**
+ * Width variance, which was going straight into the ability posterior.
+ *
+ * Two composed-space items the model scores identically can differ twofold in
+ * how much has to be held at once — six-dimensional items at six objects range
+ * about 6.6 to 13.5 bits, sd near one. At roughly eleven levels for ten bits
+ * that is about a level of noise against a psychometric slope of 1.6, so the
+ * model is being told about difficulty its own scale does not represent.
+ *
+ * Keeping the median of a small batch cuts that without needing a bits-to-levels
+ * coefficient: the coefficient is what a *dial* would need, and holding the
+ * quantity steady is a different problem. What this checks is that it narrows
+ * the spread *without moving the middle* — a fix that made items uniformly
+ * easier would show the same reduced spread and would be wrong.
+ */
+test("keeping the median layout narrows width without shifting it", () => {
+    const axes = axesForDimensions(6).map(scale => ({ scale }));
+    const words = ["Ash", "Bee", "Cat", "Dog", "Elk", "Fox"];
+
+    const spread = (xs: number[]) => {
+        const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+        const sd = Math.sqrt(xs.reduce((a, b) => a + (b - mean) ** 2, 0) / xs.length);
+        return { mean, sd };
+    };
+
+    const one = seeded(9137, () => {
+        const out: number[] = [];
+        for (let i = 0; i < 800; i++) out.push(ndWidth(buildNdLayout(words, axes, {})));
+        return out;
+    });
+
+    const median = seeded(4451, () => {
+        const out: number[] = [];
+        for (let i = 0; i < 800; i++) {
+            out.push(ndWidth(medianByWidth(
+                Array.from({ length: 9 }, () => buildNdLayout(words, axes, {})))));
+        }
+        return out;
+    });
+
+    const a = spread(one), b = spread(median);
+
+    assert(b.sd < a.sd * 0.65,
+        `spread barely moved: sd ${a.sd.toFixed(2)} to ${b.sd.toFixed(2)}`);
+    assert(Math.abs(b.mean - a.mean) < 0.3,
+        `the middle moved as well as the spread: ${a.mean.toFixed(2)} to ${b.mean.toFixed(2)}`);
 });
