@@ -8,7 +8,7 @@
 import { GeneratorContext } from "./context";
 import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
-import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
+import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
 import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
@@ -16,7 +16,7 @@ import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
 import { hi, subj } from "../utils/phrasing";
-import { SPEAKERS_NOTE, describeStatement, drawClaims, solve } from "../utils/knaves.utils";
+import { SPEAKERS_NOTE, TESTIMONY_NOTE, describeStatement, drawClaims, solve } from "../utils/knaves.utils";
 import {
     Egocentric, FACING_NOTE, OPPOSITE, bearingPlane, describeBearing, describeEgocentric,
     describeFacing, egocentric,
@@ -177,14 +177,32 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
         const reported = feat.speakers ? assignSpeakers(ctx, layout) : null;
         if (feat.speakers && !reported) continue;
 
+        const told = feat.testimony ? assignTestimony(ctx, layout) : null;
+        if (feat.testimony && !told) continue;
+
         const question = new Question(type);
         const extraPremises: string[] = [];
+        const asked: { a?: string; b?: string; axis?: number } = {};
         if (!fillNdConclusion(
-            ctx, question, layout, final, feat, numOfPremises, attempt >= 250, extraPremises)) continue;
+            ctx, question, layout, final, feat, numOfPremises, attempt >= 250,
+            extraPremises, asked)) continue;
+
+        /*
+         * The testimony has to be load-bearing.
+         *
+         * Nothing stops the conclusion picker choosing a pair the plain facts
+         * already settle, and such an item is answerable without working out
+         * who lied — the reports become decoration and the mode collapses into
+         * the base one with extra reading.
+         */
+        if (told && asked.a && asked.b && asked.axis != null
+            && determinedOn(told.plainOnly, asked.axis, asked.a, asked.b)) continue;
 
         // Order-independent like the relations themselves, so scrambled in with
         // them rather than pinned to the end where it would stand out.
-        const stated = reported
+        const stated = told
+            ? [...told.premises, ...extraPremises]
+            : reported
             ? [...reported.premises, ...extraPremises]
             : [
                 ...renderNdPremises(layout, { compact: feat.compact }),
@@ -219,6 +237,49 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
                 + ` are false and say nothing about where anything is.`,
                 ...question.explanation,
             ];
+        }
+
+        /*
+         * Two conclusions, because the item has two answers.
+         *
+         * Who is lying is not scaffolding for the relational question, it is
+         * half of what was worked out — and stating only the relation would let
+         * a reader who guessed the types right for the wrong reason look
+         * indistinguishable from one who did it properly. Both are claimed, and
+         * the item is true only if both hold, which is the existing
+         * multi-conclusion idiom.
+         */
+        if (told) {
+            /*
+             * Two conclusions, because the item has two answers.
+             *
+             * Who is lying is not scaffolding for the relational question, it
+             * is half of what was worked out. Stating only the relation would
+             * let a reader who happened to guess the types right look
+             * indistinguishable from one who established them.
+             *
+             * Built the way the multi-conclusion idiom builds elsewhere: decide
+             * whether the set is all true, and if not, make exactly *one* of
+             * them false. Either half can be the culprit, so neither can be
+             * skipped — and the attempt is discarded when the relational claim
+             * came out the wrong way round, rather than papered over by letting
+             * both halves fail at once.
+             */
+            const relationHolds = question.isValid;
+            const wantAllTrue = coinFlip();
+            const blameTypes = coinFlip();
+
+            if (wantAllTrue && !relationHolds) continue;
+            if (!wantAllTrue && blameTypes && !relationHolds) continue;
+            if (!wantAllTrue && !blameTypes && relationHolds) continue;
+
+            const typesHold = wantAllTrue || !blameTypes;
+            question.conclusion = [
+                typesHold ? told.typeClaim : told.wrongTypeClaim,
+                String(question.conclusion),
+            ];
+            question.isValid = wantAllTrue;
+            question.explanation = [...told.explanation, ...question.explanation];
         }
 
         question.bucket = [...words];
@@ -292,6 +353,17 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
      */
     const speakers = ladder("speakers") && edits === 0 && transforms === 0;
 
+    /*
+     * The richer form: some reports can be *checked* against facts the item
+     * states outright, so who is lying is worked out from the arrangement
+     * rather than only from what the speakers say about each other — and the
+     * item then asks for both answers.
+     *
+     * Outranks `speakers` when both are live; it is the same idea with more in
+     * it, and running both would just be the weaker one half the time.
+     */
+    const testimony = ladder("testimony") && edits === 0 && transforms === 0;
+
     const indeterminate = (forcedOpen === null ? ladder("indeterminate") : !!forcedOpen)
         && edits === 0 && transforms === 0
         /*
@@ -304,7 +376,8 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
         && !compact;
 
     return {
-        speakers,
+        testimony,
+        speakers: speakers && !testimony,
         facing,
         indeterminate,
         branching: pick("branching", "branching"),
@@ -339,6 +412,8 @@ export function fillNdConclusion(ctx: GeneratorContext,
      * derivation reasoned from a facing the player was never told.
      */
     extraPremises: string[] = [],
+    /** The pair and axis the boolean form settled on, for callers that care. */
+    asked: { a?: string; b?: string; axis?: number } = {},
 ): boolean {
     /*
      * Mutations have to matter. A conclusion whose truth survives the edits
@@ -579,12 +654,15 @@ export function fillNdConclusion(ctx: GeneratorContext,
      */
     const live = layout.axes.map((_, i) => i).filter(i => axisBites(pair[0], pair[1], i));
     if (!live.length) return false;
-    const settled = feat.indeterminate || feat.speakers
+    const settled = feat.indeterminate || feat.speakers || feat.testimony
         ? live.filter(i => determinedOn(layout, i, pair[0], pair[1]))
         : live;
     if (!settled.length) return false;
     const axisIndex = settled[Math.floor(Math.random() * settled.length)];
     const c = buildNdConclusion(layout, pair[0], pair[1], axisIndex, coinFlip());
+    asked.a = c.a;
+    asked.b = c.b;
+    asked.axis = axisIndex;
     question.conclusion = feat.indeterminate ? mustBe(c.text) : c.text;
     question.isValid = c.isValid;
     /*
@@ -623,6 +701,7 @@ export function ndSetup(ctx: GeneratorContext,
     if (feat.indeterminate) lines.push(INDETERMINATE_NOTE);
     if (feat.facing) lines.push(FACING_NOTE);
     if (feat.speakers) lines.push(SPEAKERS_NOTE);
+    if (feat.testimony) lines.push(TESTIMONY_NOTE);
     if (edited) lines.push(EDIT_NOTE);
     /*
      * Same argument as the loop note below: the axis key is the one thing
@@ -806,6 +885,176 @@ function assignSpeakers(ctx: GeneratorContext, layout: NdLayout) {
 
         shuffle(premises);
         return { premises, world, names };
+    }
+
+    return null;
+}
+
+/**
+ * Testimony that can be checked against facts the item states outright.
+ *
+ * The `speakers` rung leaves a knave's report worthless *and* unidentifiable
+ * from the arrangement: who lied is settled purely by what the speakers say
+ * about each other. This is the richer form. A few relations are stated plainly
+ * and are simply true; the speakers then report more, and some of those reports
+ * are about pairs the plain facts already determine. Those can be checked, and
+ * a contradiction names a knave directly.
+ *
+ * That gives the item its shape: a **checkable report pins one speaker**, their
+ * claims about the others pin the rest, and only then can the *extending*
+ * reports — about objects the plain facts never reached — be sorted into
+ * usable and worthless. The relational answer lives out there, so it cannot be
+ * reached until the liars are known.
+ *
+ * Everything is verified rather than assumed. The type assignment is required
+ * to be the only one consistent with both the inter-speaker claims and the
+ * checkable reports; the relational conclusion is required to be settled by the
+ * plain facts plus the honest extensions, and *not* by the plain facts alone —
+ * otherwise the testimony is decoration.
+ */
+function assignTestimony(ctx: GeneratorContext, layout: NdLayout) {
+    const settings = ctx.settings;
+    const words = layout.words;
+    if (words.length < 5) return null;
+
+    /*
+     * The core is the part the plain facts pin down. Everything outside it is
+     * reachable only through a report, which is what gives an extending report
+     * something to be worth.
+     */
+    /*
+     * Sized from the far end: one to three objects sit outside the core, so
+     * there are one to three extending reports and one speaker each. Sizing it
+     * from the near end instead left five extensions on an eight-object item
+     * and nothing ever generated.
+     */
+    const outside = 1 + Math.floor(Math.random() * Math.min(3, words.length - 4));
+    const core = new Set(words.slice(0, words.length - outside));
+
+    const plain: number[] = [];
+    const extending: number[] = [];
+    layout.edges.forEach((e, i) => {
+        (core.has(e.from) && core.has(e.to) ? plain : extending).push(i);
+    });
+    if (plain.length < 2 || extending.length < 1 || extending.length > 3) return null;
+
+    /*
+     * Determined by the plain facts, checked rather than assumed.
+     *
+     * "Both ends are in the core" is not the same as "the plain facts settle
+     * it" — with branching premises the core need not be connected by the edges
+     * that stayed plain. A pair that is not actually determined would be a
+     * report the reader cannot check, which is the one thing this form needs.
+     */
+    const plainOnly: NdLayout = {
+        ...layout,
+        edges: layout.edges.map((e, i) => ({
+            ...e,
+            stated: plain.includes(i) ? undefined : layout.axes.map(() => false),
+        })),
+    };
+
+    const checkablePairs: Array<[string, string]> = [];
+    const inCore = [...core];
+    for (let i = 0; i < inCore.length; i++) {
+        for (let j = i + 1; j < inCore.length; j++) {
+            const [a, b] = [inCore[i], inCore[j]];
+            // Not a stated pair: repeating a premise is checkable but trivial.
+            if (layout.edges.some(e => (e.from === a && e.to === b) || (e.from === b && e.to === a))) continue;
+            if (!layout.axes.every((_, ax) => determinedOn(plainOnly, ax, a, b))) continue;
+            checkablePairs.push([a, b]);
+        }
+    }
+    if (!checkablePairs.length) return null;
+
+    for (let attempt = 0; attempt < 80; attempt++) {
+        const checkableCount = 1 + Math.floor(Math.random() * Math.min(2, checkablePairs.length));
+        const speakerCount = extending.length + checkableCount;
+        if (speakerCount < 2 || speakerCount > 4) continue;
+
+        const world = Array.from({ length: speakerCount }, () => coinFlip());
+        if (world.every(w => w) || world.every(w => !w)) continue;
+
+        const claims = drawClaims(world, false);
+        if (!claims) continue;
+
+        // Assignments the *reader* could reach: consistent with what the
+        // speakers say about each other, and with the reports they can check.
+        const checkers = [...Array(checkableCount).keys()];
+        const consistent = solve(claims).filter(w => checkers.every(i => w[i] === world[i]));
+        if (consistent.length !== 1) continue;
+
+        const names = getRandomSymbols(settings, speakerCount + words.length)
+            .filter(n => !words.includes(n))
+            .slice(0, speakerCount);
+        if (names.length < speakerCount) continue;
+
+        /** A relation, falsified so that at least one clause actually changes. */
+        const lieAbout = (deltas: number[]): number[] | null => {
+            const movable = deltas.map((d, i) => (d === 0 ? -1 : i)).filter(i => i >= 0);
+            if (!movable.length) return null;
+            const flip = new Set<number>([movable[Math.floor(Math.random() * movable.length)]]);
+            for (const i of movable) if (coinFlip()) flip.add(i);
+            return deltas.map((d, i) => (flip.has(i) ? -d : d));
+        };
+
+        const premises: string[] = plain.map(i => renderNdPremise(layout, layout.edges[i], false));
+        const checkedPairs = pickUniqueItems(checkablePairs, checkableCount).picked;
+        let malformed = false;
+
+        checkedPairs.forEach(([a, b], i) => {
+            const truth = layout.axes.map((_, ax) => layout.coords[a][ax] - layout.coords[b][ax]);
+            const deltas = world[i] ? truth : lieAbout(truth);
+            if (!deltas) { malformed = true; return; }
+            const edge: NdEdge = { from: b, to: a, deltas };
+            premises.push(`${subj(names[i])} says: ${renderNdPremise(layout, edge, false)}`);
+        });
+        if (malformed) return null;
+
+        extending.forEach((edgeIndex, k) => {
+            const speaker = checkableCount + k;
+            const edge = layout.edges[edgeIndex];
+            const deltas = world[speaker] ? edge.deltas : lieAbout(edge.deltas);
+            if (!deltas) { malformed = true; return; }
+            premises.push(`${subj(names[speaker])} says: `
+                + renderNdPremise(layout, { ...edge, deltas, stated: undefined }, false));
+            // A lie carries no information, so the relation it covers is not
+            // available to the reader at all.
+            if (!world[speaker]) edge.stated = layout.axes.map(() => false);
+        });
+        if (malformed) return null;
+
+        claims.forEach((c, i) => premises.push(describeStatement(i, c, names)));
+        shuffle(premises);
+
+        const kind = (i: number) => (world[i] ? "knight" : "knave");
+        const listed = (pick: (i: number) => boolean) =>
+            names.filter((_, i) => pick(i)).map(n => subj(n)).join(" and ");
+
+        const typeClaim = names.map((n, i) => `${subj(n)} is a ${hi(kind(i))}`).join(", ");
+        // Wrong in one place only: a claim wrong about everyone is rejectable
+        // by noticing a single speaker, which is less than the item asks.
+        const wrongAt = Math.floor(Math.random() * speakerCount);
+        const wrongTypeClaim = names
+            .map((n, i) => `${subj(n)} is a ${hi(i === wrongAt ? kind(i) === "knight" ? "knave" : "knight" : kind(i))}`)
+            .join(", ");
+
+        return {
+            premises,
+            plainOnly,
+            typeClaim,
+            wrongTypeClaim,
+            explanation: [
+                `${listed(i => i < checkableCount)} report${checkableCount === 1 ? "s" : ""} something`
+                + ` the stated facts already settle \u2014 that is what makes their kind checkable.`,
+                `Their claims about the others then leave one reading: `
+                + names.map((n, i) => `${subj(n)} a ${hi(kind(i))}`).join(", ") + ".",
+                world.some(w => !w)
+                    ? `So what ${listed(i => !world[i])} said about the arrangement is false and`
+                      + ` tells you nothing; the rest holds.`
+                    : `Every report holds.`,
+            ],
+        };
     }
 
     return null;

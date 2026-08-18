@@ -186,6 +186,13 @@ export function describeStatement(speaker: number, claim: Claim, names: string[]
     return `${subj(names[speaker])} says: ${body}`;
 }
 
+export const TESTIMONY_NOTE =
+    "Some facts are stated outright. The rest are <b>reported</b> by people, each"
+    + " of whom is a <b>knight</b> who only says true things or a <b>knave</b> who"
+    + " only says false ones. Some reports are about things the stated facts"
+    + " already settle \u2014 those are the ones you can check. A knave's report"
+    + " tells you nothing about the arrangement and must be set aside.";
+
 export const SPEAKERS_NOTE =
     "The relations below are <b>reported</b> by people, and some of them are"
     + " <b>knaves</b> who only say false things. Work out who is lying from what"

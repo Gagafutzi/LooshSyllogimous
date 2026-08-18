@@ -31,5 +31,6 @@ import "./combinations.test";
 import "./width.test";
 import "./ungated.test";
 import "./hierarchy-syllogism.test";
+import "./testimony.test";
 
 run();

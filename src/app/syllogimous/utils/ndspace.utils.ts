@@ -1246,8 +1246,27 @@ export function axisWordConflicts(scales: LinearScale[]): string[] {
  * ------------------------------------------------------------------ */
 
 /** Steps between two objects through the stated premises, as a path. */
-function pathBetween(layout: NdLayout, a: string, b: string): string[] | null {
+/**
+ * A route between two objects using only relations the reader actually has.
+ *
+ * `axis` matters because a relation can be stated on some axes and not others:
+ * a withheld clause, or a report from someone who turned out to be lying,
+ * leaves the pair joined in the layout but not in anything the player was told.
+ *
+ * Walking `neighbors` regardless — which this did — produced derivations that
+ * reached the right answer through a premise the item had just finished saying
+ * was false. Correct arithmetic, and a proof the reader could not follow, which
+ * is worse than showing nothing.
+ */
+function pathBetween(layout: NdLayout, a: string, b: string, axis?: number): string[] | null {
     if (a === b) return [a];
+
+    const usable = (x: string, y: string) => {
+        if (axis == null) return true;
+        const found = edgeBetween(layout, x, y);
+        return !found || !found.edge.stated || found.edge.stated[axis];
+    };
+
     const prev: Record<string, string> = {};
     const seen = new Set([a]);
     const queue = [a];
@@ -1256,6 +1275,7 @@ function pathBetween(layout: NdLayout, a: string, b: string): string[] | null {
         const cur = queue.shift()!;
         for (const n of layout.neighbors[cur] ?? []) {
             if (seen.has(n)) continue;
+            if (!usable(cur, n)) continue;
             seen.add(n);
             prev[n] = cur;
             if (n === b) {
@@ -1298,7 +1318,7 @@ export function explainNdAxis(
     b: string,
     axisIndex: number,
 ): string[] {
-    const path = pathBetween(layout, a, b);
+    const path = pathBetween(layout, a, b, axisIndex);
     if (!path || path.length < 2) return [];
 
     const axis = layout.axes[axisIndex];

@@ -1,13 +1,11 @@
 # Open
 
-Almost nothing is, now. Everything specced in this file has been built,
-deliberately settled as unnecessary, or reduced to a stated blocker. What is
-left, in full:
+One thing is. Everything else specced in this file has been built or
+deliberately settled as unnecessary.
 
 | | why it is still here |
 |---|---|
 | **Pricing width into difficulty** ([5](#5-realized-width-as-a-difficulty-axis--partly-done)) | the dial and the fit both exist; the coefficient needs answered items with the dial off its default to fit against. Blocked on play, not on design. |
-| **Checkable testimony** ([P2](#wanted-next-testimony-that-is-checkable-against-stated-fact)) | asked for and specced, deliberately parked. Not blocked — just not started. |
 
 The rest of this file is kept as the record of what was decided and why,
 including the parts that turned out differently from the plan. Those are the
@@ -523,31 +521,49 @@ re-solve every generated item from the premises the player is shown and check
 the claim against **every** reading, which is the only definition of "true" that
 stays right when more than one fits.
 
-### Wanted next: testimony that is checkable against stated fact
+### Testimony checkable against stated fact — **DONE**, rung `testimony`
 
-A richer form of the modifier, asked for and not yet built. As `speakers` works
-today, a knave's report is worthless and who is lying is settled purely by what
-the speakers say about *each other*. The wanted version:
+The richer form, asked for and built. As `speakers` works, a knave's report is
+worthless *and* unidentifiable from the arrangement: who lied comes only from
+what the speakers say about each other. Here:
 
-1. A few **plain premises** are stated outright — true, unattributed.
-2. Speakers then report **more relations**, and some of those reports are about
-   pairs the plain premises already determine — so a report can be *checked*,
-   and a contradiction identifies a knave directly.
-3. Speakers still make the usual claims about each other, and those are included.
-4. Exactly one assignment of types is compatible with all of it.
-5. **Two conclusions**: who is a knight and who is a knave, *and* a relational
-   claim — the second only derivable once the liars are known and their reports
-   discarded, using the honest speakers' reports to extend beyond what the plain
-   premises fixed.
+1. A few relations are **stated plainly** — true, unattributed.
+2. Speakers report more, and some reports are about pairs the plain facts
+   already determine. Those can be **checked**, and a contradiction names a
+   knave directly.
+3. Speakers still make the usual claims about each other.
+4. Exactly one assignment fits both.
+5. **Two conclusions** — who is a knight and who is a knave, *and* a relational
+   claim, true only if both hold.
 
-The verification is decidable the same way: brute force over the 2ⁿ assignments,
-keeping those where every inter-speaker claim matches its speaker's type and
-every *checkable* report matches too. What makes it work is that reports about
-already-determined pairs are checkable while reports that extend the layout are
-not — so the first kind pins some speakers, their claims pin the rest, and the
-second kind then becomes usable. The two-conclusion answer fits the existing
-`multiConclusion` idiom, where a set of claims is true only if all of them
-follow.
+The shape follows from that: a checkable report pins one speaker, their claims
+pin the rest, and only then can the *extending* reports — about objects the
+plain facts never reached — be sorted into usable and worthless. The relational
+answer lives out there, so it cannot be reached until the liars are known.
+
+Four things it had to be made to do rather than assumed to do.
+
+**A checkable pair must actually be checkable.** "Both ends are inside the core"
+is not the same as "the plain facts settle it" — with branching premises the
+core need not be connected by the edges that stayed plain. Verified per axis
+against a plain-facts-only view of the layout.
+
+**The testimony must be load-bearing.** Nothing stops the conclusion picker
+choosing a pair the plain facts already settle, and that item is answerable
+without working out who lied. Rejected against the same view.
+
+**Either conclusion must be able to be the wrong one.** Built the way the
+multi-conclusion idiom builds elsewhere: decide whether the set is all true, and
+if not make exactly *one* false. A false type-claim is wrong in one place only —
+wrong about everyone is rejectable by noticing a single speaker.
+
+**And a bug it exposed that was never confined to it.** `pathBetween` walked the
+layout's neighbours regardless of whether a relation had been withheld or
+discredited, so a derivation could reach the right answer *through a premise the
+item had just said was false*. Correct arithmetic and a proof the reader cannot
+follow, which is worse than showing nothing — and invisible to any check on the
+answer alone. It affected `indeterminate` and `speakers` too. Paths are now
+walked per axis over stated relations only.
 
 ### The modifier half — **DONE** for the composed spaces, rung `speakers`
 

@@ -86,6 +86,12 @@ export const RUNG_COST: Record<string, number> = {
      * second cannot start until the first is finished.
      */
     speakers: 2.2,
+    /*
+     * Dearer again: the liars have to be found *from the arrangement* rather
+     * than only from what they say about each other, and the item then asks for
+     * both answers instead of one.
+     */
+    testimony: 2.6,
 
     circular: 1.2,
     "circular-2": 0.8,
