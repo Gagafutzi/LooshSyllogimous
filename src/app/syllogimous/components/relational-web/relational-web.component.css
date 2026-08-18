@@ -1,0 +1,41 @@
+.web {
+    width: 100%;
+    max-width: 15rem;
+    height: auto;
+    overflow: visible;
+}
+
+.web__arrow {
+    stroke: var(--th-text-dim, #7d8ca6);
+    stroke-width: 1.4;
+}
+
+.web__loop {
+    fill: none;
+    stroke: var(--th-text-dim, #7d8ca6);
+    stroke-width: 1.4;
+}
+
+.web__node {
+    fill: color-mix(in srgb, var(--th-panel) 85%, transparent);
+    stroke: rgba(var(--th-accent-rgb, 34, 211, 238), 0.55);
+    stroke-width: 1.4;
+}
+
+/* The node being asked about. Filled rather than merely outlined, so it is
+ * found before the picture is read rather than after. */
+.web__node.is-lit {
+    fill: var(--th-accent);
+    stroke: var(--th-accent);
+}
+
+.web__label {
+    fill: var(--th-text, #d7e3f4);
+    font-size: 11px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+}
+
+.web__label.is-lit { fill: var(--th-bg, #05070c); }

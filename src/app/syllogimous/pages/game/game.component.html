@@ -136,12 +136,23 @@
         <div class="d-grid gap-4" [class.d-none]="gameMode !== '0'">
             <ng-container *ngTemplateOutlet="questionSetup"></ng-container>
 
-            <div>
-                <div class="small text-muted">Premises</div>
-                <div class="premises" *ngIf="game.question.premises as premises">
-                    <div *ngFor="let p of premises" [innerHTML]="p"></div>
+            <!-- Relational Web states itself in pictures; there are no
+                 premises to list. -->
+            <div class="webs" *ngIf="game.question.webs?.length; else premiseList">
+                <div class="webs__one" *ngFor="let w of game.question.webs; let i = index">
+                    <small class="text-muted">{{ i === 0 ? "First web" : "Second web" }}</small>
+                    <app-relational-web [web]="w"></app-relational-web>
                 </div>
             </div>
+
+            <ng-template #premiseList>
+                <div>
+                    <div class="small text-muted">Premises</div>
+                    <div class="premises" *ngIf="game.question.premises as premises">
+                        <div *ngFor="let p of premises" [innerHTML]="p"></div>
+                    </div>
+                </div>
+            </ng-template>
 
             <!--
               Prompt only. The candidates themselves are the footer buttons, and

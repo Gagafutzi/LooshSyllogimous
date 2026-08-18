@@ -1,0 +1,26 @@
+<svg class="web" [attr.viewBox]="'0 0 ' + size + ' ' + size" role="img"
+     aria-label="A web of nodes joined by arrows">
+    <defs>
+        <!-- context-stroke keeps the head the same colour as its line. -->
+        <marker id="web-head" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/>
+        </marker>
+    </defs>
+
+    <line class="web__arrow" *ngFor="let a of arrows"
+          [attr.x1]="a.x1" [attr.y1]="a.y1" [attr.x2]="a.x2" [attr.y2]="a.y2"
+          marker-end="url(#web-head)"
+          [attr.marker-start]="a.both ? 'url(#web-head)' : null"/>
+
+    <!-- Self-arrows, which is what reflexivity looks like. -->
+    <circle class="web__loop" *ngFor="let l of loops"
+            [attr.cx]="l.x" [attr.cy]="l.y - radius" [attr.r]="radius * 0.55"/>
+
+    <g *ngFor="let n of nodes">
+        <circle class="web__node" [class.is-lit]="n.lit"
+                [attr.cx]="n.x" [attr.cy]="n.y" [attr.r]="radius"/>
+        <text class="web__label" [class.is-lit]="n.lit"
+              [attr.x]="n.x" [attr.y]="n.y">{{ n.label }}</text>
+    </g>
+</svg>

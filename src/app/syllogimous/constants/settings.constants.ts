@@ -258,6 +258,17 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 9,
         basic: false
     },
+    /*
+     * Premises here are nodes, not sentences: the count sets how big the web
+     * is. Twelve nodes is the ceiling — past that the picture is a hairball
+     * rather than a structure.
+     */
+    [EnumQuestionType.RelationalWeb]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 10,
+        basic: false
+    },
 }
 
 export const DEFAULT_ENABLED_FLAGS = {

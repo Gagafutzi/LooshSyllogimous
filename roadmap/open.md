@@ -166,7 +166,7 @@ Eleven are specced below. In rough cost order:
 | [P2 knights and knaves](#p2-knights-and-knaves) | |
 | [P8 boolean concepts](#p8-boolean-concept-learning--rework-the-form-before-building) | **rework the form first** — the standard paradigm is inefficient for training |
 | [P4 graph matching extended](#p4-graph-matching-extended) | edit distance is the hard part |
-| **Relational Web** | the original Phase 2 marquee feature, never built — see [Superseded](superseded.md#superseded) |
+| ~~Relational Web~~ | **built** — `generators/relational-web.ts`, `utils/web.utils.ts` |
 | **Set Hierarchy syllogism** | quantified set logic over proof networks; also never built |
 
 ---

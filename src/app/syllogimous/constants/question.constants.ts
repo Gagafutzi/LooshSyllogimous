@@ -41,6 +41,7 @@ export enum EnumQuestionType {
     InferRelation = "Infer the Relation",
     OddestRelation = "Oddest Relation",
     ShapeRotation = "Shape and Rotation",
+    RelationalWeb = "Relational Web",
 }
 
 export enum EnumArrangements {

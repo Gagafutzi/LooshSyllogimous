@@ -48,6 +48,7 @@ import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
+import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 
 function context(): GeneratorContext {
     const settings = new Settings();
@@ -91,6 +92,7 @@ const MODES: Array<[EnumQuestionType, (c: GeneratorContext, n: number) => Questi
     [EnumQuestionType.InferRelation, createInferRelation],
     [EnumQuestionType.OddestRelation, createOddestRelation],
     [EnumQuestionType.ShapeRotation, createShapeRotation],
+    [EnumQuestionType.RelationalWeb, createRelationalWeb],
 ];
 
 /** Everything the item actually asks about. */

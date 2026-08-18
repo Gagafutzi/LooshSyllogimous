@@ -180,6 +180,9 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // Modular arithmetic over a small ring, with a derivation before it. Harder
     // than a chain of the same length, nowhere near the composed spaces.
     [EnumQuestionType.ShapeRotation]: { weight: 1.6, ceiling: 9 },
+    // A node is worth more than a premise: there is no reading to do and the
+    // whole load is structural.
+    [EnumQuestionType.RelationalWeb]: { weight: 2.0, ceiling: 10 },
 };
 
 /** Real premise count for a linear-equivalent level, clamped to the mode's range. */

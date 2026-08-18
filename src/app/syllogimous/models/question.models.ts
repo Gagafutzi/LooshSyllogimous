@@ -180,6 +180,22 @@ export class Question {
      * have coordinates in hand — the composed spaces, the scale family, anchor
      * space — and absent elsewhere, where there is nothing to plot.
      */
+    /**
+     * Directed graphs to draw, for Relational Web.
+     *
+     * The only mode whose premises are not sentences: the picture *is* the
+     * statement, so it is carried as data and drawn by a component. Angular's
+     * sanitiser strips SVG out of `[innerHTML]`, so smuggling it through the
+     * premise list was never an option.
+     */
+    webs?: Array<{
+        adj: boolean[][];
+        labels: string[];
+        /** Positions as fractions of the box, so the drawing can be any size. */
+        layout: Array<[number, number]>;
+        /** The node being asked about, in the first web only. */
+        highlight?: number;
+    }>;
     wordCoordMap?: Record<string, number[]>;
     /** Axis names for the map, in the same order as the coordinates. */
     axisNames?: string[];

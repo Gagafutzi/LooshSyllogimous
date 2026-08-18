@@ -17,5 +17,6 @@ import "./fatigue.test";
 import "./profiles.test";
 import "./keybind.test";
 import "./map.test";
+import "./web.test";
 
 run();

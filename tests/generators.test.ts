@@ -38,6 +38,7 @@ import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
+import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 
 /**
  * A context with nothing switched on.
@@ -103,6 +104,7 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.InferRelation, createInferRelation],
     [EnumQuestionType.OddestRelation, createOddestRelation],
     [EnumQuestionType.ShapeRotation, createShapeRotation],
+    [EnumQuestionType.RelationalWeb, createRelationalWeb],
 ];
 
 for (const [type, make] of GENERATORS) {
@@ -113,7 +115,14 @@ for (const [type, make] of GENERATORS) {
         for (let run = 0; run < 5; run++) {
             const q = seeded(run * 7919 + 13, () => make(ctx, premises));
 
-            assert(q.premises.length > 0, "no premises");
+            /*
+             * An item has to *state* something. For every mode but one that
+             * means sentences; Relational Web states itself in two drawn
+             * graphs, and asserting sentences there would be asserting the
+             * format rather than the invariant.
+             */
+            const states = q.premises.length > 0 || (q.webs?.length ?? 0) > 0;
+            assert(states, "the item states nothing");
             assert(q.premises.every(p => p.trim().length > 0), "a premise is blank");
             assert(new Set(q.premises).size === q.premises.length, "a premise is repeated");
 

@@ -28,6 +28,7 @@ export class TypeBasedStats {
     [EnumQuestionType.InferRelation] = new TypeBasedStatsInner(EnumQuestionType.InferRelation);
     [EnumQuestionType.OddestRelation] = new TypeBasedStatsInner(EnumQuestionType.OddestRelation);
     [EnumQuestionType.ShapeRotation] = new TypeBasedStatsInner(EnumQuestionType.ShapeRotation);
+    [EnumQuestionType.RelationalWeb] = new TypeBasedStatsInner(EnumQuestionType.RelationalWeb);
 }
 
 export class TypeBasedStatsInner {

@@ -303,7 +303,7 @@ Port notes for the remaining four:
 
 ### Phase 2 — Vercel-unique, must be written (no source anywhere)
 
-#### 2.1 Relational Web — the marquee feature
+#### 2.1 Relational Web — **BUILT**
 Spec recovered from the snapshot:
 
 - Settings: nodes 3–12 (default 7), time, priority %, colored nodes 2–12
@@ -338,6 +338,28 @@ Implementation:
    Evaluate on both graphs and apply the both-satisfy-or-both-violate rule.
 7. **Rendering:** new Angular component, SVG, arrows for direction, self-loops for
    reflexivity. This is the only item here needing real new UI.
+
+**Built, and two things the spec had slightly wrong.**
+
+*Colour refinement has to be canonically numbered.* The obvious implementation
+assigns colour indices in encounter order, which makes a node's colour depend on
+where it sits in the array — so two relabellings of one graph get different
+numbers and the isomorphism search, which prunes on colour equality across the
+pair, rejects every valid mapping. The symptom was that no graph was isomorphic
+to itself relabelled. Renumbering by sorted signature each round fixes it, and
+it is the only subtle thing in the file.
+
+*The `structural` difficulty cannot ask for a refinement twin.* The spec says v
+should share "its degree signature (and ideally its 1-WL colour)" with another
+node. On graphs this small refinement is essentially complete, so two nodes of
+the same colour share an **orbit** — and a node in a shared orbit has no unique
+answer, which is the one thing a mapping item may not have. Asking for a
+refinement twin asks for an item that cannot exist. A degree twin is the version
+that both exists and does the job: arrow counts stop identifying the node while
+refinement still separates it.
+
+The orbit check itself is not an optimisation but the correctness condition, and
+is tested directly and again through the generator on the graphs it produces.
 
 #### 2.2 Facing Space
 Snapshot: *"position + facing + turns + rotations around pivots."* Each object has

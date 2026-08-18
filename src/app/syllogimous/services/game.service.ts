@@ -60,6 +60,7 @@ import { createTransformation } from "../generators/transformation";
 import { createInferRelation } from "../generators/infer-relation";
 import { createOddestRelation } from "../generators/oddest-relation";
 import { createShapeRotation } from "../generators/shape-rotation";
+import { createRelationalWeb } from "../generators/relational-web";
 import { GeneratorContext } from "../generators/context";
 
 /**
@@ -266,6 +267,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.InferRelation]: () => createInferRelation(this, numOfPremises),
             [EnumQuestionType.OddestRelation]: () => createOddestRelation(this, numOfPremises),
             [EnumQuestionType.ShapeRotation]: () => createShapeRotation(this, numOfPremises),
+            [EnumQuestionType.RelationalWeb]: () => createRelationalWeb(this, numOfPremises),
         }[questionType];
 
         if (!creator) return creator;
