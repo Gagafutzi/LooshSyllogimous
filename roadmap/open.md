@@ -1,11 +1,7 @@
 # Open
 
-One thing is. Everything else specced in this file has been built or
-deliberately settled as unnecessary.
-
-| | why it is still here |
-|---|---|
-| **Pricing width into difficulty** ([5](#5-realized-width-as-a-difficulty-axis--partly-done)) | the dial and the fit both exist; the coefficient needs answered items with the dial off its default to fit against. Blocked on play, not on design. |
+Nothing is. Everything specced in this file has been built, or deliberately
+settled as unnecessary with the reasoning recorded.
 
 The rest of this file is kept as the record of what was decided and why,
 including the parts that turned out differently from the plan. Those are the
@@ -212,7 +208,7 @@ Weight 2.1 per point with a ceiling of six: each point is a coordinate pair to
 check rather than one relation to append, and the work is finding a rule rather
 than following one, so a four-point item is nothing like a four-premise chain.
 
-### 5. Realized width as a difficulty axis — **DONE** bar the fitted coefficient
+### 5. Realized width as a difficulty axis — **DONE**
 
 **Measurement done** (`ndWidth`, `ndLiveAxes` in `ndspace.utils.ts`); the dial and
 its calibration are not.
@@ -304,10 +300,28 @@ objects:
 The named axis moves by more than half a bit while the rest sit still, which is
 what makes "temporal width" mean something other than "width".
 
-**The coefficient is now fittable, and reported rather than guessed.** Realized
-width is logged per answered item as a departure from its batch's median, and
-`fitWidthCoefficient` estimates levels-per-bit on Diagnostics beside the rung
-costs.
+**The coefficient is now measured, fitted and applied.** Realized width is logged
+per answered item as a departure from its batch's median, fitted from those
+answers, and charged into `levelOf` — so an item that came out wide is scored as
+the harder item it was rather than as a typical one.
+
+That needed the data to exist, which the median-only draw guaranteed it never
+would: with every item at the same percentile the width never varies, no amount
+of play can say what width is worth, and the model is permanently stuck with a
+blank where the term should be. Draws are now jittered across a twenty-to-eighty
+band. Measured at 4D with six objects, width sd goes 0.34 → 0.48 against 0.80
+for the unmanaged draw this replaced, and the departure from the median — what
+a fit actually sees — lands at 0.28–0.49 across dimensions.
+
+**And the trade reverses once it pays off.** Variation the model can account for
+is information; variation it cannot is noise. While the coefficient is unfitted
+the band costs a little; the moment it is fitted, the same variation is read
+rather than absorbed into the ability estimate.
+
+Zero means *unpriced*, not *free*, and stays zero until there is evidence — the
+same rule the rung costs follow. A fit that comes back negative, saying wide
+items are *easier*, is a statement about the sample rather than about width and
+is discarded rather than acted on.
 
 Fitted by **maximum likelihood, not by the mean-accuracy match the rung costs
 use** — and the difference is worth recording, because the first attempt used

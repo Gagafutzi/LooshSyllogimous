@@ -167,6 +167,18 @@
                 {{ widthFit.levelsPerBit.toFixed(2) }} levels per bit,
                 from {{ widthFit.trials }} answers (spread sd
                 {{ widthFit.sd.toFixed(2) }} bits).
+                <div [class.text-muted]="!widthApplied">
+                    <strong>{{ widthApplied ? "Being applied" : "Not applied" }}</strong>
+                    &mdash;
+                    <span *ngIf="widthApplied">
+                        charging {{ widthApplied.toFixed(2) }} levels per bit, so an
+                        item that comes out wide is scored as the harder item it was.
+                    </span>
+                    <span *ngIf="!widthApplied">
+                        a fit that runs backwards is a statement about the sample
+                        rather than about width, so it is discarded rather than acted on.
+                    </span>
+                </div>
             </div>
             <ng-template #noWidthFit>
                 <div class="text-muted">

@@ -256,6 +256,18 @@ export interface AbilityConfig {
     decayPerDay: number;
     /** Never widen past this; total ignorance is still bounded. */
     maxDecaySd: number;
+
+    /**
+     * Levels of difficulty per bit of width above a configuration's typical.
+     *
+     * Zero by default, which means *unpriced* rather than *free*: nothing in
+     * this table is allowed to be a guess about a quantity nobody has measured.
+     * `ProgressionService` replaces it with a fitted value once enough answered
+     * items carry enough variation to fit against, and leaves it at zero until
+     * then — so an item that came out wide is scored as wide only when there is
+     * evidence for how much that is worth.
+     */
+    widthPerBit: number;
 }
 
 export const DEFAULT_ABILITY: AbilityConfig = {
@@ -272,6 +284,7 @@ export const DEFAULT_ABILITY: AbilityConfig = {
     maxSeconds: 180,
 
     caution: 0.9,
+    widthPerBit: 0,
     crossModeSd: 2.5,
     // ~15 days from a settled estimate to knowing very little. The mean is
     // preserved throughout, so a returning player is served items at the same
@@ -288,6 +301,16 @@ export interface ItemSpec {
     rungs: string[];
     /** Deadline in seconds, or null for untimed. */
     seconds: number | null;
+    /**
+     * Bits wider or narrower than typical for this configuration.
+     *
+     * Absent when choosing a configuration, because the layout has not been
+     * drawn yet and there is nothing to know. Present when *scoring* one, which
+     * is where it matters: the item that arrived was harder or easier than the
+     * one that was asked for, and the answer should be read against what
+     * actually turned up.
+     */
+    widthDelta?: number;
 }
 
 /** Difficulty of a configuration, in linear-equivalent premises. */
@@ -295,7 +318,13 @@ export function levelOf(spec: ItemSpec, config = DEFAULT_ABILITY): number {
     const weight = MODE_SCALE[spec.type]?.weight ?? 1;
     const structural = weight * spec.premises
         + spec.rungs.reduce((a, r) => a + (RUNG_COST[r] ?? 0.8), 0);
-    return structural + timeCost(spec.seconds, config);
+    /*
+     * Width, once it has been measured. Zero until then, and zero for every
+     * mode that has no such quantity, so this is a no-op rather than a guess
+     * wherever it has nothing to say.
+     */
+    const width = config.widthPerBit * (spec.widthDelta ?? 0);
+    return structural + width + timeCost(spec.seconds, config);
 }
 
 /**

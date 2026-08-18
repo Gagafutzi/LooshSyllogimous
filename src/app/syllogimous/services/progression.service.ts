@@ -171,7 +171,12 @@ export class ProgressionService {
      * variation for a coefficient to explain.
      */
     fittedWidthCoefficient() {
-        return fitWidthCoefficient(this.trials(), this.abilityConfig);
+        return fitWidthCoefficient(this.trials(), { ...this.abilityConfig, widthPerBit: 0 });
+    }
+
+    /** What the model is currently charging per bit — zero until fitted. */
+    appliedWidthPerBit(): number {
+        return this.widthPerBit;
     }
 
     /* ---------------- config ---------------- */
@@ -202,7 +207,61 @@ export class ProgressionService {
             maxSeconds: this.config.ceilingSeconds,
             crossModeSd: this.config.crossModeSd,
             decayPerDay: this.config.decayPerDay,
+            widthPerBit: this.widthPerBit,
         };
+    }
+
+    /* ---------------- what width is worth ---------------- */
+
+    private widthFitCache: { at: number; value: number } | null = null;
+
+    /**
+     * Levels per bit of width, from the answers, or zero.
+     *
+     * Zero means *unpriced*, not *free*. Until the answered items carry enough
+     * variation to fit against, the difficulty scale says nothing about width
+     * rather than guessing — which is the same rule the rung costs follow, and
+     * the reason this was the last number in the model with no basis.
+     *
+     * Refitted every fifty answers rather than on every one. The fit scans the
+     * whole trial log against a grid, which is cheap in absolute terms and
+     * pointless to repeat after a single new data point.
+     */
+    private get widthPerBit(): number {
+        const trials = this.trialCount();
+        if (this.widthFitCache && trials - this.widthFitCache.at < 50) {
+            return this.widthFitCache.value;
+        }
+
+        const fit = fitWidthCoefficient(this.trials(), {
+            // Fitted against a scale that does not already contain the term
+            // being fitted, or the estimate chases its own tail.
+            ...DEFAULT_ABILITY,
+            minSeconds: this.config.floorSeconds,
+            maxSeconds: this.config.ceilingSeconds,
+            widthPerBit: 0,
+        });
+
+        /*
+         * Clamped, and negative fits discarded. A fit that says wide items are
+         * *easier* is telling you the sample is noise rather than telling you
+         * something about width, and acting on it would make the model worse in
+         * a way that compounds.
+         */
+        const value = fit ? Math.max(0, Math.min(6, fit.levelsPerBit)) : 0;
+        this.widthFitCache = { at: trials, value };
+        return value;
+    }
+
+    /** Cheap length probe, so the cache check does not parse the whole log. */
+    private trialCount(): number {
+        try {
+            const raw = localStorage.getItem(LS_TRIALS);
+            if (!raw) return 0;
+            // One object per trial; counting braces beats parsing to find out
+            // whether a refit is even due.
+            return (raw.match(/\}/g) ?? []).length;
+        } catch { return 0; }
     }
 
     /* ---------------- per-mode posteriors ---------------- */
@@ -569,11 +628,20 @@ export class ProgressionService {
     ): LadderEvent[] {
         if (!this.config.enabled) { this.lastEvents = []; return []; }
 
+        /*
+         * Scored against the item that actually arrived.
+         *
+         * The configuration says how hard the item was *asked* to be; its width
+         * says how hard it came out. Reading the answer against the request
+         * would credit a wide item as though it were typical, which is the
+         * mismeasurement the width work exists to remove.
+         */
         const before = this.configFor(type);
         const level = levelOf({
             type, premises: before.premises,
             rungs: ladderFor(type).slice(0, before.rungs),
             seconds: before.seconds,
+            widthDelta: item?.widthDelta ?? 0,
         }, this.abilityConfig);
 
         const guess = guessRateFor(

@@ -117,11 +117,13 @@ export class DiagnosticsComponent {
     trialCount = 0;
 
     widthFit: WidthFit | null = null;
+    widthApplied = 0;
 
     loadRungFits() {
         this.trialCount = this.progression.trials().length;
         this.rungFits = this.progression.fittedRungCosts();
         this.widthFit = this.progression.fittedWidthCoefficient();
+        this.widthApplied = this.progression.appliedWidthPerBit();
     }
 
     /* ---------------- progression simulation ---------------- */

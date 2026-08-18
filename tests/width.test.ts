@@ -153,3 +153,124 @@ test("with every item at the calibrated middle, the fit declines to guess", () =
     const few = seeded(99, () => fitWidthCoefficient(syntheticTrials(1.5, 40, 1.2), DEFAULT_ABILITY));
     assert(few === null, "a coefficient was reported from forty answers");
 });
+
+/* ---------------- the loop, closed ---------------- */
+
+import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
+
+/**
+ * Measure, fit, apply — checked as one loop rather than three parts.
+ *
+ * Each piece passing on its own says nothing about whether the thing works: the
+ * jitter could produce variation the fit cannot use, or the fit could produce a
+ * coefficient nothing reads. What matters is whether a player's ability comes
+ * out *right* in a world where width genuinely costs something, and that is
+ * only visible end to end.
+ *
+ * So this plays a synthetic player through the real service. Their ability is
+ * fixed and known; each item's true difficulty includes a width term the
+ * service has never been told about; answers are drawn from the psychometric
+ * function at that difficulty. If width goes unpriced, the posterior has to
+ * explain the width-driven variation as ability and lands wide of the mark.
+ */
+function play(service: ProgressionService, opts: {
+    trueWidthCost: number;
+    ability: number;
+    items: number;
+    spreadSd: number;
+}) {
+    const type = EnumQuestionType.Space4D;
+
+    for (let i = 0; i < opts.items; i++) {
+        const chosen = service.configFor(type);
+        // Deterministic sweep of the band, standing in for the jittered draw.
+        const widthDelta = ((i % 7) - 3) / 3 * opts.spreadSd;
+
+        const asked = levelOf({
+            type, premises: chosen.premises,
+            rungs: [], seconds: chosen.seconds,
+        }, DEFAULT_ABILITY);
+        const actual = asked + opts.trueWidthCost * widthDelta;
+
+        const correct = Math.random() < pCorrect(DEFAULT_ABILITY, opts.ability, actual, 0.5);
+        service.record(type, correct ? "right" : "wrong", 10, { widthDelta });
+    }
+
+    return service.estimateFor(type).level;
+}
+
+test("width priced from play, and the estimate is better for it", () => {
+    const TRUE_COST = 2.5;
+    const ABILITY = 9;
+
+    const withWidth = seeded(20261, () => {
+        localStorage.clear();
+        const service = new ProgressionService();
+        const level = play(service, {
+            trueWidthCost: TRUE_COST, ability: ABILITY, items: 700, spreadSd: 0.45,
+        });
+        return { level, perBit: service.appliedWidthPerBit() };
+    });
+
+    assert(withWidth.perBit > 0,
+        "seven hundred varied answers produced no coefficient at all");
+    assert(Math.abs(withWidth.perBit - TRUE_COST) < 1.5,
+        `charged ${withWidth.perBit.toFixed(2)} per bit against a true ${TRUE_COST}`);
+
+    // The point of pricing it: the ability estimate stops absorbing width.
+    const blind = seeded(20261, () => {
+        localStorage.clear();
+        const service = new ProgressionService();
+        // Same world, but the width is never reported, so nothing can price it.
+        const type = EnumQuestionType.Space4D;
+        for (let i = 0; i < 700; i++) {
+            const chosen = service.configFor(type);
+            const widthDelta = ((i % 7) - 3) / 3 * 0.45;
+            const asked = levelOf({
+                type, premises: chosen.premises, rungs: [], seconds: chosen.seconds,
+            }, DEFAULT_ABILITY);
+            const correct = Math.random()
+                < pCorrect(DEFAULT_ABILITY, ABILITY, asked + TRUE_COST * widthDelta, 0.5);
+            service.record(type, correct ? "right" : "wrong", 10, {});
+        }
+        return service.estimateFor(type).level;
+    });
+
+    localStorage.clear();
+
+    assert(Math.abs(withWidth.level - ABILITY) <= Math.abs(blind - ABILITY) + 0.5,
+        `pricing width made the estimate worse: ${withWidth.level.toFixed(2)}`
+        + ` against ${blind.toFixed(2)}, true ${ABILITY}`);
+});
+
+test("an unmeasured world is charged nothing, not something", () => {
+    /*
+     * The rule the rest of the difficulty table follows. A blank is honest; a
+     * number nobody measured is not, and would compound — every answer would
+     * then be read against a scale containing a guess.
+     */
+    const perBit = seeded(4001, () => {
+        localStorage.clear();
+        const service = new ProgressionService();
+        // Every item at the calibrated middle, so there is nothing to learn.
+        play(service, { trueWidthCost: 2.5, ability: 9, items: 400, spreadSd: 0 });
+        return service.appliedWidthPerBit();
+    });
+    localStorage.clear();
+
+    assert(perBit === 0, `charged ${perBit} per bit with no variation to learn from`);
+});
+
+test("a nonsensical fit is discarded rather than applied", () => {
+    // A fit saying wide items are *easier* is a statement about the sample, not
+    // about width, and acting on it would make the model worse as it went.
+    const perBit = seeded(919, () => {
+        localStorage.clear();
+        const service = new ProgressionService();
+        play(service, { trueWidthCost: -3, ability: 9, items: 500, spreadSd: 0.45 });
+        return service.appliedWidthPerBit();
+    });
+    localStorage.clear();
+
+    assert(perBit === 0, `charged ${perBit} per bit from a fit that ran backwards`);
+});
