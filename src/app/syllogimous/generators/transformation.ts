@@ -9,10 +9,11 @@ import { GeneratorContext } from "./context";
 import { extraTransforms } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
-import { CoordMap, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
+import { CoordMap, SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
 import { scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
+import { hi, subj } from "../utils/phrasing";
 
 export function createTransformation(ctx: GeneratorContext, numOfPremises: number) {
     ctx.logger.info("createTransformation");
@@ -127,8 +128,65 @@ export function createTransformation(ctx: GeneratorContext, numOfPremises: numbe
             ctx.settingsOverrideService.scramble);
         question.conclusion = conclusion.text;
         question.isValid = conclusion.isValid;
+        question.explanation = explainTransformation(x, y, names, initial, transforms, axes[0]);
         return question;
     }
 
     throw new Error("Cannot generate.");
+}
+
+/**
+ * A coordinate trace, the same shape as Anchor Space v2's.
+ *
+ * A path through the premises cannot work in a mode whose premises rewrite the
+ * arrangement: the offset a layout premise states stops holding the moment a
+ * transform moves one of its ends, so a walk would derive the starting relation
+ * and present it as the answer. Positions are replayed instead, and only the
+ * steps that actually move one of the two queried objects are shown — the rest
+ * are there to be read and dismissed.
+ *
+ * Coordinates are stated relative to the first object, since that is all the
+ * premises determine: they chain offsets, so the arrangement is fixed only up
+ * to where the chain is pinned. Shifting the whole frame is safe because every
+ * operation here is defined against a pivot that shifts with it — a mirror, a
+ * scaling or a rotation about a moved pivot gives the same result moved by the
+ * same amount — so the trace is the same arrangement in readable numbers.
+ */
+function explainTransformation(
+    x: string,
+    y: string,
+    names: string[],
+    initial: CoordMap,
+    transforms: Transform[],
+    axis: number,
+): string[] {
+    const root = names[0];
+    const origin = initial[root];
+    const zeroed: CoordMap = {};
+    for (const n of names) zeroed[n] = initial[n].map((v, i) => v - origin[i]);
+
+    const [pos, neg] = SPATIAL_VOCAB.axisWords[axis];
+    const place = (v: number) =>
+        v === 0 ? `level with ${subj(root)}` : `${Math.abs(v)} ${v > 0 ? pos : neg} of ${subj(root)}`;
+
+    const lines: string[] = [
+        `${subj(x)} starts ${hi(place(zeroed[x][axis]))}`,
+        `${subj(y)} starts ${hi(place(zeroed[y][axis]))}`,
+    ];
+
+    let at = zeroed;
+    for (let i = 0; i < transforms.length; i++) {
+        const next = replay(zeroed, transforms.slice(0, i + 1));
+        const moved = [x, y].filter(n => next[n][axis] !== at[n][axis]);
+        if (moved.length) {
+            lines.push(`${describeTransform(transforms[i])} \u2014 `
+                + moved.map(n => `${subj(n)} is now ${hi(place(next[n][axis]))}`).join(", "));
+        }
+        at = next;
+    }
+
+    const delta = at[y][axis] - at[x][axis];
+    lines.push(`so ${subj(y)} ends up ${hi(delta > 0 ? pos : neg)} of ${subj(x)}`
+        + ` \u2014 ${Math.abs(delta)} apart.`);
+    return lines;
 }

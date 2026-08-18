@@ -171,3 +171,53 @@ test("how many modes explain themselves", () => {
     console.log(`       ${covered.length}/${MODES.length} modes derive: ${covered.join(", ")}`);
     assert(covered.length >= 14, `only ${covered.length} modes explain themselves`);
 });
+
+/**
+ * The coordinate traces have to agree with the answer, not just avoid naming
+ * the wrong objects.
+ *
+ * Transformation and Anchor Space v2 are the two modes whose premises *change*
+ * the arrangement rather than describe it, so their derivations replay
+ * positions instead of walking premises. That is a second implementation of the
+ * same arithmetic the generator used to decide the answer, and two
+ * implementations are exactly the thing that drifts. If the trace ends on a
+ * direction the conclusion contradicts, one of them is wrong.
+ */
+test("a replayed trace ends where the answer says it does", () => {
+    const OPPOSITE: Record<string, string> = {
+        east: "west", west: "east",
+        north: "south", south: "north",
+        above: "below", below: "above",
+    };
+
+    const traced: Array<[EnumQuestionType, (c: GeneratorContext, n: number) => Question]> = [
+        [EnumQuestionType.Transformation, createTransformation],
+        [EnumQuestionType.AnchorSpaceV2, createAnchorSpaceV2],
+    ];
+
+    for (const [type, make] of traced) {
+        const premises = QUESTION_TYPE_SETTING_PARAMS[type].minNumOfPremises + 1;
+        let checked = 0;
+
+        for (let run = 0; run < 30; run++) {
+            const q = seeded(run * 3307 + 41, () => make(context(), premises));
+            if (!q.explanation.length) continue;
+
+            const plain = (s: string) => s.replace(/<[^>]+>/g, "");
+            const conclusion = plain(String(q.conclusion));
+            const closing = plain(q.explanation[q.explanation.length - 1]);
+
+            const claimed = Object.keys(OPPOSITE).find(w => new RegExp(`\\b${w}\\b`).test(conclusion));
+            const derived = Object.keys(OPPOSITE).find(w => new RegExp(`\\b${w}\\b`).test(closing));
+            if (!claimed || !derived) continue;
+
+            const agrees = q.isValid ? derived === claimed : derived === OPPOSITE[claimed];
+            assert(agrees,
+                `${type}: the item is ${q.isValid ? "true" : "false"} and claims "${claimed}",`
+                + ` but the trace ends on "${derived}"\n  ${closing}`);
+            checked++;
+        }
+
+        assert(checked > 5, `${type}: only ${checked} traces were checkable`);
+    }
+});
