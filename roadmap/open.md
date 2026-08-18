@@ -256,7 +256,7 @@ Eleven are specced below. In rough cost order:
 | ~~P1 facing space~~ | **built** — rung `facing`, `utils/facing.utils.ts` |
 | ~~P2 knights and knaves~~ | **built** as a mode — the speaker *modifier* is still open |
 | ~~P8 boolean concepts~~ | **settled** — it is P11 with the question reversed; rung `state-rule` |
-| [P4 graph matching extended](#p4-graph-matching-extended) | edit distance is the hard part |
+| ~~P4 graph matching extended~~ | **built** — `which-differs` and `distance` rungs; the over-other-modes half is open |
 | ~~Relational Web~~ | **built** — `generators/relational-web.ts`, `utils/web.utils.ts` |
 | **Set Hierarchy syllogism** | quantified set logic over proof networks; also never built |
 
@@ -446,32 +446,46 @@ differently and a false premise has to stay consistent with a layout the
 generator already committed to. Worth doing, but it is per-mode work rather than
 one wrapper.
 
-## P4. Graph matching, extended
+## P4. Graph matching, extended — **DONE** (two of three), `utils/graphdist.utils.ts`
 
-**More than two graphs.** "Are all three isomorphic?" or, better, "which one
-differs?" — the latter is a natural choice-mode item and the UI for that already
-exists.
+**More than two graphs — built**, rung `which-differs`. Three or four groups,
+one not isomorphic to the rest, answered by choice. Which one differs is
+established with `oddGraphOut` rather than assumed from which one was perturbed:
+a change can land somewhere the relabelling makes equivalent, in which case the
+intended odd one out matches after all and the item has no answer — or two of
+them differ and it has several. `oddGraphOut` returns null for both, and the
+attempt is discarded.
 
-**Over other modes.** Build the two graphs out of *relational premises* rather
-than abstract edges: one given as spatial relations, one as temporal, and the
-question is whether the two relation-structures match. Pure composition of parts
-already built.
+**Edit distance to isomorphism — built**, rung `distance`. Minimum over all
+vertex bijections of the number of disagreeing pairs, capped at eight nodes
+(40,320 bijections) and returning null rather than nought past it — a silent
+zero would read as a claim of isomorphism, which is the one wrong answer a cap
+must not produce.
 
-**Edit distance to isomorphism** — "would swapping *k* relations make these
-identical?" You flagged this as possibly hard mathematically, and that instinct
-is right: graph edit distance is NP-hard in general, and isomorphism itself is
-not known to be in P. But at the sizes in play it is brute-forceable — minimum
-over all `n!` vertex bijections of the edge mismatch count, which is 40,320
-bijections at n = 8 and fine, then unusable by n = 11.
+A pair is collapsed to a single state (nothing / one way / the other way / both)
+rather than two directed slots, so reversing an edge costs one change rather
+than two, which is what a reader would count.
 
-The trap worth writing down now: **applying k swaps does not mean the distance
-is k.** Swaps can partially cancel, or another bijection can do better. So the
-generator must *search* for the true minimum rather than assume the number it
-used — otherwise it will confidently mark correct answers wrong. Cap node count
-explicitly.
+**The trap this file flagged is much larger than it sounds.** "Applying *k*
+swaps does not mean the distance is *k*" — measured over 2,000 pairs at five
+nodes:
 
+| edits applied | true distance was lower |
+|---|---|
+| 1 | 37% |
+| 2 | 75% |
+| 3 | 98% |
 
----
+A generator trusting its own edit count would be wrong more often than right. It
+is searched for every time, and the test that matters is the one asserting the
+edit count and the distance genuinely disagree — if they never did, the search
+would be unnecessary and the module pointless.
+
+**Over other modes — still open.** Building the two graphs out of relational
+premises, one spatial and one temporal, is composition of parts already built,
+but it is per-mode work: each mode would have to expose its layout as an edge
+list. Cheaper now that [Nested Spaces](#p7-nested-spaces--done-generatorsnestedts)
+exists, which already states two independent structures over one object set.
 
 ## P8. Boolean concept learning — **SETTLED**, as a presentation of P11
 

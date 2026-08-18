@@ -93,11 +93,14 @@ export function stepSizes(config: ProgressionConfig) {
 /**
  * Whether length is still an honest way to add difficulty here.
  *
- * A mode with an empty ladder — Graph Matching honours neither negation nor
- * meta, so it has nothing to claim — would otherwise climb to twenty premises
- * on the only axis it has. Capping it says the true thing: this mode has run
- * out of difficulty to offer, and the answer is to give it rungs, not to make
+ * A mode with an empty ladder would otherwise climb to twenty premises on the
+ * only axis it has. Capping it says the true thing: this mode has run out of
+ * difficulty to offer, and the answer is to give it rungs rather than to make
  * its items longer.
+ *
+ * Graph Matching used to be the example here — it honours neither negation nor
+ * meta, so it had nothing to claim. It has rungs now, which is the answer this
+ * comment recommended.
  */
 export function premisesMayRise(premises: number, ladder: string[], config: ProgressionConfig): boolean {
     if (premises < config.structureBefore) return true;
@@ -305,7 +308,12 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * reason about by level, and one loop destroys that.
      */
     "Hierarchy":                 ["min-span-3", "cycles", "multi-conclusion", "choose-conclusion"],
-    "Graph Matching":            [],
+    /*
+     * Naming the odd one out among several is a comparison; counting the
+     * changes needed is a measurement, and strictly harder — you have to find
+     * the best matching rather than establish that none exists.
+     */
+    "Graph Matching":            ["which-differs", "distance"],
     "Analogy":                   ["negation", "meta"],
     "Binary":                    ["negation", "meta"],
     "Deictic Relations":         ["extra-reversal", "third-axis"],

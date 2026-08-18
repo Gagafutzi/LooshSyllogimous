@@ -26,5 +26,6 @@ import "./rungfit.test";
 import "./facing.test";
 import "./knaves.test";
 import "./nested.test";
+import "./graphdist.test";
 
 run();
