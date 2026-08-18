@@ -630,6 +630,38 @@ is word for word what `quantity` says.
 Worth knowing: the dimension palette guarantees six hues clear of the theme
 accent, so a seventh axis takes one nearer it than the rest.
 
+### Settings that existed but had no control — **DONE**
+
+An audit of every knob in the code against the controls that reach it turned up
+seven gaps, all now on the Customise page.
+
+**Per-mode rungs.** The tri-state Ladder/Off/On covered the scale family only,
+where a modifier means the same thing in all five modes. Ten others belonged to
+one mode each and could only ever be *earned*: `structural` (Relational Web),
+`extra-reversal` and `third-axis` (Deictic), `min-span-3` and `cycles`
+(Hierarchy), `rank` (Oddest Relation), and the transform depths. The item they
+produce existed and nothing reached it.
+
+Generalising it moved the precedence rule onto the context: generators now ask
+`ctx.hasRung(type, rung)`, which is an explicit setting first and the ladder
+otherwise, instead of asking the progression service directly. A test asserts
+every rung without a family flag is forceable, so a new mode that adds one and
+forgets a control fails rather than shipping another unreachable feature.
+
+`rank` in particular was reachable only by ticking "Build the conclusion" — a
+flag named for a different family. It has its own control now.
+
+**The training-unit knobs** — unit length and the two thresholds — drive premise
+movement whenever fluid progression is off, and had a reader but no writer:
+settable by editing storage and nothing else. **`floorSeconds`** had a control
+for its ceiling but not its floor. **Skip-all-tutorials** was reachable only from
+a tutorial screen, which is no use once they are all skipped.
+
+**The stimulus mix** needed a generator change rather than a control. Enabled
+kinds took an equal share, so "words with the occasional emoji" could not be
+asked for — turning emoji on made half the stimuli emoji. Each kind now carries
+a weight, and zero means the same as off.
+
 ### Cosmetic
 
 - Start screen: daily/weekly goal bars clip their labels (monospace is wider than

@@ -72,7 +72,7 @@ export function createHierarchy(ctx: GeneratorContext, numOfPremises: number): Q
 /** Which structural modifiers this mode's ladder has earned. */
 export function hierarchyFeatures(ctx: GeneratorContext) {
     const type = EnumQuestionType.Hierarchy;
-    const ladder = (r: string) => ctx.progressionService.hasRung(type, r);
+    const ladder = (r: string) => ctx.hasRung(type, r);
     const forced = <K extends keyof LinearFeatureFlags>(k: K) =>
         ctx.settingsOverrideService.linearOverride(k);
 

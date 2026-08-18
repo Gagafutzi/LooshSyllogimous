@@ -194,6 +194,11 @@ export class Settings {
         );
     }
 
+    setMix(kind: string, weight: number) {
+        this.enabled.stimulusMix = { ...this.enabled.stimulusMix, [kind]: weight };
+        return this;
+    }
+
     setEnable(prop: "useEmojis" | "meaningfulWords" | "meta" | "negation" | "visualNoise" | "junkEmojis" | "useText", value: boolean) {
         this.enabled[prop] = value;
         return this;

@@ -95,6 +95,34 @@ export class ProgressAndPerformanceService {
         return weeklyTotal;
     }
 
+    /**
+     * Write the thresholds the training unit moves premises on.
+     *
+     * Only a reader existed: the three values were settable by editing storage
+     * and nothing else, which for a system that silently owns the premise count
+     * whenever fluid progression is off is a setting in name only.
+     */
+    setTrainingUnitSettings(patch: {
+        trainingUnitLength?: number;
+        premisesUpThreshold?: number;
+        premisesDownThreshold?: number;
+    }) {
+        try {
+            if (patch.trainingUnitLength != null) {
+                localStorage.setItem(LS_TRAINING_UNIT_LENGTH,
+                    String(Math.max(4, Math.min(40, patch.trainingUnitLength))));
+            }
+            if (patch.premisesUpThreshold != null) {
+                localStorage.setItem(LS_PREMISES_UP_THRESHOLD,
+                    String(Math.max(0.5, Math.min(1, patch.premisesUpThreshold))));
+            }
+            if (patch.premisesDownThreshold != null) {
+                localStorage.setItem(LS_PREMISES_DOWN_THRESHOLD,
+                    String(Math.max(0.1, Math.min(0.9, patch.premisesDownThreshold))));
+            }
+        } catch { /* private mode */ }
+    }
+
     getTrainingUnitSettings() {
         const trainingUnitLengthLS = localStorage.getItem(LS_TRAINING_UNIT_LENGTH);
         const trainingUnitLength = Number(trainingUnitLengthLS) || DEFAULT_TRAINING_UNIT_LENGTH;

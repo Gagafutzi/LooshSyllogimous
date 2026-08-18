@@ -35,6 +35,16 @@ export interface GeneratorContext {
     forceConstruction: "off" | "direction" | "distance";
 
     /**
+     * Whether a mode has a modifier, forced or earned.
+     *
+     * The precedence rule in one place: an explicit per-mode setting wins,
+     * otherwise the ladder decides. Generators asked `progressionService`
+     * directly before, which meant a rung could only ever be earned — several
+     * modifiers existed that no amount of configuring could switch on.
+     */
+    hasRung(type: string, rung: string): boolean;
+
+    /**
      * Which syllogism algorithm the player picked.
      *
      * The last thing a generator reached past its context for: `createSyllogism`

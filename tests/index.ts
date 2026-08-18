@@ -16,6 +16,7 @@ import "./derivation.test";
 import "./fatigue.test";
 import "./profiles.test";
 import "./keybind.test";
+import "./customise.test";
 import "./map.test";
 import "./web.test";
 

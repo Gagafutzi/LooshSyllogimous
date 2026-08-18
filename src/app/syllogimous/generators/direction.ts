@@ -193,7 +193,7 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
          *   both wrong                         weight 1
          */
         const deliberate = ctx.settingsOverrideService.linearOverride("incorrectDirections")
-            ?? ctx.progressionService.hasRung(type, "incorrect-directions");
+            ?? ctx.hasRung(type, "incorrect-directions");
 
         const rndIdx = Math.floor(Math.random() * conclusion.cardinals.length);
         const before = conclusion.cardinals.map(c => [c[0], c[1]] as [string, number]);

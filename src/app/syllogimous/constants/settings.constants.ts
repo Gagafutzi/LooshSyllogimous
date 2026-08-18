@@ -297,6 +297,13 @@ export const DEFAULT_ENABLED_FLAGS = {
     useEmojis: false,
     visualNoise: false,
     junkEmojis: false,
+    /**
+     * Relative share of each stimulus kind, when more than one is on.
+     *
+     * Absent or 1 means an equal share, which is what enabling two kinds used
+     * to force; zero is off.
+     */
+    stimulusMix: {} as Record<string, number>,
     meaningfulWords: true,
     meta: true,
     negation: true,

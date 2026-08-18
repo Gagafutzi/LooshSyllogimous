@@ -1,5 +1,7 @@
 import { Component, Input } from "@angular/core";
 import { LinearFeatureFlags, SettingsOverrideService } from "../../services/settings-override.service";
+import { ORDERED_QUESTION_TYPES } from "../../constants/game.constants";
+import { ladderFor } from "../../utils/progression.utils";
 import {
     AXIS_CHOICES, AXIS_ORDERINGS, AxisOrdering, axesForDimensions, axisWordConflicts,
     ndAxisColors, reorderAxisIds,
@@ -27,6 +29,54 @@ type LinearToggle = Exclude<keyof LinearFeatureFlags, "transforms" | "edits">;
 })
 export class ModeModifiersComponent {
     @Input() enabled = true;
+
+    /* ---- per-mode rungs ---- */
+
+    /**
+     * Rungs the family flags above do not already cover.
+     *
+     * Listing every rung would put two controls on one setting for the scale
+     * modes, where "branching" is both a rung and a family flag. These are the
+     * ones that had no control at all: earned or nothing.
+     */
+    private static readonly COVERED = new Set([
+        "negation", "meta", "branching", "overlap", "compact", "analogy",
+        "multi-conclusion", "choose-conclusion", "construct-conclusion",
+        "construct-distance", "wide-premises", "incorrect-directions",
+        "transform-1", "transform-2", "edit-1", "edit-2", "circular", "circular-2",
+    ]);
+
+    /** Every mode that has a rung worth showing, with those rungs. */
+    rungRows = ORDERED_QUESTION_TYPES
+        .map(type => ({
+            type,
+            rungs: ladderFor(type).filter(r => !ModeModifiersComponent.COVERED.has(r)),
+        }))
+        .filter(row => row.rungs.length > 0);
+
+    rungOf(type: string, rung: string): boolean | null {
+        return this.overrides.state.rungs?.[type]?.[rung] ?? null;
+    }
+
+    setRung(type: string, rung: string, value: boolean | null) {
+        this.overrides.setRung(type, rung, value);
+    }
+
+    /** Rung names are kebab ids; this is what they are called out loud. */
+    rungLabel(rung: string) {
+        return ({
+            "structural": "Structural matching — no counting arrows",
+            "rank": "Rank every candidate, not just the furthest",
+            "extra-reversal": "A second reversal",
+            "third-axis": "A third axis",
+            "min-span-3": "Longer routes",
+            "cycles": "Cycles in the hierarchy",
+            "180": "Backtracking arrangements",
+            "reaches": "Reachability, not just direct links",
+            "transform-depth-1": "One extra transformation",
+            "transform-depth-2": "Two extra transformations",
+        } as Record<string, string>)[rung] ?? rung;
+    }
 
     get scramble() { return this.overrides.state.scrambleFactor ?? 100; }
 

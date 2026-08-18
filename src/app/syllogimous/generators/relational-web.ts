@@ -110,7 +110,7 @@ function attach(question: Question, left: Web, right: Web, highlight?: number) {
  * answers it without looking at the shape.
  */
 function buildMapping(ctx: GeneratorContext, question: Question, left: Web, n: number): boolean {
-    const structural = ctx.progressionService.hasRung(EnumQuestionType.RelationalWeb, "structural");
+    const structural = ctx.hasRung(EnumQuestionType.RelationalWeb, "structural");
 
     const candidates = shuffle(Array.from({ length: n }, (_, i) => i));
     const v = candidates.find(node => {

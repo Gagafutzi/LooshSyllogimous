@@ -37,6 +37,7 @@ function context(structural = false): GeneratorContext {
         } as unknown as ProgressionService,
         forceConstruction: "off",
         syllogismGenerator: "canyon",
+        hasRung: (_t: string, r: string) => structural && r === "structural",
         random: () => { throw new Error("not needed"); },
     };
 }

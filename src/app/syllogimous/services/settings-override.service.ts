@@ -126,9 +126,21 @@ export interface OverrideState {
         meaningfulWords: boolean;
         visualNoise: boolean;
         junkEmojis: boolean;
+        stimulusMix: Record<string, number>;
     };
     linear: LinearFeatureFlags;
     space: SpaceOverrides;
+    /**
+     * Per-mode rung forcing: `rungs[type][rung]` true, false, or absent.
+     *
+     * The family flags above cover the scale modes, where a modifier means the
+     * same thing in all five. Everything else earned its modifiers one mode at
+     * a time and could only *earn* them — a Relational Web mapping item that
+     * cannot be identified by counting arrows, or a Deictic item on three axes,
+     * existed but was unreachable without grinding to the rung. This is the
+     * general form of the tri-state, and it is what the orphans use.
+     */
+    rungs: Record<string, Record<string, boolean>>;
     /** Saved configurations, in the order they were made. */
     profiles: Profile[];
     /** Which one is loaded, or "" for the unsaved working state. */
@@ -141,9 +153,10 @@ const DEFAULT_STATE: OverrideState = {
     active: false,
     scrambleFactor: 100,
     modes: {},
-    flags: { meta: true, negation: true, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false },
+    flags: { meta: true, negation: true, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false, stimulusMix: {} },
     linear: { ...DEFAULT_LINEAR_FEATURES },
     space: { axes: {}, circularAxes: null },
+    rungs: {},
     profiles: [],
     activeProfile: "",
 };
@@ -181,6 +194,9 @@ export class SettingsOverrideService {
             settings.setEnable("meaningfulWords", this.state.flags.meaningfulWords);
             settings.setEnable("visualNoise", this.state.flags.visualNoise);
             settings.setEnable("junkEmojis", this.state.flags.junkEmojis);
+            for (const [kind, weight] of Object.entries(this.state.flags.stimulusMix ?? {})) {
+                settings.setMix(kind, weight);
+            }
         } catch {
             /* fall through to whatever the tier produced */
         }
@@ -315,7 +331,12 @@ export class SettingsOverrideService {
         this.save();
     }
 
-    setFlag(key: keyof OverrideState["flags"], value: boolean) {
+    setMix(kind: string, weight: number) {
+        this.state.flags.stimulusMix = { ...(this.state.flags.stimulusMix ?? {}), [kind]: weight };
+        this.save();
+    }
+
+    setFlag(key: Exclude<keyof OverrideState["flags"], "stimulusMix">, value: boolean) {
         this.state.flags[key] = value;
         this.save();
     }
@@ -338,6 +359,25 @@ export class SettingsOverrideService {
     }
 
     /* ---- composed spaces ---- */
+
+    /* ---------------- per-mode rungs ---------------- */
+
+    /** Forced value for one mode's rung, or null to defer to the ladder. */
+    rungOverride(type: string, rung: string): boolean | null {
+        if (!this.live) return null;
+        const forced = this.state.rungs?.[type]?.[rung];
+        return forced === undefined ? null : forced;
+    }
+
+    setRung(type: string, rung: string, value: boolean | null) {
+        const all = { ...(this.state.rungs ?? {}) };
+        const mode = { ...(all[type] ?? {}) };
+        if (value === null) delete mode[rung];
+        else mode[rung] = value;
+        all[type] = mode;
+        this.state.rungs = all;
+        this.save();
+    }
 
     /** Forced loop count for N-D modes, or null to defer to the ladder. */
     circularAxes(): number | null {
@@ -423,6 +463,7 @@ export class SettingsOverrideService {
                     flags: { ...DEFAULT_STATE.flags, ...(parsed.flags ?? {}) },
                     linear: { ...DEFAULT_LINEAR_FEATURES, ...(parsed.linear ?? {}) },
                     space: { ...DEFAULT_SPACE, ...(parsed.space ?? {}), axes: parsed.space?.axes ?? {} },
+                    rungs: parsed.rungs ?? {},
                     modes: parsed.modes ?? {},
                     scrambleFactor: parsed.scrambleFactor ?? 100,
                     // Absent in states saved before profiles existed.

@@ -149,3 +149,37 @@
             </small>
         </div>
     </div>
+
+<!--
+  Per-mode modifiers.
+
+  Everything above is the scale family, where a modifier means the same thing
+  in all five modes. These belong to one mode each, and until now could only be
+  earned — the item they produce existed and no amount of configuring reached
+  it.
+-->
+<div class="card p-3 mb-3" [class.is-idle]="!enabled">
+    <h5 class="mb-1">Per-mode modifiers</h5>
+    <p class="text-muted small mb-3">
+        Earned on each mode's own ladder. <em>Ladder</em> leaves that alone.
+    </p>
+
+    <div class="axes" *ngFor="let row of rungRows">
+        <div class="axes__head"><strong>{{ row.type }}</strong></div>
+
+        <div class="lin" *ngFor="let rung of row.rungs">
+            <span class="lin__name">{{ rungLabel(rung) }}</span>
+            <span class="lin__tri" role="group" [attr.aria-label]="rungLabel(rung)">
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="rungOf(row.type, rung) === null"
+                        (click)="setRung(row.type, rung, null)">Ladder</button>
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="rungOf(row.type, rung) === false"
+                        (click)="setRung(row.type, rung, false)">Off</button>
+                <button type="button" class="btn btn-sm" [disabled]="!enabled"
+                        [class.is-on]="rungOf(row.type, rung) === true"
+                        (click)="setRung(row.type, rung, true)">On</button>
+            </span>
+        </div>
+    </div>
+</div>

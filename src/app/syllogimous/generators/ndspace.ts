@@ -158,7 +158,7 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
 
 /** Which structural modifiers are live for a composed space. */
 export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
-    const ladder = (r: string) => ctx.progressionService.hasRung(type, r);
+    const ladder = (r: string) => ctx.hasRung(type, r);
     const forced = <K extends keyof LinearFeatureFlags>(k: K) =>
         ctx.settingsOverrideService.linearOverride(k);
 

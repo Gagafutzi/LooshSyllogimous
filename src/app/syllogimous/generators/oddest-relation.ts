@@ -86,10 +86,14 @@ const capacity = (n: number) => Math.ceil(n / 2) - 1;
  * control means the same thing everywhere.
  */
 function ranking(ctx: GeneratorContext): boolean {
-    const forced = ctx.settingsOverrideService.linearOverride("constructConclusion");
-    return forced === null
-        ? ctx.progressionService.hasRung(EnumQuestionType.OddestRelation, "rank")
-        : !!forced;
+    /*
+     * Its own rung, not the scale family's "build the conclusion" flag.
+     *
+     * Borrowing that flag was the only way to force this before rungs could be
+     * set per mode, and it meant the control for ranking was a tickbox named
+     * for a different family — findable only by reading the source.
+     */
+    return ctx.hasRung(EnumQuestionType.OddestRelation, "rank");
 }
 
 export function createOddestRelation(ctx: GeneratorContext, numOfPremises: number): Question {

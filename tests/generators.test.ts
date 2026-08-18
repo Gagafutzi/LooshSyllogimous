@@ -66,6 +66,7 @@ function context(settings: Settings): GeneratorContext {
         } as unknown as ProgressionService,
         forceConstruction: "off",
         syllogismGenerator: "canyon",
+        hasRung: () => false,
         random: () => { throw new Error("no composed question available in this test"); },
     };
 }

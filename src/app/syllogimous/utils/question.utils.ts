@@ -80,18 +80,34 @@ function sampleN<T>(source: T[], n: number): T[] {
 export function getSymbols(settings: Settings) {
     const text = () => settings.enabled.meaningfulWords ? NOUNS : getStrings();
 
-    const kinds: string[][] = [];
-    if (settings.enabled.visualNoise) kinds.push(getVisualNoiseSymbols());
-    if (settings.enabled.junkEmojis) kinds.push(getJunkEmojiSymbols());
-    if (settings.enabled.useEmojis) kinds.push(getEmojis());
-    if (settings.enabled.useText) kinds.push(text());
+    /*
+     * Each kind contributes in proportion to its weight.
+     *
+     * Enabled kinds used to take an equal share, so "words with the occasional
+     * emoji" was not expressible: turning emoji on made half the stimuli emoji.
+     * A weight of zero is the same as switching the kind off, which keeps the
+     * checkbox and the slider from disagreeing.
+     */
+    const weights = settings.enabled.stimulusMix ?? {};
+    const kinds: Array<{ pool: string[]; weight: number }> = [];
+    const add = (on: boolean, key: string, pool: () => string[]) => {
+        const weight = weights[key] ?? 1;
+        if (on && weight > 0) kinds.push({ pool: pool(), weight });
+    };
+
+    add(settings.enabled.visualNoise, "visualNoise", getVisualNoiseSymbols);
+    add(settings.enabled.junkEmojis, "junkEmojis", getJunkEmojiSymbols);
+    add(settings.enabled.useEmojis, "useEmojis", getEmojis);
+    add(settings.enabled.useText, "useText", text);
 
     // Deselecting everything would leave nothing to build a question from.
     if (!kinds.length) return [...text()];
-    if (kinds.length === 1) return [...kinds[0]];
+    if (kinds.length === 1) return [...kinds[0].pool];
 
-    const per = Math.min(...kinds.map(k => k.length), 240);
-    return kinds.flatMap(k => sampleN(k, per));
+    const total = kinds.reduce((a, k) => a + k.weight, 0);
+    const budget = Math.min(...kinds.map(k => k.pool.length), 240) * kinds.length;
+    return kinds.flatMap(k => sampleN(k.pool,
+        Math.max(1, Math.min(k.pool.length, Math.round((k.weight / total) * budget)))));
 }
 
 export function getRandomSymbols(settings: Settings, length: number) {

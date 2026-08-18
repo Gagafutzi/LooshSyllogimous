@@ -6,6 +6,7 @@ import { ModeOverride, SettingsOverrideService } from "../../services/settings-o
 
 import { ProgressionService } from "../../services/progression.service";
 import { GameService } from "../../services/game.service";
+import { ProgressAndPerformanceService } from "../../services/progress-and-performance.service";
 import { EnumTiers, ORDERED_TIERS, TIER_SCORE_RANGES } from "../../constants/game.constants";
 import { ladderFor } from "../../utils/progression.utils";
 
@@ -38,6 +39,7 @@ export class AdvancedOptionsComponent {
         public overrides: SettingsOverrideService,
         public progression: ProgressionService,
         public game: GameService,
+        public progress: ProgressAndPerformanceService,
     ) { }
 
     /* ---- tier cheat (testing) ---- */
@@ -109,6 +111,22 @@ export class AdvancedOptionsComponent {
 
     resetLadders() { this.progression.resetAll(); }
 
+    /* ---- training units (the pre-progression adaptive system) ---- */
+
+    get unit() {
+        const s = this.progress.getTrainingUnitSettings();
+        return { length: s.trainingUnitLength, up: s.premisesUpThreshold, down: s.premisesDownThreshold };
+    }
+
+    setUnit(key: "length" | "up" | "down", raw: string) {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return;
+        this.progress.setTrainingUnitSettings(
+            key === "length" ? { trainingUnitLength: Math.round(n) }
+            : key === "up" ? { premisesUpThreshold: n }
+            : { premisesDownThreshold: n });
+    }
+
     /* ---- profiles ---- */
 
     newProfileName = "";
@@ -175,6 +193,26 @@ export class AdvancedOptionsComponent {
 
     setFlag(key: "meta" | "negation" | "useEmojis" | "meaningfulWords" | "visualNoise" | "junkEmojis" | "useText", value: boolean) {
         this.overrides.setFlag(key, value);
+    }
+
+    /* ---- stimulus mix ---- */
+
+    mixRows = [
+        { key: "useText", label: "Text" },
+        { key: "useEmojis", label: "Emoji" },
+        { key: "junkEmojis", label: "Junk shapes" },
+        { key: "visualNoise", label: "Visual noise" },
+    ];
+
+    /** Whether more than one kind is on, so a mix means anything. */
+    get mixMatters() {
+        return this.mixRows.filter(r => (this.flags as any)[r.key]).length > 1;
+    }
+
+    mixOf(kind: string) { return this.overrides.state.flags.stimulusMix?.[kind] ?? 1; }
+
+    setMix(kind: string, raw: string) {
+        this.overrides.setMix(kind, Math.max(0, Math.min(5, Number(raw) || 0)));
     }
 
     enabledCount() {

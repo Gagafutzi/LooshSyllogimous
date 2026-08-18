@@ -44,7 +44,7 @@ export function linearScaleFor(ctx: GeneratorContext, type: EnumQuestionType): L
  * and because there is otherwise no way to see these without climbing.
  */
 export function linearFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
-    const ladder = (r: string) => ctx.progressionService.hasRung(type, r);
+    const ladder = (r: string) => ctx.hasRung(type, r);
     const forced = <K extends keyof LinearFeatureFlags>(k: K) =>
         ctx.settingsOverrideService.linearOverride(k);
 

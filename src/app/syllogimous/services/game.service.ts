@@ -291,6 +291,12 @@ export class GameService implements GeneratorContext {
         };
     }
 
+    /** GeneratorContext: an explicit setting wins, else the ladder decides. */
+    hasRung(type: string, rung: string) {
+        return this.settingsOverrideService.rungOverride(type, rung)
+            ?? this.progressionService.hasRung(type as EnumQuestionType, rung);
+    }
+
     /** The GeneratorContext setting; read here so no generator touches storage. */
     get syllogismGenerator() { return getSyllogismGeneratorValue(); }
 
