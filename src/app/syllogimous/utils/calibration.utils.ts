@@ -195,6 +195,13 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      * four-point item is nothing like a four-premise chain.
      */
     [EnumQuestionType.TransformMatching]: { weight: 2.1, ceiling: 6 },
+    /*
+     * Each speaker is a biconditional that interacts with every other, so the
+     * work grows faster than the count: a fourth statement can invalidate a
+     * reading the first three allowed. Not as steep as it sounds in practice,
+     * because most items resolve through a chain rather than a full search.
+     */
+    [EnumQuestionType.Knaves]: { weight: 1.9, ceiling: 6 },
 };
 
 /** Real premise count for a linear-equivalent level, clamped to the mode's range. */

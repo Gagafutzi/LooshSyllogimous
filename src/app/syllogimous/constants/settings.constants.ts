@@ -302,6 +302,18 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 6,
         basic: false
     },
+    /*
+     * One statement per speaker, so premises are speakers. Six is the ceiling:
+     * the solver is fine past it, but a reader holding seven interlocking
+     * biconditionals is being tested on working memory rather than on
+     * truth-functional reasoning.
+     */
+    [EnumQuestionType.Knaves]: {
+        enabled: true,
+        minNumOfPremises: 2,
+        maxNumOfPremises: 6,
+        basic: false
+    },
 }
 
 export const DEFAULT_ENABLED_FLAGS = {

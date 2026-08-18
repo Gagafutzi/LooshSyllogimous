@@ -254,7 +254,7 @@ Eleven are specced below. In rough cost order:
 | ~~P10 sequence induction~~ | **built** — rung `sequence` on Transformation Matching |
 | [P7 nested spatial](#p7-nested-spatial--mixed-dimensionality-with-deliberate-interference) | mixed dimensionality with deliberate interference |
 | ~~P1 facing space~~ | **built** — rung `facing`, `utils/facing.utils.ts` |
-| [P2 knights and knaves](#p2-knights-and-knaves) | |
+| ~~P2 knights and knaves~~ | **built** as a mode — the speaker *modifier* is still open |
 | [P8 boolean concepts](#p8-boolean-concept-learning--rework-the-form-before-building) | **rework the form first** — the standard paradigm is inefficient for training |
 | [P4 graph matching extended](#p4-graph-matching-extended) | edit distance is the hard part |
 | ~~Relational Web~~ | **built** — `generators/relational-web.ts`, `utils/web.utils.ts` |
@@ -429,32 +429,49 @@ the argument for looking at output.
 Costed at 1.8, the dearest modifier in the table: the layout has to be held
 twice, once absolutely and once from inside.
 
-## P2. Knights and knaves
+## P2. Knights and knaves — **MODE DONE**, `generators/knaves.ts`
 
-Each speaker always lies or always tells the truth; their statements are about
-who is which. The one classic puzzle family the app lacks, and structurally
-unlike everything else in it: current modes are all relational composition, this
-is self-referential truth-functional.
+The one classic puzzle family the app lacked, and structurally unlike everything
+else in it: every other mode composes relations, this is truth-functional and
+self-referential.
 
-Worth building **both ways** — as a mode of its own, and as a *modifier* that
-wraps another mode's premises in speakers. The second is the more interesting
-half and costs almost nothing extra once the first exists: take any generated
-premise set, attribute the premises to speakers, and let some of those speakers
-be liars.
+Solved by brute force over all 2ⁿ assignments, as planned. That is not a
+compromise — at six speakers it is sixty-four evaluations, and it is the
+*definition* of the answer rather than a procedure that computes it, so the
+generator and the checker cannot drift.
 
-- Constraint: speaker *i* is a knight **iff** their statement is true.
-- Generation: pick an assignment, emit statements consistent with it, then check
-  the conclusion is actually determined.
-- Verification: brute force over `2^n` assignments — trivial for n ≤ 12, the
-  same model-checking approach that settled Syllogism in §3.0.
+Generation picks the answer first: choose who is what, draw a statement for each
+speaker and keep it only if its truth in that world matches their type, then
+solve and check the puzzle has the intended reading. Two rungs:
 
-The reason to want it here specifically: **it generalises the negation
-modifier**. Negation currently marks a premise as inverted; knight/knave makes
-inversion a hidden property of a *speaker* that has to be deduced first, and
-then applied to everything they said. Same mechanic, one level up. Combined with
-a scale ("a knave says X is more than Y") or with Deictic ("I am to your left"),
-it is nastier still.
+- **compound** — "at least one of you two is a knave", which cannot be resolved
+  by looking at one speaker, so the puzzle becomes a small case analysis rather
+  than a chain of implications.
+- **undetermined** — several readings fit, and the claim holds only if it holds
+  in all of them. Deliberately the same wording and the same idea as
+  under-specified composed spaces, since it is the same demand: notice that the
+  premises *failed* to settle something.
 
+Two things generation has to refuse. A world where everyone is the same kind
+makes every statement about kinds uniformly true or uniformly false, so there is
+nothing in the item. And "I am a knave" has no consistent reading at all — the
+solver returns nothing, and the attempt is discarded rather than shipped.
+
+Tests anchor the solver to worked classics (the paradox with no reading, the
+self-claim that fits either type, the disagreeing pair with exactly one), then
+re-solve every generated item from the premises the player is shown and check
+the claim against **every** reading, which is the only definition of "true" that
+stays right when more than one fits.
+
+### The modifier half is still open
+
+Wrapping another mode's premises in speakers is the more interesting half, and
+the claim that it "costs almost nothing extra" needs qualifying now the first
+half exists. Attributing premises to speakers is easy; making a knave's premise
+*false* is not uniformly easy, because each mode falsifies its own claims
+differently and a false premise has to stay consistent with a layout the
+generator already committed to. Worth doing, but it is per-mode work rather than
+one wrapper.
 
 ## P4. Graph matching, extended
 

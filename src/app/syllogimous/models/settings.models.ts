@@ -43,6 +43,7 @@ const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
     EnumQuestionType.RelationalWeb,
     EnumQuestionType.StimulusFunction,
     EnumQuestionType.TransformMatching,
+    EnumQuestionType.Knaves,
 ]);
 
 export function canGenerateQuestion(
@@ -184,6 +185,7 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.RelationalWeb);
         this.initQuestionSettings(EnumQuestionType.StimulusFunction);
         this.initQuestionSettings(EnumQuestionType.TransformMatching);
+        this.initQuestionSettings(EnumQuestionType.Knaves);
     }
 
     initQuestionSettings(type: EnumQuestionType) {

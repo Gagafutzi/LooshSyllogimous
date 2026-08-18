@@ -267,6 +267,13 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * different structure, then two maps at once.
      */
     "Transformation Matching":   ["identify", "apply", "compose", "sequence"],
+    /*
+     * Compound claims first: "at least one of you two is a knave" cannot be
+     * resolved by looking at one speaker. Ambiguity second, because noticing
+     * that the statements *failed* to settle something is a different act from
+     * working out what they did settle.
+     */
+    "Knights and Knaves":        ["compound", "undetermined"],
     // Earned: until then in- and out-degree identify the node, which is
     // counting rather than seeing.
     "Relational Web":            ["structural"],
