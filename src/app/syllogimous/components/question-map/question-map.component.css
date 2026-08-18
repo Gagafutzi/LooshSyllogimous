@@ -1,0 +1,70 @@
+/*
+ * Layout borrowed from v3: a CSS grid of bordered cells, and for three
+ * dimensions the same grid repeated on planes pushed back in Z. The transforms
+ * are v3's numbers — they were chosen by eye and there is no improving on that
+ * analytically.
+ */
+
+.qmap { display: grid; gap: 0.75rem; justify-items: start; }
+
+.qmap__cell {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    font-weight: 600;
+}
+
+.qmap__chain { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+.qmap__groups { display: flex; gap: 1.5rem; }
+.qmap__group { display: grid; justify-items: start; }
+
+.qmap__grid { display: grid; grid-auto-rows: minmax(2.4rem, auto); }
+
+.qmap__td {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.3rem;
+    text-align: center;
+    font-size: 0.85rem;
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.22);
+}
+
+/* Stacked planes, near one first. */
+.qmap__scene.is-stacked {
+    perspective: 1000px;
+    transform-style: preserve-3d;
+    padding: 0 0 0.5rem 1.25rem;
+    display: grid;
+}
+
+.qmap__scene.is-stacked .qmap__plane {
+    grid-area: 1 / 1;
+    box-shadow: 0 10px 10px rgba(0, 0, 0, 0.3);
+    background: color-mix(in srgb, var(--th-panel) 92%, transparent);
+}
+
+.qmap__planelabel {
+    position: absolute;
+    transform: translate(-2.6rem, 0.4rem);
+    color: var(--th-text-dim);
+}
+
+.plane-1 { transform: rotateY(10deg) rotateX(10deg) translateZ(0); }
+.plane-2 { transform: rotateY(12deg) rotateX(10deg) translateZ(-60px); }
+.plane-3 { transform: rotateY(14deg) rotateX(10deg) translateZ(-120px); }
+.plane-4 { transform: rotateY(16deg) rotateX(10deg) translateZ(-180px); }
+.plane-5 { transform: rotateY(18deg) rotateX(10deg) translateZ(-240px); }
+.plane-6 { transform: rotateY(20deg) rotateX(10deg) translateZ(-300px); }
+.plane-7 { transform: rotateY(22deg) rotateX(10deg) translateZ(-360px); }
+.plane-8 { transform: rotateY(24deg) rotateX(10deg) translateZ(-420px); }
+
+.qmap__slice { display: grid; gap: 0.25rem; }
+.qmap__axes { font-size: 0.75rem; }
+
+@media (max-width: 768px) {
+    /* The stack does not survive a narrow screen; flatten it. */
+    .qmap__scene.is-stacked { display: grid; gap: 0.5rem; padding: 0; }
+    .qmap__scene.is-stacked .qmap__plane { grid-area: auto; transform: none; }
+    .qmap__planelabel { position: static; transform: none; display: block; }
+}

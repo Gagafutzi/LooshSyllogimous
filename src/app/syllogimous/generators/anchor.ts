@@ -67,6 +67,10 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
             ctx.settingsOverrideService.scramble);
         question.conclusion = conclusion.text;
         question.isValid = conclusion.isValid;
+        // Anchors included: the frame is the thing being reasoned through, so a
+        // map without it would leave out the half that made the item hard.
+        question.wordCoordMap = { ...coords };
+        question.axisNames = ["East-west", "North-south"];
         question.explanation = explainAnchor(x, y, anchorOf, coords, axes[0]);
         return question;
     }

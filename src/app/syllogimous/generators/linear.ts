@@ -5,6 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
+import { coordMapFromPositions } from "../utils/map.utils";
 import { GeneratorContext } from "./context";
 import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
@@ -264,6 +265,8 @@ export function createLinear(ctx: GeneratorContext, numOfPremises: number, type:
                 ctx.settingsOverrideService.scramble)
             : scrambleByFactor(question.premises, ctx.settingsOverrideService.scramble);
 
+        question.wordCoordMap = coordMapFromPositions(finalLayout.pos);
+        question.axisNames = [scale.name];
         question.setup = linearSetup(ctx, transformCount, feat.constructDistance);
         return question;
     }

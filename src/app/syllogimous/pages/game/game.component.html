@@ -14,6 +14,10 @@
     <ol class="review__steps">
         <li *ngFor="let step of game.review" [innerHTML]="step"></li>
     </ol>
+
+    <!-- The state, beside the reasoning: one says how the answer follows, the
+         other says where everything was. -->
+    <app-question-map [question]="game.question"></app-question-map>
     <button class="btn btn-primary review__go" (click)="game.dismissReview()" autofocus>
         Continue <i class="bi bi-arrow-right"></i>
     </button>

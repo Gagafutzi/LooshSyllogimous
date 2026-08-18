@@ -1,0 +1,44 @@
+<div class="qmap" *ngIf="hasMap">
+
+    <!-- Ordering modes: the sequence is the whole picture. -->
+    <div class="qmap__chain" *ngIf="chain.length">
+        <span class="qmap__cell" *ngFor="let w of chain" [innerHTML]="w"></span>
+    </div>
+
+    <!-- Distinction: which things landed together. -->
+    <div class="qmap__groups" *ngIf="groups.length">
+        <div class="qmap__group" *ngFor="let g of groups; let i = index">
+            <small class="text-muted d-block">Group {{ i + 1 }}</small>
+            <span class="qmap__cell" *ngFor="let w of g" [innerHTML]="w"></span>
+        </div>
+    </div>
+
+    <ng-container *ngIf="map">
+        <div class="qmap__slice" *ngFor="let slice of map.slices">
+            <small class="text-muted d-block" *ngIf="slice.label">{{ slice.label }}</small>
+
+            <!-- One plane is a flat table; several stack into a scene. -->
+            <div class="qmap__scene" [class.is-stacked]="slice.planes.length > 1">
+                <div class="qmap__plane"
+                     *ngFor="let plane of slice.planes; let i = index"
+                     [ngClass]="slice.planes.length > 1 ? planeClass(i, slice.planes.length) : ''">
+                    <small class="qmap__planelabel" *ngIf="plane.label">{{ plane.label }}</small>
+                    <div class="qmap__grid"
+                         [style.grid-template-columns]="'repeat(' + plane.rows[0].length + ', minmax(3.2rem, auto))'">
+                        <!-- ng-container adds no element, so the cells stay
+                             direct children of the grid. -->
+                        <ng-container *ngFor="let row of plane.rows">
+                            <div class="qmap__td" *ngFor="let cell of row">
+                                <span *ngFor="let w of cell" [innerHTML]="w"></span>
+                            </div>
+                        </ng-container>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <small class="qmap__axes text-muted">
+            across: {{ map.across }}<span *ngIf="map.up"> · up: {{ map.up }}</span>
+        </small>
+    </ng-container>
+</div>

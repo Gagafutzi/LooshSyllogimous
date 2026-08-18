@@ -171,6 +171,18 @@ export class Question {
     rule = "";
     bucket: string[] = [];
     buckets: string[][][] = [];
+    /**
+     * Where everything ended up, keyed by word, one entry per axis.
+     *
+     * Kept so the item can be *drawn* afterwards. A derivation says how the
+     * answer follows; a map says where everything was, which is what people
+     * reconstruct on paper when they get one wrong. Written by the modes that
+     * have coordinates in hand — the composed spaces, the scale family, anchor
+     * space — and absent elsewhere, where there is nothing to plot.
+     */
+    wordCoordMap?: Record<string, number[]>;
+    /** Axis names for the map, in the same order as the coordinates. */
+    axisNames?: string[];
     coords: [string, number, number][] = [];
     coords3D: [string, number, number, number][] = [];
     graphPremises: [string, string, string][] = [];

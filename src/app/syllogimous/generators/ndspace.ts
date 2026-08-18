@@ -139,6 +139,9 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
                 ctx.settingsOverrideService.scramble)
             : scrambleByFactor(stated, ctx.settingsOverrideService.scramble);
         question.bucket = [...words];
+        // Post-operation, so the picture matches the question asked.
+        question.wordCoordMap = { ...final.coords };
+        question.axisNames = axes.map(a => a.scale.name);
         question.setup = [
             ...ndSetup(ctx, axes, feat, edits.length > 0, transforms.length > 0),
             ...question.setup,

@@ -16,5 +16,6 @@ import "./derivation.test";
 import "./fatigue.test";
 import "./profiles.test";
 import "./keybind.test";
+import "./map.test";
 
 run();

@@ -46,6 +46,7 @@ import { DiagnosticsComponent } from './pages/diagnostics/diagnostics.component'
 import { CalibrationComponent } from './pages/calibration/calibration.component';
 import { TutorialGenericComponent } from './pages/tutorial/tutorial-generic/tutorial-generic.component';
 import { ModeModifiersComponent } from './components/mode-modifiers/mode-modifiers.component';
+import { QuestionMapComponent } from './components/question-map/question-map.component';
 import { KeybindChooseComponent } from './pages/settings/keybind-choose/keybind-choose.component';
 import { TutorialGraphMatchingComponent } from './pages/tutorial/graph-matching/graph-matching.component';
 
@@ -137,6 +138,7 @@ const routes: Routes = [
         CalibrationComponent,
         TutorialGenericComponent,
         ModeModifiersComponent,
+        QuestionMapComponent,
         KeybindChooseComponent,
     ],
     imports: [
