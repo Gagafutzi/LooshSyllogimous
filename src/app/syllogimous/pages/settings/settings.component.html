@@ -28,6 +28,34 @@
         </div>
 
         <div class="card shadow-sm">
+            <div class="card-header py-2 small">Dimension colours</div>
+            <div class="card-body">
+                <p class="text-muted small mb-2">
+                    In the spatial modes a premise states every dimension at once.
+                    Colouring each one makes them separable at a glance. 0 turns it off.
+                </p>
+
+                <!-- A real premise, so the slider shows its own effect. -->
+                <div class="dimsample mb-2">
+                    <span class="subject">Ash</span> is
+                    <span class="highlight dim dim-1">east</span>,
+                    <span class="highlight dim dim-2">same latitude</span>,
+                    <span class="highlight dim dim-3">above</span>,
+                    <span class="highlight dim dim-4">later</span>,
+                    <span class="highlight dim dim-5">wider</span>
+                    relative to <span class="subject">Bell</span>
+                </div>
+
+                <div class="d-flex align-items-center" style="gap: 0.75rem;">
+                    <input type="range" class="form-range" min="0" max="100" step="10"
+                           [value]="dimStrength"
+                           (input)="setDimStrength($any($event.target).value)">
+                    <output class="text-muted small" style="min-width: 3rem;">{{ dimStrength }}%</output>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
             <div class="card-header py-2 small">Keyboard</div>
             <div class="card-body">
                 <app-keybind-choose></app-keybind-choose>

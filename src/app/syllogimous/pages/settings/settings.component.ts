@@ -5,6 +5,7 @@ import { FormControl } from '@angular/forms';
 import { DEFAULT_DAILY_GOAL, DEFAULT_WEEKLY_GOAL } from '../../services/progress-and-performance.service';
 import { LS_COLOR_BLINDNESS_MODE, LS_DAILY_GOAL, LS_WEEKLY_GOAL } from '../../constants/local-storage.constants';
 import { GameService } from '../../services/game.service';
+import { ThemeService } from '../../services/theme.service';
 import { Subscription } from 'rxjs';
 
 export const loadColorBlindnessMode = () => {
@@ -41,9 +42,23 @@ export class SettingsComponent {
 
     subscriptions: Subscription[] = [];
 
+    /*
+     * Dimension colours live in the theme, because that is what they are — a
+     * palette value that exports and imports with everything else. But nobody
+     * looks for "how spatial questions are shown" on the theme page, so the
+     * control is here too, next to the other settings about how a question is
+     * presented, with a sample that shows what the number does.
+     */
+    get dimStrength() { return Number(this.theme.theme.dimStrength ?? 100); }
+
+    setDimStrength(raw: string) {
+        this.theme.set("dimStrength", Number(raw));
+    }
+
     constructor(
         public router: Router,
         public game: GameService,
+        public theme: ThemeService,
     ) {
         // Playtime stuff     
         const daily = localStorage.getItem(LS_DAILY_GOAL);

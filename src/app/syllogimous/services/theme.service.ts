@@ -55,7 +55,7 @@ export const THEME_CONTROLS: ThemeControl[] = [
      * toward the text colour, which is the useful middle — the colours are a
      * grouping cue, and some players want them present but quiet.
      */
-    { key: "dimStrength", label: "Dimension colours", cssVar: "--th-dim-strength", kind: "range", min: 0, max: 100, step: 10, unit: "%", group: "Palette", hint: "How strongly each dimension is coloured in the composed spaces; 0 turns it off" },
+    { key: "dimStrength", label: "Dimension colours", cssVar: "--th-dim-strength", kind: "range", min: 0, max: 100, step: 10, unit: "%", group: "Palette", hint: "Spatial modes: how strongly each dimension is coloured. 0 turns it off. Also on Display & timer" },
 
     { key: "fontSize",  label: "Font size", cssVar: "--th-font-size",  kind: "range", min: 11, max: 24, step: 1, unit: "px", group: "Typography" },
     { key: "font",      label: "Font stack", cssVar: "--th-font",      kind: "text",  group: "Typography" },

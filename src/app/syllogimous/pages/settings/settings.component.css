@@ -3,3 +3,12 @@
         max-width: 80%;
     }
 }
+/* The dimension-colour sample: a premise, boxed so it reads as an example
+ * rather than as instructions. */
+.dimsample {
+    padding: 0.6rem 0.75rem;
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.2);
+    border-radius: var(--th-radius, 12px);
+    background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.04);
+    line-height: 1.5;
+}
