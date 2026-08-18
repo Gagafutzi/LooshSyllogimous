@@ -208,3 +208,62 @@ test("Binary asks the context for the questions it composes", () => {
     assert(asked > 0, "Binary never asked for a composed question");
     assert(q.premises.length > 0, "Binary produced no premises");
 });
+
+/**
+ * Naming the pattern — where P8 landed.
+ *
+ * Boolean concept learning wanted the rule separating positives from negatives.
+ * The standard paradigm was the wrong shape for training, and the promising
+ * direction — relational instances, the whole set at once, the rule as the
+ * answer — turns out to be this mode with its question reversed. The consensus
+ * was always computed here and deliberately never stated.
+ *
+ * Checked by recomputing the majority per dimension from the premises alone,
+ * which is exactly what the item asks the reader to do.
+ */
+test("the rule-naming item names the majority pattern", () => {
+    const ctx = context(allEnabled());
+    (ctx as { hasRung: (t: EnumQuestionType, r: string) => boolean }).hasRung =
+        (_t, r) => r === "state-rule";
+
+    const clauses = (text: string) => {
+        const m = /^.*? is (.*) relative to .*$/.exec(text.replace(/<[^>]+>/g, ""));
+        return m ? m[1].split(", ") : [];
+    };
+
+    let checked = 0;
+
+    for (let run = 0; run < 20; run++) {
+        const q = seeded(run * 4919 + 7, () => createOddestRelation(ctx, 6));
+        assert(q.answerMode === "choice", "the rung did not produce a choice item");
+
+        const stated = q.premises.map(clauses);
+        const dims = stated[0].length;
+        assert(dims > 0 && stated.every(row => row.length === dims),
+            "the premises do not all state the same dimensions");
+
+        // The majority word on each dimension, from the premises only.
+        const majority = [...Array(dims).keys()].map(i => {
+            const counts = new Map<string, number>();
+            for (const row of stated) counts.set(row[i], (counts.get(row[i]) ?? 0) + 1);
+            const ranked = [...counts].sort((a, b) => b[1] - a[1]);
+            assert(ranked.length < 2 || ranked[0][1] > ranked[1][1],
+                `dimension ${i} is a tie, so the pattern is not recoverable`);
+            return ranked[0][0];
+        });
+
+        const marked = q.choices[q.correctChoice].replace(/<[^>]+>/g, "").split(", ");
+        assert(marked.join(",") === majority.join(","),
+            `marked "${marked.join(", ")}" but the majority is "${majority.join(", ")}"`);
+
+        // And no other option is the majority pattern too.
+        q.choices.forEach((c, i) => {
+            if (i === q.correctChoice) return;
+            assert(c.replace(/<[^>]+>/g, "") !== marked.join(", "), "an option is repeated");
+        });
+
+        checked++;
+    }
+
+    assert(checked === 20, `only ${checked} rule-naming items were built`);
+});

@@ -37,7 +37,8 @@ import { getRandomSymbols, shuffle } from "../utils/question.utils";
 import { ConstructClaim } from "../models/question.models";
 import { hi, subj } from "../utils/phrasing";
 import {
-    AxisSpec, NdEdge, NdLayout, axesForDimensions, ndAxisColors, renderNdPremise,
+    AxisSpec, NdEdge, NdLayout, axesForDimensions, ndAxisColors, renderNdPattern,
+    renderNdPremise,
 } from "../utils/ndspace.utils";
 import { GeneratorContext } from "./context";
 
@@ -94,6 +95,26 @@ function ranking(ctx: GeneratorContext): boolean {
      * for a different family — findable only by reading the source.
      */
     return ctx.hasRung(EnumQuestionType.OddestRelation, "rank");
+}
+
+/**
+ * Name the pattern instead of measuring against it.
+ *
+ * This is where P8 landed. Boolean concept learning wanted the rule separating
+ * positives from negatives, and the standard paradigm — one exemplar at a time,
+ * feedback, many trials per concept — is the wrong shape for training: most
+ * trials carry little information, three binary dimensions is eight objects and
+ * memorable, and it is categorisation over attributes rather than over
+ * relations.
+ *
+ * The promising direction was relational instances, the whole set at once, and
+ * the rule as the answer. That is this mode with the question turned round. The
+ * consensus was always computed here and deliberately never stated; asking for
+ * it costs one presentation rather than a generator, and the two really are one
+ * mode with two presentations rather than neighbours.
+ */
+function naming(ctx: GeneratorContext): boolean {
+    return ctx.hasRung(EnumQuestionType.OddestRelation, "state-rule");
 }
 
 export function createOddestRelation(ctx: GeneratorContext, numOfPremises: number): Question {
@@ -189,6 +210,48 @@ export function createOddestRelation(ctx: GeneratorContext, numOfPremises: numbe
             + "pattern — it is never stated.",
             "Distance = <b>how many dimensions</b> a relation departs from it on.",
         ];
+
+        if (naming(ctx)) {
+            /*
+             * Distractors differ from the pattern on one or two dimensions, so
+             * each is strictly less supported than the consensus rather than
+             * merely different from it — every axis is decided by a strict
+             * majority, so flipping any one of them loses that majority. A
+             * distractor that were equally supported would make the item
+             * unanswerable rather than hard.
+             */
+            const wrong: number[][] = [];
+            const seen = new Set([consensus.join(",")]);
+            for (let guard = 0; wrong.length < 3 && guard < 200; guard++) {
+                const flips = 1 + Math.floor(Math.random() * 2);
+                const which = shuffle(axes.map((_, i) => i)).slice(0, flips);
+                const candidate = consensus.map((v, i) => (which.includes(i) ? -v : v));
+                const key = candidate.join(",");
+                if (seen.has(key)) continue;
+                seen.add(key);
+                wrong.push(candidate);
+            }
+            if (wrong.length < 3) continue;
+
+            const options = shuffle([consensus, ...wrong]);
+            question.answerMode = "choice";
+            question.choicePrompt = "Which pattern do most of these follow?";
+            question.choices = options.map(v => renderNdPattern(axes, v));
+            question.correctChoice = options.findIndex(v => v.join(",") === consensus.join(","));
+            question.conclusion = renderNdPattern(axes, consensus);
+            question.setup = [
+                "On each dimension, <b>most</b> of these point the same way.",
+                "Name that pattern \u2014 it is the one every dimension agrees on by"
+                + " majority, not the one any single relation states.",
+            ];
+            question.explanation = axes.map((axis, i) => {
+                const plus = vectors.filter(v => v[i] > 0).length;
+                const side = consensus[i] > 0 ? plus : count - plus;
+                return `On ${hi(axis.scale.name)}, ${side} of ${count} point one way`
+                    + ` \u2014 ${renderNdPattern([axis], [consensus[i]])}.`;
+            }).concat(`so the pattern is ${renderNdPattern(axes, consensus)}`);
+            return question;
+        }
 
         if (ranking(ctx)) {
             /*

@@ -255,7 +255,7 @@ Eleven are specced below. In rough cost order:
 | ~~P7 nested spaces~~ | **built** — `generators/nested.ts` |
 | ~~P1 facing space~~ | **built** — rung `facing`, `utils/facing.utils.ts` |
 | ~~P2 knights and knaves~~ | **built** as a mode — the speaker *modifier* is still open |
-| [P8 boolean concepts](#p8-boolean-concept-learning--rework-the-form-before-building) | **rework the form first** — the standard paradigm is inefficient for training |
+| ~~P8 boolean concepts~~ | **settled** — it is P11 with the question reversed; rung `state-rule` |
 | [P4 graph matching extended](#p4-graph-matching-extended) | edit distance is the hard part |
 | ~~Relational Web~~ | **built** — `generators/relational-web.ts`, `utils/web.utils.ts` |
 | **Set Hierarchy syllogism** | quantified set logic over proof networks; also never built |
@@ -473,35 +473,40 @@ explicitly.
 
 ---
 
-## P8. Boolean concept learning — **rework the form before building**
+## P8. Boolean concept learning — **SETTLED**, as a presentation of P11
 
-Infer the rule separating positives from negatives. Attractive for one reason
-above the others: **its difficulty is computable rather than fitted.** Feldman
-(2000, *Nature*) showed subjective difficulty tracks Boolean complexity — the
-length of the minimal formula expressing the concept — and Shepard, Hovland &
-Jenkins (1961) give a validated six-type ordering over three binary dimensions to
-check a scale against. It would be the only mode here whose `MODE_SCALE` weight
-was derived instead of guessed, which is a useful check on all the others.
+The instruction here was to settle the form before writing a generator, and the
+settlement is that **there is no new generator to write**.
 
-**The standard paradigm is the wrong shape for training and must be reworked
-first.** As run in the literature it is inefficient:
+The objections to the standard paradigm all stand: it teaches over many trials
+per concept with most of them carrying little information, three binary
+dimensions is eight objects and therefore memorable rather than derivable, and
+it is categorisation over attributes rather than over relations. The promising
+direction was relational instances, the whole set shown at once, and the *rule*
+as the answer.
 
-- It teaches over **many trials per concept**, one exemplar at a time with
-  feedback. Most of those trials carry little information, and throughput is the
-  thing this project has least of.
-- Three binary dimensions is eight objects total, so the space is small enough to
-  memorise rather than derive, and the hardest type (parity) is a low ceiling.
-- It is categorisation over **attributes**, which is not the relational operation
-  the rest of the app trains.
+That is [P11](#p11-oddest-relation-out) with its question reversed. Oddest
+Relation already shows several relations at once, already computes a consensus
+pattern per dimension by strict majority, and already declines to state it —
+because not stating it is what makes "which departs furthest" a question. Asking
+for the pattern instead costs one presentation, not a mode. The two are one mode
+with two presentations rather than neighbours, which is what this section
+suspected.
 
-The promising direction: make the instances **relational layouts rather than
-feature bundles**, show the whole set at once instead of sequentially, and ask
-for the *rule* rather than for the next classification. That lands close to a
-Bongard problem over relational structures — and close enough to
-[P11](#p11-oddest-relation-out) that the two may be one mode with two
-presentations. Settle that before writing a generator.
+Built as the rung `state-rule`, below `rank` on the ladder. Distractors differ
+from the consensus on one or two dimensions, so each is *strictly* less
+supported rather than merely different — every axis is decided by a strict
+majority, so flipping any one loses it. A distractor that were equally supported
+would make the item unanswerable rather than hard.
 
----
+**What is genuinely lost** is the reason P8 was attractive in the first place:
+Feldman's Boolean complexity gives a *computed* difficulty, and the
+Shepard-Hovland-Jenkins six-type ordering gives a validated scale to check
+against. That would have been the one `MODE_SCALE` weight derived rather than
+guessed. It does not transfer, because these instances are relational
+displacements rather than feature bundles over three binary dimensions. The
+`fitRungCosts` machinery is the honest substitute — measured rather than
+derived, but measured against this app's own players.
 
 ## P9. Infer the relation — **DONE**
 

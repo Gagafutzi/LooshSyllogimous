@@ -260,7 +260,7 @@ const ND_LADDER = [
 export const RUNG_LADDERS: Record<string, string[]> = {
     // Ranking every candidate rather than picking the furthest one. Same
     // evidence, no guess floor to speak of — so it is earned, not given.
-    "Oddest Relation":           ["rank"],
+    "Oddest Relation":           ["state-rule", "rank"],
     /*
      * Verify is the base: you are given the map and check it. Each rung takes
      * away more of what was given — which map, then the map's effect on a

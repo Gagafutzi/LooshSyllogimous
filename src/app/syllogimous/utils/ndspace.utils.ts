@@ -857,6 +857,21 @@ export function renderNdPremise(
     return `${subj(to)} is ${clauses.join(", ")} relative to ${subj(from)}`;
 }
 
+/**
+ * A displacement's clauses with no objects attached — a pattern, not a premise.
+ *
+ * Wanted by any mode that has to show a *rule* rather than an instance of one.
+ * Same clause wording and same per-axis colours as a real premise, so the two
+ * can be compared line by line, which is the only way a pattern is legible
+ * against the relations it is meant to describe.
+ */
+export function renderNdPattern(axes: AxisSpec[], deltas: number[]): string {
+    const colors = ndAxisColors(axes);
+    return axes
+        .map((axis, i) => hi(axisClause(axis, deltas[i]), colors[i]))
+        .join(", ");
+}
+
 export function renderNdPremises(layout: NdLayout, options: NdRenderOptions = {}): string[] {
     return layout.edges.map(e => renderNdPremise(layout, e, Math.random() > 0.5, options));
 }
