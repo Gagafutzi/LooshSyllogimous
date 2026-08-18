@@ -8,9 +8,10 @@
  */
 
 import { assert, equal, test } from "./harness";
-import { chooseConfig, DEFAULT_ABILITY, timeCost } from "../src/app/syllogimous/utils/ability.utils";
+import { RUNG_COST, chooseConfig, DEFAULT_ABILITY, timeCost } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
+import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.constants";
 
 const opts = (target: number, untimed = false) => ({
     minPremises: 2,
@@ -62,4 +63,28 @@ test("a clock is armed exactly when structure alone cannot reach the target", ()
                 `a clock was armed at target ${target} although structure reached ${bare.level}`);
         }
     }
+});
+
+/**
+ * Every rung a ladder can hand out has a price of its own.
+ *
+ * `RUNG_COST` falls back to 0.8 for anything absent, which exists so that
+ * adding a rung is never a crash — not so it can stand in for a decision. Four
+ * rungs were quietly sharing that number, which is how a difficulty model stops
+ * meaning anything: the estimate is only as honest as the scale it is measured
+ * on, and a scale with silent defaults in it is measuring something else.
+ */
+test("no rung is priced by accident", () => {
+    const priced = new Set(Object.keys(RUNG_COST));
+    const handed = new Set(ORDERED_QUESTION_TYPES.flatMap(t => ladderFor(t)));
+
+    const unpriced = [...handed].filter(r => !priced.has(r));
+    assert(unpriced.length === 0,
+        `reaching the fallback instead of a considered value: ${unpriced.join(", ")}`);
+
+    // And nothing is priced that no ladder can give out, which would be a rung
+    // renamed in one place and not the other.
+    const unreachable = [...priced].filter(r => !handed.has(r));
+    assert(unreachable.length === 0,
+        `priced but unreachable, so probably a stale name: ${unreachable.join(", ")}`);
 });

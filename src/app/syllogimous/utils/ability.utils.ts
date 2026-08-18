@@ -122,6 +122,33 @@ export const RUNG_COST: Record<string, number> = {
 
     "extra-reversal": 0.8,
     "third-axis": 1.0,
+
+    /*
+     * These four were reaching the 0.8 fallback rather than being priced.
+     *
+     * The fallback exists so a new rung is never a crash, not so it can stand
+     * in for a decision — and four of them silently sharing one number is how a
+     * difficulty model stops meaning anything. Estimates like the rest of this
+     * table, and wrong in the same explicit way, which is what `fitRungCosts`
+     * is for.
+     */
+
+    // Two links per sentence. Cheaper than it looks: the same relations, and
+    // the cost is holding one premise entire rather than reading more.
+    "wide-premises": 0.7,
+
+    // A false direction drawn from ones the item used. It removes a shortcut
+    // rather than adding work — measured at 79% against 75% when it went in,
+    // which is roughly a quarter of a level.
+    "incorrect-directions": 0.4,
+
+    // Every distance rather than the furthest. One in five by luck becomes one
+    // in three thousand, and the task changes from an argmax to a measurement.
+    rank: 1.6,
+
+    // Relational Web without the counting shortcut: in- and out-degree stop
+    // identifying a node, so the structure has to be seen rather than tallied.
+    structural: 1.4,
 };
 
 /**

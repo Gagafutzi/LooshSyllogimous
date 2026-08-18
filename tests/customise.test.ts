@@ -58,12 +58,22 @@ test("every rung with no family flag is reachable from the panel", () => {
      * could switch on. If a new mode adds a rung and forgets a control, this
      * fails rather than shipping another unreachable feature.
      */
-    const COVERED = new Set([
-        "negation", "meta", "branching", "overlap", "compact", "analogy",
-        "multi-conclusion", "choose-conclusion", "construct-conclusion",
-        "construct-distance", "wide-premises", "incorrect-directions",
-        "transform-1", "transform-2", "edit-1", "edit-2", "circular", "circular-2",
-    ]);
+    /*
+     * Read from the component rather than copied, because a copy drifts.
+     *
+     * This list is the component's claim that a rung already has a control of
+     * its own, and everything *not* on it falls through to the per-mode rung
+     * panel. A second copy here would let the two disagree silently — and did:
+     * two rungs were added with dedicated controls while this list still called
+     * them orphans.
+     */
+    const component = readFileSync(
+        "src/app/syllogimous/components/mode-modifiers/mode-modifiers.component.ts", "utf8");
+    const block = /COVERED = new Set\(\[([\s\S]*?)\]\)/.exec(component);
+    assert(!!block, "the component's covered-rung list could not be read");
+    const COVERED = new Set([...block![1].matchAll(/"([^"]+)"/g)].map(m => m[1]));
+    assert(COVERED.size > 10, `only ${COVERED.size} rungs claim a dedicated control`);
+
     const o = fresh();
     const orphans = ORDERED_QUESTION_TYPES.flatMap(
         t => ladderFor(t).filter(r => !COVERED.has(r)).map(r => [t, r] as const));
