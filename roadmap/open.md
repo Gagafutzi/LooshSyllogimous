@@ -831,8 +831,12 @@ a weight, and zero means the same as off.
 
 ### Cosmetic
 
-- Start screen: daily/weekly goal bars clip their labels (monospace is wider than
-  the original sans). **Still open.**
+- ~~Start screen: daily/weekly goal bars clip their labels~~ — **DONE**. The
+  caption was *inside* the fill, so it was laid out in a box the width of the
+  percentage and clipped by the track's overflow; at low progress there was
+  almost no box to lay it out in. It now sits over the whole track and reads
+  across the fill edge by blend mode, which needs no per-colour tuning — there
+  are ten fill colours. The wider font did not cause it, only made it visible.
 - `angular.json` style changes need a dev-server restart — webpack config, not
   hot-reloaded.
 

@@ -20,6 +20,36 @@
 
 .progressbar {
     height: 1.25rem;
+    /* The caption is positioned against this. */
+    position: relative;
+}
+
+/*
+ * Read over the bar rather than carried by it.
+ *
+ * `mix-blend-mode` keeps it legible on both sides of the fill edge without
+ * needing to know where that edge is — a text shadow would have to be tuned per
+ * fill colour, and there are ten of them.
+ */
+.progress-caption {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-inline: 0.5rem;
+    font-size: 0.72rem;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    pointer-events: none;
+    mix-blend-mode: difference;
+    color: #fff;
+}
+
+.progress-caption__pct {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
 }
 
 .progressbar:not(:last-child) {

@@ -14,10 +14,20 @@
                     [class.progress-9]="dailyProgressPercentage > 80"
                     [class.progress-10]="dailyProgressPercentage > 90"
                     [style.width]="dailyProgressPercentage + '%'"
-                >
-                    <span class="me-2">{{dailyProgressPercentage}} %</span>
-                    <span class="progress-label">Daily time goal</span>
-                </div>
+                ></div>
+
+                <!--
+                  The caption sits over the whole track, not inside the fill.
+                  Inside it, the text was laid out in a box the width of the
+                  percentage, so at low progress it wrapped or was clipped by the
+                  track's own overflow — worse the wider the font, which is why
+                  it appeared when the type changed rather than when it was
+                  written.
+                -->
+                <span class="progress-caption">
+                    <span class="progress-caption__pct">{{dailyProgressPercentage}} %</span>
+                    Daily time goal
+                </span>
             </div>
         </ng-container>
     
@@ -35,10 +45,20 @@
                     [class.progress-9]="weeklyProgressPercentage > 80"
                     [class.progress-10]="weeklyProgressPercentage > 90"
                     [style.width]="weeklyProgressPercentage + '%'"
-                >
-                    <span class="me-2">{{weeklyProgressPercentage}} %</span>
-                    <span class="progress-label">Weekly time goal</span>
-                </div>
+                ></div>
+
+                <!--
+                  The caption sits over the whole track, not inside the fill.
+                  Inside it, the text was laid out in a box the width of the
+                  percentage, so at low progress it wrapped or was clipped by the
+                  track's own overflow — worse the wider the font, which is why
+                  it appeared when the type changed rather than when it was
+                  written.
+                -->
+                <span class="progress-caption">
+                    <span class="progress-caption__pct">{{weeklyProgressPercentage}} %</span>
+                    Weekly time goal
+                </span>
             </div>
         </ng-container>
 
