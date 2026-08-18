@@ -33,13 +33,15 @@ import { createArrangement } from "../src/app/syllogimous/generators/arrangement
 import { createDirection, createDirection3D } from "../src/app/syllogimous/generators/direction";
 import { createGraphMatching } from "../src/app/syllogimous/generators/graph-matching";
 import { createAnalogy } from "../src/app/syllogimous/generators/analogy";
-import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
+import { createBinary } from "../src/app/syllogimous/generators/binary";
+import { createTransformMatch } from "../src/app/syllogimous/generators/transform-match";
+import { createKnaves } from "../src/app/syllogimous/generators/knaves";
 
 /**
  * A context with nothing switched on.
@@ -50,7 +52,7 @@ import { createStimulusFunction } from "../src/app/syllogimous/generators/stimul
  * defaults", which is what an untouched install produces.
  */
 function context(settings: Settings): GeneratorContext {
-    return {
+    const ctx: GeneratorContext = {
         settings,
         logger: new Logger("error", false),
         settingsOverrideService: {
@@ -67,8 +69,15 @@ function context(settings: Settings): GeneratorContext {
         forceConstruction: "off",
         syllogismGenerator: "canyon",
         hasRung: () => false,
-        random: () => { throw new Error("no composed question available in this test"); },
+        /*
+         * Binary wraps another mode's item and asks which half of it failed, so
+         * it cannot be built without one. This used to throw, which is why
+         * Binary was the one mode left out of the sweep — a smaller Distinction
+         * is enough and costs nothing.
+         */
+        random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
+    return ctx;
 }
 
 function allEnabled(): Settings {
@@ -110,7 +119,24 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.ShapeRotation, createShapeRotation],
     [EnumQuestionType.RelationalWeb, createRelationalWeb],
     [EnumQuestionType.StimulusFunction, createStimulusFunction],
+    [EnumQuestionType.Binary, createBinary],
+    [EnumQuestionType.TransformMatching, createTransformMatch],
+    [EnumQuestionType.Knaves, createKnaves],
 ];
+
+/**
+ * The list above is written by hand, and it had drifted.
+ *
+ * Three modes were shipping without ever being built in a test — including two
+ * added the same week — because adding a mode means editing seven registration
+ * points and this list is not one of them. The check costs nothing and the
+ * failure names exactly what is missing.
+ */
+test("every mode is in the sweep", () => {
+    const covered = new Set(GENERATORS.map(([type]) => type));
+    const missing = Object.values(EnumQuestionType).filter(t => !covered.has(t));
+    assert(missing.length === 0, `never generated in any test: ${missing.join(", ")}`);
+});
 
 for (const [type, make] of GENERATORS) {
     test(`${type} builds a well-formed item`, () => {
