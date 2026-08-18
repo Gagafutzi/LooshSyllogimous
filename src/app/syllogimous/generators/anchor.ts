@@ -10,7 +10,7 @@ import { GeneratorContext } from "./context";
 import { extraTransforms } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
-import { SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
+import { CoordMap, SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
 import { ANCHORS, anchorCoordMap } from "../utils/anchor.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
@@ -206,8 +206,63 @@ export function createAnchorSpaceV2(ctx: GeneratorContext, numOfPremises: number
             ctx.settingsOverrideService.scramble);
         question.conclusion = conclusion.text;
         question.isValid = conclusion.isValid;
+        question.explanation = explainAnchorV2(
+            x, y, anchorOf, initial, transforms, axes[0]);
         return question;
     }
 
     throw new Error("Cannot generate.");
+}
+
+/**
+ * A coordinate trace, because a path through the premises would be wrong here.
+ *
+ * Every other derivation in the app walks the stated relations. That works
+ * while premises *describe* an arrangement; it breaks the moment some of them
+ * *change* it, because the relation a premise states stops holding as soon as a
+ * later transform moves one of its ends. The roadmap flagged this as needing a
+ * different renderer, and this is it: positions are replayed from the stated
+ * start, and only the steps that move one of the two queried objects are shown.
+ *
+ * Transforms that move neither are deliberately omitted. They are in the item
+ * to be read and dismissed, and re-listing them would bury the two or three
+ * lines that decide the answer.
+ */
+function explainAnchorV2(
+    x: string,
+    y: string,
+    anchorOf: Record<string, string>,
+    initial: CoordMap,
+    transforms: Transform[],
+    axis: number,
+): string[] {
+    const [pos, neg] = SPATIAL_VOCAB.axisWords[axis];
+    const lines: string[] = [];
+
+    const start = (n: string) => {
+        const a = anchorOf[n];
+        const delta = initial[n][axis] - initial[a][axis];
+        const word = delta === 0 ? "level with" : `${Math.abs(delta)} ${delta > 0 ? pos : neg} of`;
+        return `${subj(n)} starts ${hi(word)} ${subj(a)} \u2014 at ${hi(String(initial[n][axis]))}`;
+    };
+
+    lines.push(start(x));
+    lines.push(start(y));
+
+    let at = initial;
+    for (let i = 0; i < transforms.length; i++) {
+        const t = transforms[i];
+        const next = replay(initial, transforms.slice(0, i + 1));
+        const moved = [x, y].filter(n => next[n][axis] !== at[n][axis]);
+        if (moved.length) {
+            lines.push(`${describeTransform(t)} \u2014 `
+                + moved.map(n => `${subj(n)} is now at ${hi(String(next[n][axis]))}`).join(", "));
+        }
+        at = next;
+    }
+
+    const delta = at[y][axis] - at[x][axis];
+    lines.push(`so ${subj(y)} ends up ${hi(delta > 0 ? pos : neg)} of ${subj(x)}`
+        + ` \u2014 ${Math.abs(delta)} apart.`);
+    return lines;
 }

@@ -611,6 +611,81 @@ export function createDirection3D(ctx: GeneratorContext, numOfPremises: number, 
         return `${subj(p.pair[0][0])} is ${relationship} of ${subj(p.pair[1][0])}`;
     };
 
+    /*
+     * The same walk as the flat mode, over three axes instead of two.
+     *
+     * Worth its own pass rather than sharing the 2D one: the third axis is not
+     * a third cardinal but a separate vocabulary \u2014 levels above and below
+     * when spatial, hours before and after when temporal \u2014 and it is
+     * stated in its own clause. Carrying it alongside the compass pair is the
+     * whole added difficulty of the mode, so the running total states both
+     * parts at every step.
+     */
+    const at3: Record<string, [number, number, number]> = {};
+    for (const [w, x, y, t] of coords) at3[w] = [x, y, t];
+
+    const near3: Record<string, string[]> = {};
+    for (const p of premises) {
+        const [x, y] = [p.pair[0][0], p.pair[1][0]];
+        (near3[x] ??= []).push(y);
+        (near3[y] ??= []).push(x);
+    }
+
+    const route3 = (from: string, to: string): string[] | null => {
+        if (from === to) return [from];
+        const prev: Record<string, string> = {};
+        const seen = new Set([from]);
+        const queue = [from];
+        while (queue.length) {
+            const cur = queue.shift()!;
+            for (const n of near3[cur] ?? []) {
+                if (seen.has(n)) continue;
+                seen.add(n);
+                prev[n] = cur;
+                if (n === to) {
+                    const out = [to];
+                    let step = to;
+                    while (step !== from) { step = prev[step]; out.unshift(step); }
+                    return out;
+                }
+                queue.push(n);
+            }
+        }
+        return null;
+    };
+
+    /** Both clauses for a displacement, worded as the premises word them. */
+    const phrase3 = (dx: number, dy: number, dt: number) => {
+        const cardinals: [string, number][] = [
+            dy > 0 ? ["North", dy] : dy < 0 ? ["South", -dy] : ["!", 0],
+            dx > 0 ? ["East", dx] : dx < 0 ? ["West", -dx] : ["!", 0],
+        ];
+        const cardinal = getCardinalRelationship(cardinals);
+        const connector = cardinal === SAME_CARDINAL_DIRECTION ? " and "
+            : cardinal.indexOf(" and ") > -1 ? ", " : " and ";
+        return getTrasversalRelationship(dt) + connector + cardinal;
+    };
+
+    const path3 = route3(coordb[0], coorda[0]);
+    if (path3 && path3.length >= 2) {
+        const lines: string[] = [];
+        const origin = at3[path3[0]];
+
+        for (let i = 0; i < path3.length - 1; i++) {
+            const [from, to] = [path3[i], path3[i + 1]];
+            const [fx, fy, ft] = at3[from];
+            const [tx, ty, tt] = at3[to];
+            lines.push(`${subj(to)} is ${phrase3(tx - fx, ty - fy, tt - ft)} of ${subj(from)}`
+                + ` \u2014 running total from ${subj(path3[0])}: `
+                + phrase3(tx - origin[0], ty - origin[1], tt - origin[2]));
+        }
+
+        lines.push(`so ${subj(coorda[0])} is `
+            + phrase3(coorda[1] - coordb[1], coorda[2] - coordb[2], coorda[3] - coordb[3])
+            + ` of ${subj(coordb[0])}`);
+        question.explanation = lines;
+    }
+
     shuffle(premises);
     question.isValid = isValid;
     question.premises = premises.map(stringifyProposition);
