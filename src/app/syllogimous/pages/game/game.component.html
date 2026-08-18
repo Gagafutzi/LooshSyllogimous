@@ -63,6 +63,28 @@
                     </div>
                 </ng-template>
 
+                <!--
+                  Both webs on one slide, like the choice candidates.
+
+                  Comparing them *is* the task, so showing one at a time would
+                  make it a memory test with a comparison bolted on. This mode
+                  states itself in pictures and leaves `premises` empty, so
+                  without this slide a carousel showed the setup and the
+                  conclusion and nothing in between.
+                -->
+                <ng-container *ngIf="game.question.webs?.length">
+                    <ng-template ngbSlide [id]="slideId('webs')">
+                        <div style="display: grid; place-items: center;">
+                            <div class="webs">
+                                <div class="webs__one" *ngFor="let w of game.question.webs; let i = index">
+                                    <small class="text-muted">{{ i === 0 ? "First web" : "Second web" }}</small>
+                                    <app-relational-web [web]="w"></app-relational-web>
+                                </div>
+                            </div>
+                        </div>
+                    </ng-template>
+                </ng-container>
+
                 <ng-template ngbSlide [id]="slideId('premise-' + i)" *ngFor="let p of game.question.premises; let i = index; let last = last;">
                     <div style="display: grid; place-items: center;">
                         <div>

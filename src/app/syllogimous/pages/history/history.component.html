@@ -35,6 +35,13 @@
 
                     <app-question-map [question]="q"></app-question-map>
 
+                    <div class="webs" *ngIf="q.webs?.length">
+                        <div class="webs__one" *ngFor="let w of q.webs; let i = index">
+                            <small class="text-muted">{{ i === 0 ? "First web" : "Second web" }}</small>
+                            <app-relational-web [web]="w"></app-relational-web>
+                        </div>
+                    </div>
+
                     <div>
                         <div class="small text-muted mb-1">Premises</div>
                         <div class="premises">

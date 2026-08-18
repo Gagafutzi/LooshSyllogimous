@@ -82,3 +82,6 @@
     font-size: 0.85rem;
     line-height: 1.2;
 }
+/* Two webs side by side, as on the game screen. */
+.webs { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+.webs__one { display: grid; justify-items: center; gap: 0.15rem; }

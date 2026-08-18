@@ -242,6 +242,8 @@ export class GameComponent {
         // A construction item has no conclusion slide — the conclusion is the
         // thing being built — so its last slide is the last premise.
         if (q.answerMode === "construct") return this.slideId("premise-" + (q.premises.length - 1));
+        // A premise-less mode needs nothing here: a choice item already ends on
+        // its candidates above, and everything else ends on its conclusion.
         const count = Array.isArray(q.conclusion) ? q.conclusion.length : 1;
         return this.slideId("conclusion-" + (count - 1));
     }
@@ -254,7 +256,9 @@ export class GameComponent {
     private armCarousel() {
         // Before the ids are computed, so this question's slides are all new.
         this.questionToken++;
-        const first = this.slideId(this.game.question.setup?.length ? "setup" : "premise-0");
+        // Relational Web has no premise slides; its picture slide stands in.
+        const firstBody = this.game.question.webs?.length ? "webs" : "premise-0";
+        const first = this.slideId(this.game.question.setup?.length ? "setup" : firstBody);
         this.activeSlideId = first;
         // A one-slide question is already at its end and would otherwise never
         // fire a slide event to say so.
