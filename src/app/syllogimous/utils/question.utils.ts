@@ -3,6 +3,7 @@ import { EnumArrangements, EnumQuestionType } from "../constants/question.consta
 import { IArrangementPremise, IArrangementRelationship, Question } from "../models/question.models";
 import { Settings, Picked } from "../models/settings.models";
 import { getVisualNoiseSymbols } from "./visual-noise.utils";
+import { getJunkEmojiSymbols } from "./junk-emoji.utils";
 import { neg, subj } from "./phrasing";
 
 export const b2n = (b: boolean) => +b as number;
@@ -81,6 +82,7 @@ export function getSymbols(settings: Settings) {
 
     const kinds: string[][] = [];
     if (settings.enabled.visualNoise) kinds.push(getVisualNoiseSymbols());
+    if (settings.enabled.junkEmojis) kinds.push(getJunkEmojiSymbols());
     if (settings.enabled.useEmojis) kinds.push(getEmojis());
     if (settings.enabled.useText) kinds.push(text());
 

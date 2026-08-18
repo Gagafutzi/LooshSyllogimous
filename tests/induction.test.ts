@@ -14,6 +14,8 @@ import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
+import { createLinear } from "../src/app/syllogimous/generators/linear";
+import { createDirection } from "../src/app/syllogimous/generators/direction";
 import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -39,6 +41,19 @@ function context(): GeneratorContext {
         random: () => { throw new Error("not needed"); },
     };
 }
+
+/** The same context with one structural modifier forced on. */
+function forced(flag: string): GeneratorContext {
+    const ctx = context();
+    (ctx as { settingsOverrideService: SettingsOverrideService }).settingsOverrideService = {
+        linearOverride: (k: string) => (k === flag ? true : null),
+        axesFor: () => null, circularAxes: () => null, depthFor: () => 0, scramble: 100,
+    } as unknown as SettingsOverrideService;
+    return ctx;
+}
+
+const wideContext = () => forced("widePremises");
+const directionContext = () => forced("incorrectDirections");
 
 /** Strip the markup; the tests are about content, not presentation. */
 const plain = (s: string) => s.replace(/<[^>]+>/g, "").trim();
@@ -227,5 +242,59 @@ test("the anchor is never the answer", () => {
         const anchor = /^(.*?) is /.exec(plain(q.setup[0]))?.[1];
         assert(anchor && plain(q.choices[q.correctChoice]) !== anchor,
             "the object carrying the property was also the answer");
+    }
+});
+
+/* ------------------------------------------------------------------ *
+ * Ported v3 presentation modifiers                                    *
+ * ------------------------------------------------------------------ */
+
+test("wide premises say the same thing in fewer sentences", () => {
+    const plain5 = seeded(31, () => createLinear(context(), 6, EnumQuestionType.LinearVertical));
+    const wide = seeded(31, () => createLinear(wideContext(), 6, EnumQuestionType.LinearVertical));
+    assert(wide.premises.length < plain5.premises.length,
+        `wide produced ${wide.premises.length} premises against ${plain5.premises.length}`);
+    assert(wide.premises.some(p => plain(p).includes(", which ")),
+        "no premise carried two links");
+});
+
+test("a merged premise names exactly the three objects it links", () => {
+    /*
+     * Only *consecutive* links merge, so a wide premise is A–B–C and nothing
+     * longer. Checked on the merged ones alone: a meta-relation premise names
+     * four objects quite legitimately, which is what a broader assertion caught
+     * and mistook for a fault.
+     */
+    for (let run = 0; run < 20; run++) {
+        const q = seeded(run * 271 + 5, () => createLinear(wideContext(), 6, EnumQuestionType.LinearVertical));
+        for (const p of q.premises.filter(x => plain(x).includes(", which "))) {
+            const subjects = (p.match(/<span class="subject">/g) ?? []).length;
+            equal(subjects, 3, `a merged premise named ${subjects} objects`);
+        }
+    }
+});
+
+test("incorrect directions never make a malformed conclusion", () => {
+    /*
+     * The first version of this replaced a north/south entry with "east" and
+     * produced "two steps east and three steps east" — not a hard item, a
+     * broken one. A replacement has to stay on its own axis.
+     */
+    for (let run = 0; run < 60; run++) {
+        const q = seeded(run * 613 + 7, () => createDirection(directionContext(), 4));
+        if (q.isValid) continue;
+        const dirs = plain(String(q.conclusion)).match(/(North|South|East|West)/g) ?? [];
+        const ns = dirs.filter(d => d === "North" || d === "South").length;
+        const ew = dirs.filter(d => d === "East" || d === "West").length;
+        assert(ns <= 1 && ew <= 1, `conclusion names one axis twice: ${plain(String(q.conclusion))}`);
+    }
+});
+
+test("a false direction item is actually false", () => {
+    for (let run = 0; run < 60; run++) {
+        const q = seeded(run * 823 + 11, () => createDirection(directionContext(), 4));
+        if (q.isValid) continue;
+        assert(!q.premises.includes(String(q.conclusion)),
+            "the false conclusion restates a premise verbatim");
     }
 });

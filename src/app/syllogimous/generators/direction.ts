@@ -174,14 +174,76 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
         ctx.logger.info("Keep conclusion");
     } else {
         ctx.logger.info("Tweak conclusion");
+
+        /*
+         * How a false conclusion is made wrong.
+         *
+         * v4 flipped a coin between "add one step" and "flip that cardinal to
+         * its opposite", which is two error types out of the several a reasoner
+         * actually makes — and never a *perpendicular* direction, the commonest
+         * slip of all when tracking two axes at once.
+         *
+         * v3 drew from a weighted pool instead, and that is what this ports:
+         * wrong in one attribute at a time, with the near-misses weighted
+         * highest, because a distractor is only doing its job if getting it
+         * wrong looks like the mistake you would actually have made.
+         *
+         *   right direction, wrong distance    weight 3
+         *   right distance, wrong direction    weight 2
+         *   both wrong                         weight 1
+         */
+        const deliberate = ctx.settingsOverrideService.linearOverride("incorrectDirections")
+            ?? ctx.progressionService.hasRung(type, "incorrect-directions");
+
         const rndIdx = Math.floor(Math.random() * conclusion.cardinals.length);
-        if (coinFlip()) {
+        const before = conclusion.cardinals.map(c => [c[0], c[1]] as [string, number]);
+
+        /*
+         * A replacement direction stays on its own axis.
+         *
+         * The cardinals are one entry per axis, so putting "East" where the
+         * north/south entry goes produces "two steps east and three steps
+         * east", or worse a claim naming both poles of one axis. That is not a
+         * hard item, it is a malformed one — the first version of this did
+         * exactly that, and measuring it is what showed it up.
+         *
+         * Which leaves three well-formed ways to be wrong, weighted as v3
+         * weighted them: a near-miss on distance most often, the reversal next,
+         * and the cross-axis slip — the magnitudes swapped between the two axes
+         * — least. That last one is the error a reasoner tracking two axes at
+         * once actually makes, and v4 could not previously produce it.
+         */
+        const swappable = conclusion.cardinals.length === 2
+            && conclusion.cardinals.every(c => c[0] !== "!" && c[1] > 0)
+            && conclusion.cardinals[0][1] !== conclusion.cardinals[1][1];
+
+        if (deliberate) {
+            const roll = Math.random();
+            if (roll < 0.5 || (!swappable && roll < 0.83)) {
+                // Right way, wrong distance.
+                const [w, n] = conclusion.cardinals[rndIdx];
+                conclusion.cardinals[rndIdx] = [w, n > 1 && coinFlip() ? n - 1 : n + 1];
+            } else if (roll < 0.83) {
+                // Right distances, exchanged between the axes.
+                const [a, b] = conclusion.cardinals;
+                conclusion.cardinals = [[a[0], b[1]], [b[0], a[1]]];
+            } else {
+                conclusion.cardinals[rndIdx][0] =
+                    cardinalOppositeMap[conclusion.cardinals[rndIdx][0]] ?? conclusion.cardinals[rndIdx][0];
+            }
+        } else if (coinFlip()) {
             ctx.logger.info("Add one to one cardinal");
             conclusion.cardinals[rndIdx][1]++;
         } else {
             ctx.logger.info("One cardinal flipped");
             conclusion.cardinals[rndIdx][0] = cardinalOppositeMap[conclusion.cardinals[rndIdx][0]];
         }
+
+        // A "false" item that came out true is worse than no modifier at all.
+        const unchanged = conclusion.cardinals.every(
+            (c, i) => c[0] === before[i][0] && c[1] === before[i][1]);
+        if (unchanged) conclusion.cardinals[rndIdx][1]++;
+
         tweaked = true;
     }
     // Regenerate conclusion relationship

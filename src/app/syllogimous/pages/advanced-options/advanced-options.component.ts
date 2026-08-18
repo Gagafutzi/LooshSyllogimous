@@ -173,7 +173,7 @@ export class AdvancedOptionsComponent {
         this.overrides.setMode(row.type, { numOfPremises: n }, this.fallback(row));
     }
 
-    setFlag(key: "meta" | "negation" | "useEmojis" | "meaningfulWords" | "visualNoise" | "useText", value: boolean) {
+    setFlag(key: "meta" | "negation" | "useEmojis" | "meaningfulWords" | "visualNoise" | "junkEmojis" | "useText", value: boolean) {
         this.overrides.setFlag(key, value);
     }
 

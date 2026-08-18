@@ -447,6 +447,20 @@ export interface RenderOptions {
     negate?: boolean;
     /** Whether the third relation is reachable in this layout. */
     allowTies?: boolean;
+    /**
+     * State two links in one sentence: "A is above B, which is above C".
+     *
+     * Ported from v3's wide premises. The same relations, in half as many
+     * sentences, which is harder for a reason worth stating: a one-relation
+     * premise can be read, placed, and forgotten, whereas a two-relation one
+     * has to be held entire while the second half is placed against the first.
+     * It also removes the chain's natural pacing — there is no longer one line
+     * per step to count off.
+     *
+     * Only consecutive links merge, so nothing is ever said that the premises
+     * did not already say.
+     */
+    wide?: boolean;
 }
 
 /**
@@ -484,14 +498,50 @@ export function renderPremises(
     options: RenderOptions = {},
 ): { premises: string[]; negations: number } {
     let negations = 0;
-    const premises = layout.edges.map(([from, to]) => {
+
+    const one = (from: string, to: string) => {
         // Edges are stored low-to-high; saying it the other way round half the
         // time stops the relation word from being a reliable direction cue.
         const [a, b] = flip() ? [from, to] : [to, from];
         const r = renderRelation(scale, a, b, compare(layout, a, b), options);
         if (r.negated) negations++;
         return r.text;
-    });
+    };
+
+    if (!options.wide) {
+        return { premises: layout.edges.map(([from, to]) => one(from, to)), negations };
+    }
+
+    /*
+     * Merge consecutive links that share an object.
+     *
+     * Said in one direction only when merged: "A is above B, which is above C"
+     * has to run through B, so the halves cannot be independently reversed the
+     * way a lone premise can. Anything that does not chain onto its neighbour
+     * is left as an ordinary premise rather than forced.
+     */
+    const premises: string[] = [];
+    const edges = [...layout.edges];
+
+    for (let i = 0; i < edges.length; i++) {
+        const [a, b] = edges[i];
+        const next = edges[i + 1];
+        const shared = next && (next[0] === b || next[1] === b);
+
+        if (!shared) { premises.push(one(a, b)); continue; }
+
+        const c = next[0] === b ? next[1] : next[0];
+        const first = renderRelation(scale, a, b, compare(layout, a, b), options);
+        const second = renderRelation(scale, b, c, compare(layout, b, c), options);
+        if (first.negated) negations++;
+        if (second.negated) negations++;
+
+        // The second half drops its subject: "…, which is above C".
+        const tail = second.text.replace(/^<span class="subject">[^<]*<\/span>\s*/, "");
+        premises.push(`${first.text}, which ${tail}`);
+        i++;
+    }
+
     return { premises, negations };
 }
 

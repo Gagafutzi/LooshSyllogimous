@@ -51,6 +51,10 @@ export interface LinearFeatureFlags {
     constructDistance: boolean | null;
     /** Leave out the axes a pair does not differ on. */
     compact: boolean | null;
+    /** State two links per sentence: "A is above B, which is above C". */
+    widePremises: boolean | null;
+    /** Draw a false direction from ones the item actually used. */
+    incorrectDirections: boolean | null;
     /** Premises that rewrite earlier relations. */
     edits: number | null;
     /** Conclusions that compare two relations instead of naming one. */
@@ -66,6 +70,8 @@ export const DEFAULT_LINEAR_FEATURES: LinearFeatureFlags = {
     constructConclusion: null,
     constructDistance: null,
     compact: null,
+    widePremises: null,
+    incorrectDirections: null,
     edits: null,
     analogy: null,
 };
@@ -119,6 +125,7 @@ export interface OverrideState {
         useEmojis: boolean;
         meaningfulWords: boolean;
         visualNoise: boolean;
+        junkEmojis: boolean;
     };
     linear: LinearFeatureFlags;
     space: SpaceOverrides;
@@ -134,7 +141,7 @@ const DEFAULT_STATE: OverrideState = {
     active: false,
     scrambleFactor: 100,
     modes: {},
-    flags: { meta: true, negation: true, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false },
+    flags: { meta: true, negation: true, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false },
     linear: { ...DEFAULT_LINEAR_FEATURES },
     space: { axes: {}, circularAxes: null },
     profiles: [],
@@ -173,6 +180,7 @@ export class SettingsOverrideService {
             settings.setEnable("useEmojis", this.state.flags.useEmojis);
             settings.setEnable("meaningfulWords", this.state.flags.meaningfulWords);
             settings.setEnable("visualNoise", this.state.flags.visualNoise);
+            settings.setEnable("junkEmojis", this.state.flags.junkEmojis);
         } catch {
             /* fall through to whatever the tier produced */
         }

@@ -192,7 +192,7 @@ export class Settings {
         );
     }
 
-    setEnable(prop: "useEmojis" | "meaningfulWords" | "meta" | "negation" | "visualNoise" | "useText", value: boolean) {
+    setEnable(prop: "useEmojis" | "meaningfulWords" | "meta" | "negation" | "visualNoise" | "junkEmojis" | "useText", value: boolean) {
         this.enabled[prop] = value;
         return this;
     }

@@ -48,7 +48,7 @@ export function linearFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
     const forced = <K extends keyof LinearFeatureFlags>(k: K) =>
         ctx.settingsOverrideService.linearOverride(k);
 
-    const pick = (key: "branching" | "overlap" | "multiConclusion" | "chooseConclusion" | "constructConclusion" | "constructDistance", rung: string) => {
+    const pick = (key: "branching" | "overlap" | "multiConclusion" | "chooseConclusion" | "constructConclusion" | "constructDistance" | "widePremises", rung: string) => {
         const f = forced(key);
         return f === null ? ladder(rung) : !!f;
     };
@@ -62,6 +62,7 @@ export function linearFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
 
     return {
         branching,
+        wide: pick("widePremises", "wide-premises"),
         // A chain cannot produce a tie however the flag is set, so overlap
         // is only meaningful once premises branch.
         overlap: branching && pick("overlap", "overlap"),
@@ -206,6 +207,7 @@ export function createLinear(ctx: GeneratorContext, numOfPremises: number, type:
         const rendered = renderPremises(scale, layout, {
             negate: settings.enabled.negation && !feat.overlap,
             allowTies: false,
+            wide: feat.wide,
         });
         const premises = rendered.premises;
 

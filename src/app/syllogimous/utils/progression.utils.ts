@@ -215,7 +215,9 @@ export function update(
  * after overlap it applies only to the layouts that happen not to tie.
  */
 const LINEAR_LADDER = [
-    "negation", "branching", "meta", "overlap",
+    // Appended mid-ladder rather than at the front: putting a new rung first
+    // would shift every rung already earned by one.
+    "negation", "branching", "meta", "overlap", "wide-premises",
     "transform-1", "transform-2", "multi-conclusion", "choose-conclusion",
     "construct-conclusion", "construct-distance",
 ];
@@ -271,7 +273,7 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Syllogism":                 ["negation", "meta"],
     "Linear Arrangement":        ["negation", "meta"],
     "Circular Arrangement":      ["negation", "meta"],
-    "Direction":                 ["negation", "meta"],
+    "Direction":                 ["negation", "meta", "incorrect-directions"],
     "Direction3D Spatial":       ["negation", "meta"],
     "Direction3D Temporal":      ["negation", "meta"],
     "Space 3D":                  ND_LADDER,

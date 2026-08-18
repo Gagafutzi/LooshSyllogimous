@@ -558,11 +558,42 @@ The same one-line vector negation as `reverse` in
 since reverse frames it as a property of the relation rather than of its
 arguments.
 
-### Unfinished ports from v3
+### Unfinished ports from v3 — **PARTLY DONE**
 
-- **Chain heuristics** (`space-hard-mode.js`) — the remaining part of 1.1.
-- **Presentation modifiers** — `wide-premises`, `incorrect-directions`,
-  `junk-emojis`.
+- **Chain heuristics** (`space-hard-mode.js`) — the remaining part of 1.1. Still open.
+- ~~Presentation modifiers~~ — all three ported.
+
+**Wide premises** merge consecutive links into one sentence: "A is under B,
+which is under C". Same relations, half the sentences, and harder for a reason
+worth stating — a one-relation premise can be read, placed and forgotten, where
+a two-relation one has to be held entire while the second half is placed against
+the first. A rung on the linear ladder, appended mid-list rather than at the
+front so it does not shift every rung already earned.
+
+**Junk shapes** are flat coloured silhouettes with no names, from a pool of
+2,232 (31 hues × 3 saturations × 4 lightnesses × 6 shapes), deterministic per id
+so history redraws identically. Distinct from the visual-noise stimuli already
+here: those are patterns and resist naming by intricacy, these differ only in
+colour and outline. Batches are drawn across the pool rather than at random, so
+two stimuli in one item are never a near-miss in both hue and shape.
+
+**Incorrect directions** turned out to be the interesting one, and the first
+attempt was wrong twice.
+
+The obvious reading — make the false direction one the premises *used*, so "I
+never saw that" stops working — measured at 79% against 75% baseline. It does
+nothing, because a four-cardinal item already uses nearly every direction
+somewhere. Reading v3's actual code showed a different design: a **weighted pool
+of error types**, near-misses weighted highest, because a distractor only works
+if getting it wrong looks like the mistake you would really have made.
+
+The second attempt ported that and produced *malformed* items — putting "east"
+where the north/south entry goes yields "two steps east and three steps east".
+A replacement has to stay on its own axis, which leaves three well-formed ways
+to be wrong: near-miss on distance (weight 3), the cross-axis slip with
+magnitudes exchanged between axes (weight 2), and reversal (weight 1). The
+middle one is the error a reasoner tracking two axes actually makes, and v4
+could not previously produce it at all.
 
 ### Cosmetic
 

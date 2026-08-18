@@ -72,9 +72,19 @@ export class ModeModifiersComponent {
             hint: "How far as well as which way",
         },
         {
+            key: "widePremises",
+            label: "Wide premises",
+            hint: "Two links per sentence: “A is above B, which is above C”",
+        },
+        {
             key: "compact",
             label: "Compact relations",
             hint: "Leave out the dimensions a pair does not differ on, so an unmentioned one means \u201csame\u201d. Composed spaces only",
+        },
+        {
+            key: "incorrectDirections",
+            label: "Plausible wrong answers",
+            hint: "A false direction the item used elsewhere, so “I never saw that” stops working. Direction modes",
         },
         {
             key: "analogy",

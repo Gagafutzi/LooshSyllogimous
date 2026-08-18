@@ -149,6 +149,14 @@
 
         <label class="flag">
             <input type="checkbox" class="form-check-input" [disabled]="!active"
+                   [checked]="flags.junkEmojis" (change)="setFlag('junkEmojis', $any($event.target).checked)">
+            <span>Junk shapes
+                <small class="d-block text-muted">Flat coloured shapes with no names — "the orange pentagon" is all there is to hold</small>
+            </span>
+        </label>
+
+        <label class="flag">
+            <input type="checkbox" class="form-check-input" [disabled]="!active"
                    [checked]="flags.visualNoise" (change)="setFlag('visualNoise', $any($event.target).checked)">
             <span>Visual noise stimuli
                 <small class="d-block text-muted">Abstract patterns that resist naming. Selected kinds are mixed within a question.</small>

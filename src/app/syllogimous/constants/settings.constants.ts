@@ -289,6 +289,7 @@ export const DEFAULT_ENABLED_FLAGS = {
     useText: true,
     useEmojis: false,
     visualNoise: false,
+    junkEmojis: false,
     meaningfulWords: true,
     meta: true,
     negation: true,
