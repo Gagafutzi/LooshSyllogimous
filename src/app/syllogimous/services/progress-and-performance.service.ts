@@ -1,5 +1,8 @@
 import { Injectable } from "@angular/core";
-import { LS_DAILY_GOAL, LS_DAILY_PROGRESS, LS_PREMISES_DOWN_THRESHOLD, LS_PREMISES_UP_THRESHOLD, LS_TRAINING_UNIT, LS_TRAINING_UNIT_LENGTH, LS_WEEKLY_GOAL } from "../constants/local-storage.constants";
+import {
+    LS_DAILY_GOAL, LS_DAILY_PROGRESS, LS_PREMISES_DOWN_THRESHOLD, LS_PREMISES_UP_THRESHOLD,
+    LS_TRAINING_UNIT, LS_TRAINING_UNITS_OFF, LS_TRAINING_UNIT_LENGTH, LS_WEEKLY_GOAL,
+} from "../constants/local-storage.constants";
 import { EnumQuestionType } from "../constants/question.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 
@@ -120,6 +123,27 @@ export class ProgressAndPerformanceService {
                 localStorage.setItem(LS_PREMISES_DOWN_THRESHOLD,
                     String(Math.max(0.1, Math.min(0.9, patch.premisesDownThreshold))));
             }
+        } catch { /* private mode */ }
+    }
+
+    /**
+     * Whether the pre-progression adaptive system runs at all.
+     *
+     * It was unconditional, and only silent because the fluid progression
+     * happened to outrank it. That left no way to have *nothing* adapting —
+     * which is a reasonable thing to want, and the state in which a tier and
+     * its mode requirements stop meaning anything.
+     *
+     * Defaults on, so an existing player sees no change.
+     */
+    get trainingUnitsEnabled(): boolean {
+        return localStorage.getItem(LS_TRAINING_UNITS_OFF) !== "1";
+    }
+
+    set trainingUnitsEnabled(on: boolean) {
+        try {
+            if (on) localStorage.removeItem(LS_TRAINING_UNITS_OFF);
+            else localStorage.setItem(LS_TRAINING_UNITS_OFF, "1");
         } catch { /* private mode */ }
     }
 

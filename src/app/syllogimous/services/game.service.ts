@@ -42,6 +42,7 @@ import { EnumArrangements, EnumQuestionType } from "../constants/question.consta
 import { EnumQuestionGroup, QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { Logger } from "../utils/logger";
 import { GameTimerService } from "./game-timer.service";
+import { settingsForTier } from "../utils/tier.utils";
 import { getSyllogismGeneratorValue, SyllogismGenerator } from "../pages/settings/game-mode-choose/game-mode-choose.component";
 import { neg, subj } from "../utils/phrasing";
 import { createAnalogy } from "../generators/analogy";
@@ -159,6 +160,22 @@ export class GameService implements GeneratorContext {
         localStorage.setItem(LS_SCORE, JSON.stringify(value));
     }
 
+    /**
+     * Whether anything is adapting difficulty on the player's behalf.
+     *
+     * Two systems can: the ability estimate, and the older training unit. With
+     * both switched off nothing moves the premise count, nothing moves the
+     * score, and the tier is a label attached to a number that no longer
+     * changes — so it stops being shown and stops gating which modes exist.
+     *
+     * That is the honest reading of "off". A tier that cannot be climbed but
+     * still withholds half the app is not a progression system, it is a lock.
+     */
+    get progressionActive() {
+        return this.progressionService.config.enabled
+            || this.progressAndPerformanceService.trainingUnitsEnabled;
+    }
+
     get tier() {
         for (const tier of Object.values(EnumTiers)) {
             const range = TIER_SCORE_RANGES[tier];
@@ -219,28 +236,10 @@ export class GameService implements GeneratorContext {
 
     /** Given an EnumTiers value construct a Settings instance */
     getSettingsFromTier(tier: EnumTiers) {
-        const tierIdx = ORDERED_TIERS.findIndex(_tier => _tier === tier);
-        const settings = new Settings();
-
-        settings.setEnable("negation", false);
-        settings.setEnable("meta", false);
-
-        for (let i = 0; i < TIERS_MATRIX[tierIdx].length; i++) {
-            const questionType = ORDERED_QUESTION_TYPES[i];
-            const isActive = !!TIERS_MATRIX[tierIdx][i];
-            const numOfPremises = this.progressAndPerformanceService.getTrainingUnit(questionType).premises;
-            settings.setQuestionSettings(questionType, isActive, numOfPremises);
-        }
-
-        if (tierIdx > 5) {
-            settings.setEnable("negation", true);
-        }
-
-        if (tierIdx > 6) {
-            settings.setEnable("meta", true);
-        }
-
-        return settings;
+        return settingsForTier(tier, {
+            gated: this.progressionActive,
+            premisesFor: type => this.progressAndPerformanceService.getTrainingUnit(type).premises,
+        });
     }
 
     /** Given question type and number of premises, returns a question creator function */
@@ -605,7 +604,8 @@ export class GameService implements GeneratorContext {
              * silent. Counts are still recorded above, because the stats screens
              * read them.
              */
-            const unitOwnsPremises = !this.progressionService.config.enabled;
+            const unitOwnsPremises = this.progressAndPerformanceService.trainingUnitsEnabled
+                && !this.progressionService.config.enabled;
 
             if (unitOwnsPremises && right + timeout + wrong >= trainingUnitLength) {
                 this.progressAndPerformanceService.restartTrainingUnit(this.question.type);
@@ -645,19 +645,25 @@ export class GameService implements GeneratorContext {
              * `score` now *reads* the derived value — `this.score += n` would
              * quietly overwrite the total with skill points plus n.
              */
-            if (isQuestionValid) {
+            if (!this.progressionActive) {
+                // Nothing is adapting, so nothing should be climbing. Leaving
+                // the score moving would keep promoting a tier that no longer
+                // decides anything, and announcing it would be a promotion to
+                // nowhere.
+                this.question.userScore = this.score;
+            } else if (isQuestionValid) {
                 this.rawScore += TIER_SCORE_ADJUSTMENTS[this.tier].increment;
                 ds += 1;
+                this.question.userScore = this.score;
+                this.announceTier(currTier);
             } else {
                 this.rawScore = Math.max(0, this.rawScore - TIER_SCORE_ADJUSTMENTS[this.tier].decrement);
                 if (this.rawScore > 0) {
                     ds -= 1;
                 }
+                this.question.userScore = this.score;
+                this.announceTier(currTier);
             }
-
-            this.question.userScore = this.score;
-
-            this.announceTier(currTier);
         }
 
         this.pushIntoHistory(this.question);

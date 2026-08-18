@@ -2,7 +2,13 @@
     <div class="playcard-header card-header">
         <div class="playcard-toolbar">
             <div>
+                <!--
+                  Hidden when nothing is adapting. A tier that cannot be climbed
+                  and gates nothing is a label on a frozen number, and showing it
+                  implies a progression the player has switched off.
+                -->
                 <span
+                    *ngIf="game.progressionActive"
                     class="tier-badge badge clickable fs-6"
                     [style.backgroundColor]="TIER_COLORS[game.tier].bgColor"
                     [style.color]="TIER_COLORS[game.tier].textColor"

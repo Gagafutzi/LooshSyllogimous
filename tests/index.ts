@@ -29,5 +29,6 @@ import "./nested.test";
 import "./graphdist.test";
 import "./combinations.test";
 import "./width.test";
+import "./ungated.test";
 
 run();

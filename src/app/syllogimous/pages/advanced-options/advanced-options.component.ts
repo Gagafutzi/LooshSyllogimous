@@ -113,6 +113,20 @@ export class AdvancedOptionsComponent {
 
     /* ---- training units (the pre-progression adaptive system) ---- */
 
+    /**
+     * The older adaptive system, now switchable.
+     *
+     * It was unconditional and merely outranked by fluid progression, so there
+     * was no way to have *nothing* adapting. With both off the tier stops
+     * moving and stops gating, which is what `game.progressionActive` reports.
+     */
+    get unitsOn() { return this.progress.trainingUnitsEnabled; }
+
+    setUnitsOn(on: boolean) { this.progress.trainingUnitsEnabled = on; }
+
+    /** True when neither adaptive system is running. */
+    get nothingAdapts() { return !this.game.progressionActive; }
+
     get unit() {
         const s = this.progress.getTrainingUnitSettings();
         return { length: s.trainingUnitLength, up: s.premisesUpThreshold, down: s.premisesDownThreshold };

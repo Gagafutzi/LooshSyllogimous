@@ -24,6 +24,14 @@ export interface NavItem {
     /** Reflects live state next to the label, e.g. the darkmode toggle. */
     state?: () => string;
     children?: NavItem[];
+    /**
+     * Hide the entry when nothing is adapting difficulty.
+     *
+     * The tiers matrix is a table of what each tier unlocks. With every
+     * progression system off, nothing is locked and nothing is climbed, so the
+     * page describes a mechanism that is not running.
+     */
+    needsProgression?: boolean;
     /** Groups start closed unless flagged, to keep the drawer scannable. */
     open?: boolean;
     icon?: string;
@@ -91,7 +99,7 @@ export class SideNavComponent {
             label: "Progress", icon: "▤", children: [
                 { label: "Stats",        link: ["/", EnumScreens.Stats] },
                 { label: "History",      link: ["/", EnumScreens.History] },
-                { label: "Tiers matrix", link: ["/", EnumScreens.TiersMatrix] },
+                { label: "Tiers matrix", link: ["/", EnumScreens.TiersMatrix], needsProgression: true },
             ]
         },
         {

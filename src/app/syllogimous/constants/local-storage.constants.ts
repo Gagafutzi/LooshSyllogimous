@@ -22,6 +22,11 @@ export const LS_DAILY_GOAL = "SYL_DAILY_GOAL";
 export const LS_WEEKLY_GOAL = "SYL_WEEKLY_GOAL";
 export const LS_TRAINING_UNIT = "SYL_TRAINING_UNIT:";
 export const LS_TRAINING_UNIT_LENGTH = "SYL_TRAINING_UNIT_LENGTH";
+/*
+ * Stored as an *off* switch so absence means on, which keeps every existing
+ * player on the behaviour they already had without a migration.
+ */
+export const LS_TRAINING_UNITS_OFF = "SYL_TRAINING_UNITS_OFF";
 export const LS_PREMISES_UP_THRESHOLD = "SYL_PREMISES_UP_THRESHOLD";
 export const LS_PREMISES_DOWN_THRESHOLD = "SYL_PREMISES_DOWN_THRESHOLD";
 export const LS_SCORE = "SYL_SCORE";

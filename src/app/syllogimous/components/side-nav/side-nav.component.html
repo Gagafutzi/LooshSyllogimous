@@ -26,7 +26,7 @@
         <span class="brand">SYLLOGIMOUS</span>
         <!-- Tier and score used to sit in the game card header; the card now shows
              only the question and its timer. -->
-        <div class="nav-status">
+        <div class="nav-status" *ngIf="game.progressionActive">
             <span class="nav-status__tier"><span class="tier-sigil">{{ TIER_SYMBOLS[game.tier] }}</span>{{ game.tier }}</span>
             <span class="nav-status__score">{{ game.score }} pts</span>
         </div>
@@ -65,6 +65,7 @@
 
                 <div class="group__items" *ngIf="group.open">
                     <ng-container *ngFor="let item of group.children">
+                        <ng-container *ngIf="!item.needsProgression || game.progressionActive">
 
                         <!-- leaf -->
                         <a *ngIf="item.link"
@@ -96,6 +97,7 @@
                             </div>
                         </div>
 
+                        </ng-container>
                     </ng-container>
                 </div>
             </div>
