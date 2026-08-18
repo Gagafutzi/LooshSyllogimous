@@ -201,10 +201,20 @@ export class ProgressionService {
             }
         } catch { /* ignore */ }
 
+        /*
+         * Centred on the easiest item the mode has, and *narrow*.
+         *
+         * The width was 6, meant as "we know nothing". On a grid bounded below,
+         * a Gaussian that wide centred near the floor has most of its mass
+         * above the centre, so its mean lands mid-range — the prior said
+         * "beginner" and the estimate read 6.1. Two and a half is wide enough
+         * to be moved by a handful of answers and narrow enough to mean what it
+         * says.
+         */
         const params = QUESTION_TYPE_SETTING_PARAMS[type];
         return initAbility(
             levelOf({ type, premises: params.minNumOfPremises, rungs: [], seconds: null }, this.abilityConfig),
-            6, this.abilityConfig);
+            2.5, this.abilityConfig);
     }
 
     private saveAbility(type: EnumQuestionType, s: AbilityState) {
@@ -283,9 +293,20 @@ export class ProgressionService {
         const params = QUESTION_TYPE_SETTING_PARAMS[type];
         const est = this.estimateFor(type);
         const cfg = this.abilityConfig;
+
+        /*
+         * Aimed below the estimate by a fraction of its own uncertainty.
+         *
+         * Serving to the mean gives a brand-new player the same item it would
+         * give someone measured at that level, on no evidence at all. Aiming at
+         * a lower quantile makes "unsure" mean "easier", and the penalty
+         * disappears by itself as the posterior narrows.
+         */
+        const cautious = { ...est, level: est.level - cfg.caution * est.sd };
+
         // Aimed at the accuracy wanted, using the *easiest* guess rate the mode
         // can serve; the answer mode is not known until the item is built.
-        const target = targetLevel(est, this.config.targetAccuracy, 0.5, cfg);
+        const target = targetLevel(cautious, this.config.targetAccuracy, 0.5, cfg);
 
         const choice = chooseConfig(type, {
             minPremises: params.minNumOfPremises,
@@ -319,17 +340,22 @@ export class ProgressionService {
      * Modifiers are forced *off* unless the configuration carries them — they
      * are earned here, so leaving a global toggle on would skip the ladder.
      */
-    applyTo(settings: Settings): Settings {
+    applyTo(settings: Settings, pinned?: { premises: Set<EnumQuestionType>; flags: boolean }): Settings {
         if (!this.live) return settings;
 
         try {
             for (const type of Object.values(EnumQuestionType)) {
                 const qs = settings.question[type];
                 if (!qs?.enabled) continue;
+                // A count typed into Customise wins; this layer only fills gaps.
+                if (pinned?.premises.has(type)) continue;
                 qs.setNumOfPremises(qs.clampNumOfPremises(this.configFor(type).premises));
             }
 
-            if (this.scopedType) {
+            if (pinned?.flags) {
+                // Same reasoning: an active profile states which modifiers it
+                // wants, so the ladder does not get to add or remove them.
+            } else if (this.scopedType) {
                 const rungs = this.rungsFor(this.scopedType);
                 settings.setEnable("negation", rungs.includes("negation"));
                 settings.setEnable("meta", rungs.includes("meta"));

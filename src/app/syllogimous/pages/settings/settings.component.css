@@ -12,3 +12,43 @@
     background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.04);
     line-height: 1.5;
 }
+
+/* ---- premise wording, moved here from Customise ---- */
+
+.phr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.phr__name { min-inline-size: 0; }
+
+.phr__tri {
+    display: inline-flex;
+    flex-shrink: 0;
+    border-radius: calc(var(--th-radius, 14px) * 0.7);
+    overflow: hidden;
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.28);
+}
+
+.phr__tri .btn {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-inline: 11px;
+    font-size: 12px;
+}
+
+.phr__tri .btn + .btn {
+    border-inline-start: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.2) !important;
+}
+
+.phr__tri .btn.is-on {
+    background: color-mix(in srgb, var(--th-accent) 22%, transparent) !important;
+    color: var(--th-accent) !important;
+}
+
+@media (max-width: 560px) {
+    .phr { flex-direction: column; align-items: flex-start; }
+}

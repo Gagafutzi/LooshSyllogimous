@@ -90,6 +90,13 @@ export class ModeModifiersComponent {
      * meaningful. On and off are for trying something out, or for a player who
      * already works at this level elsewhere and should not have to climb to it.
      */
+    /*
+     * Wide premises and compact relations are not here.
+     *
+     * Everything else on this list changes what has to be worked out; those two
+     * change only how the same facts are worded, which makes them a display
+     * choice. They live on Display & timer, and write to the same store.
+     */
     linearRows: Array<{ key: LinearToggle; label: string; hint: string }> = [
         {
             key: "branching",
@@ -120,16 +127,6 @@ export class ModeModifiersComponent {
             key: "constructDistance",
             label: "…and the distance",
             hint: "How far as well as which way",
-        },
-        {
-            key: "widePremises",
-            label: "Wide premises",
-            hint: "Two links per sentence: “A is above B, which is above C”",
-        },
-        {
-            key: "compact",
-            label: "Compact relations",
-            hint: "Leave out the dimensions a pair does not differ on, so an unmentioned one means \u201csame\u201d. Composed spaces only",
         },
         {
             key: "incorrectDirections",

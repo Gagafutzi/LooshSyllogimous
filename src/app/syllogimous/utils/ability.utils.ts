@@ -128,6 +128,21 @@ export function premisesNeededFor(rungs: string[]): number {
 }
 
 export interface AbilityConfig {
+    /**
+     * How many standard deviations below the mean to aim while unsure.
+     *
+     * Without this the item is chosen from the posterior *mean*, which treats a
+     * wild guess and a settled measurement identically. A new player's
+     * posterior is deliberately wide, so its mean sits mid-range and the first
+     * item arrives with four premises and two modifiers — long before anything
+     * is known about them.
+     *
+     * Aiming at a lower quantile makes uncertainty cost difficulty rather than
+     * add it, and it is self-correcting: as evidence narrows the posterior, the
+     * penalty shrinks to nothing.
+     */
+    caution: number;
+
     /** Ability grid, in linear-equivalent premises. */
     minLevel: number;
     maxLevel: number;
@@ -181,6 +196,7 @@ export const DEFAULT_ABILITY: AbilityConfig = {
     minSeconds: 8,
     maxSeconds: 180,
 
+    caution: 0.9,
     crossModeSd: 2.5,
     // ~15 days from a settled estimate to knowing very little. The mean is
     // preserved throughout, so a returning player is served items at the same
@@ -505,10 +521,22 @@ export function chooseConfig(
         const rungCost = claimed.reduce((a, r) => a + (RUNG_COST[r] ?? 0.8), 0);
         const floor = Math.max(opts.minPremises, premisesNeededFor(claimed));
 
+        /*
+         * The cap applies to length this selection *chose* to add.
+         *
+         * A few modes cannot be stated in five premises — Oddest Relation needs
+         * six to have an odd one out — and comparing against the bare cap threw
+         * away every rung-free candidate for them, so a player who had answered
+         * nothing was handed a modifier on their first item because it was the
+         * only configuration left. Below its own floor a mode is not standing
+         * length in for structure; it is just being itself.
+         */
+        const lengthCap = Math.max(opts.structureBefore, floor);
+
         for (let p = floor; p <= opts.maxPremises; p++) {
             // Length may not stand in for structure past the cap unless there is
             // no structure left to add.
-            if (p > opts.structureBefore && rungs < opts.ladder.length) continue;
+            if (p > lengthCap && rungs < opts.ladder.length) continue;
 
             const structural = weight * p + rungCost;
             const gap = opts.target - structural;

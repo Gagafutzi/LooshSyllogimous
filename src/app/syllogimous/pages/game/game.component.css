@@ -327,7 +327,12 @@
 .review {
     position: fixed;
     inset: 0;
-    z-index: 40;
+    /*
+     * Above the focus-mode playcard, which is fixed at 1035 and covered this
+     * whole overlay, and above the verdict flash at 1040 — but below the
+     * Bootstrap modal layer at 1050, which should still win.
+     */
+    z-index: 1045;
     display: grid;
     align-content: center;
     justify-items: center;

@@ -168,6 +168,24 @@ export class SettingsOverrideService {
     constructor() { this.load(); }
 
     /**
+     * What the user has fixed by hand, for the layer that runs after this one.
+     *
+     * Progression writes premise counts and the negation/meta flags too, and it
+     * runs last, so without this it silently overwrites whatever Customise
+     * shows — the panel reads "2 premises" and the item arrives with five.
+     * A number typed into Customise is a decision, not a suggestion, so
+     * progression is told to leave those alone.
+     */
+    pinned(): { premises: Set<EnumQuestionType>; flags: boolean } {
+        const premises = new Set<EnumQuestionType>();
+        if (!this.live) return { premises, flags: false };
+        for (const [type, ov] of Object.entries(this.state.modes)) {
+            if (ov?.numOfPremises) premises.add(type as EnumQuestionType);
+        }
+        return { premises, flags: true };
+    }
+
+    /**
      * Mutates a tier-built Settings in place. Called from the settings getter,
      * so it must stay cheap and must never throw — a bad saved override should
      * degrade to stock behaviour, not break question generation.

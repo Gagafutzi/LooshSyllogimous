@@ -19,5 +19,6 @@ import "./keybind.test";
 import "./customise.test";
 import "./map.test";
 import "./web.test";
+import "./coldstart.test";
 
 run();

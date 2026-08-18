@@ -171,7 +171,9 @@ export class GameService implements GeneratorContext {
         // Precedence: tier -> user overrides -> progression. Each layer is a
         // no-op unless opted in, so stock behaviour survives all three.
         const tierSettings = this.getSettingsFromTier(this.tier);
-        return this.progressionService.applyTo(this.settingsOverrideService.applyTo(tierSettings));
+        return this.progressionService.applyTo(
+            this.settingsOverrideService.applyTo(tierSettings),
+            this.settingsOverrideService.pinned());
     }
 
     get questions() {

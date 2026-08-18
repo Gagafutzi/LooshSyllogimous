@@ -27,6 +27,38 @@
             </div>
         </div>
 
+        <!--
+          Wording, not difficulty. These two used to sit on Customise beside the
+          modifiers that change what has to be worked out; they only change how
+          the same facts are phrased, so they belong here.
+        -->
+        <div class="card shadow-sm">
+            <div class="card-header py-2 small">How premises are worded</div>
+            <div class="card-body d-grid" style="gap: 0.75rem;">
+                <div class="phr" *ngFor="let row of phrasingRows">
+                    <span class="phr__name">
+                        {{ row.label }}
+                        <small class="d-block text-muted">{{ row.hint }}</small>
+                    </span>
+                    <span class="phr__tri" role="group" [attr.aria-label]="row.label">
+                        <button type="button" class="btn btn-sm"
+                                [class.is-on]="phrasingOf(row.key) === null"
+                                (click)="setPhrasing(row.key, null)">Ladder</button>
+                        <button type="button" class="btn btn-sm"
+                                [class.is-on]="phrasingOf(row.key) === false"
+                                (click)="setPhrasing(row.key, false)">Off</button>
+                        <button type="button" class="btn btn-sm"
+                                [class.is-on]="phrasingOf(row.key) === true"
+                                (click)="setPhrasing(row.key, true)">On</button>
+                    </span>
+                </div>
+                <small class="text-muted">
+                    <strong>Ladder</strong> leaves it to progression. Forcing either way
+                    needs <strong>Customise</strong> switched on.
+                </small>
+            </div>
+        </div>
+
         <div class="card shadow-sm">
             <div class="card-header py-2 small">Dimension colours</div>
             <div class="card-body">

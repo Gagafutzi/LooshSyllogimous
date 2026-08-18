@@ -6,6 +6,10 @@ import { DEFAULT_DAILY_GOAL, DEFAULT_WEEKLY_GOAL } from '../../services/progress
 import { LS_COLOR_BLINDNESS_MODE, LS_DAILY_GOAL, LS_WEEKLY_GOAL } from '../../constants/local-storage.constants';
 import { GameService } from '../../services/game.service';
 import { ThemeService } from '../../services/theme.service';
+import { LinearFeatureFlags, SettingsOverrideService } from '../../services/settings-override.service';
+
+/** The boolean members of the linear flags; the other two are counts. */
+type LinearToggle = Exclude<keyof LinearFeatureFlags, "transforms" | "edits">;
 import { Subscription } from 'rxjs';
 
 export const loadColorBlindnessMode = () => {
@@ -24,6 +28,35 @@ export const loadColorBlindnessMode = () => {
 })
 export class SettingsComponent {
     EnumScreens = EnumScreens;
+
+    /*
+     * Phrasing, not difficulty.
+     *
+     * Both of these state the same facts in fewer sentences, so they belong
+     * with how a question is shown rather than with what it asks. Tri-state
+     * like every other override: leave it to the ladder, or force it either
+     * way.
+     */
+    phrasingRows: Array<{ key: LinearToggle; label: string; hint: string }> = [
+        {
+            key: "widePremises",
+            label: "Wide premises",
+            hint: "Two links per sentence: “A is above B, which is above C”",
+        },
+        {
+            key: "compact",
+            label: "Compact relations",
+            hint: "Leave out the dimensions a pair does not differ on, so an unmentioned one means “same”. Composed spaces only",
+        },
+    ];
+
+    phrasingOf(key: LinearToggle): boolean | null {
+        return this.overrides.state.linear?.[key] ?? null;
+    }
+
+    setPhrasing(key: LinearToggle, value: boolean | null) {
+        this.overrides.setLinear(key, value);
+    }
 
     dailyProgressMinutes = new FormControl(DEFAULT_DAILY_GOAL);
     weeklyProgressMinutes = new FormControl(DEFAULT_WEEKLY_GOAL);
@@ -59,6 +92,7 @@ export class SettingsComponent {
         public router: Router,
         public game: GameService,
         public theme: ThemeService,
+        public overrides: SettingsOverrideService,
     ) {
         // Playtime stuff     
         const daily = localStorage.getItem(LS_DAILY_GOAL);

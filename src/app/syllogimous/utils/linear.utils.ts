@@ -538,7 +538,9 @@ export function renderRelation(
     truth: Comparison,
     options: RenderOptions = {},
 ): { text: string; negated: boolean } {
-    if (!options.negate || !flip()) {
+    // `negate` is now a decision, not a chance: the caller picks which links
+    // are negated so it can control how many. See `renderPremises`.
+    if (!options.negate) {
         return { text: `${subj(a)} ${rel(wordFor(scale, truth))} ${subj(b)}`, negated: false };
     }
 
@@ -560,17 +562,42 @@ export function renderPremises(
 ): { premises: string[]; negations: number } {
     let negations = 0;
 
-    const one = (from: string, to: string) => {
+    /*
+     * Which links get negated, decided once for the whole item.
+     *
+     * Each link used to flip its own coin, which meant every premise came out
+     * negated about one item in 2^n — often enough to look broken at three
+     * premises, and it *is* a different exercise: a uniformly negated item can
+     * be solved by reading every relation backwards and ignoring the negation
+     * entirely. Choosing a count between one and half the links keeps negation
+     * something to track per premise, and guarantees that switching it on shows
+     * up in the item at all.
+     */
+    const negateAt = new Set<number>();
+    if (options.negate && layout.edges.length) {
+        const n = layout.edges.length;
+        const most = Math.max(1, Math.ceil(n / 2));
+        const k = 1 + Math.floor(Math.random() * most);
+        const pool = layout.edges.map((_, i) => i);
+        for (let i = 0; i < k && pool.length; i++) {
+            negateAt.add(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+        }
+    }
+
+    /** Options for link `i`, with negation switched on only where chosen. */
+    const at = (i: number): RenderOptions => ({ ...options, negate: negateAt.has(i) });
+
+    const one = (from: string, to: string, i: number) => {
         // Edges are stored low-to-high; saying it the other way round half the
         // time stops the relation word from being a reliable direction cue.
         const [a, b] = flip() ? [from, to] : [to, from];
-        const r = renderRelation(scale, a, b, compare(layout, a, b), options);
+        const r = renderRelation(scale, a, b, compare(layout, a, b), at(i));
         if (r.negated) negations++;
         return r.text;
     };
 
     if (!options.wide) {
-        return { premises: layout.edges.map(([from, to]) => one(from, to)), negations };
+        return { premises: layout.edges.map(([from, to], i) => one(from, to, i)), negations };
     }
 
     /*
@@ -589,11 +616,11 @@ export function renderPremises(
         const next = edges[i + 1];
         const shared = next && (next[0] === b || next[1] === b);
 
-        if (!shared) { premises.push(one(a, b)); continue; }
+        if (!shared) { premises.push(one(a, b, i)); continue; }
 
         const c = next[0] === b ? next[1] : next[0];
-        const first = renderRelation(scale, a, b, compare(layout, a, b), options);
-        const second = renderRelation(scale, b, c, compare(layout, b, c), options);
+        const first = renderRelation(scale, a, b, compare(layout, a, b), at(i));
+        const second = renderRelation(scale, b, c, compare(layout, b, c), at(i + 1));
         if (first.negated) negations++;
         if (second.negated) negations++;
 

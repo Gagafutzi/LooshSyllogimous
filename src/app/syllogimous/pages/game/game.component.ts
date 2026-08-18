@@ -50,24 +50,13 @@ export class GameComponent {
     }
 
     /**
-     * ngb-carousel auto-advances on this interval. Only the timed mode wants
-     * that; the others park it far enough out that it never fires, which is how
-     * the component was already suppressing auto-advance.
-     */
-    get carouselIntervalMs() {
-        return this.carouselAdvance === 'timer'
-            ? Math.max(1, this.carouselSeconds) * 1000
-            : 999999999;
-    }
-
-    /**
      * Click-to-advance. Ignores clicks on real controls so the answer buttons
      * and nav do not also step the carousel.
      */
-    onSlideAreaClick(carousel: any, event: Event) {
+    onSlideAreaClick(event: Event) {
         if (this.carouselAdvance !== 'click') return;
         if ((event.target as HTMLElement)?.closest('button, a, input, select, textarea')) return;
-        carousel.next();
+        this.step(1);
     }
 
     /**
@@ -121,9 +110,27 @@ export class GameComponent {
             case '2': {
                 console.log("Adaptive timer");
 
-                const correctRate = 0.5;
-                const incorrectRate = 1;
-                const timeoutRate = 1.5;
+                /*
+                 * Budget = typical time for this shape of item, plus headroom.
+                 *
+                 * Two things were wrong. The budget *was* the mean of the last
+                 * ten answers, and a mean is the middle of a distribution — so
+                 * about half of all answers ran out of clock by construction.
+                 * And the adjustments were seconds multiplied by raw counts, so
+                 * ten correct in a row cut five seconds off a mode whose whole
+                 * budget might be eight, with a floor of zero underneath.
+                 *
+                 * Now the mean gets a headroom multiplier, the adjustments are
+                 * proportions of that budget rather than absolute seconds, and
+                 * nothing can drop below a floor a human can actually read the
+                 * premises in.
+                 */
+                const HEADROOM = 1.6;
+                const MIN_SECONDS = 12;
+                /* Fractions of the budget, not seconds. */
+                const correctTighten = 0.25;
+                const incorrectLoosen = 0.3;
+                const timeoutLoosen = 0.5;
                 const newLevelBonus = 15;
                 const negationBonus = 3;
                 const metaRelationBonus = 4;
@@ -134,28 +141,38 @@ export class GameComponent {
                 const { typeBasedStats } = this.statsService.calcStats(this.timerType);
                 const tbs = typeBasedStats[questionType];
 
+                /** Budget from one premise-count bucket, or null if too thin to trust. */
+                const budgetFrom = (st: any): number | null => {
+                    const n = st?.last10Count || 0;
+                    if (!st || n < 1) return null;
+                    const mean = (st.last10Sum / 1000) / n;
+                    if (!isFinite(mean) || mean <= 0) return null;
+                    const scale = 1
+                        - correctTighten * (st.last10Correct / n)
+                        + incorrectLoosen * (st.last10Incorrect / n)
+                        + timeoutLoosen * (st.last10Timeout / n);
+                    return mean * HEADROOM * scale;
+                };
+
                 if (tbs?.stats) {
                     const prevStats = (tbs.stats as any)[questionPremises - 1];
                     const currStats = (tbs.stats as any)[questionPremises];
 
-                    let avgTimeToRespond = this.timerTimeSeconds;
+                    let budget: number | null = null;
                     if (currStats && currStats.count > 2) {
-                        avgTimeToRespond = (currStats.last10Sum / 1000) / (currStats.last10Count || 1);
-                        avgTimeToRespond -= correctRate * currStats.last10Correct;
-                        avgTimeToRespond += incorrectRate * currStats.last10Incorrect;
-                        avgTimeToRespond += timeoutRate * currStats.last10Timeout;
+                        budget = budgetFrom(currStats);
                     } else if (prevStats && prevStats.count > 2) {
-                        avgTimeToRespond = (prevStats.last10Sum / 1000) / (prevStats.last10Count || 1);
-                        avgTimeToRespond -= correctRate * prevStats.last10Correct;
-                        avgTimeToRespond += incorrectRate * prevStats.last10Incorrect;
-                        avgTimeToRespond += timeoutRate * prevStats.last10Timeout;
-                        avgTimeToRespond += newLevelBonus; // Bonus for the new level
+                        const shorter = budgetFrom(prevStats);
+                        // One premise longer than anything measured, so pay for
+                        // the extra step as well as the unfamiliarity.
+                        if (shorter != null) budget = shorter + newLevelBonus;
                     }
 
-                    avgTimeToRespond += negationBonus * this.game.question.negations;
-                    avgTimeToRespond += metaRelationBonus * this.game.question.metaRelations;
-
-                    this.timerTimeSeconds = Math.floor(Math.max(0, avgTimeToRespond));
+                    if (budget != null) {
+                        budget += negationBonus * this.game.question.negations;
+                        budget += metaRelationBonus * this.game.question.metaRelations;
+                        this.timerTimeSeconds = Math.floor(Math.max(MIN_SECONDS, budget));
+                    }
                 }
 
                 this.kickTimer();
@@ -193,6 +210,7 @@ export class GameComponent {
     ngOnDestroy() {
         this.questionSub?.unsubscribe();
         this.gameTimerService.stop();
+        clearInterval(this.carouselTimerHandle);
     }
 
     /**
@@ -235,17 +253,53 @@ export class GameComponent {
         if (id === this.lastSlideId) this.reachedEnd = true;
     }
 
+    /**
+     * Every slide this question has, in the order they are meant to be read.
+     *
+     * ngb-carousel decides `next()` from its own `ContentChildren` list, and
+     * that list is assembled from four separate structural blocks — an `*ngIf`
+     * setup, an `*ngIf` webs slide, an `*ngFor` over premises, and an `*ngIf`
+     * pair for the ending. Its order is whatever those views happened to be
+     * created in, which is how a carousel ended up going premise 2, premise 1,
+     * last premise, premise 3. Stepping is driven from this array instead, so
+     * reading order is stated once and cannot drift from the template.
+     */
+    slideOrder: string[] = [];
+
+    private buildSlideOrder() {
+        const q = this.game.question;
+        const ids: string[] = [];
+        if (q.setup?.length) ids.push(this.slideId("setup"));
+        if (q.webs?.length) ids.push(this.slideId("webs"));
+        q.premises.forEach((_, i) => ids.push(this.slideId("premise-" + i)));
+        if (q.answerMode === "choice") {
+            ids.push(this.slideId("choices"));
+        } else if (q.answerMode !== "construct") {
+            // A construction item has no conclusion slide — the conclusion is
+            // the thing being built.
+            const count = Array.isArray(q.conclusion) ? q.conclusion.length : 1;
+            for (let i = 0; i < count; i++) ids.push(this.slideId("conclusion-" + i));
+        }
+        this.slideOrder = ids;
+    }
+
     /** The final slide, which depends on which slides this question has. */
     private get lastSlideId() {
-        const q = this.game.question;
-        if (q.answerMode === "choice") return this.slideId("choices");
-        // A construction item has no conclusion slide — the conclusion is the
-        // thing being built — so its last slide is the last premise.
-        if (q.answerMode === "construct") return this.slideId("premise-" + (q.premises.length - 1));
-        // A premise-less mode needs nothing here: a choice item already ends on
-        // its candidates above, and everything else ends on its conclusion.
-        const count = Array.isArray(q.conclusion) ? q.conclusion.length : 1;
-        return this.slideId("conclusion-" + (count - 1));
+        return this.slideOrder[this.slideOrder.length - 1] ?? "";
+    }
+
+    /**
+     * Move by one slide, clamped at both ends.
+     *
+     * Deliberately not wrapping: reaching the end is what unlocks answering in
+     * the carousel modes, and wrapping round to the first premise again made
+     * that a lap counter rather than a position.
+     */
+    step(delta: number) {
+        if (!this.slideOrder.length) return;
+        const at = this.slideOrder.indexOf(this.activeSlideId);
+        const next = Math.min(this.slideOrder.length - 1, Math.max(0, (at < 0 ? 0 : at) + delta));
+        this.onSlideChange(this.slideOrder[next]);
     }
 
     /** All-at-once has no slides to wait for, so the form is there from the start. */
@@ -256,13 +310,27 @@ export class GameComponent {
     private armCarousel() {
         // Before the ids are computed, so this question's slides are all new.
         this.questionToken++;
-        // Relational Web has no premise slides; its picture slide stands in.
-        const firstBody = this.game.question.webs?.length ? "webs" : "premise-0";
-        const first = this.slideId(this.game.question.setup?.length ? "setup" : firstBody);
-        this.activeSlideId = first;
+        this.buildSlideOrder();
+        this.activeSlideId = this.slideOrder[0] ?? "";
         // A one-slide question is already at its end and would otherwise never
         // fire a slide event to say so.
-        this.reachedEnd = first === this.lastSlideId;
+        this.reachedEnd = this.slideOrder.length <= 1;
+        this.armCarouselTimer();
+    }
+
+    private carouselTimerHandle?: any;
+
+    /**
+     * Timed advance, driven here rather than by the carousel's own `interval`.
+     *
+     * The same reason as `step`: the carousel's auto-advance walks its content
+     * list, which is the order being replaced.
+     */
+    private armCarouselTimer() {
+        clearInterval(this.carouselTimerHandle);
+        if (this.carouselAdvance !== "timer") return;
+        this.carouselTimerHandle = setInterval(
+            () => this.step(1), Math.max(1, this.carouselSeconds) * 1000);
     }
 
     private resetPicks() {
@@ -388,7 +456,7 @@ export class GameComponent {
             case "next":
                 if (this.gameMode === "0") return;
                 event.preventDefault();
-                this.carousel?.next();
+                this.step(1);
                 return;
 
             case "prev":
@@ -396,7 +464,7 @@ export class GameComponent {
                 // disabled there, and the key must not be a way around it.
                 if (this.gameMode === "0" || this.gameMode === "2") return;
                 event.preventDefault();
-                this.carousel?.prev();
+                this.step(-1);
                 return;
         }
     }
