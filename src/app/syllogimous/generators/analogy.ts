@@ -9,7 +9,7 @@ import { GeneratorContext } from "./context";
 import { createArrangement } from "./arrangement";
 import { createDirection, createDirection3D } from "./direction";
 import { createDistinction } from "./distinction";
-import { createComparison } from "./linear";
+import { createComparison, linearScaleFor } from "./linear";
 import { Question } from "../models/question.models";
 import { coinFlip, getCircularWays, getLinearWays, pickUniqueItems } from "../utils/question.utils";
 import { canGenerateQuestion } from "../models/settings.models";
@@ -74,8 +74,21 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
 
     let question = new Question(topType);
     let isValidSame;
-    let a, b, c, d;
+    // Definite: every branch of the switch below assigns all four, and the
+    // `isValidSame === undefined` guard rejects the case where none ran.
+    let a!: string, b!: string, c!: string, d!: string;
     let indexOfA, indexOfB, indexOfC, indexOfD;
+
+    /*
+     * How each of the two pairs relates, in that layout's own terms.
+     *
+     * Analogy has no relation of its own: it takes a finished item from one of
+     * five other modes and asks whether one pair stands to each other as
+     * another pair does. So a derivation has to be written per layout — there
+     * is no shared quantity to fall back on — and it is filled in by whichever
+     * branch ran.
+     */
+    let describe: ((x: string, y: string) => string) | null = null;
 
     const flip = coinFlip();
 
@@ -100,6 +113,10 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
                     Number(question.buckets[0].indexOf(d) !== -1)
                 ];
             isValidSame = (indexOfA === indexOfB && indexOfC === indexOfD) || (indexOfA !== indexOfB && indexOfC !== indexOfD);
+            {
+                const side = (n: string) => Number(question.buckets[0].indexOf(n) !== -1);
+                describe = (x, y) => side(x) === side(y) ? "on the same side" : "on opposite sides";
+            }
             break;
         case 1:
         case 2:
@@ -116,6 +133,19 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
             [indexOfA, indexOfB] = [question.bucket.indexOf(a), question.bucket.indexOf(b)];
             [indexOfC, indexOfD] = [question.bucket.indexOf(c), question.bucket.indexOf(d)];
             isValidSame = (indexOfA > indexOfB && indexOfC > indexOfD) || (indexOfA < indexOfB && indexOfC < indexOfD);
+            {
+                // Positions rather than premise text: negation rewords a
+                // relation into its opposite pole, so the sentences shown do
+                // not always read the way the ordering runs.
+                const scale = linearScaleFor(ctx, type);
+                const at = question.positions;
+                describe = (x, y) => {
+                    const d = (at[x] ?? 0) - (at[y] ?? 0);
+                    const word = d === 0 ? scale?.tie ?? "level with"
+                        : d > 0 ? scale?.direction[0] ?? "above" : scale?.direction[1] ?? "below";
+                    return `${word} \u2014 ${Math.abs(d)} apart`;
+                };
+            }
             break;
         case 3:
             while (flip !== isValidSame) {
@@ -134,6 +164,11 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
                 const dyctod = coordsc[2] - coordsd[2];
 
                 isValidSame = (dxatob === dxctod) && (dyatob === dyctod);
+            }
+            {
+                const at: Record<string, [number, number]> = {};
+                for (const [w, x, y] of question.coords) at[w] = [x, y];
+                describe = (p, q) => offset2D(at[p][0] - at[q][0], at[p][1] - at[q][1]);
             }
             break;
         case 4:
@@ -159,6 +194,18 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
                 const dtctod = coordsc[3] - coordsd[3];
 
                 isValidSame = (dxatob === dxctod) && (dyatob === dyctod) && (dtatob === dtctod);
+            }
+            {
+                const at: Record<string, [number, number, number]> = {};
+                for (const [w, x, y, t] of question.coords3D) at[w] = [x, y, t];
+                const third = type === EnumQuestionType.Direction3DSpatial
+                    ? ["above", "below"] : ["after", "before"];
+                describe = (p, q) => {
+                    const dt = at[p][2] - at[q][2];
+                    const flat = offset2D(at[p][0] - at[q][0], at[p][1] - at[q][1]);
+                    const level = dt === 0 ? "level" : `${Math.abs(dt)} ${dt > 0 ? third[0] : third[1]}`;
+                    return `${flat}, ${level}`;
+                };
             }
             break;
         }
@@ -205,6 +252,18 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
             }
             ctx.logger.info('Is a valid "same" relationship?', isValidSame);
 
+            {
+                const seats = subjects.length;
+                describe = (p, q) => {
+                    const gap = subjects.indexOf(p) - subjects.indexOf(q);
+                    const round = isLinear
+                        ? Math.abs(gap)
+                        : Math.min(Math.abs(gap), seats - Math.abs(gap));
+                    const way = isLinear ? (gap > 0 ? "to the right of" : "to the left of") : "away from";
+                    return `${round} place${round === 1 ? "" : "s"} ${way}`;
+                };
+            }
+
             break;
         }
     }
@@ -226,14 +285,33 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
     question.conclusion += `${subj(c)} to ${subj(d)}`;
 
     /*
-     * Analogy builds on a scale layout and then asks a different question of
-     * it, so any derivation attached while that layout was being made
-     * explains a pair this item never asks about. Left in place it rendered
-     * a confident, correct-looking proof of an unrelated claim — worse than
-     * showing nothing. An analogy needs its own explanation of the two
-     * relations being compared; until it has one, it has none.
+     * Its own derivation, not the layout's.
+     *
+     * Whatever the underlying generator attached explains a pair this item
+     * never asks about — left in place it rendered a confident, correct-looking
+     * proof of an unrelated claim, which is worse than showing nothing. So the
+     * two relations being compared are stated instead, in the terms of the
+     * layout they came from, and the closing line says whether they match.
+     *
+     * It names only the four objects the conclusion names, which is what the
+     * derivation test checks across every mode — and is exactly the invariant
+     * that caught the stale-explanation bug in the first place.
      */
-    question.explanation = [];
+    question.explanation = describe
+        ? [
+            `${subj(a)} to ${subj(b)}: ${describe(a!, b!)}`,
+            `${subj(c)} to ${subj(d)}: ${describe(c!, d!)}`,
+            `so the two are ${isValidSame ? "alike" : "unlike"}`,
+        ]
+        : [];
 
     return question;
+}
+
+/** A flat displacement, worded as the direction modes word it. */
+function offset2D(dx: number, dy: number): string {
+    const parts: string[] = [];
+    if (dy !== 0) parts.push(`${Math.abs(dy)} ${dy > 0 ? "north" : "south"}`);
+    if (dx !== 0) parts.push(`${Math.abs(dx)} ${dx > 0 ? "east" : "west"}`);
+    return parts.length ? parts.join(" and ") : "in the same place";
 }

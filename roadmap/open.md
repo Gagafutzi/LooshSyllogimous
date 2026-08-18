@@ -5,38 +5,49 @@
 Ordered by value, not by size. The first two compound with every session played;
 the rest add capability.
 
-### 1. Finish derivation coverage — **PARTLY DONE**
+### 1. Finish derivation coverage — **DONE**
 
-**Fourteen of twenty-two sampled modes now explain themselves**, up from eight.
-Added: Binary (which half failed), Anchor Space (routed through the frame),
-Deictic (the perspective shift, axis by axis), Graph Matching (the pairing, and
-the link that breaks it), and both arrangement modes (the order itself).
+**All twenty-five sampled modes explain themselves.** The last eight were
+Comparison, Distinction, Direction, Direction3D, Syllogism, Transformation,
+Anchor Space v2 and Analogy.
 
-The invariant that caught the Analogy bug is now a test — `tests/derivation.test.ts`
-asserts, for every mode, that no subject in a derivation's closing line is absent
-from what the item actually asks about. It immediately caught a fresh instance in
-the new Deictic derivation, which ended by naming the *correct* symbol on an item
-whose false conclusion names a different one; the correction moved one line up so
-the closing line answers the question that was asked.
+Three things came out of finishing it.
 
-**Still uncovered:** Distinction, the Comparisons, Direction, Direction3D,
-Syllogism, Analogy, Transformation, Anchor Space v2. Analogy is the expensive
-one — it composes five different generators and needs a branch per layout.
+**Comparison needed no new reasoning at all.** It runs the pre-engine generator
+whenever no structural modifier is live, so the two covered scale modes explained
+themselves and the Comparisons did not, purely because of which code path ran.
+`bucket` is the chain in order and `sign` is which way it runs, so the layout is
+recoverable exactly and the shared renderer does the rest.
 
-Ten of twenty-four modes explained themselves after a wrong answer
-([4.2](done.md#42-derivation-on-error--done-composed-spaces)). The rest emit one bit for
-an item that took a minute to read. The field on `Question` and the overlay are
-shared, so each remaining mode is a generator-side change only.
+**The transformation case needed the different renderer this file predicted.**
+A walk through the premises is wrong in any mode whose premises *change* the
+arrangement rather than describe it: the relation a premise states stops holding
+the moment a later transform moves one of its ends, so a walk derives the
+*starting* relation and presents it as the answer. Transformation and Anchor
+Space v2 replay positions instead, and show only the steps that move one of the
+two queried objects — the rest are there to be read and dismissed.
 
-Still uncovered: Analogy, Binary, Deictic, Graph Matching, Anchor Space, the
-arrangement modes — and **any item carrying transformations or edits in any
-mode**, because a path through the premises stops accounting for positions once
-operations move things. That last case needs a coordinate trace rather than a
-tree walk, which is a different renderer.
+Transformation states coordinates relative to the first object, since that is all
+the premises determine; they chain offsets, so the arrangement is fixed only up
+to where the chain is pinned. Shifting the whole frame is safe because every
+operation is defined against a pivot that shifts with it.
 
-Read the Analogy trap in 4.2 before starting: a mode that reuses another's layout
-inherits whatever that generator attached, and a stale `explanation` is *worse*
-than none.
+**Analogy really was one branch per layout,** as predicted. It has no relation of
+its own — it takes a finished item from one of five other modes and asks whether
+one pair stands to each other as another does — so there is no shared quantity to
+fall back on and each layout describes its own pairs.
+
+Verification went beyond the subject invariant, because a derivation that
+recomputes an answer is a second implementation of arithmetic the generator
+already did, and two implementations drift:
+
+- `a replayed trace ends where the answer says it does` — for both trace modes,
+  the direction the trace ends on must match the conclusion on a true item and
+  contradict it on a false one.
+- `Analogy's derivation agrees with its answer` — over all five layouts, reading
+  the claim off the rendered conclusion because negation flips it.
+- The coverage test's floor is now the full set rather than a number to beat, so
+  losing a mode fails instead of quietly logging a smaller number.
 
 ### 2. Fatigue detection — **DONE**
 

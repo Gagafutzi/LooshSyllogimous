@@ -207,6 +207,16 @@ export class Question {
     wordCoordMap?: Record<string, number[]>;
     /** Axis names for the map, in the same order as the coordinates. */
     axisNames?: string[];
+    /**
+     * Position per object on a one-axis scale, when the mode has one.
+     *
+     * Written by the scale generators so a mode that *builds on* one — Analogy
+     * takes a finished layout and asks a different question of it — can word
+     * the relation between two objects without re-deriving it from the
+     * rendered premises, which negation and meta have already rewritten.
+     */
+    positions: Record<string, number> = {};
+
     coords: [string, number, number][] = [];
     coords3D: [string, number, number, number][] = [];
     graphPremises: [string, string, string][] = [];

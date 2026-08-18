@@ -169,7 +169,11 @@ test("how many modes explain themselves", () => {
         if (any) covered.push(type);
     }
     console.log(`       ${covered.length}/${MODES.length} modes derive: ${covered.join(", ")}`);
-    assert(covered.length >= 14, `only ${covered.length} modes explain themselves`);
+    // Every mode now does. The floor is the full set rather than a number to
+    // beat, so losing one is a failure instead of a quietly smaller log line.
+    assert(covered.length === MODES.length,
+        `${MODES.length - covered.length} modes explain nothing: `
+        + MODES.map(([t]) => t).filter(t => !covered.includes(t)).join(", "));
 });
 
 /**
@@ -220,4 +224,43 @@ test("a replayed trace ends where the answer says it does", () => {
 
         assert(checked > 5, `${type}: only ${checked} traces were checkable`);
     }
+});
+
+/**
+ * Analogy's verdict, across all five layouts it can be built on.
+ *
+ * It has no relation of its own — it takes a finished item from another mode
+ * and asks whether one pair stands to each other as another pair does — so the
+ * derivation is five independent descriptions, one per layout, each computing
+ * the comparison a second time. Five chances to disagree with the answer.
+ *
+ * The claim is read off the rendered conclusion because negation flips it:
+ * a negated item shows the *opposite* word inside an `is-negated` span, so
+ * "not unlike" is a claim that the pairs are alike.
+ */
+test("Analogy's derivation agrees with its answer, whatever it was built on", () => {
+    let checked = 0;
+
+    for (let run = 0; run < 60; run++) {
+        const q = seeded(run * 5171 + 7, () => createAnalogy(context(), 4));
+        if (!q.explanation.length) continue;
+
+        const conclusion = String(q.conclusion);
+        const shown = /class="analogy-conclusion[^"]*">is (alike|unlike)</.exec(conclusion);
+        if (!shown) continue;
+
+        const flipped = conclusion.includes("analogy-conclusion is-negated");
+        const claimsAlike = flipped ? shown[1] === "unlike" : shown[1] === "alike";
+
+        const closing = q.explanation[q.explanation.length - 1];
+        const derivedAlike = /are alike$/.test(closing);
+
+        assert(derivedAlike === (q.isValid ? claimsAlike : !claimsAlike),
+            `the item is ${q.isValid ? "true" : "false"} and claims the pairs are`
+            + ` ${claimsAlike ? "alike" : "unlike"}, but the derivation found them`
+            + ` ${derivedAlike ? "alike" : "unlike"}\n  ${closing.replace(/<[^>]+>/g, "")}`);
+        checked++;
+    }
+
+    assert(checked > 20, `only ${checked} analogies were checkable`);
 });

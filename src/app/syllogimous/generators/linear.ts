@@ -170,6 +170,7 @@ export function createComparison(ctx: GeneratorContext, numOfPremises: number, t
             neighbors[y].push(x);
         }
 
+        question.positions = pos;
         const layout: LinearLayout = { words: [...question.bucket], pos, edges, neighbors, branching: false };
         question.explanation = explainLinear(
             scale, layout, question.bucket[a], question.bucket[b]);
