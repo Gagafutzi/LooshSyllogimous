@@ -7,7 +7,35 @@ left, in full:
 | | why it is still here |
 |---|---|
 | **Pricing width into difficulty** ([5](#5-realized-width-as-a-difficulty-axis--partly-done)) | the dial and the fit both exist; the coefficient needs answered items with the dial off its default to fit against. |
-| **Set Hierarchy syllogism** | never specced beyond one line. Quantified set logic already exists in Syllogism; what a hierarchy adds needs deciding before anything is written — the same discipline [P8](#p8-boolean-concept-learning--settled-as-a-presentation-of-p11) got, and possibly the same answer. |
+
+### Set Hierarchy — **DONE**, rung `hierarchy` on Syllogism
+
+Listed as a mode that was never built. It is not a mode. Every syllogism the app
+produced was a **path** — each premise composing onto the running conclusion —
+and what a hierarchy adds is a different *shape* of premise network, not
+different logic. The solver never cared: `sylEntails` refutes rather than
+derives, so it works over any premise set, chain or tree. That is what made this
+a rung rather than a generator, and it is the same answer P8 got.
+
+What branching buys is what a path cannot offer: a pair the premises leave
+**genuinely undecided**, as distinct from one they **rule out**. Both look like
+"false" and they are not the same thing, so the derivation says which, and the
+generator draws between them deliberately — left to chance, "not settled" came
+up seven times in eight and a player would learn to stop checking. Now roughly
+72 follow, 46 are ruled out and 32 are left open per 150.
+
+The derivation names the premises that actually do the work, found by dropping
+the ones that do not. Greedy removal is not guaranteed to find the smallest such
+set and does not claim to; what it guarantees is that every premise left is
+load-bearing, since dropping it was tried and the conclusion stopped following.
+
+Three things caught by looking at output rather than by types. Premises were
+built with the quantifier in the subject slot, rendering as `undefined`. The
+answer was skewed one in twenty towards "false", because a random pair is almost
+never entailed — fixed by scanning every pair and quantifier, and by drawing the
+wanted answer once rather than per attempt. And the derivation was worded
+plainly beside a negated conclusion, so it read as a flat contradiction of the
+claim it was explaining.
 
 The rest of this file is kept as the record of what was decided and why,
 including the parts that turned out differently from the plan. Those are the
@@ -314,7 +342,7 @@ Eleven are specced below. In rough cost order:
 | ~~P8 boolean concepts~~ | **settled** — it is P11 with the question reversed; rung `state-rule` |
 | ~~P4 graph matching extended~~ | **built** — all three parts: `which-differs`, `distance`, `as-relations` |
 | ~~Relational Web~~ | **built** — `generators/relational-web.ts`, `utils/web.utils.ts` |
-| **Set Hierarchy syllogism** | quantified set logic over proof networks; also never built |
+| ~~Set Hierarchy syllogism~~ | **settled and built** — it is Syllogism's premise network branching; rung `hierarchy` |
 
 ---
 

@@ -121,6 +121,7 @@ export const RUNG_COST: Record<string, number> = {
      * skip by matching text.
      */
     "as-relations": 1.3,
+    hierarchy: 1.5,
     distance: 2.0,
     compound: 1.2,
     undetermined: 1.4,

@@ -74,7 +74,7 @@ export function getSyllogism(settings: Settings, s: string, p: string, m: string
 //   /  |/ / __/  | | /| / /  / / __/ __/ /  |/ / __/ / /_/ / /| | / / / / / / /_/ /
 //  / /|  / /___  | |/ |/ /  / /_/ / /___/ /|  / /___/ _, _/ ___ |/ / / /_/ / _, _/ 
 // /_/ |_/_____/  |__/|__/   \____/_____/_/ |_/_____/_/ |_/_/  |_/_/  \____/_/ |_|  
-function sylNegate(premise: SylPremise): SylPremise {
+export function sylNegate(premise: SylPremise): SylPremise {
     const [a, k, b] = premise;
     const map: Record<SylKind, SylPremise> = {
         "all":      [a, "some_not", b],
@@ -97,7 +97,14 @@ function sylIntersect<T>(a: Set<T>, b: Set<T>): Set<T> {
     return r;
 }
 
-function sylIsConsistent(premises: SylPremise[]): boolean {
+/**
+ * Exported because the solver was never chain-specific.
+ *
+ * It works over an arbitrary premise set — the closure below does not care
+ * whether the "all" relations form a path or a tree — which is what made a
+ * branching hierarchy a shape of this mode rather than a mode of its own.
+ */
+export function sylIsConsistent(premises: SylPremise[]): boolean {
     const terms = new Set<string>();
     for (const [a, , b] of premises) { terms.add(a); terms.add(b); }
     if (!terms.size) return true;
@@ -164,7 +171,8 @@ function sylIsConsistent(premises: SylPremise[]): boolean {
     return true;
 }
 
-function sylEntails(premises: SylPremise[], conclusion: SylPremise): boolean {
+/** Refutation: a conclusion follows exactly when denying it is inconsistent. */
+export function sylEntails(premises: SylPremise[], conclusion: SylPremise): boolean {
     return !sylIsConsistent([...premises, sylNegate(conclusion)]);
 }
 

@@ -292,7 +292,12 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Vertical Order":            LINEAR_LADDER,
     "Horizontal Order":          LINEAR_LADDER,
     "Containment":               LINEAR_LADDER,
-    "Syllogism":                 ["negation", "meta"],
+    /*
+     * `hierarchy` last: a branching premise network rather than a chain, so
+     * some pairs are related only through a group they are both in and some are
+     * not related at all — a demand a path can never make.
+     */
+    "Syllogism":                 ["negation", "meta", "hierarchy"],
     "Linear Arrangement":        ["negation", "meta"],
     "Circular Arrangement":      ["negation", "meta"],
     "Direction":                 ["negation", "meta", "incorrect-directions"],
