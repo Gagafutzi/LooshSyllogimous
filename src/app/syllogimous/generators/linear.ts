@@ -103,10 +103,15 @@ export function createComparison(ctx: GeneratorContext, numOfPremises: number, t
     const length = numOfPremises + 1;
     const question = new Question(type);
 
+    // Hoisted out of the loop so the derivation below can read the layout the
+    // accepted attempt settled on.
+    let sign = 1;
+    let a = 0, b = 0;
+
     do {
         question.bucket = getRandomSymbols(settings, length);
         question.premises = [];
-        const sign = [-1, 1][Math.floor(Math.random() * 2)];
+        sign = [-1, 1][Math.floor(Math.random() * 2)];
 
         let next = "";
 
@@ -123,8 +128,8 @@ export function createComparison(ctx: GeneratorContext, numOfPremises: number, t
 
         createMetaRelationships(settings, question, length);
 
-        const a = Math.floor(Math.random() * question.bucket.length);
-        let b = Math.floor(Math.random() * question.bucket.length);
+        a = Math.floor(Math.random() * question.bucket.length);
+        b = Math.floor(Math.random() * question.bucket.length);
         while (a === b) {
             b = Math.floor(Math.random() * question.bucket.length);
         }
@@ -137,6 +142,38 @@ export function createComparison(ctx: GeneratorContext, numOfPremises: number, t
             ? sign === 1 && a > b || sign === -1 && a < b
             : sign === 1 && a < b || sign === -1 && a > b;
     } while (isPremiseLikeConclusion(question.premises, question.conclusion));
+
+    /*
+     * The chain this path built, recovered rather than tracked.
+     *
+     * This is the legacy generator — it never builds a layout, it emits
+     * sentences directly — so the two covered scale modes explained themselves
+     * while the Comparisons did not, purely because of which code path ran.
+     *
+     * Nothing needs tracking, though: `bucket` *is* the chain in order, and
+     * `sign` is which way it runs, so positions are recoverable exactly.
+     * Negation only rewords a relation and meta only rewrites premises into
+     * claims about premises; neither moves anything, so the recovered layout is
+     * the same layout the answer was decided from.
+     */
+    const scale = linearScaleFor(ctx, type);
+    if (scale) {
+        const pos: Record<string, number> = {};
+        const neighbors: Record<string, string[]> = {};
+        question.bucket.forEach((w, i) => { pos[w] = sign * i; neighbors[w] = []; });
+
+        const edges: Array<[string, string]> = [];
+        for (let i = 0; i < question.bucket.length - 1; i++) {
+            const [x, y] = [question.bucket[i], question.bucket[i + 1]];
+            edges.push([x, y]);
+            neighbors[x].push(y);
+            neighbors[y].push(x);
+        }
+
+        const layout: LinearLayout = { words: [...question.bucket], pos, edges, neighbors, branching: false };
+        question.explanation = explainLinear(
+            scale, layout, question.bucket[a], question.bucket[b]);
+    }
 
     shuffle(question.premises);
 

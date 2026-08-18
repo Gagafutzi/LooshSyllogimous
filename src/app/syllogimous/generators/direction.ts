@@ -265,6 +265,80 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
         return `${subj(p.pair[0][0])} is ${relationship} of ${subj(p.pair[1][0])}`;
     };
 
+    /*
+     * A walk from one end of the claim to the other, adding up as it goes.
+     *
+     * Directions compose by vector addition, and the whole difficulty is that
+     * two axes have to be carried at once while the premises arrive in a random
+     * order and mention pairs that are nowhere near each other. Stating the
+     * running total after each step is the method, so the derivation is the
+     * method rather than a restatement of the answer.
+     *
+     * Distances come from the coordinates rather than by parsing the rendered
+     * premises: negation rewords a premise into its opposite pole, so the text
+     * a player reads is not always the arithmetic being done.
+     */
+    const at: Record<string, [number, number]> = {};
+    for (const [w, x, y] of coords) at[w] = [x, y];
+
+    const near: Record<string, string[]> = {};
+    for (const p of premises) {
+        const [x, y] = [p.pair[0][0], p.pair[1][0]];
+        (near[x] ??= []).push(y);
+        (near[y] ??= []).push(x);
+    }
+
+    const route = (from: string, to: string): string[] | null => {
+        if (from === to) return [from];
+        const prev: Record<string, string> = {};
+        const seen = new Set([from]);
+        const queue = [from];
+        while (queue.length) {
+            const cur = queue.shift()!;
+            for (const n of near[cur] ?? []) {
+                if (seen.has(n)) continue;
+                seen.add(n);
+                prev[n] = cur;
+                if (n === to) {
+                    const out = [to];
+                    let step = to;
+                    while (step !== from) { step = prev[step]; out.unshift(step); }
+                    return out;
+                }
+                queue.push(n);
+            }
+        }
+        return null;
+    };
+
+    /** Cardinal pairs for a displacement, in the order the premises state them. */
+    const cardinalsFor = (dx: number, dy: number): [string, number][] => {
+        const out: [string, number][] = [];
+        if (dy > 0) out.push(["North", dy]); else if (dy < 0) out.push(["South", -dy]);
+        if (dx > 0) out.push(["East", dx]); else if (dx < 0) out.push(["West", -dx]);
+        return out;
+    };
+
+    const path = route(coordb[0], coorda[0]);
+    if (path && path.length >= 2) {
+        const lines: string[] = [];
+        const origin = at[path[0]];
+
+        for (let i = 0; i < path.length - 1; i++) {
+            const [from, to] = [path[i], path[i + 1]];
+            const step = cardinalsFor(at[to][0] - at[from][0], at[to][1] - at[from][1]);
+            const total = cardinalsFor(at[to][0] - origin[0], at[to][1] - origin[1]);
+            lines.push(`${subj(to)} is ${getRelationship(step)} of ${subj(from)}`
+                + ` \u2014 running total from ${subj(path[0])}: `
+                + (total.length ? getRelationship(total, true) : "no offset at all"));
+        }
+
+        const net = cardinalsFor(coorda[1] - coordb[1], coorda[2] - coordb[2]);
+        lines.push(`so ${subj(coorda[0])} is ${net.length ? getRelationship(net) : "in the same place as"}`
+            + ` of ${subj(coordb[0])}`);
+        question.explanation = lines;
+    }
+
     shuffle(premises);
     question.isValid = isValid;
     question.premises = premises.map(stringifyProposition);
