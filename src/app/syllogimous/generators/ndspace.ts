@@ -10,13 +10,14 @@ import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
-import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, buildNdLayout, describeNdAxes, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremises } from "../utils/ndspace.utils";
+import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, buildNdLayout, describeNdAxes, determinedOn, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
+import { hi, subj } from "../utils/phrasing";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
-import { COMPACT_NOTE, EDIT_NOTE, ND_ANALOGY_NOTE, ND_TRANSFORM_NOTE, ONE_STEP_NOTE } from "./notes";
+import { COMPACT_NOTE, EDIT_NOTE, INDETERMINATE_NOTE, ND_ANALOGY_NOTE, ND_TRANSFORM_NOTE, ONE_STEP_NOTE } from "./notes";
 
 /** How many dimensions each composed-space mode asks for. */
 export function dimensionsOf(ctx: GeneratorContext, type: EnumQuestionType): number {
@@ -109,7 +110,11 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
 
     for (let attempt = 0; attempt < 300; attempt++) {
         const words = getRandomSymbols(settings, objectCount);
-        const layout = buildNdLayout(words, axes, { branching: feat.branching });
+        const layout = feat.indeterminate
+            ? withholdClauses(
+                buildNdLayout(words, axes, { branching: feat.branching }),
+                1 + Math.floor(Math.random() * 2))
+            : buildNdLayout(words, axes, { branching: feat.branching });
 
         /*
          * Edits rewrite the stated relations; transformations move objects
@@ -184,9 +189,31 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
         ? (ladder("transform-1") ? 1 : 0) + (ladder("transform-2") ? 1 : 0)
         : Math.max(0, Math.min(4, forcedTransforms));
 
+    const forcedOpen = ctx.settingsOverrideService.linearOverride("indeterminate");
+    /*
+     * Under-specification does not mix with premises that rewrite or move
+     * things. Both are answered by replaying what the premises did, and
+     * "the premises never said" is a claim about the premise set as stated —
+     * put together, an item would be asking whether something is pinned down
+     * while also moving it, and neither reading is the one being tested.
+     */
+    const compact = forcedCompact === null ? ladder("compact") : !!forcedCompact;
+
+    const indeterminate = (forcedOpen === null ? ladder("indeterminate") : !!forcedOpen)
+        && edits === 0 && transforms === 0
+        /*
+         * And never alongside `compact`, which is the sharper of the two
+         * conflicts. Compact omits a clause to *say* the pair is level, so with
+         * both live an omission would carry two incompatible meanings in the
+         * same sentence and the reader could not tell which was meant. That is
+         * not a harder item, it is an unfair one.
+         */
+        && !compact;
+
     return {
+        indeterminate,
         branching: pick("branching", "branching"),
-        compact: forcedCompact === null ? ladder("compact") : !!forcedCompact,
+        compact,
         edits,
         transforms,
         circular,
@@ -400,6 +427,34 @@ export function fillNdConclusion(ctx: GeneratorContext,
         return true;
     }
 
+    /*
+     * Under-specified items ask a different question, so they are built first.
+     *
+     * Every composed-space item until now was fully determined by
+     * construction, which means it can be solved by propagation — scan,
+     * intersect, repeat — and that closes. Withholding a clause leaves several
+     * arrangements satisfying the premises, and the claim becomes one of
+     * necessity: true only if it holds in all of them. Propagation no longer
+     * finishes the job, because the thing to notice is that it *cannot*.
+     *
+     * Roughly half of these items are asked about a pair the premises do pin
+     * down, so the wording alone gives nothing away — "not stated" has to be
+     * established rather than guessed from the fact that the mode is on.
+     */
+    if (feat.indeterminate) {
+        const open = indeterminatePairs(layout);
+        if (open.length && coinFlip()) {
+            const o = open[Math.floor(Math.random() * open.length)];
+            const c = buildNdConclusion(layout, o.a, o.b, o.axis, coinFlip());
+            question.conclusion = mustBe(c.text);
+            // A necessity claim over an undetermined pair is false whichever
+            // direction it names, which is the whole point of the item.
+            question.isValid = false;
+            question.explanation = explainIndeterminate(layout, o.a, o.b, o.axis);
+            return true;
+        }
+    }
+
     const pair = pickDistantPairNd(layout);
     if (!pair) return false;
     /*
@@ -409,9 +464,13 @@ export function fillNdConclusion(ctx: GeneratorContext,
      */
     const live = layout.axes.map((_, i) => i).filter(i => axisBites(pair[0], pair[1], i));
     if (!live.length) return false;
-    const axisIndex = live[Math.floor(Math.random() * live.length)];
+    const settled = feat.indeterminate
+        ? live.filter(i => determinedOn(layout, i, pair[0], pair[1]))
+        : live;
+    if (!settled.length) return false;
+    const axisIndex = settled[Math.floor(Math.random() * settled.length)];
     const c = buildNdConclusion(layout, pair[0], pair[1], axisIndex, coinFlip());
-    question.conclusion = c.text;
+    question.conclusion = feat.indeterminate ? mustBe(c.text) : c.text;
     question.isValid = c.isValid;
     /*
      * Only when nothing moved. A path through the premises accounts for a
@@ -446,6 +505,7 @@ export function ndSetup(ctx: GeneratorContext,
      * no difference, and the conclusion may ask about exactly that axis.
      */
     if (feat.compact) lines.push(COMPACT_NOTE);
+    if (feat.indeterminate) lines.push(INDETERMINATE_NOTE);
     if (edited) lines.push(EDIT_NOTE);
     /*
      * Same argument as the loop note below: the axis key is the one thing
@@ -462,4 +522,35 @@ export function ndSetup(ctx: GeneratorContext,
         : `Two axes are loops that wrap around: `
           + loops.map(l => `<b>${l.scale.direction[0]}/${l.scale.direction[1]}</b> (${l.modulus})`).join(" and ") + ".");
     return lines;
+}
+
+
+/** A claim of necessity rather than of fact. */
+function mustBe(text: string): string {
+    return `It must be true that ${text}`;
+}
+
+/**
+ * Why an under-specified claim fails: the premises never join the two up.
+ *
+ * Stated as the break in the chain rather than as "several arrangements are
+ * possible", because the break is what a reader can check. On this axis the
+ * premises that mention it form separate groups, and nothing relates one group
+ * to another — so the two can sit either way round, and a claim that one *must*
+ * be on a particular side of the other cannot hold.
+ */
+function explainIndeterminate(layout: NdLayout, a: string, b: string, axis: number): string[] {
+    const name = layout.axes[axis].scale.name;
+    const mentions = layout.edges.filter(e => !e.stated || e.stated[axis]).length;
+
+    return [
+        `Only ${mentions} of the ${layout.edges.length} premises say anything about ${hi(name)}.`,
+        `Following just those, there is no route from ${subj(a)} to ${subj(b)}`
+        + ` \u2014 they fall in groups nothing ties together on this axis.`,
+        isCircular(layout.axes[axis])
+            // A ring has no sides to be on; what is open there is the offset.
+            ? `so ${subj(a)} could sit anywhere on this loop relative to ${subj(b)},`
+              + ` and the claim does not have to hold`
+            : `so ${subj(a)} could sit either side of ${subj(b)}, and the claim does not have to hold`,
+    ];
 }

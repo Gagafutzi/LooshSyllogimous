@@ -245,6 +245,22 @@ export interface NdEdge {
     to: string;
     /** Step taken on each axis going from -> to; -1, 0 or +1. */
     deltas: number[];
+    /**
+     * Which axes this premise actually mentions. Absent means all of them.
+     *
+     * This is what makes an item *under*-determined. The stated pairs form a
+     * tree, and any assignment of vectors to a tree's edges yields exactly one
+     * layout — which is why every composed-space item so far has been solvable
+     * by propagation: scan, intersect, repeat, and it closes. Withholding a
+     * clause breaks the tree *on that axis only*, so the objects split into
+     * groups with no stated relation between them and several arrangements
+     * satisfy the premises.
+     *
+     * Note this is not `compact`, which drops clauses where the delta is zero
+     * and therefore states, by omission, that the two are level. This drops
+     * clauses that carry a real difference, and says nothing in their place.
+     */
+    stated?: boolean[];
 }
 
 export interface NdLayout {
@@ -589,6 +605,110 @@ export function describeNdAxes(axes: AxisSpec[]): string {
  * ------------------------------------------------------------------ */
 
 /** -1, 0 or 1 on a straight axis. Meaningless on a circular one. */
+/* ------------------------------------------------------------------ *
+ * Indeterminacy                                                       *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Whether the premises pin down how `a` and `b` sit on one axis.
+ *
+ * Determined exactly when a path of premises that all *mention* that axis runs
+ * between them: offsets along such a path add up to a single number, so there
+ * is one answer. With no such path the two sit in separate groups that nothing
+ * ties together, and — the axes being unbounded, or a ring with no stated
+ * offset — every relation between them is satisfiable by some arrangement.
+ *
+ * So the whole question is per-axis connectivity, which is why this needs no
+ * model enumeration. Under-specification is usually expensive to reason about;
+ * here the structure of the premise set does the work.
+ */
+export function determinedOn(layout: NdLayout, axis: number, a: string, b: string): boolean {
+    if (a === b) return true;
+
+    const near: Record<string, string[]> = {};
+    for (const e of layout.edges) {
+        if (e.stated && !e.stated[axis]) continue;
+        (near[e.from] ??= []).push(e.to);
+        (near[e.to] ??= []).push(e.from);
+    }
+
+    const seen = new Set([a]);
+    const queue = [a];
+    while (queue.length) {
+        const cur = queue.shift()!;
+        for (const n of near[cur] ?? []) {
+            if (n === b) return true;
+            if (seen.has(n)) continue;
+            seen.add(n);
+            queue.push(n);
+        }
+    }
+    return false;
+}
+
+/**
+ * Withhold clauses until some pair is left undetermined on some axis.
+ *
+ * Withheld one at a time, checking after each, so the item loses the least
+ * information that still makes it an under-specification item. A clause is only
+ * withheld where the delta is non-zero: dropping a zero would be
+ * indistinguishable from `compact`, which states levelness by omission, and the
+ * two modifiers would then contradict each other in the same premise.
+ *
+ * Never withholds the last mention of an axis — an axis nothing states is not
+ * under-determined, it is absent, and an item that asks about it is asking
+ * about a dimension the premises never raised.
+ */
+export function withholdClauses(layout: NdLayout, count: number): NdLayout {
+    const edges = layout.edges.map(e => ({
+        ...e,
+        deltas: [...e.deltas],
+        stated: e.stated ? [...e.stated] : layout.axes.map(() => true),
+    }));
+    const next: NdLayout = { ...layout, edges };
+
+    const candidates: Array<[number, number]> = [];
+    edges.forEach((e, ei) => {
+        layout.axes.forEach((_, ai) => {
+            if (e.deltas[ai] !== 0) candidates.push([ei, ai]);
+        });
+    });
+    shuffleInPlace(candidates);
+
+    let taken = 0;
+    for (const [ei, ai] of candidates) {
+        if (taken >= count) break;
+        const mentions = edges.filter(e => e.stated![ai]).length;
+        if (mentions <= 1) continue;
+        edges[ei].stated![ai] = false;
+        taken++;
+    }
+
+    return next;
+}
+
+/** Pairs and axes this layout leaves open, and those it pins down. */
+export function indeterminatePairs(layout: NdLayout): Array<{ a: string; b: string; axis: number }> {
+    const out: Array<{ a: string; b: string; axis: number }> = [];
+    for (let i = 0; i < layout.words.length; i++) {
+        for (let j = i + 1; j < layout.words.length; j++) {
+            layout.axes.forEach((_, ax) => {
+                if (!determinedOn(layout, ax, layout.words[i], layout.words[j])) {
+                    out.push({ a: layout.words[i], b: layout.words[j], axis: ax });
+                }
+            });
+        }
+    }
+    return out;
+}
+
+function shuffleInPlace<T>(xs: T[]) {
+    for (let i = xs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [xs[i], xs[j]] = [xs[j], xs[i]];
+    }
+}
+
 export function compareOn(layout: NdLayout, axis: number, a: string, b: string): -1 | 0 | 1 {
     const d = layout.coords[a][axis] - layout.coords[b][axis];
     return d === 0 ? 0 : (d > 0 ? 1 : -1);
@@ -703,6 +823,7 @@ export function renderNdPremise(
      */
     const clauses = layout.axes
         .map((axis, i) => ({ axis, i, delta: sign * edge.deltas[i] }))
+        .filter(c => edge.stated ? edge.stated[c.i] : true)
         .filter(c => !options.compact || c.delta !== 0)
         .map(c => hi(axisClause(c.axis, c.delta), colors[c.i]));
 

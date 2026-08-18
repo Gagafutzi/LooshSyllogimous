@@ -252,7 +252,7 @@ const LINEAR_LADDER = [
  * answer-mode ones.
  */
 const ND_LADDER = [
-    "branching", "compact", "circular", "transform-1", "edit-1",
+    "branching", "compact", "circular", "indeterminate", "transform-1", "edit-1",
     "circular-2", "transform-2", "edit-2", "analogy",
     "multi-conclusion", "choose-conclusion", "construct-conclusion", "construct-distance",
 ];

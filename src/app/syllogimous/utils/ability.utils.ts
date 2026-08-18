@@ -65,6 +65,13 @@ export const RUNG_COST: Record<string, number> = {
     branching: 0.8,
     overlap: 0.7,
     compact: 0.5,
+    /*
+     * Dearer than the other premise-shape modifiers because it changes what is
+     * being asked, not how it is worded: the claim becomes one of necessity,
+     * and "the premises never settled this" is a conclusion propagation cannot
+     * reach by finishing — it is reached by noticing that it cannot finish.
+     */
+    indeterminate: 1.3,
 
     circular: 1.2,
     "circular-2": 0.8,

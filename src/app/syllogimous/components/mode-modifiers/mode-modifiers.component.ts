@@ -40,7 +40,7 @@ export class ModeModifiersComponent {
      * ones that had no control at all: earned or nothing.
      */
     private static readonly COVERED = new Set([
-        "negation", "meta", "branching", "overlap", "compact", "analogy",
+        "negation", "meta", "branching", "overlap", "compact", "indeterminate", "analogy",
         "multi-conclusion", "choose-conclusion", "construct-conclusion",
         "construct-distance", "wide-premises", "incorrect-directions",
         "transform-1", "transform-2", "edit-1", "edit-2", "circular", "circular-2",
@@ -127,6 +127,11 @@ export class ModeModifiersComponent {
             key: "constructDistance",
             label: "…and the distance",
             hint: "How far as well as which way",
+        },
+        {
+            key: "indeterminate",
+            label: "Under-specified premises",
+            hint: "Leave some relations unstated, and ask whether a claim *must* hold. Composed spaces only",
         },
         {
             key: "incorrectDirections",

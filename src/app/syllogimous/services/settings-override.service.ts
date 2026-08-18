@@ -51,6 +51,15 @@ export interface LinearFeatureFlags {
     constructDistance: boolean | null;
     /** Leave out the axes a pair does not differ on. */
     compact: boolean | null;
+    /**
+     * Withhold clauses so the premises no longer pin every relation down.
+     *
+     * Not the same as `compact`, which omits a clause to *state* that a pair is
+     * level. This omits clauses that carry a real difference and says nothing
+     * in their place, so several arrangements fit and the claim becomes one of
+     * necessity.
+     */
+    indeterminate: boolean | null;
     /** State two links per sentence: "A is above B, which is above C". */
     widePremises: boolean | null;
     /** Draw a false direction from ones the item actually used. */
@@ -70,6 +79,7 @@ export const DEFAULT_LINEAR_FEATURES: LinearFeatureFlags = {
     constructConclusion: null,
     constructDistance: null,
     compact: null,
+    indeterminate: null,
     widePremises: null,
     incorrectDirections: null,
     edits: null,

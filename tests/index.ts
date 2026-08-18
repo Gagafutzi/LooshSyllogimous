@@ -20,5 +20,6 @@ import "./customise.test";
 import "./map.test";
 import "./web.test";
 import "./coldstart.test";
+import "./indeterminacy.test";
 
 run();

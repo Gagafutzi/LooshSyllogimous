@@ -32,6 +32,19 @@ export const HIERARCHY_NOTE =
 export const COMPACT_NOTE =
     "A dimension left out of a premise is <b>the same</b> for both.";
 
+/**
+ * Stated because the item is unfair without it.
+ *
+ * Every other mode guarantees the premises settle the question, so a reader who
+ * cannot find the answer assumes they have missed a step and keeps looking.
+ * Here not finding it is sometimes the answer, and nobody can be expected to
+ * infer that from the item.
+ */
+export const INDETERMINATE_NOTE =
+    "Some relations are left unstated. A claim counts as true only if it holds"
+    + " in <b>every</b> arrangement the premises allow \u2014 if they leave it open,"
+    + " the claim is false.";
+
 /** Stated whenever later premises rewrite earlier relations. */
 export const EDIT_NOTE =
     "Later premises <b>change the relations themselves</b>, in order. Answer "

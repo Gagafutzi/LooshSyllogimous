@@ -80,18 +80,47 @@ Three decisions worth recording:
 - **The window survives a reload**, so closing the tab mid-slump does not reset
   the judgement.
 
-### 3. Indeterminacy
+### 3. Indeterminacy — **DONE**, rung `indeterminate` on the composed spaces
 
-Every composed-space item is fully determined by construction, so it can be
+Every composed-space item was fully determined by construction, so it could be
 solved by constraint propagation — scan, intersect, repeat — which is search with
-bookkeeping rather than relational integration.
+bookkeeping rather than relational integration. Now some clauses are withheld,
+several arrangements satisfy the premises, and the claim is one of necessity:
+true only if it holds in all of them.
 
-Under-specify the layout so several arrangements satisfy the premises, then ask
-what holds across *all* of them. Propagation no longer closes; you have to reason
-over a set of models. Johnson-Laird's multiple-models account predicts difficulty
-scales with the number of models to be held, which is a difficulty axis this
-project has never used. Cheapest attack on the "it is just a search task"
-objection, and it needs no new engine.
+**It needed no model enumeration.** The stated pairs form a tree, and any
+assignment of vectors to a tree's edges yields exactly one layout — which is
+precisely why every item so far was determined. Withholding a clause breaks the
+tree *on that axis only*, so the objects split into groups nothing relates, and
+the whole question reduces to **per-axis connectivity**: a relation is pinned
+down exactly when a path of premises that all mention that axis runs between the
+two. Under-specification is usually expensive to reason about; here the
+structure of the premise set does the work.
+
+Three things this had to get right:
+
+- **Never alongside `compact`.** Compact omits a clause to *state* that a pair is
+  level. Both live at once would give one omission two incompatible meanings in
+  the same sentence — not a harder item, an unfair one. Also excluded alongside
+  edits and transformations, which are answered by replaying what the premises
+  did rather than by reading what they left out.
+- **Roughly half the items are asked about a pair the premises do pin down**, so
+  the wording gives nothing away: "not stated" has to be established rather than
+  guessed from the mode being on.
+- **The rule is stated in the setup.** Every other mode guarantees the premises
+  settle the question, so a reader who cannot find the answer assumes they missed
+  a step and keeps looking. Here not finding it is sometimes the answer.
+
+**Verification does not check the structural test against itself.** It builds the
+counter-arrangement: everything reachable from one end using only premises that
+mention the axis, slid forty steps along it. Every stated clause still holds —
+each joins two objects that moved together — and the two objects end up on
+opposite sides in the two arrangements. Twenty-five open pairs proved open that
+way, plus the converse check that a directly stated relation is never reported
+open.
+
+Costed at 1.3 levels, dearer than the other premise-shape modifiers, because it
+changes what is being asked rather than how it is worded.
 
 ### 4. Graph transformation matching
 
