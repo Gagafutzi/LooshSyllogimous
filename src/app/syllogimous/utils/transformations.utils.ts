@@ -245,6 +245,16 @@ export interface TransformDrawOptions {
      * each axis independently and needs no such restriction.
      */
     rotationAxes?: number[];
+    /**
+     * Axes an operation may act on at all. Defaults to every one.
+     *
+     * `rotationAxes` restricts only the turn, because every other operation
+     * acts on each axis independently and used to need no restriction. A
+     * parity axis breaks that: it has classes rather than positions, so there
+     * is no distance to move along it and "moves 2 opposite kind" is not a
+     * sentence. Such an axis is excluded from operations entirely.
+     */
+    axes?: number[];
 }
 
 const pick = <T>(xs: T[]): T => xs[Math.floor(Math.random() * xs.length)];
@@ -295,7 +305,9 @@ export function drawTransforms(
         const axisCount = Math.random() < multiChance
             ? 1 + Math.floor(Math.random() * (dims - 1)) + 1
             : 1;
-        const axes = pickN([...Array(dims).keys()], Math.min(axisCount, dims));
+        const usable = options.axes ?? [...Array(dims).keys()];
+        if (!usable.length) break;
+        const axes = pickN(usable, Math.min(axisCount, usable.length));
 
         let t: Transform;
         switch (kind) {

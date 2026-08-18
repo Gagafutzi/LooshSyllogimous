@@ -8,7 +8,10 @@
 
 import { assert, equal, seeded, test } from "./harness";
 import { buildQuestionMap, coordMapFromPositions, coordMapFromTuples } from "../src/app/syllogimous/utils/map.utils";
-import { axesForDimensions, axisWordConflicts, buildNdLayout, renderNdPremise } from "../src/app/syllogimous/utils/ndspace.utils";
+import {
+    axesForDimensions, axisWordConflicts, buildNdConclusion, buildNdLayout, drawNdTransforms,
+    isParity, mod, renderNdPremise, sameClass,
+} from "../src/app/syllogimous/utils/ndspace.utils";
 import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
 import { createLinear } from "../src/app/syllogimous/generators/linear";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
@@ -132,5 +135,68 @@ test("a 7D item states seven clauses, each its own colour", () => {
         const slots = [...text.matchAll(/dim-(\d)/g)].map(m => m[1]);
         equal(slots.length, 7, "a seven-axis premise did not state seven clauses");
         equal(new Set(slots).size, 7, "two of the seven shared a colour");
+    });
+});
+
+/* ------------------------------------------------------------------ *
+ * The parity axis — Distinction as a dimension                        *
+ * ------------------------------------------------------------------ */
+
+test("a parity axis has two classes and no distance", () => {
+    const axes = axesForDimensions(7).map(scale => ({ scale }));
+    const parity = axes.filter(a => isParity(a));
+    equal(parity.length, 1, "7D should carry exactly one unordered axis");
+    equal(parity[0].scale.name, "Distinction");
+});
+
+test("distinction folds to a class, however long the chain", () => {
+    /*
+     * The whole arithmetic of the axis: a step flips the class, an even number
+     * of steps returns to it. Positions are reduced, so a ten-premise chain
+     * still leaves every object in one of two classes rather than at ten
+     * different places.
+     */
+    seeded(41, () => {
+        const axes = axesForDimensions(7).map(scale => ({ scale }));
+        const k = axes.findIndex(a => isParity(a));
+        const words = ["A", "B", "C", "D", "E", "F"];
+        const layout = buildNdLayout(words, axes);
+        const classes = new Set(words.map(w => layout.coords[w][k]));
+        assert([...classes].every(c => c === 0 || c === 1),
+            `positions on the parity axis were ${[...classes].join(",")}`);
+    });
+});
+
+test("same and opposite are the only claims it makes", () => {
+    seeded(53, () => {
+        const axes = axesForDimensions(7).map(scale => ({ scale }));
+        const k = axes.findIndex(a => isParity(a));
+        const layout = buildNdLayout(["A", "B", "C", "D"], axes);
+
+        for (const want of [true, false]) {
+            const c = buildNdConclusion(layout, "A", "C", k, want);
+            const text = c.text.replace(/<[^>]+>/g, "");
+            assert(/same kind|opposite kind/.test(text), `unexpected claim: ${text}`);
+            equal(c.isValid, want, "the claim did not carry the truth it was asked for");
+        }
+
+        // And the truth is the parity of the difference, not a comparison.
+        const truth = sameClass(layout, k, "A", "C");
+        equal(truth, mod(layout.coords["A"][k] - layout.coords["C"][k], 2) === 0);
+    });
+});
+
+test("nothing tries to move things along an axis with no distance", () => {
+    // "moves 2 opposite kind" is not a sentence; parity axes are excluded from
+    // the operations entirely.
+    seeded(67, () => {
+        const axes = axesForDimensions(7).map(scale => ({ scale }));
+        const k = axes.findIndex(a => isParity(a));
+        const layout = buildNdLayout(["A", "B", "C", "D", "E"], axes);
+        for (const t of drawNdTransforms(layout, 6)) {
+            const touched = t.dimensions ?? [t.dimension ?? 0];
+            assert(!touched.includes(k), "a transformation acted on the parity axis");
+            if (t.plane) assert(!t.plane.includes(k), "a rotation turned in the parity axis");
+        }
     });
 });

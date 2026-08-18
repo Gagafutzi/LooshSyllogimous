@@ -64,6 +64,25 @@ export function isCircular(axis: AxisSpec): boolean {
 }
 
 /**
+ * An axis with two classes and no order.
+ *
+ * Handled alongside the circular ones because the arithmetic is the same shape
+ * — positions reduced modulo something — but the *questions* differ: a ring
+ * asks how far round, and this asks only whether two things match. It is a loop
+ * of two, which is exactly the case `isCircular` excludes, and for the same
+ * reason: on a two-loop no displacement claim distinguishes anything, so
+ * displacement is not what gets asked.
+ */
+export function isParity(axis: AxisSpec): boolean {
+    return !!axis.scale.parity;
+}
+
+/** Same class or not. Meaningless on an ordered axis. */
+export function sameClass(layout: NdLayout, axis: number, a: string, b: string): boolean {
+    return mod(layout.coords[a][axis] - layout.coords[b][axis], 2) === 0;
+}
+
+/**
  * Default axis stacks by dimension count.
  *
  * Three is ordinary space. Four adds time, which is the usual next dimension
@@ -79,17 +98,23 @@ export const DIMENSION_AXES: Record<number, LinearScale[]> = {
         LINEAR_SCALES["temporal"], LINEAR_SCALES["contains"]],
     6: [SPATIAL_SCALES["east"], SPATIAL_SCALES["north"], SPATIAL_SCALES["up"],
         LINEAR_SCALES["temporal"], LINEAR_SCALES["contains"], LINEAR_SCALES["quantity"]],
+    /*
+     * Seven adds Distinction, which is the only axis here that is not a line.
+     * Six ordered scales all ask "how far"; this asks a question with no
+     * distance in it, so it cannot be carried the same way as the rest — which
+     * is the whole reason for adding it rather than a seventh line.
+     */
     7: [SPATIAL_SCALES["east"], SPATIAL_SCALES["north"], SPATIAL_SCALES["up"],
         LINEAR_SCALES["temporal"], LINEAR_SCALES["contains"], LINEAR_SCALES["quantity"],
-        LINEAR_SCALES["temperature"]],
+        LINEAR_SCALES["distinction"]],
 };
 
 /** Every scale that can serve as an axis, for the configuration UI. */
 export const AXIS_CHOICES: LinearScale[] = [
     SPATIAL_SCALES["east"], SPATIAL_SCALES["north"], SPATIAL_SCALES["up"],
     LINEAR_SCALES["temporal"], LINEAR_SCALES["contains"],
-    LINEAR_SCALES["quantity"], LINEAR_SCALES["temperature"],
-    LINEAR_SCALES["vertical"], LINEAR_SCALES["horizontal"],
+    LINEAR_SCALES["quantity"], LINEAR_SCALES["distinction"],
+    LINEAR_SCALES["temperature"], LINEAR_SCALES["vertical"], LINEAR_SCALES["horizontal"],
 ];
 
 export function axesForDimensions(dims: number): LinearScale[] {
@@ -288,6 +313,7 @@ export function buildNdLayout(
     for (const w of words) {
         axes.forEach((axis, i) => {
             if (isCircular(axis)) coords[w][i] = mod(coords[w][i], axis.modulus!);
+            if (isParity(axis)) coords[w][i] = mod(coords[w][i], 2);
         });
     }
 
@@ -380,6 +406,7 @@ function coordsFromEdges(layout: NdLayout, edges: NdEdge[]): Record<string, numb
     for (const w of words) {
         axes.forEach((axis, i) => {
             if (isCircular(axis)) coords[w][i] = mod(coords[w][i], axis.modulus!);
+            if (isParity(axis)) coords[w][i] = mod(coords[w][i], 2);
         });
     }
     return coords;
@@ -499,12 +526,16 @@ export function ndTransformVocab(axes: AxisSpec[]): TransformVocab {
  * see `rotationAxes`.
  */
 export function drawNdTransforms(layout: NdLayout, count: number): Transform[] {
+    // A parity axis has classes rather than positions, so nothing can be moved
+    // along it; a circular one can be moved but not turned against a straight.
+    const movable = layout.axes.map((a, i) => (isParity(a) ? -1 : i)).filter(i => i >= 0);
     const straight = layout.axes
-        .map((a, i) => (isCircular(a) ? -1 : i))
+        .map((a, i) => (isCircular(a) || isParity(a) ? -1 : i))
         .filter(i => i >= 0);
 
     return drawTransforms(layout.words, count, {
         dims: layout.axes.length,
+        axes: movable,
         rotationAxes: straight,
         // Premise steps are one unit, so a stated jump of three reads as a
         // different order of magnitude from everything around it.
@@ -523,6 +554,7 @@ export function applyNdTransforms(layout: NdLayout, transforms: Transform[]): Nd
     for (const w of layout.words) {
         layout.axes.forEach((axis, i) => {
             if (isCircular(axis)) coords[w][i] = mod(coords[w][i], axis.modulus!);
+            if (isParity(axis)) coords[w][i] = mod(coords[w][i], 2);
         });
     }
 
@@ -543,6 +575,9 @@ export function describeNdAxes(axes: AxisSpec[]): string {
     // Carries the colours too, which makes the same line a key for them —
     // free, since it is already a list with one entry per axis.
     const parts = axes.map((a, i) => {
+        if (isParity(a)) {
+            return hi(`<b>${labels[i]}</b> ${a.scale.parity!.same}/${a.scale.parity!.opposite}`, colors[i]);
+        }
         const [pos, neg] = isCircular(a) ? a.scale.cyclic!.direction : a.scale.direction;
         return hi(`<b>${labels[i]}</b> ${pos}/${neg}`, colors[i]);
     });
@@ -614,6 +649,10 @@ export function pickDistantPair(layout: NdLayout, minSpan = 2): [string, string]
 
 /** The clause one axis contributes to a premise. */
 function axisClause(axis: AxisSpec, delta: number): string {
+    if (isParity(axis)) {
+        // Any odd number of steps is a change of class; any even number is not.
+        return mod(delta, 2) === 0 ? axis.scale.parity!.same : axis.scale.parity!.opposite;
+    }
     if (isCircular(axis)) {
         const c = axis.scale.cyclic!;
         if (delta === 0) return axis.scale.tie;
@@ -709,6 +748,23 @@ export function buildNdConclusion(
     // is read, and matters most in the modes that ask about several.
     const color = ndAxisColors(layout.axes)[axisIndex];
 
+    if (isParity(axis)) {
+        /*
+         * Two possible claims, so a false one is fully determined: there is no
+         * "wrong by how much" to choose. That also makes this the one axis
+         * where a false conclusion carries as much information as a true one.
+         */
+        const truth = sameClass(layout, axisIndex, a, b);
+        const claim = wantValid ? truth : !truth;
+        const p = axis.scale.parity!;
+        return {
+            text: `${subj(a)} ${rel(claim ? p.sameRelation : p.oppositeRelation, color)} ${subj(b)}`,
+            isValid: claim === truth,
+            axis: axisIndex,
+            a, b,
+        };
+    }
+
     if (isCircular(axis)) {
         const c = axis.scale.cyclic!;
         const m = axis.modulus!;
@@ -788,7 +844,9 @@ export interface NdAnalogy {
 
 /** Sign per axis, as a comparable key. Circular axes compare by displacement. */
 function relationKey(layout: NdLayout, a: string, b: string): string {
-    return layout.axes.map((axis, i) => isCircular(axis)
+    return layout.axes.map((axis, i) => isParity(axis)
+        ? (sameClass(layout, i, a, b) ? 0 : 1)
+        : isCircular(axis)
         ? displacementOn(layout, i, b, a)
         : Math.sign(layout.coords[b][i] - layout.coords[a][i])).join(",");
 }
@@ -799,6 +857,8 @@ function reversedKey(layout: NdLayout, key: string): string {
         const axis = layout.axes[i];
         // On a ring, reversing is going the other way round, which is not
         // negation of a signed step but the complement modulo the loop.
+        // Its own reverse: swapping the pair does not change same or opposite.
+        if (isParity(layout.axes[i])) return Number(v);
         if (isCircular(axis)) return mod(-Number(v), axis.modulus!);
         return -Number(v);
     }).join(",");
@@ -916,6 +976,20 @@ export function buildNdConstructClaim(
 
     const slots = layout.axes.map((axis, i) => {
         const scale = axis.scale;
+
+        if (isParity(axis)) {
+            // Two options, not three, and no distance: the construct slots
+            // stopped assuming three when ranking needed five.
+            const p = scale.parity!;
+            return {
+                label: scale.name,
+                colorClass: colors[i],
+                directions: [p.sameRelation, p.oppositeRelation],
+                answerDirection: sameClass(layout, i, a, b) ? 0 : 1,
+                answerMagnitude: 0,
+                asksDistance: false,
+            };
+        }
 
         if (isCircular(axis)) {
             const c = scale.cyclic!;
@@ -1082,7 +1156,9 @@ export function explainNdAxis(
         total += delta;
 
         const word = delta === 0 ? axis.scale.tie : axisClause(axis, delta);
-        const running = isCircular(axis)
+        const running = isParity(axis)
+            ? `now ${mod(total, 2) === 0 ? "the same" : "opposite"}`
+            : isCircular(axis)
             ? `running total ${mod(total, axis.modulus!)}`
             : `running total ${total > 0 ? "+" : ""}${total}`;
         lines.push(
@@ -1104,7 +1180,9 @@ export function explainNdAxis(
      * "diametrically opposite" — which makes the reader check two things
      * instead of one.
      */
-    const word = isCircular(axis)
+    const word = isParity(axis)
+        ? (mod(total, 2) === 0 ? axis.scale.parity!.sameRelation : axis.scale.parity!.oppositeRelation)
+        : isCircular(axis)
         ? displacementPhrase(mod(total, axis.modulus!), axis.modulus!, axis.scale.cyclic!)
         : total === 0 ? axis.scale.same : (total > 0 ? axis.scale.above : axis.scale.below);
 

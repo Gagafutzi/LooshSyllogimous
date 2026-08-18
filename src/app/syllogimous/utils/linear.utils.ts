@@ -71,6 +71,28 @@ export interface LinearScale {
      * a ring of sizes or of quantities is not a thing anyone can reason about,
      * whereas a compass ring and a clock face both are.
      */
+    /**
+     * Wording for an axis that has no order at all.
+     *
+     * Every other scale here is a line: things are more or less along it, and
+     * the whole arithmetic is adding signed steps. This one is a partition —
+     * two classes, and a pair is either in the same one or not. There is no
+     * "further along", so there is nothing to compare and nothing to be
+     * distant by; the only fact about a pair is same or opposite.
+     *
+     * Positions are still integers, and the class is their parity. That is what
+     * lets one code path serve both: a step flips the class, an even number of
+     * steps returns to it, and the layout accumulates exactly as before.
+     */
+    parity?: {
+        /** Clause when a pair shares a class: "same kind". */
+        same: string;
+        /** Clause when it does not: "opposite kind". */
+        opposite: string;
+        /** Whole relation, for a conclusion. */
+        sameRelation: string;
+        oppositeRelation: string;
+    };
     cyclic?: {
         /** Direction of travel, positive first. */
         direction: [string, string];
@@ -115,6 +137,30 @@ export const LINEAR_SCALES: Record<string, LinearScale> = {
         direction: ["higher", "lower"], link: "than", unit: "step", axisName: "",
         tie: "same height",
     },
+    /*
+     * Distinction, as a dimension.
+     *
+     * The oldest mode in the app, made into an axis. It composes with the
+     * others precisely because it is unlike them: six ordered scales ask "how
+     * far", and this one asks a question with no distance in it, so the reader
+     * cannot carry it the same way. Nothing about a thing's position on any
+     * other axis says anything about which class it is in.
+     */
+    distinction: {
+        id: "distinction", name: "Distinction",
+        // `above`/`below` are unused on a parity axis — there is no above — but
+        // the shape is shared, so they say the only true thing available.
+        above: "is a different kind from", below: "is a different kind from",
+        same: "is the same kind as",
+        direction: ["different kind", "different kind"], link: "", unit: "step",
+        axisName: "K", tie: "same kind",
+        parity: {
+            same: "same kind", opposite: "opposite kind",
+            sameRelation: "is the same kind as",
+            oppositeRelation: "is the opposite kind to",
+        },
+    },
+
     /*
      * The seventh dimension.
      *

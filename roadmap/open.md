@@ -597,15 +597,38 @@ could not previously produce it at all.
 
 ### Space 7D — **DONE**
 
-Seven axes: the six-dimensional stack plus **Temperature** (warmer/colder). A
-new scale rather than one of the spares on the choice list, because extending
-the preset past six picks up `vertical`, whose higher/lower is word-for-word
-what `quantity` already says — and a premise stating "higher" twice cannot be
-read at all. `axisWordConflicts` is now asserted clean for every preset stack
-from 3D to 7D, so the next one to be added cannot reintroduce it quietly.
+Seven axes: the six-dimensional stack plus **Distinction**, which is the first
+axis here that is not a line.
+
+Every other scale is ordered — things are more or less along it, and the whole
+arithmetic is adding signed steps. Distinction is a partition: two classes, and
+a pair is either in the same one or not. There is no "further along", so there
+is no distance to state, no comparison to make, and nothing for a transformation
+to move. That is the point of adding it rather than a seventh line: it cannot be
+carried the way the other six are carried, and nothing about a thing's position
+on any of them says anything about its class.
+
+Implemented as parity. Positions stay integers and the class is their parity, so
+one code path serves both kinds of axis — a step flips the class, an even number
+of steps returns to it, and the layout accumulates exactly as before. What
+changes is what gets *asked*: same or opposite, with no third option and no
+magnitude, which also makes it the one axis where a false conclusion carries as
+much information as a true one.
+
+Three places had to learn it, and each was a real assumption of ordering:
+conclusions (two claims, not three), construction slots (two options and no
+distance box — possible only because slots stopped assuming three when ranking
+needed five), and transformations, which are excluded outright since "moves 2
+opposite kind" is not a sentence.
+
+**Temperature** (warmer/colder) was written first for this slot and kept on the
+axis list, so it is available for custom stacks and anything wider than seven.
+It is also why `axisWordConflicts` is now asserted clean for every preset from
+3D to 7D: extending past six otherwise picks up `vertical`, whose higher/lower
+is word for word what `quantity` says.
 
 Worth knowing: the dimension palette guarantees six hues clear of the theme
-accent, so a seventh axis takes one that is nearer it than the rest.
+accent, so a seventh axis takes one nearer it than the rest.
 
 ### Cosmetic
 
