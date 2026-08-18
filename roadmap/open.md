@@ -1,5 +1,19 @@
 # Open
 
+Almost nothing is, now. Everything specced in this file has been built,
+deliberately settled as unnecessary, or reduced to a stated blocker. What is
+left, in full:
+
+| | why it is still here |
+|---|---|
+| **Width as a dial** ([5](#5-realized-width-as-a-difficulty-axis--partly-done)) | needs a bits-to-levels coefficient, and the argument for fitting rather than guessing it now has `fitRungCosts` to fit it with — but it needs answered items to fit against. The *noise* half is done. |
+| **Graph matching over other modes** ([P4](#p4-graph-matching-extended--done-two-of-three-utilsgraphdistutilsts)) | per-mode work: each mode would have to expose its layout as an edge list. |
+| **Set Hierarchy syllogism** | never specced beyond one line. Quantified set logic already exists in Syllogism; what a hierarchy adds needs deciding before anything is written — the same discipline [P8](#p8-boolean-concept-learning--settled-as-a-presentation-of-p11) got, and possibly the same answer. |
+
+The rest of this file is kept as the record of what was decided and why,
+including the parts that turned out differently from the plan. Those are the
+entries worth reading.
+
 ## Next up
 
 Ordered by value, not by size. The first two compound with every session played;
