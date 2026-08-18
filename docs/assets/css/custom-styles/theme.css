@@ -512,17 +512,18 @@ svg.junk {
  * are indistinguishable to the reader — which is why this needs no colour
  * blindness variant of its own.
  */
-/* Mixed toward the body colour rather than switched off, so the strength dial
- * has a useful middle: at 0% every clause is simply text. */
+/* The strength dial is applied by ThemeService, which writes an already-blended
+ * colour: a `var()` in the percentage slot of `color-mix()` drops the whole
+ * declaration if it fails to substitute, and takes the colour with it. */
 .dim { font-weight: 600; }
-.dim-1 { color: color-mix(in srgb, var(--th-dim-1) var(--th-dim-strength), var(--th-text)); }
-.dim-2 { color: color-mix(in srgb, var(--th-dim-2) var(--th-dim-strength), var(--th-text)); }
-.dim-3 { color: color-mix(in srgb, var(--th-dim-3) var(--th-dim-strength), var(--th-text)); }
-.dim-4 { color: color-mix(in srgb, var(--th-dim-4) var(--th-dim-strength), var(--th-text)); }
-.dim-5 { color: color-mix(in srgb, var(--th-dim-5) var(--th-dim-strength), var(--th-text)); }
-.dim-6 { color: color-mix(in srgb, var(--th-dim-6) var(--th-dim-strength), var(--th-text)); }
-.dim-7 { color: color-mix(in srgb, var(--th-dim-7) var(--th-dim-strength), var(--th-text)); }
-.dim-8 { color: color-mix(in srgb, var(--th-dim-8) var(--th-dim-strength), var(--th-text)); }
+.dim-1 { color: var(--th-dim-1); }
+.dim-2 { color: var(--th-dim-2); }
+.dim-3 { color: var(--th-dim-3); }
+.dim-4 { color: var(--th-dim-4); }
+.dim-5 { color: var(--th-dim-5); }
+.dim-6 { color: var(--th-dim-6); }
+.dim-7 { color: var(--th-dim-7); }
+.dim-8 { color: var(--th-dim-8); }
 
 /* A label is not the thing being read, so it carries its dimension's colour
  * at less than full strength. */
