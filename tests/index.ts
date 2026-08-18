@@ -23,5 +23,6 @@ import "./coldstart.test";
 import "./indeterminacy.test";
 import "./transform-match.test";
 import "./rungfit.test";
+import "./facing.test";
 
 run();

@@ -60,6 +60,12 @@ export interface LinearFeatureFlags {
      * necessity.
      */
     indeterminate: boolean | null;
+    /**
+     * Relations judged from inside the layout: left and right, not north and
+     * south. A facing is stated relationally ("A faces C") and fixed at the
+     * moment it is stated.
+     */
+    facing: boolean | null;
     /** State two links per sentence: "A is above B, which is above C". */
     widePremises: boolean | null;
     /** Draw a false direction from ones the item actually used. */
@@ -79,6 +85,7 @@ export const DEFAULT_LINEAR_FEATURES: LinearFeatureFlags = {
     constructConclusion: null,
     constructDistance: null,
     compact: null,
+    facing: null,
     indeterminate: null,
     widePremises: null,
     incorrectDirections: null,

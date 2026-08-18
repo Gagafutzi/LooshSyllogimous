@@ -253,7 +253,7 @@ Eleven are specced below. In rough cost order:
 | ~~P11 oddest relation out~~ | **built** — `generators/oddest-relation.ts` |
 | ~~P10 sequence induction~~ | **built** — rung `sequence` on Transformation Matching |
 | [P7 nested spatial](#p7-nested-spatial--mixed-dimensionality-with-deliberate-interference) | mixed dimensionality with deliberate interference |
-| [P1 facing space](#p1-facing-space-as-a-modifier) | a modifier for any spatial mode |
+| ~~P1 facing space~~ | **built** — rung `facing`, `utils/facing.utils.ts` |
 | [P2 knights and knaves](#p2-knights-and-knaves) | |
 | [P8 boolean concepts](#p8-boolean-concept-learning--rework-the-form-before-building) | **rework the form first** — the standard paradigm is inefficient for training |
 | [P4 graph matching extended](#p4-graph-matching-extended) | edit distance is the hard part |
@@ -391,40 +391,43 @@ form cannot. It is a rendering change plus an independence change, not a new
 engine.
 
 
-## P1. Facing space, as a modifier
+## P1. Facing space — **DONE**, rung `facing` on the composed spaces
 
-Every object carries an **orientation** as well as a position, so relations
-become egocentric: "B is on A's left" depends on which way A faces, where "B is
-west of A" does not. This is the perspective-taking axis, and it is the hardest
-kind of spatial reasoning there is.
+Every relation the app had was allocentric: "B is west of A" is a fact about the
+world. "B is on A's left" is a fact about the world *and* about which way A is
+turned, so it cannot be read off the premises — the layout has to be
+re-expressed from a point inside it. That is perspective-taking, and it was the
+one spatial axis missing.
 
-Fits the machinery already built almost exactly:
+Built as the roadmap specified in the two places it mattered. **Facings are
+stated relationally** — "A faces C", never "A faces north" — so the facing has
+to be derived before it can be applied and one premise costs two steps. And
+**fixed at statement**: a facing resolves to a bearing when stated and stops
+tracking its target, since the alternative is a constraint rather than a value,
+needs re-solving after every change, and a later premise can make it
+unsatisfiable.
 
-- A facing is a position on a **circular axis** — the four or eight compass
-  points — so §2.3's loop arithmetic covers it unchanged.
-- "A turns 90° clockwise" is the existing `rotate` transform applied to the
-  facing rather than the position, so §1.5's transformation vocabulary covers
-  that too.
-- Egocentric relation = bearing from A to B, minus A's facing, mod the ring.
+**No compass ring, though, and that is a departure worth stating.** The plan was
+a circular axis of four or eight points, reusing the loop arithmetic. But an
+eight-point ring has to *round* bearings, and a bearing exactly between two
+points then has no honest answer. The sign of a cross product separates left
+from right exactly, for any integer coordinates, and a dot product separates
+ahead from behind on the line of sight — which is the computation being tested
+rather than an approximation of it. The loop arithmetic was not needed at all.
 
-**Facing is stated relationally, not absolutely** — "A faces B", not "A faces
-north". That is the version worth building: it makes the facing itself something
-that has to be derived (where *is* B?) before it can be applied, so a premise
-costs two steps instead of one. It also raises the question the mode lives or
-dies on, which has to be settled in the wording rather than left implicit:
+Left and right are judged in the first two straight axes; rings and the parity
+axis are passed over, since a ring has no consistent left and parity has no
+distance to take a bearing along.
 
-> If A faces B and B then moves, is A still facing B?
+**A bug worth recording.** The facing premise was written into
+`question.premises` inside the conclusion builder, which the caller overwrites
+afterwards from the rendered layout — so the first working version produced
+items whose derivation reasoned confidently from a facing the player was never
+told. Caught by reading one generated item, not by any type or test, which is
+the argument for looking at output.
 
-Fixed-at-statement is the answer to build first — a facing resolves to a bearing
-the moment it is stated and stops tracking its target. The alternative (facing
-follows the object) is a constraint rather than a value, needs re-solving after
-every transformation, and can be made unsatisfiable by a later premise.
-
-Available to any mode with a two-or-more-dimensional position, which is what
-makes it a modifier rather than a mode. Exactly verifiable (integer bearings).
-Composes viciously with Deictic, which already does I/you and here/there — a
-facing gives it the spatial half.
-
+Costed at 1.8, the dearest modifier in the table: the layout has to be held
+twice, once absolutely and once from inside.
 
 ## P2. Knights and knaves
 

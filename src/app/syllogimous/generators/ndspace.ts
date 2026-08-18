@@ -16,6 +16,10 @@ import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
 import { hi, subj } from "../utils/phrasing";
+import {
+    Egocentric, FACING_NOTE, OPPOSITE, bearingPlane, describeBearing, describeEgocentric,
+    describeFacing, egocentric,
+} from "../utils/facing.utils";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { COMPACT_NOTE, EDIT_NOTE, INDETERMINATE_NOTE, ND_ANALOGY_NOTE, ND_TRANSFORM_NOTE, ONE_STEP_NOTE } from "./notes";
 
@@ -145,9 +149,16 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
         const final = transforms.length ? applyNdTransforms(edited, transforms) : edited;
 
         const question = new Question(type);
-        if (!fillNdConclusion(ctx, question, layout, final, feat, numOfPremises, attempt >= 250)) continue;
+        const extraPremises: string[] = [];
+        if (!fillNdConclusion(
+            ctx, question, layout, final, feat, numOfPremises, attempt >= 250, extraPremises)) continue;
 
-        const stated = renderNdPremises(layout, { compact: feat.compact });
+        // Order-independent like the relations themselves, so scrambled in with
+        // them rather than pinned to the end where it would stand out.
+        const stated = [
+            ...renderNdPremises(layout, { compact: feat.compact }),
+            ...extraPremises,
+        ];
         const mutations = [
             ...edits.map(e => renderNdEdit(layout, e)),
             ...transforms.map(t => describeTransform(t, vocab)),
@@ -212,6 +223,16 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
      */
     const compact = forcedCompact === null ? ladder("compact") : !!forcedCompact;
 
+    /*
+     * Facing is fixed at statement, so a later transform moving the faced
+     * object is *meant* to leave the bearing alone. Excluded anyway for now:
+     * the item would then turn on a rule stated in one line of the setup, and
+     * getting that rule wrong looks identical to getting the geometry wrong.
+     */
+    const forcedFacing = ctx.settingsOverrideService.linearOverride("facing");
+    const facing = (forcedFacing === null ? ladder("facing") : !!forcedFacing)
+        && edits === 0 && transforms === 0;
+
     const indeterminate = (forcedOpen === null ? ladder("indeterminate") : !!forcedOpen)
         && edits === 0 && transforms === 0
         /*
@@ -224,6 +245,7 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
         && !compact;
 
     return {
+        facing,
         indeterminate,
         branching: pick("branching", "branching"),
         compact,
@@ -248,6 +270,15 @@ export function fillNdConclusion(ctx: GeneratorContext,
     numOfPremises: number,
     /** Near the end of the attempt budget: take what can be built. */
     lastChance = false,
+    /**
+     * Premises the conclusion needs that the layout does not state.
+     *
+     * Only facings so far. `question.premises` is written by the caller *after*
+     * this runs, from the rendered layout, so anything added to it here is
+     * simply overwritten — which is exactly what happened, leaving items whose
+     * derivation reasoned from a facing the player was never told.
+     */
+    extraPremises: string[] = [],
 ): boolean {
     /*
      * Mutations have to matter. A conclusion whose truth survives the edits
@@ -441,6 +472,17 @@ export function fillNdConclusion(ctx: GeneratorContext,
     }
 
     /*
+     * Egocentric items re-express the layout from inside it, so they are their
+     * own branch: the claim is not about an axis at all.
+     */
+    if (feat.facing) {
+        const built = fillFacingConclusion(question, layout, extraPremises);
+        if (built) return true;
+        // Falling through rather than failing: a layout can simply have no
+        // pair the bearing plane separates, and that is not an error.
+    }
+
+    /*
      * Under-specified items ask a different question, so they are built first.
      *
      * Every composed-space item until now was fully determined by
@@ -519,6 +561,7 @@ export function ndSetup(ctx: GeneratorContext,
      */
     if (feat.compact) lines.push(COMPACT_NOTE);
     if (feat.indeterminate) lines.push(INDETERMINATE_NOTE);
+    if (feat.facing) lines.push(FACING_NOTE);
     if (edited) lines.push(EDIT_NOTE);
     /*
      * Same argument as the loop note below: the axis key is the one thing
@@ -567,3 +610,63 @@ function explainIndeterminate(layout: NdLayout, a: string, b: string, axis: numb
             : `so ${subj(a)} could sit either side of ${subj(b)}, and the claim does not have to hold`,
     ];
 }
+
+/**
+ * "B is on A's left", with the facing that licenses it stated as a premise.
+ *
+ * Every part is drawn from the layout the item already built: the facing is the
+ * bearing from the viewer to some third object, and the claim is where a fourth
+ * falls relative to that. So nothing here can disagree with the premises — the
+ * only new information is which way someone is turned, and that is stated.
+ */
+function fillFacingConclusion(
+    question: Question,
+    layout: NdLayout,
+    extraPremises: string[],
+): boolean {
+    const plane = bearingPlane(layout.axes);
+    if (!plane || layout.words.length < 3) return false;
+
+    const at = (w: string): [number, number] =>
+        [layout.coords[w][plane[0]], layout.coords[w][plane[1]]];
+
+    // Every viewer/faced/target triple the plane actually separates, then one
+    // at random — drawing first and rejecting would fail most of the time on a
+    // space where the plane is nearly flat.
+    const options: Array<{ viewer: string; faced: string; target: string; rel: Egocentric }> = [];
+    for (const viewer of layout.words) {
+        for (const faced of layout.words) {
+            if (faced === viewer) continue;
+            const f = sub(at(faced), at(viewer));
+            if (!f[0] && !f[1]) continue;
+            for (const target of layout.words) {
+                if (target === viewer || target === faced) continue;
+                const rel = egocentric(f, sub(at(target), at(viewer)));
+                if (rel) options.push({ viewer, faced, target, rel });
+            }
+        }
+    }
+    if (!options.length) return false;
+
+    const chosen = options[Math.floor(Math.random() * options.length)];
+    const claimTrue = coinFlip();
+    const claimed = claimTrue ? chosen.rel : OPPOSITE[chosen.rel];
+
+    const f = sub(at(chosen.faced), at(chosen.viewer));
+    const v = sub(at(chosen.target), at(chosen.viewer));
+
+    extraPremises.push(describeFacing(chosen.viewer, chosen.faced));
+    question.conclusion = describeEgocentric(chosen.target, chosen.viewer, claimed);
+    question.isValid = claimTrue;
+    question.explanation = [
+        `From ${subj(chosen.viewer)}, ${subj(chosen.faced)} lies`
+        + ` ${hi(describeBearing(f, layout.axes, plane))} \u2014 that is the way`
+        + ` ${subj(chosen.viewer)} is turned.`,
+        `From ${subj(chosen.viewer)}, ${subj(chosen.target)} lies`
+        + ` ${hi(describeBearing(v, layout.axes, plane))}.`,
+        `so ${describeEgocentric(chosen.target, chosen.viewer, chosen.rel)}`,
+    ];
+    return true;
+}
+
+const sub = (a: [number, number], b: [number, number]): [number, number] => [a[0] - b[0], a[1] - b[1]];

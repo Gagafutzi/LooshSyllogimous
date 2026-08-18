@@ -72,6 +72,14 @@ export const RUNG_COST: Record<string, number> = {
      * reach by finishing — it is reached by noticing that it cannot finish.
      */
     indeterminate: 1.3,
+    /*
+     * The dearest modifier in the table, and it should be. Every other one
+     * changes what the premises say; this changes where they are read from, and
+     * the facing has to be derived before it can be used — so one premise costs
+     * two steps and the layout has to be held twice, once absolutely and once
+     * from inside.
+     */
+    facing: 1.8,
 
     circular: 1.2,
     "circular-2": 0.8,
