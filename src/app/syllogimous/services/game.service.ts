@@ -64,6 +64,7 @@ import { createRelationalWeb } from "../generators/relational-web";
 import { createStimulusFunction } from "../generators/stimulus-function";
 import { createTransformMatch } from "../generators/transform-match";
 import { createKnaves } from "../generators/knaves";
+import { createNested } from "../generators/nested";
 import { GeneratorContext } from "../generators/context";
 
 /**
@@ -277,6 +278,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.StimulusFunction]: () => createStimulusFunction(this, numOfPremises),
             [EnumQuestionType.TransformMatching]: () => createTransformMatch(this, numOfPremises),
             [EnumQuestionType.Knaves]: () => createKnaves(this, numOfPremises),
+            [EnumQuestionType.NestedSpaces]: () => createNested(this, numOfPremises),
         }[questionType];
 
         if (!creator) return creator;

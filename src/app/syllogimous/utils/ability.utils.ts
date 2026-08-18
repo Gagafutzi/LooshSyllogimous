@@ -104,6 +104,7 @@ export const RUNG_COST: Record<string, number> = {
     compose: 1.4,
     sequence: 1.8,
 
+    collide: 1.5,
     compound: 1.2,
     undetermined: 1.4,
 

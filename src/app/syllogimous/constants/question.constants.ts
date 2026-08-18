@@ -46,6 +46,7 @@ export enum EnumQuestionType {
     StimulusFunction = "Stimulus Function",
     TransformMatching = "Transformation Matching",
     Knaves = "Knights and Knaves",
+    NestedSpaces = "Nested Spaces",
 }
 
 export enum EnumArrangements {

@@ -252,7 +252,7 @@ Eleven are specced below. In rough cost order:
 | ~~P12 transformation of function~~ | **built** — `generators/stimulus-function.ts` |
 | ~~P11 oddest relation out~~ | **built** — `generators/oddest-relation.ts` |
 | ~~P10 sequence induction~~ | **built** — rung `sequence` on Transformation Matching |
-| [P7 nested spatial](#p7-nested-spatial--mixed-dimensionality-with-deliberate-interference) | mixed dimensionality with deliberate interference |
+| ~~P7 nested spaces~~ | **built** — `generators/nested.ts` |
 | ~~P1 facing space~~ | **built** — rung `facing`, `utils/facing.utils.ts` |
 | ~~P2 knights and knaves~~ | **built** as a mode — the speaker *modifier* is still open |
 | [P8 boolean concepts](#p8-boolean-concept-learning--rework-the-form-before-building) | **rework the form first** — the standard paradigm is inefficient for training |
@@ -329,67 +329,40 @@ symmetry without computing anything, and only if you have understood what a
 rotation preserves.
 
 
-## P7. Nested spatial — mixed dimensionality with deliberate interference
+## P7. Nested spaces — **DONE**, `generators/nested.ts`
 
-> KOJ is left of CAM **(where CAM is north of JIV, CAM is east of PIJ)**
-> CAM is left of ZES **(where ZES is north-west of REY, ZES is south of TEV)**
+Two unrelated arrangements over one object set, interleaved: the outer clause
+describes one, the parenthetical describes another. Verification was free as
+predicted — two independent chains, each already exactly checkable — so all the
+work was in the design question.
 
-Two independent relational structures over overlapping object sets, interleaved
-in the presentation. The **outer clause is one space** — say a 1D left/right
-scale — and the **parenthetical is another** — say a 2D compass plane. Neither
-constrains the other; they are separate graphs that happen to share objects.
+**The scoping rule is in the code, not just in this note.** `axisWordConflicts`
+forbids two axes that share direction words, because a flat premise naming both
+is genuinely ambiguous. This mode wants exactly those pairs, and may have them
+because *the space is identified by syntax rather than by vocabulary*: inside
+the brackets is one arrangement, outside is another. The guard stays as it is
+for flat premises and is waived only where nesting marks the scope.
 
-Verification is free: two independent layouts over one object set, each already
-exactly checkable by the existing engine. Nothing new is needed to decide an
-item.
+**The sharp item is generated deliberately, not waited for.** That turned out to
+need two things, not one. Making a pair adjacent in both chains and reversed in
+the second is necessary but useless on its own — the two halves then sit in
+different premises, a page apart, and read as two ordinary statements. They have
+to land in the *same* premise, so the inner half is reordered to line up:
 
-### The point is semantic interference, and the nesting is what licenses it
+> Ash is left of Bee (where Bee is left of Ash)
 
-`axisWordConflicts` currently **forbids** two axes that share direction words —
-"higher" belongs to both quantity and vertical, and a flat premise naming both
-is genuinely ambiguous to a reader even though the generator knows what it meant.
+Contradictory to every reading instinct, and contradictory to nothing at all.
+Measured over 300 items: with the rung, every item carries a same-pair premise
+and 255 of them state it in opposite directions; without it, 85 happen by
+chance.
 
-This mode wants the opposite: axis pairs whose vocabulary *is* confusable, so
-statements read as contradictory while being nothing of the kind. The reason
-that is sound here and unsound in a flat premise is **the space is identified by
-syntax rather than by wording**. Inside the parentheses is one space, outside is
-another. Position disambiguates; vocabulary interferes. You get the conflict
-without the ambiguity.
+Verification reads the halves apart **by bracket, never by wording** — the same
+discipline the item asks of the player — and recomputes the answer from the
+asked-about space alone. If the answer ever depended on the other space, that
+check would disagree with the item.
 
-So the guard stays as it is for flat premises and is waived only where nesting
-marks the scope. That distinction is the whole design and should be written into
-the code, not just observed.
-
-### The sharpest item
-
-Put **the same pair** in both spaces, with words chosen to collide:
-
-> A is **left of** B (where B is **west of** A)
-
-Nothing here is contradictory — the horizontal scale and the compass plane are
-unrelated — but every reading instinct says it is. That is a relational Stroop:
-the work is suppressing an interference that natural language creates and the
-model does not have. Generating these deliberately, rather than waiting for them
-to occur by chance, is what makes the mode more than a presentation change.
-
-### Difficulty knobs
-
-- **Number of spaces** — two, then three.
-- **Dimensionality of each** — 1D outer with 2D inner, then 3D inner.
-- **Vocabulary collision** — none, near ("left" vs "west"), exact. The novel axis,
-  and the one worth laddering.
-- **Which space the conclusion asks about** — the good item asks about the space
-  the phrasing pulls you away from.
-- **Object-set overlap** — disjoint is bookkeeping, shared is interference.
-
-### Relation to what exists
-
-Composed spaces state every axis in one premise (`east, north, above, later`).
-This states one space per clause and marks the rest by nesting, so the same
-underlying structure gets a presentation that permits collisions the combined
-form cannot. It is a rendering change plus an independence change, not a new
-engine.
-
+Difficulty ladder is the vocabulary collision alone, since without it the mode
+is two chains read separately.
 
 ## P1. Facing space — **DONE**, rung `facing` on the composed spaces
 

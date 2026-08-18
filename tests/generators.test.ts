@@ -42,6 +42,7 @@ import { createStimulusFunction } from "../src/app/syllogimous/generators/stimul
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createTransformMatch } from "../src/app/syllogimous/generators/transform-match";
 import { createKnaves } from "../src/app/syllogimous/generators/knaves";
+import { createNested } from "../src/app/syllogimous/generators/nested";
 
 /**
  * A context with nothing switched on.
@@ -122,6 +123,7 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.Binary, createBinary],
     [EnumQuestionType.TransformMatching, createTransformMatch],
     [EnumQuestionType.Knaves, createKnaves],
+    [EnumQuestionType.NestedSpaces, createNested],
 ];
 
 /**

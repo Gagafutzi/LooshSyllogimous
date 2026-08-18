@@ -25,5 +25,6 @@ import "./transform-match.test";
 import "./rungfit.test";
 import "./facing.test";
 import "./knaves.test";
+import "./nested.test";
 
 run();

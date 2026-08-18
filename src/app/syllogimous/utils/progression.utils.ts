@@ -274,6 +274,12 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * working out what they did settle.
      */
     "Knights and Knaves":        ["compound", "undetermined"],
+    /*
+     * The vocabulary collision is the novel axis, so it is the whole ladder.
+     * Without it the mode is two chains read separately; with it the words in
+     * one space actively fight the other.
+     */
+    "Nested Spaces":             ["collide"],
     // Earned: until then in- and out-degree identify the node, which is
     // counting rather than seeing.
     "Relational Web":            ["structural"],

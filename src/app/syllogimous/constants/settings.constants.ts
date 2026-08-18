@@ -314,6 +314,16 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 6,
         basic: false
     },
+    /*
+     * Each premise carries two relations, one per space, so the reading load
+     * per premise is doubled and the ceiling comes down accordingly.
+     */
+    [EnumQuestionType.NestedSpaces]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 7,
+        basic: false
+    },
 }
 
 export const DEFAULT_ENABLED_FLAGS = {

@@ -202,6 +202,12 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      * because most items resolve through a chain rather than a full search.
      */
     [EnumQuestionType.Knaves]: { weight: 1.9, ceiling: 6 },
+    /*
+     * Two chains of the same length in one premise set, plus the cost of not
+     * letting them contaminate each other. Not double a single chain, because
+     * only one of the two is ever asked about — but well above it.
+     */
+    [EnumQuestionType.NestedSpaces]: { weight: 1.5, ceiling: 7 },
 };
 
 /** Real premise count for a linear-equivalent level, clamped to the mode's range. */

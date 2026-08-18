@@ -35,6 +35,7 @@ const BLURBS: Record<string, string> = {
     "Stimulus Function": "A property travels along the relations rather than being stated for every object. Follow the chain from where the property is established to the object asked about, applying each link in turn.",
     "Space 7D": "Seven dimensions stated in one sentence each. One of them has no distance at all — only two classes, same or opposite — so it is tracked by parity while the rest are tracked by position.",
     "Transformation Matching": "Two arrangements of the same labelled points: the second is the first after one change applied to everything at once. The question is about that change — whether a stated one fits, which one it was, where it sends a different set, or what comes next in a sequence. Compare the points one at a time; the change is only pinned down when all of them agree.",
+    "Nested Spaces": "Each premise states two things at once: one arrangement outside the brackets and a completely separate one inside them. They share their objects and nothing else, so they cannot contradict each other however alike the words sound. Track the two apart, and answer about whichever one the question names.",
     "Knights and Knaves": "Every speaker is a knight, who only says true things, or a knave, who only says false ones, and their statements are about who is which. A speaker is a knight exactly when what they said is true — so try a reading, check every statement against it, and keep the reading that holds throughout.",
 };
 
