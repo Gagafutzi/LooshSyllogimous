@@ -12,6 +12,7 @@ import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { getSymbols } from "../src/app/syllogimous/utils/question.utils";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.constants";
+import { ThemeService } from "../src/app/syllogimous/services/theme.service";
 
 function fresh() {
     localStorage.clear();
@@ -102,4 +103,51 @@ test("a zero weight is the same as switching the kind off", () => {
     const pool = getSymbols(s);
     assert(pool.every(x => /^[A-Za-z]+$/.test(x)),
         "a kind weighted at zero still contributed stimuli");
+});
+
+/* ------------------------------------------------------------------ *
+ * Dimension colours                                                   *
+ * ------------------------------------------------------------------ */
+
+test("dimension colours resolve to plain colours the stylesheet can use", () => {
+    /*
+     * The regression this pins. The strength dial was applied in CSS with
+     * `color-mix(in srgb, var(--th-dim-N) var(--th-dim-strength), …)`, which
+     * puts a `var()` in a colour function's percentage slot; when that fails to
+     * substitute the whole declaration is dropped and the clause silently takes
+     * the body colour. The dial is applied here instead, so what reaches the
+     * stylesheet is always a plain hex.
+     */
+    const theme = new ThemeService();
+    const varsFor = (strength: number) => {
+        theme.set("dimStrength", strength);
+        const raw = localStorage.getItem("syllogimous-theme-vars");
+        return JSON.parse(raw ?? "{}") as Record<string, string>;
+    };
+
+    const full = varsFor(100);
+    for (let i = 1; i <= 8; i++) {
+        const value = full[`--th-dim-${i}`];
+        assert(/^#[0-9a-f]{6}$/i.test(value ?? ""), `--th-dim-${i} was "${value}"`);
+    }
+});
+
+test("zero strength paints a clause in the body colour", () => {
+    const theme = new ThemeService();
+    theme.set("dimStrength", 0);
+    const vars = JSON.parse(localStorage.getItem("syllogimous-theme-vars") ?? "{}");
+    equal(vars["--th-dim-1"].toLowerCase(), String(theme.theme.text).toLowerCase(),
+        "off should be indistinguishable from ordinary text");
+});
+
+test("half strength lands between the palette and the text", () => {
+    const theme = new ThemeService();
+    theme.set("dimStrength", 100);
+    const full = JSON.parse(localStorage.getItem("syllogimous-theme-vars") ?? "{}")["--th-dim-1"];
+    theme.set("dimStrength", 50);
+    const half = JSON.parse(localStorage.getItem("syllogimous-theme-vars") ?? "{}")["--th-dim-1"];
+
+    assert(half !== full, "the dial did nothing");
+    assert(half.toLowerCase() !== String(theme.theme.text).toLowerCase(),
+        "half strength washed the colour out entirely");
 });

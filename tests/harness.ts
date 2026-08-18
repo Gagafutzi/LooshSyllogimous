@@ -30,6 +30,27 @@ if (typeof (globalThis as any).localStorage === "undefined") {
     };
 }
 
+/*
+ * A document, for the one service that writes to it.
+ *
+ * ThemeService resolves a theme into custom properties and sets them on
+ * <html>. What is worth testing is the *values* it resolves — a dimension
+ * colour that is a plain hex rather than an expression the stylesheet might
+ * drop — so the write target is stubbed rather than the resolution mocked.
+ */
+if (typeof (globalThis as any).document === "undefined") {
+    const props = new Map<string, string>();
+    (globalThis as any).document = {
+        documentElement: {
+            style: {
+                setProperty: (k: string, v: string) => { props.set(k, v); },
+                getPropertyValue: (k: string) => props.get(k) ?? "",
+            },
+            classList: { add: () => {}, remove: () => {}, toggle: () => {} },
+        },
+    };
+}
+
 type Case = { name: string; fn: () => void };
 
 const cases: Case[] = [];

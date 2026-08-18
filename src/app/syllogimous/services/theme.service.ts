@@ -207,6 +207,33 @@ export class ThemeService {
         this.apply();
     }
 
+    /**
+     * Blend two hex colours, keeping `amount` percent of the first.
+     *
+     * Done here rather than with `color-mix()` in the stylesheet. The CSS was
+     * `color-mix(in srgb, var(--th-dim-N) var(--th-dim-strength), var(--th-text))`,
+     * which puts a `var()` in the percentage position of a colour function —
+     * and if that substitution does not parse, the whole declaration is dropped
+     * and the clause silently falls back to the body colour. Which is precisely
+     * the symptom: dimension colours stopped appearing when the strength dial
+     * was added, having worked before it.
+     *
+     * Mixing here means the stylesheet only ever sees a plain colour, which is
+     * the form that was working, and the dial keeps its full range.
+     */
+    private mix(from: string, to: string, amount: number): string {
+        const parse = (hex: string) => {
+            const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+            return m ? [1, 2, 3].map(i => parseInt(m[i], 16)) : null;
+        };
+        const a = parse(from), b = parse(to);
+        if (!a || !b) return from;
+
+        const k = Math.max(0, Math.min(100, amount)) / 100;
+        const channel = (i: number) => Math.round(a[i] * k + b[i] * (1 - k));
+        return "#" + [0, 1, 2].map(i => channel(i).toString(16).padStart(2, "0")).join("");
+    }
+
     /** Hex -> "r, g, b" so alpha compositing can reuse the accent. */
     private rgbOf(hex: string) {
         const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
@@ -308,8 +335,13 @@ export class ThemeService {
         // Measured on the panel, which is what premise text actually sits on;
         // the page background can differ from it by a lot under a wallpaper.
         const light = this.luminance(String(theme.panel)) > 0.4;
-        this.dimPalette(theme, light)
-            .forEach((color, i) => { vars[`--th-dim-${i + 1}`] = color; });
+        // Blended to strength here, so the stylesheet sees a plain colour.
+        const strength = Number(theme.dimStrength ?? 100);
+        this.dimPalette(theme, light).forEach((color, i) => {
+            vars[`--th-dim-${i + 1}`] = strength >= 100
+                ? color
+                : this.mix(color, String(theme.text), strength);
+        });
 
         for (const [name, value] of Object.entries(vars)) root.style.setProperty(name, value);
 
