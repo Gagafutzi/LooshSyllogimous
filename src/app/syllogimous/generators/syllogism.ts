@@ -9,6 +9,7 @@ import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, shuffle } from "../utils/question.utils";
 import { generatePolysyllogism, formatSylPremise, getRandomRuleValid, getRandomRuleInvalid, getSyllogism } from "../utils/syllogism.utils";
+import { SylPremise } from "../models/syllogism.models";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 import { SyllogismGenerator } from "../pages/settings/game-mode-choose/game-mode-choose.component";
@@ -91,7 +92,7 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
     const poolSize = chainTermsNeeded + extra;
     const termPool = getRandomSymbols(settings, poolSize);
     const wantTrue = coinFlip();
-    const { premises, conclusion, conclusionIsTrue } = generatePolysyllogism({
+    const { premises, conclusion, conclusionIsTrue, trace, derived } = generatePolysyllogism({
         nPremises: numOfPremises,
         chainDepth,
         termPool,
@@ -104,8 +105,39 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
     question.isValid = conclusionIsTrue;
     question.premises = premises.map(p => formatSylPremise(p, negated));
     question.conclusion = formatSylPremise(conclusion, negated);
+    question.explanation = explainPolysyllogism(trace, derived, conclusionIsTrue);
 
     return question;
+}
+
+/**
+ * The chain, one link at a time, with what each link licenses.
+ *
+ * A polysyllogism is assembled by composing syllogisms, and the intermediate
+ * conclusions are both the method and the one part of the item a reader cannot
+ * recover afterwards: the chain premises are shuffled in among distractors
+ * chosen specifically to entail nothing, so which premises did the work is
+ * invisible once the item is built.
+ *
+ * A false item ends on what the premises *do* entail rather than on "this does
+ * not follow". Saying only that a claim fails leaves the reader knowing they
+ * were wrong and not what was true, which is the same one bit the verdict
+ * already gave them. The terms are the same either way — a false conclusion is
+ * made by changing the relation between the same two terms, never by
+ * introducing new ones — so this stays within what the item asked about.
+ */
+function explainPolysyllogism(
+    trace: SylPremise[],
+    derived: SylPremise,
+    isTrue: boolean,
+): string[] {
+    if (!trace.length) return [];
+
+    const lines = trace.slice(0, -1).map(step => `so far: ${formatSylPremise(step)}`);
+    lines.push(isTrue
+        ? `so ${formatSylPremise(derived)}`
+        : `the premises give ${formatSylPremise(derived)}, which the claim contradicts`);
+    return lines;
 }
 
 export function createSyllogism(ctx: GeneratorContext, numOfPremises: number) {

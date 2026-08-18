@@ -315,6 +315,8 @@ export function generatePolysyllogism(opts: {
         const premisesDict: Record<string, Record<string, SylKind>> = {};
         let w1: string, w2: string, conclusion: SylKind;
         let failed = false;
+        // The running conclusion after each link, kept for the derivation.
+        const trace: SylPremise[] = [];
 
         if (chainDepth === 1) {
             const [wA, wB] = chainTerms;
@@ -323,6 +325,7 @@ export function generatePolysyllogism(opts: {
             w1 = inf.swap ? wB : wA;
             w2 = inf.swap ? wA : wB;
             conclusion = inf.conclKind;
+            trace.push([w1, conclusion, w2]);
         } else {
             const [word1, word2, word3, ...otherWords] = chainTerms;
 
@@ -334,6 +337,7 @@ export function generatePolysyllogism(opts: {
                 premisesDict, fig, word1, word2, word3,
                 k1, k2, k3, true,
             );
+            trace.push([w1, conclusion, w2]);
 
             for (let i = 0; i < chainDepth - 2; i++) {
                 const newWord = otherWords[i];
@@ -354,10 +358,13 @@ export function generatePolysyllogism(opts: {
                     premisesDict, figure_i, w1, w2, newWord,
                     kind1, kind2, kind3, false,
                 );
+                trace.push([w1, conclusion, w2]);
             }
         }
         if (failed) continue;
         let finalConclusion: SylPremise = [w1!, conclusion!, w2!];
+        // Kept before the false-item swap below rewrites `finalConclusion`.
+        const derived: SylPremise = [w1!, conclusion!, w2!];
 
         const distractorPremises: SylPremise[] = [];
         const chainPremises = sylDictToList(premisesDict);
@@ -440,7 +447,7 @@ export function generatePolysyllogism(opts: {
             }
         }
 
-        return { premises, conclusion: finalConclusion, conclusionIsTrue };
+        return { premises, conclusion: finalConclusion, conclusionIsTrue, trace, derived };
     }
 }
 
