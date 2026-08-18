@@ -627,12 +627,27 @@ that take a premise count. A cap is a claim about what is answerable at that
 size, and depending on three unrelated call sites to keep it is the kind of
 thing that stays true until it does not.
 
-### Rung costs are guesses
+### Rung costs are guesses — **MEASURABLE NOW**
 
-`RUNG_COST` in `ability.utils.ts` is a hand-written table. It is at least wrong
-*in one place, explicitly*, where it can be corrected — and the right correction
-is to fit it against answered items rather than argue about it. A few hundred
-logged trials would do it.
+`RUNG_COST` is still hand-written, and it still should be. What changed is that
+it can now be *checked*: every answered item is logged with the estimate it was
+chosen under, and `fitRungCosts` reports what those answers say each rung is
+worth, with sample sizes, on Diagnostics.
+
+Fitted by bisection on the cost rather than by differentiating the psychometric
+function — slower and completely uninteresting, which is the point: no
+derivative to get wrong, and the objective (mean predicted accuracy equals mean
+observed) is the thing actually wanted rather than a proxy.
+
+**Reported, never applied.** A fit from forty trials is worse than the guess it
+would replace, so below the threshold it reports nothing at all rather than a
+number with a caveat.
+
+The test does the only check that matters: generate answers from a world where a
+rung's true cost is a number the fitter was never told, and see whether it comes
+back with that number. Planted costs of 0.3, 1.4 and 2.6 all come back within
+0.35 over four thousand trials. A fit that cannot recover a planted value has
+nothing to say about a real one, however reasonable its output looks.
 
 ### The tier cheat is inert — **DONE**
 
@@ -641,13 +656,18 @@ test uses, and sets the score mid-band so a wobble does not immediately fall out
 of the tier that was asked for. The level-for-tier inversion is approximate and
 says so.
 
-### Argument swap
+### Argument swap — **DONE**, edit kind `exchange`
 
-Objects exchanged *within* one relation ("X is south of Y" → "Y is south of X").
-The same one-line vector negation as `reverse` in
-[2.8](done.md#28-compact-premises-and-relation-edits--done); only the wording differs,
-since reverse frames it as a property of the relation rather than of its
-arguments.
+Objects exchanged *within* one relation, as predicted the same vector negation
+as `reverse`. The framing is the whole of it: "the relation A → B is reversed"
+asks you to invert a relation, "A and B trade places in that premise" asks you
+to re-read a sentence with its arguments swapped. The second is the error people
+actually make with asymmetric relations, and it is worth being able to *state*
+rather than only to fall into.
+
+Tested by asserting the two framings move every object to the same place while
+reading differently — if they ever computed different layouts, one of the two
+wordings would be lying.
 
 ### Unfinished ports from v3 — **PARTLY DONE**
 

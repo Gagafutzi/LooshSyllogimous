@@ -128,6 +128,39 @@
         </div>
     </div>
 
+    <div class="card p-3">
+        <h5 class="mb-2">Rung costs, measured</h5>
+        <p class="text-muted small">
+            What the difficulty table says a modifier is worth, next to what
+            answered items say it is worth. A rung answered better than predicted
+            is one the model is overcharging for. Nothing is applied
+            automatically &mdash; a fit from a handful of trials is worse than the
+            guess it would replace.
+        </p>
+        <button class="btn btn-sm btn-outline-secondary mb-2" (click)="loadRungFits()">
+            Measure from {{ trialCount || "logged" }} answers
+        </button>
+
+        <div class="res__main" style="grid-template-columns: 1fr 4rem 4rem 4rem 5rem;" *ngIf="rungFits.length">
+            <span class="nm"><strong>rung</strong></span>
+            <span class="num"><strong>table</strong></span>
+            <span class="num"><strong>fitted</strong></span>
+            <span class="num"><strong>n</strong></span>
+            <span class="num"><strong>residual</strong></span>
+        </div>
+        <div class="res__main" style="grid-template-columns: 1fr 4rem 4rem 4rem 5rem;"
+             *ngFor="let f of rungFits">
+            <span class="nm">{{ f.rung }}</span>
+            <span class="num">{{ f.current.toFixed(2) }}</span>
+            <span class="num">{{ f.fitted.toFixed(2) }}</span>
+            <span class="num">{{ f.trials }}</span>
+            <span class="num">{{ f.residual > 0 ? "+" : "" }}{{ f.residual.toFixed(3) }}</span>
+        </div>
+        <div class="text-muted small" *ngIf="!rungFits.length">
+            No rung has enough answers behind it yet.
+        </div>
+    </div>
+
     <div class="card p-3" *ngIf="sample">
         <h5 class="mb-2">Sample item — {{ sample.type }}</h5>
         <div class="premise" *ngFor="let p of sample.premises" [innerHTML]="p"></div>

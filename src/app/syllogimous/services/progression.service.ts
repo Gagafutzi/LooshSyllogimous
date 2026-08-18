@@ -8,6 +8,7 @@ import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
     abilityUpdate, aggregate, chooseConfig, guessRateFor, initAbility, levelOf,
     pCorrect, priorForNewMode, targetLevel,
+    Trial, fitRungCosts,
 } from "../utils/ability.utils";
 
 /**
@@ -44,6 +45,10 @@ const LS_CONFIG = "syllogimous-progression-config";
 /** The rolling residual window behind fatigue detection. */
 const LS_RESIDUALS = "syllogimous-residuals";
 const LS_ABILITY = "syllogimous-ability:";
+/** Answered items, kept so the rung costs can be measured rather than argued. */
+const LS_TRIALS = "syllogimous-trials";
+/** Enough for a fit on the common rungs, small enough to keep in storage. */
+const TRIAL_LOG = 1500;
 /** Written by the pre-rework staircase; read once to migrate, never written. */
 const LS_LEGACY_STATE = "syllogimous-progression-state:";
 
@@ -127,6 +132,36 @@ export class ProgressionService {
     private get live() { return this.config.enabled && !this.suppressed; }
 
     constructor() { this.loadConfig(); this.loadResiduals(); }
+
+    /* ---------------- the trial log ---------------- */
+
+    private pushTrial(trial: Trial) {
+        try {
+            const log = this.trials();
+            log.push(trial);
+            localStorage.setItem(LS_TRIALS,
+                JSON.stringify(log.slice(-TRIAL_LOG)));
+        } catch { /* private mode, or a full quota; the log is not load-bearing */ }
+    }
+
+    trials(): Trial[] {
+        try {
+            const raw = localStorage.getItem(LS_TRIALS);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch { return []; }
+    }
+
+    /**
+     * What the answered items say the rung costs should be.
+     *
+     * Reported, never applied. A fit from a handful of trials is worse than the
+     * guess it would replace, so the numbers and their sample sizes go on the
+     * screen and the table stays hand-written until someone looks at them.
+     */
+    fittedRungCosts(minTrials = 60) {
+        return fitRungCosts(this.trials(), this.abilityConfig, minTrials);
+    }
 
     /* ---------------- config ---------------- */
 
@@ -541,9 +576,26 @@ export class ProgressionService {
          * actually chosen under. Doing it afterwards would measure the model
          * against a posterior that had already seen the answer.
          */
-        const expected = pCorrect(this.abilityConfig, this.estimateFor(type).level, level, guess);
+        const estimate = this.estimateFor(type).level;
+        const expected = pCorrect(this.abilityConfig, estimate, level, guess);
         const tiredBefore = this.tired;
         this.pushResidual((correct ? 1 : 0) - expected);
+
+        /*
+         * Logged with the estimate the item was chosen under, for the same
+         * reason the residual is taken here: afterwards the posterior has seen
+         * the answer, and a fit against it would be scoring the model on
+         * information the model did not have.
+         */
+        this.pushTrial({
+            type,
+            premises: before.premises,
+            rungs: ladderFor(type).slice(0, before.rungs),
+            seconds: before.seconds,
+            estimate,
+            guess,
+            correct,
+        });
 
         /*
          * A slump already in progress stops the posterior moving. The trial is

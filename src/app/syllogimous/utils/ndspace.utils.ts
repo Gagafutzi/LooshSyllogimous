@@ -361,7 +361,7 @@ export function buildNdLayout(
  * about. That is not obvious, and it is what makes premise-rewriting safe here
  * where an arbitrary mechanism would not be.
  */
-export type NdEditKind = "reverse" | "swap" | "copy";
+export type NdEditKind = "reverse" | "swap" | "copy" | "exchange";
 
 export interface NdEdit {
     kind: NdEditKind;
@@ -378,7 +378,9 @@ export function applyNdEdits(layout: NdLayout, edits: NdEdit[]): NdLayout {
     for (const edit of edits) {
         const t = edges[edit.target];
         if (!t) continue;
-        if (edit.kind === "reverse") {
+        if (edit.kind === "reverse" || edit.kind === "exchange") {
+            // One operation. Exchanging the arguments of a relation and
+            // reversing the relation are the same negation of its vector.
             t.deltas = t.deltas.map(d => -d);
             continue;
         }
@@ -444,14 +446,14 @@ export function drawNdEdits(layout: NdLayout, count: number): NdEdit[] {
 
     for (let guard = 0; out.length < count && free.length && guard < count * 20; guard++) {
         const kinds: NdEditKind[] = free.length >= 2
-            ? ["reverse", "swap", "copy"]
-            : ["reverse"];
+            ? ["reverse", "exchange", "swap", "copy"]
+            : ["reverse", "exchange"];
         const kind = pick(kinds);
 
         const ti = Math.floor(Math.random() * free.length);
         const target = free.splice(ti, 1)[0];
 
-        if (kind === "reverse") { out.push({ kind, target }); continue; }
+        if (kind === "reverse" || kind === "exchange") { out.push({ kind, target }); continue; }
 
         const oi = Math.floor(Math.random() * free.length);
         // Swap consumes both relations; copy only rewrites the target, so its
@@ -471,6 +473,10 @@ export function renderNdEdit(layout: NdLayout, edit: NdEdit): string {
 
     if (edit.kind === "reverse") {
         return `the relation ${pair(t)} is ${hi("reversed")}`;
+    }
+    if (edit.kind === "exchange") {
+        return `in the premise about ${subj(t.from)} and ${subj(t.to)},`
+            + ` the two ${hi("trade places")}`;
     }
     const o = layout.edges[edit.other!];
     if (edit.kind === "swap") {

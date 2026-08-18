@@ -6,6 +6,7 @@ import { Question } from "../../models/question.models";
 import { Settings, canGenerateQuestion } from "../../models/settings.models";
 import { GameService } from "../../services/game.service";
 import { ProgressionService } from "../../services/progression.service";
+import { RungFit } from "../../utils/ability.utils";
 
 /**
  * Generator diagnostics.
@@ -101,6 +102,24 @@ export class DiagnosticsComponent {
         private gameService: GameService,
         private progression: ProgressionService,
     ) { }
+
+    /* ---------------- what the answers say the rungs cost ---------------- */
+
+    /**
+     * The hand-written cost table, next to what play actually measured.
+     *
+     * `RUNG_COST` is guesses, and the honest correction is to measure rather
+     * than argue. Shown rather than applied: below the trial threshold a fit is
+     * worse than the guess it would replace, so this reports the numbers with
+     * their sample sizes and leaves the table to a human.
+     */
+    rungFits: RungFit[] = [];
+    trialCount = 0;
+
+    loadRungFits() {
+        this.trialCount = this.progression.trials().length;
+        this.rungFits = this.progression.fittedRungCosts();
+    }
 
     /* ---------------- progression simulation ---------------- */
 

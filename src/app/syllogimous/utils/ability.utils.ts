@@ -612,3 +612,117 @@ function probit(p: number) {
     }
     return (lo + hi) / 2;
 }
+
+
+/* ------------------------------------------------------------------ *
+ * Fitting the rung costs                                              *
+ * ------------------------------------------------------------------ */
+
+/**
+ * One answered item, as much of it as a fit needs.
+ *
+ * `estimate` is the ability the item was *chosen* under, not the posterior
+ * afterwards — using the updated one would be scoring the model against a
+ * belief that had already seen the answer.
+ */
+export interface Trial {
+    type: EnumQuestionType;
+    premises: number;
+    rungs: string[];
+    seconds: number | null;
+    estimate: number;
+    guess: number;
+    correct: boolean;
+}
+
+export interface RungFit {
+    rung: string;
+    /** What the table says now. */
+    current: number;
+    /** What these trials say it should be. */
+    fitted: number;
+    trials: number;
+    /** Observed minus predicted accuracy, before refitting. */
+    residual: number;
+}
+
+/**
+ * What the answered items say each rung is worth.
+ *
+ * `RUNG_COST` is a hand-written table, and it is wrong in detail — the comment
+ * on it says so. The fix is not to argue about the numbers but to measure them,
+ * and the measurement is simple once the trials are logged: a rung whose items
+ * are answered *better* than the model predicted is one the model is charging
+ * too much for.
+ *
+ * Fitted by bisection on the cost rather than by differentiating the
+ * psychometric function. Slower and completely uninteresting, which is the
+ * point: there is no derivative to get wrong, and the objective — make mean
+ * predicted accuracy equal mean observed — is the thing actually wanted rather
+ * than a proxy for it.
+ *
+ * **Deliberately not applied automatically.** A fit from forty trials is worse
+ * than the guess it would replace, so this reports the numbers and their sample
+ * sizes and leaves the table alone. `minTrials` is the honesty threshold, not a
+ * performance one.
+ */
+export function fitRungCosts(
+    trials: Trial[],
+    config = DEFAULT_ABILITY,
+    minTrials = 60,
+): RungFit[] {
+    const byRung = new Map<string, Trial[]>();
+    for (const t of trials) {
+        for (const r of t.rungs) {
+            if (!byRung.has(r)) byRung.set(r, []);
+            byRung.get(r)!.push(t);
+        }
+    }
+
+    const out: RungFit[] = [];
+
+    for (const [rung, ts] of byRung) {
+        if (ts.length < minTrials) continue;
+
+        const observed = ts.filter(t => t.correct).length / ts.length;
+
+        /** Mean predicted accuracy if this rung cost `cost`. */
+        const predictedAt = (cost: number) => {
+            const table = { ...RUNG_COST, [rung]: cost };
+            let total = 0;
+            for (const t of ts) {
+                total += pCorrect(config, t.estimate, levelWith(t, table, config), t.guess);
+            }
+            return total / ts.length;
+        };
+
+        const current = RUNG_COST[rung] ?? 0.8;
+        const residual = observed - predictedAt(current);
+
+        /*
+         * Bracket wide, then halve. Cost and predicted accuracy move in
+         * opposite directions — a dearer rung means a harder item means fewer
+         * right — so the bisection tests that ordering rather than assuming it.
+         */
+        let lo = 0, hi = 6;
+        if (predictedAt(lo) < observed) { out.push({ rung, current, fitted: lo, trials: ts.length, residual }); continue; }
+        if (predictedAt(hi) > observed) { out.push({ rung, current, fitted: hi, trials: ts.length, residual }); continue; }
+
+        for (let i = 0; i < 40; i++) {
+            const mid = (lo + hi) / 2;
+            if (predictedAt(mid) > observed) lo = mid; else hi = mid;
+        }
+
+        out.push({ rung, current, fitted: (lo + hi) / 2, trials: ts.length, residual });
+    }
+
+    return out.sort((a, b) => Math.abs(b.fitted - b.current) - Math.abs(a.fitted - a.current));
+}
+
+/** `levelOf` against a substituted cost table. */
+function levelWith(t: Trial, table: Record<string, number>, config: AbilityConfig): number {
+    const scale = MODE_SCALE[t.type];
+    const weight = scale?.weight ?? 1;
+    const rungCost = t.rungs.reduce((a, r) => a + (table[r] ?? 0.8), 0);
+    return weight * t.premises + rungCost + timeCost(t.seconds, config);
+}

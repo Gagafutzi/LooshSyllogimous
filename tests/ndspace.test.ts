@@ -7,8 +7,8 @@
 
 import { assert, equal, seeded, test } from "./harness";
 import {
-    AXIS_CHOICES, DIMENSION_AXES, axesForDimensions, buildNdLayout, medianByWidth,
-    ndAxisColors, ndWidth, renderNdPremise, reorderAxisIds,
+    AXIS_CHOICES, DIMENSION_AXES, applyNdEdits, axesForDimensions, buildNdLayout,
+    medianByWidth, ndAxisColors, ndWidth, renderNdEdit, renderNdPremise, reorderAxisIds,
 } from "../src/app/syllogimous/utils/ndspace.utils";
 import { AxisSpec } from "../src/app/syllogimous/utils/ndspace.utils";
 
@@ -129,4 +129,37 @@ test("keeping the median layout narrows width without shifting it", () => {
         `spread barely moved: sd ${a.sd.toFixed(2)} to ${b.sd.toFixed(2)}`);
     assert(Math.abs(b.mean - a.mean) < 0.3,
         `the middle moved as well as the spread: ${a.mean.toFixed(2)} to ${b.mean.toFixed(2)}`);
+});
+
+/**
+ * Argument swap: the same operation as reverse, stated the other way round.
+ *
+ * "The relation A → B is reversed" asks you to invert a relation. "A and B
+ * trade places in that premise" asks you to re-read a sentence with its
+ * arguments exchanged. Same vector negation, and the framings must stay
+ * interchangeable in effect while reading differently — if they ever computed
+ * different layouts, one of the two wordings would be lying.
+ */
+test("exchanging a premise's arguments is reversing its relation", () => {
+    const axes = axesForDimensions(4).map(scale => ({ scale }));
+    const words = ["Ash", "Bee", "Cat", "Dog"];
+
+    seeded(2027, () => {
+        for (let run = 0; run < 40; run++) {
+            const layout = buildNdLayout(words, axes, {});
+            for (let target = 0; target < layout.edges.length; target++) {
+                const reversed = applyNdEdits(layout, [{ kind: "reverse", target }]);
+                const exchanged = applyNdEdits(layout, [{ kind: "exchange", target }]);
+
+                for (const w of words) {
+                    equal(exchanged.coords[w], reversed.coords[w],
+                        `the two framings moved ${w} to different places`);
+                }
+
+                const a = renderNdEdit(layout, { kind: "reverse", target });
+                const b = renderNdEdit(layout, { kind: "exchange", target });
+                assert(a !== b, "the two framings read identically, so one is redundant");
+            }
+        }
+    });
 });
