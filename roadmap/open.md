@@ -6,7 +6,12 @@ left, in full:
 
 | | why it is still here |
 |---|---|
-| **Pricing width into difficulty** ([5](#5-realized-width-as-a-difficulty-axis--partly-done)) | the dial and the fit both exist; the coefficient needs answered items with the dial off its default to fit against. |
+| **Pricing width into difficulty** ([5](#5-realized-width-as-a-difficulty-axis--partly-done)) | the dial and the fit both exist; the coefficient needs answered items with the dial off its default to fit against. Blocked on play, not on design. |
+| **Checkable testimony** ([P2](#wanted-next-testimony-that-is-checkable-against-stated-fact)) | asked for and specced, deliberately parked. Not blocked — just not started. |
+
+The rest of this file is kept as the record of what was decided and why,
+including the parts that turned out differently from the plan. Those are the
+entries worth reading.
 
 ### Set Hierarchy — **DONE**, rung `hierarchy` on Syllogism
 
@@ -37,9 +42,7 @@ wanted answer once rather than per attempt. And the derivation was worded
 plainly beside a negated conclusion, so it read as a flat contradiction of the
 claim it was explaining.
 
-The rest of this file is kept as the record of what was decided and why,
-including the parts that turned out differently from the plan. Those are the
-entries worth reading.
+---
 
 ## Next up
 
