@@ -290,6 +290,18 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 8,
         basic: false
     },
+    /*
+     * Premises buy labelled points rather than sentences: the item is always
+     * two structures and a claim, and length is how many points have to agree
+     * before the map is pinned down. Six is the ceiling because past that the
+     * item is arithmetic endurance rather than induction.
+     */
+    [EnumQuestionType.TransformMatching]: {
+        enabled: true,
+        minNumOfPremises: 2,
+        maxNumOfPremises: 6,
+        basic: false
+    },
 }
 
 export const DEFAULT_ENABLED_FLAGS = {

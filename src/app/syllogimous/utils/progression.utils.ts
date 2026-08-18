@@ -261,6 +261,12 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     // Ranking every candidate rather than picking the furthest one. Same
     // evidence, no guess floor to speak of — so it is earned, not given.
     "Oddest Relation":           ["rank"],
+    /*
+     * Verify is the base: you are given the map and check it. Each rung takes
+     * away more of what was given — which map, then the map's effect on a
+     * different structure, then two maps at once.
+     */
+    "Transformation Matching":   ["identify", "apply", "compose"],
     // Earned: until then in- and out-degree identify the node, which is
     // counting rather than seeing.
     "Relational Web":            ["structural"],

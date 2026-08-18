@@ -91,6 +91,10 @@ export const RUNG_COST: Record<string, number> = {
     "construct-conclusion": 1.8,
     "construct-distance": 1.2,
 
+    identify: 1.0,
+    apply: 1.6,
+    compose: 1.4,
+
     "min-span-3": 0.8,
     cycles: 1.5,
 

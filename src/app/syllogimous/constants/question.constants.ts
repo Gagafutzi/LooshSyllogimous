@@ -44,6 +44,7 @@ export enum EnumQuestionType {
     ShapeRotation = "Shape and Rotation",
     RelationalWeb = "Relational Web",
     StimulusFunction = "Stimulus Function",
+    TransformMatching = "Transformation Matching",
 }
 
 export enum EnumArrangements {

@@ -188,6 +188,13 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // A chain plus one property carried along it: harder than the chain alone,
     // and the extra step does not grow with length.
     [EnumQuestionType.StimulusFunction]: { weight: 1.3, ceiling: 8 },
+    /*
+     * Heavier per point than any relational mode, and a low ceiling. Each point
+     * is a full coordinate pair to check rather than one relation to append,
+     * and the work is finding a rule rather than following one — so a
+     * four-point item is nothing like a four-premise chain.
+     */
+    [EnumQuestionType.TransformMatching]: { weight: 2.1, ceiling: 6 },
 };
 
 /** Real premise count for a linear-equivalent level, clamped to the mode's range. */

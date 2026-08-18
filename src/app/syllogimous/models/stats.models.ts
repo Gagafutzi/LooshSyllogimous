@@ -31,6 +31,7 @@ export class TypeBasedStats {
     [EnumQuestionType.ShapeRotation] = new TypeBasedStatsInner(EnumQuestionType.ShapeRotation);
     [EnumQuestionType.RelationalWeb] = new TypeBasedStatsInner(EnumQuestionType.RelationalWeb);
     [EnumQuestionType.StimulusFunction] = new TypeBasedStatsInner(EnumQuestionType.StimulusFunction);
+    [EnumQuestionType.TransformMatching] = new TypeBasedStatsInner(EnumQuestionType.TransformMatching);
 }
 
 export class TypeBasedStatsInner {

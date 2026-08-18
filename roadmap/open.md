@@ -122,25 +122,53 @@ open.
 Costed at 1.3 levels, dearer than the other premise-shape modifiers, because it
 changes what is being asked rather than how it is worded.
 
-### 4. Graph transformation matching
+### 4. Transformation matching — **DONE**, `generators/transform-match.ts`
 
-The induction gap. Every mode states its relations and asks you to apply them;
-none asks you to *infer* what relation is operating. That is the one cognitive
-operation the app omits, and it is what matrix tests measure.
+The induction gap, closed. Every other mode states its relations and asks you to
+apply them; this asks which relation is operating, which is the operation matrix
+tests measure.
 
-Four question forms over a structure S and its image S′:
+Four forms, verify as the base and the rest as rungs:
 
-| form | asks |
-|---|---|
-| verify | does T map S to S′? |
-| identify | which T maps S to S′? |
-| **apply** | **S : S′ :: R : ?** — the Raven's-isomorphic one |
-| compose | is S→S″ the composition of S→S′ and S′→S″? |
+| form | asks | cost |
+|---|---|---|
+| verify | does this map send S to S′? | base |
+| identify | which map sends S to S′? | 1.0 |
+| **apply** | **S : S′ :: R : ?** — the Raven's-isomorphic one | 1.6 |
+| compose | where does R land after both steps? | 1.4 |
 
-Tractable because the objects are **labelled**: verification is
-`applyTransform(S,T) === S′`, exact and linear. No isomorphism search, none of
-the NP-hardness that sinks the edit-distance idea in
-[P4](#p4-graph-matching-extended).
+Tractable for the reason predicted: the points are **labelled**, so verification
+is `applyMap(S, T)` compared point by point. Exact, linear, no isomorphism
+search.
+
+The maps are deliberately *global* — they act on the whole structure at once,
+unlike `transformations.utils.ts`, whose operations move one object relative to
+an anchor. A map that moved a single point would make "which map is this?" a
+question about that point rather than about the structure.
+
+**Three things building it turned up.**
+
+*The structure has to identify the map.* A shape symmetric about the origin is
+fixed by a half turn, so "which map is this?" would have two right answers and
+the item would be quietly unanswerable rather than visibly broken. Structures are
+drawn until no two maps in the pool send them to the same place — cheaper than
+reasoning about which pairs collide.
+
+*And so does the halfway structure.* That check only covers the *start*; the
+halfway point of a compose item is an image, and a map can land it somewhere two
+other maps agree on. The reader then finds *a* second step, applies it, and gets
+a defensible wrong answer. Caught by the test, not by inspection.
+
+*Compose has to show both steps.* The first version stated one step and then said
+"the same two changes are applied again" — asking the reader to use a map the
+item had never shown. Three structures are stated instead, so each step is
+identifiable on its own, and false endings are drawn from plausible misreadings
+(one step only, the two in the wrong order, one step twice) rather than from
+arbitrary wrong positions that could be rejected without doing the work.
+
+Weight 2.1 per point with a ceiling of six: each point is a coordinate pair to
+check rather than one relation to append, and the work is finding a rule rather
+than following one, so a four-point item is nothing like a four-premise chain.
 
 ### 5. Realized width as a difficulty axis
 
@@ -196,6 +224,7 @@ Eleven are specced below. In rough cost order:
 
 | | |
 |---|---|
+| ~~Transformation matching~~ | **built** — `generators/transform-match.ts`, `utils/gridmap.utils.ts` |
 | [P6 shape and rotation](#p6-shape-and-rotation) | cheapest — an *n*-gon's rotations are already `AxisSpec` with `modulus: n` |
 | ~~P9 infer the relation~~ | **built** — `generators/infer-relation.ts` |
 | ~~P12 transformation of function~~ | **built** — `generators/stimulus-function.ts` |

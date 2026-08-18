@@ -21,5 +21,6 @@ import "./map.test";
 import "./web.test";
 import "./coldstart.test";
 import "./indeterminacy.test";
+import "./transform-match.test";
 
 run();
