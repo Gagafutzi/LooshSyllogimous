@@ -58,6 +58,7 @@ function context(settings: Settings): GeneratorContext {
         logger: new Logger("error", false),
         settingsOverrideService: {
             linearOverride: () => null,
+            spread: () => null,
             axesFor: () => null,
             circularAxes: () => null,
             depthFor: () => 0,

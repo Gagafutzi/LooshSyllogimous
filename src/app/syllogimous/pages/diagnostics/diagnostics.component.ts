@@ -6,7 +6,7 @@ import { Question } from "../../models/question.models";
 import { Settings, canGenerateQuestion } from "../../models/settings.models";
 import { GameService } from "../../services/game.service";
 import { ProgressionService } from "../../services/progression.service";
-import { RungFit } from "../../utils/ability.utils";
+import { RungFit, WidthFit } from "../../utils/ability.utils";
 
 /**
  * Generator diagnostics.
@@ -116,9 +116,12 @@ export class DiagnosticsComponent {
     rungFits: RungFit[] = [];
     trialCount = 0;
 
+    widthFit: WidthFit | null = null;
+
     loadRungFits() {
         this.trialCount = this.progression.trials().length;
         this.rungFits = this.progression.fittedRungCosts();
+        this.widthFit = this.progression.fittedWidthCoefficient();
     }
 
     /* ---------------- progression simulation ---------------- */

@@ -31,6 +31,7 @@ function context(): GeneratorContext {
         logger: new Logger("error", false),
         settingsOverrideService: {
             linearOverride: () => null, axesFor: () => null, circularAxes: () => null,
+            spread: () => null,
             depthFor: () => 0, scramble: 100,
         } as unknown as SettingsOverrideService,
         progressionService: {
@@ -48,6 +49,7 @@ function forced(flag: string): GeneratorContext {
     const ctx = context();
     (ctx as { settingsOverrideService: SettingsOverrideService }).settingsOverrideService = {
         linearOverride: (k: string) => (k === flag ? true : null),
+            spread: () => null,
         axesFor: () => null, circularAxes: () => null, depthFor: () => 0, scramble: 100,
     } as unknown as SettingsOverrideService;
     return ctx;

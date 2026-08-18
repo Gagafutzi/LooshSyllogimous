@@ -8,7 +8,7 @@ import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
     abilityUpdate, aggregate, chooseConfig, guessRateFor, initAbility, levelOf,
     pCorrect, priorForNewMode, targetLevel,
-    Trial, fitRungCosts,
+    Trial, fitRungCosts, fitWidthCoefficient,
 } from "../utils/ability.utils";
 
 /**
@@ -161,6 +161,17 @@ export class ProgressionService {
      */
     fittedRungCosts(minTrials = 60) {
         return fitRungCosts(this.trials(), this.abilityConfig, minTrials);
+    }
+
+    /**
+     * What a bit of extra width is worth, or null if the answers cannot say.
+     *
+     * Null is the common case and the honest one: with the spread dial at its
+     * default every item is drawn at the calibrated middle, so there is no
+     * variation for a coefficient to explain.
+     */
+    fittedWidthCoefficient() {
+        return fitWidthCoefficient(this.trials(), this.abilityConfig);
     }
 
     /* ---------------- config ---------------- */
@@ -554,7 +565,7 @@ export class ProgressionService {
         type: EnumQuestionType,
         outcome: Outcome,
         _answerSeconds: number,
-        item?: { answerMode?: string; slots?: number; choices?: number; options?: number },
+        item?: { answerMode?: string; slots?: number; choices?: number; options?: number; widthDelta?: number },
     ): LadderEvent[] {
         if (!this.config.enabled) { this.lastEvents = []; return []; }
 
@@ -595,6 +606,7 @@ export class ProgressionService {
             estimate,
             guess,
             correct,
+            widthDelta: item?.widthDelta ?? 0,
         });
 
         /*

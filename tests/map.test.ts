@@ -29,6 +29,7 @@ function context(): GeneratorContext {
         logger: new Logger("error", false),
         settingsOverrideService: {
             linearOverride: () => null, axesFor: () => null, circularAxes: () => null,
+            spread: () => null,
             depthFor: () => 0, scramble: 100,
         } as unknown as SettingsOverrideService,
         progressionService: { hasRung: () => false, depthBonusFor: () => 0 } as unknown as ProgressionService,

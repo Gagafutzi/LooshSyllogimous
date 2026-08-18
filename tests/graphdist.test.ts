@@ -155,6 +155,7 @@ function context(rung: string): GeneratorContext {
         logger: new Logger("error", false),
         settingsOverrideService: {
             linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
+            spread: () => null,
             depthFor: () => 0, scramble: 100,
         } as unknown as SettingsOverrideService,
         progressionService: {

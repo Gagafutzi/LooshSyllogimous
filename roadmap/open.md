@@ -6,7 +6,7 @@ left, in full:
 
 | | why it is still here |
 |---|---|
-| **Width as a dial** ([5](#5-realized-width-as-a-difficulty-axis--partly-done)) | needs a bits-to-levels coefficient, and the argument for fitting rather than guessing it now has `fitRungCosts` to fit it with — but it needs answered items to fit against. The *noise* half is done. |
+| **Pricing width into difficulty** ([5](#5-realized-width-as-a-difficulty-axis--partly-done)) | the dial and the fit both exist; the coefficient needs answered items with the dial off its default to fit against. |
 | **Graph matching over other modes** ([P4](#p4-graph-matching-extended--done-two-of-three-utilsgraphdistutilsts)) | per-mode work: each mode would have to expose its layout as an edge list. |
 | **Set Hierarchy syllogism** | never specced beyond one line. Quantified set logic already exists in Syllogism; what a hierarchy adds needs deciding before anything is written — the same discipline [P8](#p8-boolean-concept-learning--settled-as-a-presentation-of-p11) got, and possibly the same answer. |
 
@@ -184,7 +184,7 @@ Weight 2.1 per point with a ceiling of six: each point is a coordinate pair to
 check rather than one relation to append, and the work is finding a rule rather
 than following one, so a four-point item is nothing like a four-premise chain.
 
-### 5. Realized width as a difficulty axis — **PARTLY DONE**
+### 5. Realized width as a difficulty axis — **DONE** bar the fitted coefficient
 
 **Measurement done** (`ndWidth`, `ndLiveAxes` in `ndspace.utils.ts`); the dial and
 its calibration are not.
@@ -250,9 +250,52 @@ The test asserts the spread narrows *and the mean does not*, because a change
 that made every item easier would show the same reduced spread and would be
 wrong.
 
-**Still open: the dial.** Targeting a requested width, and the coefficient to
-convert bits into levels. Both want fitting data — the same argument as
-`RUNG_COST`, and the same answer: measure it rather than guess it.
+**The dial — DONE**, and it needed no coefficient after all.
+
+The blocker recorded here was the bits-to-levels conversion. It turned out to
+block only *pricing*, not *targeting*, because the dial is a **percentile of
+what the configuration produces** rather than a number of bits. "As wide as the
+widest tenth of what this produces" is meaningful for any axis stack, object
+count and tie chance, with no table to keep in step; "8.5 bits" means nothing
+until you know what 8.5 is wide *for*. Fifty is the median, so the default is
+exactly the noise fix above and nothing moved.
+
+**And it is per-axis, which is the more useful half.** Width was treated as one
+quantity and is not: it is spread on the east-west axis, *height* on the
+vertical one, how long a span the *temporal* one covers. Those move
+independently, and pooling them lets a narrow axis be paid for by a wide one.
+Naming one axis scopes the dial to it. Measured over 1,500 items at 4D with six
+objects:
+
+| dial | that axis | the other three |
+|---|---|---|
+| p10 | 1.31 bits | 5.04 bits |
+| p50 | 1.67 bits | 5.03 bits |
+| p90 | 2.05 bits | 5.06 bits |
+
+The named axis moves by more than half a bit while the rest sit still, which is
+what makes "temporal width" mean something other than "width".
+
+**The coefficient is now fittable, and reported rather than guessed.** Realized
+width is logged per answered item as a departure from its batch's median, and
+`fitWidthCoefficient` estimates levels-per-bit on Diagnostics beside the rung
+costs.
+
+Fitted by **maximum likelihood, not by the mean-accuracy match the rung costs
+use** — and the difference is worth recording, because the first attempt used
+the same bisection and came back pinned to its bracket bound. A rung's cost is
+identifiable from mean accuracy because every item in its subsample carries the
+rung, so raising the cost lowers every prediction. Width is a signed quantity
+averaging zero: raising the coefficient makes wide items harder and narrow ones
+easier, the mean barely moves, and the objective is flat in the parameter.
+Likelihood uses the association between width and outcome instead. It recovers
+planted coefficients of 0.5 and 2.0 from synthetic answers.
+
+It returns null when the sample has no spread to learn from, which is the common
+case and the honest one — at the default dial every item is drawn at the median,
+so any coefficient fits equally well. **Until it is fitted, width is not priced
+into difficulty**, and the control says so: a large change makes items harder
+than the player's level claims.
 
 ### 6+. New modes
 
@@ -449,6 +492,32 @@ self-claim that fits either type, the disagreeing pair with exactly one), then
 re-solve every generated item from the premises the player is shown and check
 the claim against **every** reading, which is the only definition of "true" that
 stays right when more than one fits.
+
+### Wanted next: testimony that is checkable against stated fact
+
+A richer form of the modifier, asked for and not yet built. As `speakers` works
+today, a knave's report is worthless and who is lying is settled purely by what
+the speakers say about *each other*. The wanted version:
+
+1. A few **plain premises** are stated outright — true, unattributed.
+2. Speakers then report **more relations**, and some of those reports are about
+   pairs the plain premises already determine — so a report can be *checked*,
+   and a contradiction identifies a knave directly.
+3. Speakers still make the usual claims about each other, and those are included.
+4. Exactly one assignment of types is compatible with all of it.
+5. **Two conclusions**: who is a knight and who is a knave, *and* a relational
+   claim — the second only derivable once the liars are known and their reports
+   discarded, using the honest speakers' reports to extend beyond what the plain
+   premises fixed.
+
+The verification is decidable the same way: brute force over the 2ⁿ assignments,
+keeping those where every inter-speaker claim matches its speaker's type and
+every *checkable* report matches too. What makes it work is that reports about
+already-determined pairs are checkable while reports that extend the layout are
+not — so the first kind pins some speakers, their claims pin the rest, and the
+second kind then becomes usable. The two-conclusion answer fits the existing
+`multiConclusion` idiom, where a set of claims is true only if all of them
+follow.
 
 ### The modifier half — **DONE** for the composed spaces, rung `speakers`
 

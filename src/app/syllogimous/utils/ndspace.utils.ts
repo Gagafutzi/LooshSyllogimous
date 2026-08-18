@@ -1369,37 +1369,68 @@ export function explainNdAxis(
  * moves width 4.1 → 5.7 bits. Premises add chain to traverse, width adds state
  * to hold, and they are separate quantities.
  */
-export function ndWidth(layout: NdLayout): number {
-    return layout.axes.reduce((total, _, i) => {
-        const values = new Set(layout.words.map(w => layout.coords[w][i]));
-        return total + Math.log2(values.size);
-    }, 0);
+/**
+ * Bits needed to locate an object on each axis, separately.
+ *
+ * "Width" is the aggregate, but it is not really one quantity: it is spread on
+ * the east-west axis, height on the vertical one, how long a span the temporal
+ * one covers. Those move independently and a reader feels them separately — six
+ * positions on one axis is a different demand from two positions on three axes,
+ * even where the totals match.
+ *
+ * log₂ of the number of distinct coordinates: a dead axis contributes 0, three
+ * positions 1.58, seven 2.81. That makes a wide 3D item directly comparable to
+ * a narrow 6D one.
+ */
+export function ndAxisWidths(layout: NdLayout): number[] {
+    return layout.axes.map((_, i) =>
+        Math.log2(new Set(layout.words.map(w => layout.coords[w][i])).size));
 }
 
 /**
- * The typical layout of a batch, rather than whichever one came out first.
+ * Total width, or the total over just the axes named.
  *
- * Two composed-space items the model scores identically can differ twofold in
- * how much has to be held: six-dimensional items at six objects measured 6.6 to
- * 13.3 bits over three thousand draws, sd about one bit. At roughly eleven
- * levels for ten bits, that is about **a level of noise going straight into the
- * ability posterior**, against a psychometric slope of 1.6 — the model is being
- * told about difficulty that its own scale does not represent.
- *
- * Drawing a handful and keeping the median removes most of that without needing
- * the bits-to-levels coefficient at all. That coefficient is what a *dial*
- * would need, and the roadmap is right that it should be fitted against
- * answered items rather than guessed; holding the quantity steady is a
- * different problem and needs no constant. It is also self-calibrating: the
- * median of a sample from this configuration, whatever this configuration
- * happens to be, with no table to keep in step with the axis presets.
+ * Naming a subset is what makes the dial per-axis: asking for a wide *time*
+ * axis says nothing about the others, and averaging it into a single figure
+ * would let a narrow time axis be paid for by a wide vertical one.
  */
-export function medianByWidth(candidates: NdLayout[]): NdLayout {
+export function ndWidth(layout: NdLayout, axes?: number[]): number {
+    const widths = ndAxisWidths(layout);
+    const scope = axes?.length ? axes.filter(i => i >= 0 && i < widths.length) : null;
+    return (scope ?? widths.map((_, i) => i)).reduce((total, i) => total + widths[i], 0);
+}
+
+/**
+ * The candidate at a requested percentile of the batch's own width.
+ *
+ * A percentile rather than a number of bits, and that is the whole reason this
+ * works without the missing bits-to-levels coefficient. "As wide as the widest
+ * tenth of what this configuration produces" is meaningful for any axis stack,
+ * any object count and any tie chance, with no table to keep in step — where
+ * "8.5 bits" is meaningless until you know what 8.5 is wide *for*.
+ *
+ * 50 is the median, which is the noise fix: two items the model scores
+ * identically used to differ twofold in how much had to be held, and keeping
+ * the middle of a batch removes the tails without moving the centre.
+ */
+export function pickByWidth(
+    candidates: NdLayout[],
+    percentile = 50,
+    axes?: number[],
+): NdLayout {
     if (candidates.length < 2) return candidates[0];
+
     const ranked = candidates
-        .map(layout => ({ layout, width: ndWidth(layout) }))
+        .map(layout => ({ layout, width: ndWidth(layout, axes) }))
         .sort((a, b) => a.width - b.width);
-    return ranked[Math.floor(ranked.length / 2)].layout;
+
+    const at = Math.round((Math.min(100, Math.max(0, percentile)) / 100) * (ranked.length - 1));
+    return ranked[at].layout;
+}
+
+/** The middle of a batch — `pickByWidth` at the fiftieth percentile. */
+export function medianByWidth(candidates: NdLayout[]): NdLayout {
+    return pickByWidth(candidates, 50);
 }
 
 /** Axes carrying any difference at all; the rest are declared but inert. */

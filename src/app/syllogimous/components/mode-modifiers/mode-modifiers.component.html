@@ -22,6 +22,32 @@
             </span>
         </div>
 
+        <div class="lin">
+            <span class="lin__name">
+                How far apart things sit
+                <small class="d-block text-muted">
+                    50 is the calibrated middle, which keeps difficulty steady.
+                    Lower packs things together, higher spreads them out &mdash;
+                    it is not yet priced into the difficulty model, so a big
+                    change will make items harder than your level says.
+                    Composed spaces only.
+                </small>
+            </span>
+            <span class="mode__premises">
+                <input type="number" class="form-control form-control-sm"
+                       min="0" max="100" step="10"
+                       [disabled]="!enabled" [value]="spread"
+                       (change)="setSpread($any($event.target).value)">
+                <select class="form-select form-select-sm mt-1"
+                        [disabled]="!enabled" [value]="spreadAxis"
+                        (change)="setSpreadAxis($any($event.target).value)">
+                    <option value="">All dimensions</option>
+                    <option *ngFor="let a of spreadAxes" [value]="a.id"
+                            [selected]="a.id === spreadAxis">{{ a.label }}</option>
+                </select>
+            </span>
+        </div>
+
         <div class="lin" *ngFor="let row of linearRows">
             <span class="lin__name">
                 {{ row.label }}

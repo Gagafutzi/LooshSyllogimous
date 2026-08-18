@@ -682,6 +682,8 @@ export interface Trial {
     estimate: number;
     guess: number;
     correct: boolean;
+    /** Bits wider or narrower than typical for the configuration, or 0. */
+    widthDelta?: number;
 }
 
 export interface RungFit {
@@ -774,4 +776,88 @@ function levelWith(t: Trial, table: Record<string, number>, config: AbilityConfi
     const weight = scale?.weight ?? 1;
     const rungCost = t.rungs.reduce((a, r) => a + (table[r] ?? 0.8), 0);
     return weight * t.premises + rungCost + timeCost(t.seconds, config);
+}
+
+export interface WidthFit {
+    /** Levels of difficulty per bit of extra width. */
+    levelsPerBit: number;
+    trials: number;
+    /** Spread of `widthDelta` in the sample; the fit is only as good as this. */
+    sd: number;
+}
+
+/**
+ * What a bit of extra width is worth, in levels.
+ *
+ * The last number in the difficulty model with no basis. Premises, rungs and
+ * the clock all convert to levels through values that are at least written
+ * down; width has never converted at all, so an item drawn wide has been scored
+ * as though it were typical.
+ *
+ * **Not fitted the way the rung costs are**, and the difference is the point.
+ * That fit matches mean predicted accuracy to mean observed, which identifies a
+ * rung's cost because every item in its subsample carries it — raise the cost
+ * and every prediction falls. Width is a *signed* quantity averaging zero, so
+ * raising the coefficient makes the wide items harder and the narrow ones
+ * easier and the mean barely moves: the objective is flat in the parameter and
+ * the answer comes back pinned to whichever bracket bound it drifted into.
+ *
+ * Maximum likelihood instead, which uses the association between width and
+ * outcome rather than the average of either. Coarse grid then local refinement,
+ * because the likelihood is smooth and unimodal here and anything cleverer
+ * would be harder to check than to run.
+ *
+ * Reported rather than applied, like the rung costs.
+ *
+ * **Returns null when the sample has no spread to learn from**, which is the
+ * common case and the honest answer. With the dial at its default every item is
+ * drawn at the median, so `widthDelta` is ~0 throughout and any coefficient
+ * fits equally well. A number produced from that would be noise wearing a
+ * decimal point.
+ */
+export function fitWidthCoefficient(
+    trials: Trial[],
+    config = DEFAULT_ABILITY,
+    minTrials = 80,
+    minSd = 0.25,
+): WidthFit | null {
+    const usable = trials.filter(t => typeof t.widthDelta === "number");
+    if (usable.length < minTrials) return null;
+
+    const deltas = usable.map(t => t.widthDelta!);
+    const mean = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+    const sd = Math.sqrt(deltas.reduce((a, b) => a + (b - mean) ** 2, 0) / deltas.length);
+    if (sd < minSd) return null;
+
+    const base = usable.map(t => levelOf(
+        { type: t.type, premises: t.premises, rungs: t.rungs, seconds: t.seconds }, config));
+
+    const logLikelihood = (k: number) => {
+        let total = 0;
+        for (let i = 0; i < usable.length; i++) {
+            const t = usable[i];
+            const p = pCorrect(config, t.estimate, base[i] + k * t.widthDelta!, t.guess);
+            // Clamped so a confident miss costs a large number rather than
+            // negative infinity, which would make the search discontinuous.
+            const q = Math.min(1 - 1e-9, Math.max(1e-9, p));
+            total += t.correct ? Math.log(q) : Math.log(1 - q);
+        }
+        return total;
+    };
+
+    let best = -4, bestScore = -Infinity;
+    for (let k = -4; k <= 8; k += 0.05) {
+        const score = logLikelihood(k);
+        if (score > bestScore) { bestScore = score; best = k; }
+    }
+
+    // Refine inside the winning cell.
+    for (let step = 0.025; step > 0.001; step /= 2) {
+        for (const k of [best - step, best + step]) {
+            const score = logLikelihood(k);
+            if (score > bestScore) { bestScore = score; best = k; }
+        }
+    }
+
+    return { levelsPerBit: best, trials: usable.length, sd };
 }

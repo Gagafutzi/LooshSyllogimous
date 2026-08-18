@@ -580,6 +580,9 @@ export class GameService implements GeneratorContext {
                     slots: this.question.construct.reduce((n, c) => n + c.slots.length, 0),
                     options: this.question.construct?.[0]?.slots[0]?.directions.length ?? 3,
                     choices: this.question.choices?.length ?? 0,
+                    // Logged so the bits-to-levels coefficient can be fitted
+                    // rather than guessed; nothing reads it for difficulty yet.
+                    widthDelta: this.question.widthDelta,
                 },
             );
 

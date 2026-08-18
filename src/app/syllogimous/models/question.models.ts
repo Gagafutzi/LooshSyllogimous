@@ -215,6 +215,19 @@ export class Question {
      * the relation between two objects without re-deriving it from the
      * rendered premises, which negation and meta have already rewritten.
      */
+    /**
+     * How much wider or narrower this item came out than typical, in bits.
+     *
+     * Measured against the median of the batch it was drawn from, so it is a
+     * departure from *this configuration's* middle rather than an absolute
+     * figure — 8.5 bits means nothing until you know what 8.5 is wide for.
+     *
+     * Recorded rather than charged. Converting bits to levels needs a
+     * coefficient, and the honest way to get one is to fit it against answered
+     * items, which needs this to have been logged first.
+     */
+    widthDelta = 0;
+
     positions: Record<string, number> = {};
 
     coords: [string, number, number][] = [];

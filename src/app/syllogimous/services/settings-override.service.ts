@@ -93,8 +93,27 @@ export const DEFAULT_LINEAR_FEATURES: LinearFeatureFlags = {
     analogy: null,
 };
 
+/**
+ * How far apart things sit, as a percentile of what this configuration produces.
+ *
+ * Not a number of bits. "8.5 bits" is meaningless until you know what 8.5 is
+ * wide *for* — it depends on the axis stack, the object count and the tie
+ * chance — whereas "the widest tenth of what this produces" is meaningful for
+ * any of them, with no table to keep in step.
+ *
+ * `axis` narrows it to one dimension by scale id, which is what makes it a dial
+ * for *height*, or for *temporal* width, rather than only for the aggregate.
+ * Null means all of them together.
+ */
+export interface SpreadSetting {
+    percentile: number;
+    axis: string | null;
+}
+
 /** Axis composition for the composed-space modes, keyed by dimension count. */
 export interface SpaceOverrides {
+    /** Null leaves it at the median, which is the noise-reducing default. */
+    spread?: SpreadSetting | null;
     /** Scale ids per dimension count; empty or missing means use the preset. */
     axes: Record<number, string[]>;
     /** How many axes wrap into a loop; null defers to the ladder. */
@@ -172,7 +191,7 @@ const DEFAULT_STATE: OverrideState = {
     modes: {},
     flags: { meta: true, negation: true, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false, stimulusMix: {} },
     linear: { ...DEFAULT_LINEAR_FEATURES },
-    space: { axes: {}, circularAxes: null },
+    space: { axes: {}, circularAxes: null, spread: null },
     rungs: {},
     profiles: [],
     activeProfile: "",
@@ -351,6 +370,24 @@ export class SettingsOverrideService {
     }
 
     /** Full shuffle unless the user has opted in, matching prior behaviour. */
+    /**
+     * The spread dial, or null for the median.
+     *
+     * Only when overrides are active: this is a deliberate departure from the
+     * calibrated middle, so it should not apply to someone who never asked.
+     */
+    spread(): SpreadSetting | null {
+        if (!this.live) return null;
+        const s = this.state.space?.spread;
+        if (!s || typeof s.percentile !== "number") return null;
+        return { percentile: Math.min(100, Math.max(0, s.percentile)), axis: s.axis ?? null };
+    }
+
+    setSpread(next: SpreadSetting | null) {
+        this.state.space = { ...this.state.space, spread: next };
+        this.save();
+    }
+
     get scramble(): number {
         return this.live ? (this.state.scrambleFactor ?? 100) : 100;
     }

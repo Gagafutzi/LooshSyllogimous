@@ -82,6 +82,34 @@ export class ModeModifiersComponent {
 
     setScramble(raw: string) { this.overrides.setScramble(Number(raw)); }
 
+    /* ---------------- how far apart things sit ---------------- */
+
+    /**
+     * A percentile of what the current configuration produces, not a number of
+     * bits — "8.5 bits" means nothing until you know what 8.5 is wide *for*,
+     * since it depends on the axis stack, the object count and the tie chance.
+     *
+     * Scoped to one dimension when asked, because spread is not one quantity: a
+     * long time axis is a different demand from a tall vertical one, and
+     * pooling them lets a narrow axis be paid for by a wide one.
+     */
+    get spread() { return this.overrides.state.space?.spread?.percentile ?? 50; }
+    get spreadAxis() { return this.overrides.state.space?.spread?.axis ?? ""; }
+
+    setSpread(raw: string) {
+        this.overrides.setSpread({
+            percentile: Math.max(0, Math.min(100, Number(raw) || 0)),
+            axis: this.spreadAxis || null,
+        });
+    }
+
+    setSpreadAxis(id: string) {
+        this.overrides.setSpread({ percentile: this.spread, axis: id || null });
+    }
+
+    /** Every axis a composed space can be built on, for the scope picker. */
+    spreadAxes = AXIS_CHOICES.map(s => ({ id: s.id, label: s.name }));
+
     constructor(public overrides: SettingsOverrideService) { }
 
     /**

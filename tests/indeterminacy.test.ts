@@ -36,6 +36,7 @@ function context(force: Record<string, unknown> = {}): GeneratorContext {
         logger: new Logger("error", false),
         settingsOverrideService: {
             linearOverride: (k: string) => (k in force ? force[k] : null),
+            spread: () => null,
             axesFor: () => null, circularAxes: () => 0, depthFor: () => 0, scramble: 100,
         } as unknown as SettingsOverrideService,
         progressionService: {

@@ -10,7 +10,7 @@ import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
-import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, medianByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
+import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
@@ -117,18 +117,33 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
         const words = getRandomSymbols(settings, objectCount);
 
         /*
-         * Nine draws, keep the middle one by width.
+         * Nine draws, and keep one by width.
          *
          * Width — the bits needed to locate an object, summed over axes — varies
          * about twofold between items the difficulty model scores identically,
-         * which is roughly a level of noise in the posterior. Nine is enough
-         * for the median to sit reliably in the body of the distribution and
-         * cheap enough that generation cost does not move; the tails are what
-         * carry the noise.
+         * which is roughly a level of noise in the posterior. Keeping the middle
+         * of a batch removes the tails without moving the centre, and nine is
+         * enough for the median to sit reliably in the body of the distribution
+         * while costing nothing anyone would notice.
+         *
+         * A requested percentile moves that choice deliberately. Scoped to one
+         * axis when asked, because spread is not really one quantity: a wide
+         * time axis is a different demand from a tall vertical one, and pooling
+         * them lets a narrow axis be paid for by a wide one.
          */
-        const drawn = medianByWidth(
-            Array.from({ length: 9 }, () =>
-                buildNdLayout(words, axes, { branching: feat.branching })));
+        const spread = ctx.settingsOverrideService.spread();
+        const scoped = spread?.axis
+            ? axes.map((a, i) => (a.scale.id === spread.axis ? i : -1)).filter(i => i >= 0)
+            : undefined;
+
+        const batch = Array.from({ length: 9 }, () =>
+            buildNdLayout(words, axes, { branching: feat.branching }));
+        const scope = scoped?.length ? scoped : undefined;
+
+        const drawn = pickByWidth(batch, spread?.percentile ?? 50, scope);
+        // Against the batch's own middle, so it says "wider than this
+        // configuration usually is" rather than an absolute figure.
+        const widthDelta = ndWidth(drawn, scope) - ndWidth(pickByWidth(batch, 50, scope), scope);
 
         const layout = feat.indeterminate
             ? withholdClauses(drawn, 1 + Math.floor(Math.random() * 2))
@@ -207,6 +222,7 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
         }
 
         question.bucket = [...words];
+        question.widthDelta = widthDelta;
         // Post-operation, so the picture matches the question asked.
         question.wordCoordMap = { ...final.coords };
         question.axisNames = axes.map(a => a.scale.name);
