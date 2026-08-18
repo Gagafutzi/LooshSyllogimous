@@ -6,6 +6,7 @@
  * assertion rather than as a slider that does nothing.
  */
 
+import { readdirSync, readFileSync } from "fs";
 import { assert, equal, test } from "./harness";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
 import { Settings } from "../src/app/syllogimous/models/settings.models";
@@ -150,4 +151,30 @@ test("half strength lands between the palette and the text", () => {
     assert(half !== full, "the dial did nothing");
     assert(half.toLowerCase() !== String(theme.theme.text).toLowerCase(),
         "half strength washed the colour out entirely");
+});
+
+/**
+ * Every mode says what it is before you play it.
+ *
+ * The game routes to a tutorial before the first play of a mode, and the
+ * fallback component exists because a missing one used to make the mode
+ * unplayable outright. That fallback is only useful if it has something to say
+ * — otherwise a new mode ships with "not written yet" and nothing else, which
+ * is how the last four arrived. Cheaper to fail here than to notice in play.
+ */
+test("no mode ships without an explanation", () => {
+    const src = readFileSync(
+        "src/app/syllogimous/pages/tutorial/tutorial-generic/tutorial-generic.component.ts",
+        "utf8");
+    const blurbs = new Set([...src.matchAll(/^    "([^"]+)":/gm)].map(m => m[1]));
+
+    const own = readdirSync("src/app/syllogimous/pages/tutorial")
+        .filter(entry => !entry.includes("."));
+    const slug = (t: string) => t.toLowerCase().replace(/ /g, "-");
+
+    const missing = ORDERED_QUESTION_TYPES.filter(
+        t => !blurbs.has(t) && !own.includes(slug(t)));
+
+    assert(missing.length === 0,
+        `no tutorial and no blurb: ${missing.join(", ")}`);
 });
