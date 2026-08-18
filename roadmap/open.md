@@ -595,6 +595,18 @@ magnitudes exchanged between axes (weight 2), and reversal (weight 1). The
 middle one is the error a reasoner tracking two axes actually makes, and v4
 could not previously produce it at all.
 
+### Space 7D — **DONE**
+
+Seven axes: the six-dimensional stack plus **Temperature** (warmer/colder). A
+new scale rather than one of the spares on the choice list, because extending
+the preset past six picks up `vertical`, whose higher/lower is word-for-word
+what `quantity` already says — and a premise stating "higher" twice cannot be
+read at all. `axisWordConflicts` is now asserted clean for every preset stack
+from 3D to 7D, so the next one to be added cannot reintroduce it quietly.
+
+Worth knowing: the dimension palette guarantees six hues clear of the theme
+accent, so a seventh axis takes one that is nearer it than the rest.
+
 ### Cosmetic
 
 - Start screen: daily/weekly goal bars clip their labels (monospace is wider than

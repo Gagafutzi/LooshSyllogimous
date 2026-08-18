@@ -257,6 +257,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.Space4D]: () => createNdSpace(this, numOfPremises, EnumQuestionType.Space4D),
             [EnumQuestionType.Space5D]: () => createNdSpace(this, numOfPremises, EnumQuestionType.Space5D),
             [EnumQuestionType.Space6D]: () => createNdSpace(this, numOfPremises, EnumQuestionType.Space6D),
+            [EnumQuestionType.Space7D]: () => createNdSpace(this, numOfPremises, EnumQuestionType.Space7D),
             [EnumQuestionType.GraphMatching]: () => createGraphMatching(this, numOfPremises),
             [EnumQuestionType.Hierarchy]: () => createHierarchy(this, numOfPremises),
             [EnumQuestionType.Analogy]: () => createAnalogy(this, numOfPremises),

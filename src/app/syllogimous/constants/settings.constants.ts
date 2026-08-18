@@ -164,6 +164,13 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         basic: false,
         group: EnumQuestionGroup.Direction
     },
+    [EnumQuestionType.Space7D]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 6,
+        basic: false,
+        group: EnumQuestionGroup.Direction
+    },
     [EnumQuestionType.GraphMatching]: {
         enabled: true,
         minNumOfPremises: 2,

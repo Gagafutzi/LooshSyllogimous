@@ -8,6 +8,7 @@
 
 import { assert, equal, seeded, test } from "./harness";
 import { buildQuestionMap, coordMapFromPositions, coordMapFromTuples } from "../src/app/syllogimous/utils/map.utils";
+import { axesForDimensions, axisWordConflicts, buildNdLayout, renderNdPremise } from "../src/app/syllogimous/utils/ndspace.utils";
 import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
 import { createLinear } from "../src/app/syllogimous/generators/linear";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
@@ -107,4 +108,29 @@ test("a scale item plots on one axis, named after the scale", () => {
         equal(m!.dims, 1);
         equal(m!.across, "Height", "the axis was not named after its scale");
     }
+});
+
+test("every preset axis stack is readable", () => {
+    /*
+     * Two axes sharing a direction word make a premise that cannot be read at
+     * all — "higher" twice, with nothing to say which dimension either belongs
+     * to. Extending the preset past six pulls `vertical` off the choice list,
+     * whose words are `quantity`'s exactly, which is why 7D needed a new scale
+     * rather than the next spare.
+     */
+    for (const dims of [3, 4, 5, 6, 7]) {
+        const clashes = axisWordConflicts(axesForDimensions(dims));
+        equal(clashes, [], `${dims}D: ${clashes[0] ?? ""}`);
+    }
+});
+
+test("a 7D item states seven clauses, each its own colour", () => {
+    seeded(97, () => {
+        const axes = axesForDimensions(7).map(scale => ({ scale }));
+        const layout = buildNdLayout(["Ash", "Bell", "Cane", "Dune"], axes);
+        const text = renderNdPremise(layout, layout.edges[0], false);
+        const slots = [...text.matchAll(/dim-(\d)/g)].map(m => m[1]);
+        equal(slots.length, 7, "a seven-axis premise did not state seven clauses");
+        equal(new Set(slots).size, 7, "two of the seven shared a colour");
+    });
 });

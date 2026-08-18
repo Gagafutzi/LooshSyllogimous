@@ -115,6 +115,21 @@ export const LINEAR_SCALES: Record<string, LinearScale> = {
         direction: ["higher", "lower"], link: "than", unit: "step", axisName: "",
         tie: "same height",
     },
+    /*
+     * The seventh dimension.
+     *
+     * A new scale rather than one of the existing spares: extending the preset
+     * past six pulls `vertical` off the choice list, whose higher/lower is
+     * word-for-word what `quantity` already says, and a premise stating
+     * "higher" twice cannot be read at all. Temperature shares no word with any
+     * of the other six, which is the only real requirement.
+     */
+    temperature: {
+        id: "temperature", name: "Temperature",
+        above: "is warmer than", below: "is colder than", same: "is as warm as",
+        direction: ["warmer", "colder"], link: "than", unit: "step", axisName: "H",
+        tie: "same warmth",
+    },
     horizontal: {
         id: "horizontal", name: "Left-right",
         above: "is right of", below: "is left of", same: "is at the same place as",

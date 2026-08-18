@@ -83,6 +83,7 @@ const MODES: Array<[EnumQuestionType, (c: GeneratorContext, n: number) => Questi
     [EnumQuestionType.Direction3DSpatial, (c, n) => createDirection3D(c, n, EnumQuestionType.Direction3DSpatial)],
     [EnumQuestionType.Space3D, (c, n) => createNdSpace(c, n, EnumQuestionType.Space3D)],
     [EnumQuestionType.Space6D, (c, n) => createNdSpace(c, n, EnumQuestionType.Space6D)],
+    [EnumQuestionType.Space7D, (c, n) => createNdSpace(c, n, EnumQuestionType.Space7D)],
     [EnumQuestionType.GraphMatching, createGraphMatching],
     [EnumQuestionType.Hierarchy, createHierarchy],
     [EnumQuestionType.Analogy, createAnalogy],

@@ -17,6 +17,7 @@ export class TypeBasedStats {
     [EnumQuestionType.Space3D] = new TypeBasedStatsInner(EnumQuestionType.Space3D);
     [EnumQuestionType.Space5D] = new TypeBasedStatsInner(EnumQuestionType.Space5D);
     [EnumQuestionType.Space6D] = new TypeBasedStatsInner(EnumQuestionType.Space6D);
+    [EnumQuestionType.Space7D] = new TypeBasedStatsInner(EnumQuestionType.Space7D);
     [EnumQuestionType.GraphMatching] = new TypeBasedStatsInner(EnumQuestionType.GraphMatching);
     [EnumQuestionType.Hierarchy] = new TypeBasedStatsInner(EnumQuestionType.Hierarchy);
     [EnumQuestionType.Analogy] = new TypeBasedStatsInner(EnumQuestionType.Analogy);

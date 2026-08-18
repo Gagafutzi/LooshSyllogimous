@@ -35,6 +35,7 @@ const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
     EnumQuestionType.Space4D,
     EnumQuestionType.Space5D,
     EnumQuestionType.Space6D,
+    EnumQuestionType.Space7D,
     EnumQuestionType.Hierarchy,
     EnumQuestionType.InferRelation,
     EnumQuestionType.OddestRelation,
@@ -167,6 +168,7 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.Space3D);
         this.initQuestionSettings(EnumQuestionType.Space5D);
         this.initQuestionSettings(EnumQuestionType.Space6D);
+        this.initQuestionSettings(EnumQuestionType.Space7D);
         this.initQuestionSettings(EnumQuestionType.GraphMatching);
         this.initQuestionSettings(EnumQuestionType.Hierarchy);
         this.initQuestionSettings(EnumQuestionType.Analogy);

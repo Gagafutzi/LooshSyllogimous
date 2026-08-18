@@ -79,20 +79,24 @@ export const DIMENSION_AXES: Record<number, LinearScale[]> = {
         LINEAR_SCALES["temporal"], LINEAR_SCALES["contains"]],
     6: [SPATIAL_SCALES["east"], SPATIAL_SCALES["north"], SPATIAL_SCALES["up"],
         LINEAR_SCALES["temporal"], LINEAR_SCALES["contains"], LINEAR_SCALES["quantity"]],
+    7: [SPATIAL_SCALES["east"], SPATIAL_SCALES["north"], SPATIAL_SCALES["up"],
+        LINEAR_SCALES["temporal"], LINEAR_SCALES["contains"], LINEAR_SCALES["quantity"],
+        LINEAR_SCALES["temperature"]],
 };
 
 /** Every scale that can serve as an axis, for the configuration UI. */
 export const AXIS_CHOICES: LinearScale[] = [
     SPATIAL_SCALES["east"], SPATIAL_SCALES["north"], SPATIAL_SCALES["up"],
     LINEAR_SCALES["temporal"], LINEAR_SCALES["contains"],
-    LINEAR_SCALES["quantity"], LINEAR_SCALES["vertical"], LINEAR_SCALES["horizontal"],
+    LINEAR_SCALES["quantity"], LINEAR_SCALES["temperature"],
+    LINEAR_SCALES["vertical"], LINEAR_SCALES["horizontal"],
 ];
 
 export function axesForDimensions(dims: number): LinearScale[] {
     if (DIMENSION_AXES[dims]) return DIMENSION_AXES[dims];
     // Beyond the named presets, keep extending from the choice list so a
     // seven-dimensional space is a configuration rather than an error.
-    const out = [...DIMENSION_AXES[6]];
+    const out = [...DIMENSION_AXES[7]];
     for (const s of AXIS_CHOICES) {
         if (out.length >= dims) break;
         if (!out.includes(s)) out.push(s);

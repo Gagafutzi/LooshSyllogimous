@@ -24,6 +24,7 @@ export enum EnumQuestionType {
     Space3D = "Space 3D",
     Space5D = "Space 5D",
     Space6D = "Space 6D",
+    Space7D = "Space 7D",
     LinearArrangement = "Linear Arrangement",
     CircularArrangement = "Circular Arrangement",
     GraphMatching = "Graph Matching",

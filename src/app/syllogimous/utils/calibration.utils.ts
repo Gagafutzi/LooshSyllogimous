@@ -158,6 +158,8 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     [EnumQuestionType.Space4D]: { weight: 1.6, ceiling: 13 },
     [EnumQuestionType.Space5D]: { weight: 1.9, ceiling: 13 },
     [EnumQuestionType.Space6D]: { weight: 2.2, ceiling: 13 },
+    // One more independent accumulation to carry through the same chain.
+    [EnumQuestionType.Space7D]: { weight: 2.4, ceiling: 13 },
     // Composite and frame-shifting modes: these keep biting all the way up.
     // Connectivity rather than position. Keeps discriminating well past the
     // scale modes, but a very large graph becomes clerical rather than harder.

@@ -25,6 +25,7 @@ export function dimensionsOf(ctx: GeneratorContext, type: EnumQuestionType): num
         [EnumQuestionType.Space4D]: 4,
         [EnumQuestionType.Space5D]: 5,
         [EnumQuestionType.Space6D]: 6,
+        [EnumQuestionType.Space7D]: 7,
     }[type as string] ?? 4;
 }
 

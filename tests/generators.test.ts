@@ -96,6 +96,7 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.Space4D, (c, n) => createNdSpace(c, n, EnumQuestionType.Space4D)],
     [EnumQuestionType.Space5D, (c, n) => createNdSpace(c, n, EnumQuestionType.Space5D)],
     [EnumQuestionType.Space6D, (c, n) => createNdSpace(c, n, EnumQuestionType.Space6D)],
+    [EnumQuestionType.Space7D, (c, n) => createNdSpace(c, n, EnumQuestionType.Space7D)],
     [EnumQuestionType.GraphMatching, createGraphMatching],
     [EnumQuestionType.Hierarchy, createHierarchy],
     [EnumQuestionType.Analogy, createAnalogy],
