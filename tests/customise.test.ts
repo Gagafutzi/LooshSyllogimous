@@ -12,6 +12,7 @@ import { SettingsOverrideService } from "../src/app/syllogimous/services/setting
 import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { getSymbols } from "../src/app/syllogimous/utils/question.utils";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
+import { allStorageKeys } from "../src/app/syllogimous/constants/local-storage.constants";
 import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.constants";
 import { ThemeService } from "../src/app/syllogimous/services/theme.service";
 
@@ -187,4 +188,65 @@ test("no mode ships without an explanation", () => {
 
     assert(missing.length === 0,
         `no tutorial and no blurb: ${missing.join(", ")}`);
+});
+
+/**
+ * A backup that contains the account, and a reset that clears it.
+ *
+ * `export` and `clearAllData` both walked a hand-written list of keys, and it
+ * had drifted badly: the ability model, the Customise overrides and their
+ * profiles, the residual window, the trial log and the theme were all being
+ * written and none of them were on it.
+ *
+ * Two consequences, and the second is worse. A backup silently omitted
+ * everything the current progression system knows. And "wipe all save data"
+ * left exactly that state behind — so a player resetting to escape a problem
+ * kept the part causing it, and could not tell.
+ *
+ * It also cost a diagnosis: an exported account looked as though progression
+ * had never run, because none of its keys were in the file.
+ */
+test("export and reset cover every key the app writes", () => {
+    localStorage.clear();
+
+    // One key from each family the code writes under.
+    const written = [
+        "SYL_SCORE",
+        "SYL_TRAINING_UNIT:Distinction",
+        "syllogimous-ability:Distinction",
+        "syllogimous-advanced-options",
+        "syllogimous-progression-config",
+        "syllogimous-residuals",
+        "syllogimous-trials",
+        "syllogimous-theme",
+        "syllogimous-theme-vars",
+        "darkmode",
+    ];
+    for (const k of written) localStorage.setItem(k, "x");
+
+    const seen = allStorageKeys();
+    for (const k of written) {
+        assert(seen.includes(k), `${k} would be left out of a backup and survive a reset`);
+    }
+
+    localStorage.clear();
+});
+
+test("the key list is read from storage, not maintained by hand", () => {
+    /*
+     * The property that stops it drifting again. A key nobody predicted still
+     * gets exported and cleared, so adding one to the app cannot silently
+     * create a gap — which is how this list came to be missing nine families.
+     */
+    localStorage.clear();
+    localStorage.setItem("syllogimous-something-invented-later", "x");
+    assert(allStorageKeys().includes("syllogimous-something-invented-later"),
+        "an unforeseen key is missed, so the list is still effectively hand-written");
+
+    // And nothing that is not ours.
+    localStorage.setItem("unrelated-app-key", "x");
+    assert(!allStorageKeys().includes("unrelated-app-key"),
+        "a reset would delete another app's data");
+
+    localStorage.clear();
 });

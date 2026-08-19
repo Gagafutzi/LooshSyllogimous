@@ -33,6 +33,34 @@ export const LS_SCORE = "SYL_SCORE";
 export const LS_COLOR_BLINDNESS_MODE = "SYL_COLOR_BLINDNESS_MODE";
 export const LS_SYLLOGISM_GENERATOR = "SYL_SYLLOGISM_GENERATOR";
 
+/**
+ * Every prefix this app writes under.
+ *
+ * `LS_PROPS` below is a hand-written list, and it had drifted badly: nine key
+ * families were being written and none of them were in it — the whole ability
+ * model, the Customise overrides and their profiles, the residual window, the
+ * trial log, the theme. Export produced a backup missing all of it, import
+ * restored a partial account, and `clearAllData` left the very state a player
+ * would be resetting to escape.
+ *
+ * Enumerating what is actually there cannot drift. The list survives because
+ * some callers still want a *named* set, but nothing that means "everything"
+ * may be built from it.
+ */
+export const LS_PREFIXES = ["SYL_", "syllogimous-", "darkmode"];
+
+/** Every key this app owns, read from storage rather than assumed. */
+export function allStorageKeys(): string[] {
+    const out: string[] = [];
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && LS_PREFIXES.some(p => key.startsWith(p))) out.push(key);
+        }
+    } catch { /* private mode */ }
+    return out;
+}
+
 export const LS_PROPS = [
     LS_SKIP_TUTORIALS,
     LS_HISTORY,

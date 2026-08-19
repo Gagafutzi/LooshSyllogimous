@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { LS_HISTORY, LS_PROPS } from "../constants/local-storage.constants";
+import { LS_HISTORY, LS_PROPS, allStorageKeys } from "../constants/local-storage.constants";
 import { downloadFile } from "src/app/utils/file";
 
 /**
@@ -96,7 +96,9 @@ export class SystemActionsService {
 
     export() {
         const exportJson: Record<string, string> = {};
-        for (const lsProp of LS_PROPS) {
+        // Everything the app owns, read from storage. The named list left the
+        // ability model, the profiles and the theme out of every backup.
+        for (const lsProp of allStorageKeys()) {
             const propVal = localStorage.getItem(lsProp);
             if (propVal) {
                 exportJson[lsProp] = propVal;
@@ -116,7 +118,10 @@ export class SystemActionsService {
      * first — the dropdown uses a styled modal, the side nav a native confirm.
      */
     clearAllData() {
-        for (const lsProp of LS_PROPS) {
+        // Likewise: a reset that leaves the ability estimates and the saved
+        // profiles behind is not a reset, and it is the state a player is most
+        // likely to be trying to escape.
+        for (const lsProp of allStorageKeys()) {
             localStorage.removeItem(lsProp);
         }
         location.reload();
