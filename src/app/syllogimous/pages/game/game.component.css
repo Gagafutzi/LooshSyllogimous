@@ -366,3 +366,39 @@
  * stacking them on a wide screen would make it a memory task instead. */
 .webs { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
 .webs__one { display: grid; justify-items: center; gap: 0.15rem; }
+
+/*
+ * Arrangements shown together.
+ *
+ * Wraps rather than scrolls: the whole value of drawing these is that they can
+ * be compared, and a comparison that needs scrolling between the two halves is
+ * a memory test again.
+ */
+.grids {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: clamp(0.75rem, 3vw, 2rem);
+}
+
+.grids__one {
+    display: grid;
+    justify-items: center;
+    gap: 0.25rem;
+}
+
+/* Options that are pictures need room the text ones do not. */
+.choices--grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+    gap: 0.75rem;
+}
+
+.choice--grid {
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+    padding: 0.6rem;
+    height: auto;
+}

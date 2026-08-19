@@ -46,6 +46,21 @@ export type CoordMap = Record<string, number[]>;
 
 const range = (lo: number, hi: number) => Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
 
+const entries = (map: CoordMap) =>
+    Object.entries(map).filter(([, c]) => Array.isArray(c) && c.length);
+
+/**
+ * One frame wide enough for all of them.
+ *
+ * The whole point of drawing several structures together is that they can be
+ * read against each other, and that only works if the grid means the same thing
+ * in every picture.
+ */
+export function sharedExtent(maps: CoordMap[]): Array<[number, number]> {
+    const all = maps.flatMap(m => entries(m).map(([, c]) => c));
+    return all.length ? extent(all) : [];
+}
+
 /**
  * Bounds per axis.
  *
@@ -68,11 +83,21 @@ function extent(coords: number[][]): Array<[number, number]> {
  * anything further becomes slices labelled with the axis name and value —
  * "later 2", "wider 1" — since there is no fourth spatial direction to borrow.
  */
-export function buildQuestionMap(map: CoordMap, axisNames: string[] = []): QuestionMap | null {
-    const entries = Object.entries(map).filter(([, c]) => Array.isArray(c) && c.length);
-    if (!entries.length) return null;
-
-    const bounds = extent(entries.map(([, c]) => c));
+export function buildQuestionMap(
+    map: CoordMap,
+    axisNames: string[] = [],
+    /**
+     * A frame to draw inside, instead of one fitted to this map alone.
+     *
+     * Needed whenever two maps are to be *compared*. Fitted separately, a
+     * structure and the same structure shifted two east both fill their own
+     * grid corner to corner and look identical — the change is in where they
+     * sit, and a grid that moves with them cannot show it.
+     */
+    bounds = extent(entries(map).map(([, c]) => c)),
+): QuestionMap | null {
+    const list = entries(map);
+    if (!list.length) return null;
     const dims = bounds.length;
     const name = (i: number) => axisNames[i] ?? `axis ${i + 1}`;
 
@@ -88,7 +113,7 @@ export function buildQuestionMap(map: CoordMap, axisNames: string[] = []): Quest
         (acc, [lo, hi]) => acc.flatMap(prefix => range(lo, hi).map(v => [...prefix, v])),
         [[]]);
 
-    const at = (want: number[]) => entries
+    const at = (want: number[]) => list
         .filter(([, c]) => want.every((v, i) => (c[i] ?? 0) === v))
         .map(([word]) => word);
 

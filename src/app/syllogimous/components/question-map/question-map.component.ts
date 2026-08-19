@@ -1,7 +1,7 @@
 import { Component, Input } from "@angular/core";
 import { Question } from "../../models/question.models";
 import {
-    QuestionMap, buildQuestionMap, coordMapFromTuples,
+    CoordMap, QuestionMap, buildQuestionMap, coordMapFromTuples,
 } from "../../utils/map.utils";
 
 /**
@@ -29,6 +29,23 @@ export class QuestionMapComponent {
     chain: string[] = [];
     /** Distinction: the two groups, side by side. */
     groups: string[][] = [];
+
+    /**
+     * A structure to draw directly, rather than one read off a question.
+     *
+     * `bounds` is what makes several of these comparable: fitted separately, a
+     * shape and the same shape shifted two east each fill their own grid and
+     * look identical.
+     */
+    @Input() set plot(p: {
+        map: CoordMap;
+        axes?: string[];
+        bounds?: Array<[number, number]>;
+    } | undefined) {
+        this.chain = [];
+        this.groups = [];
+        this.map = p ? buildQuestionMap(p.map, p.axes ?? [], p.bounds) : null;
+    }
 
     @Input() set question(q: Question | undefined) {
         this.map = null;

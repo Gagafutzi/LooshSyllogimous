@@ -224,6 +224,22 @@ export class Question {
         /** Filled in as the player answers, never by the generator. */
         picked?: number[];
     }>;
+    /**
+     * Labelled point sets to draw, for the modes whose subject is a shape.
+     *
+     * Transformation Matching states two arrangements and asks what changed
+     * between them. As coordinate lists that is arithmetic — you cannot *see* a
+     * rotation in a column of numbers, which is precisely the thing the mode
+     * asks you to spot. Drawn on a shared frame, you can.
+     */
+    grids?: Array<{ label: string; map: Record<string, number[]> }>;
+    /** Options that are themselves arrangements, drawn on the same frame. */
+    choiceGrids?: Array<Record<string, number[]>>;
+    /** The frame every grid of this item is drawn in. */
+    gridBounds?: Array<[number, number]>;
+    /** Axis names for those grids. */
+    gridAxes?: string[];
+
     wordCoordMap?: Record<string, number[]>;
     /** Axis names for the map, in the same order as the coordinates. */
     axisNames?: string[];

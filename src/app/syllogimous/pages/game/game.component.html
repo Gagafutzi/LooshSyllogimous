@@ -73,7 +73,27 @@
                   without this slide a carousel showed the setup and the
                   conclusion and nothing in between.
                 -->
-                <ng-container *ngIf="game.question.webs?.length">
+<!--
+                  Every arrangement on one slide, like the webs.
+
+                  Comparing them *is* the task — the question is what changed
+                  between them — so showing one at a time would make it a memory
+                  test with a comparison bolted on.
+                -->
+                <ng-container *ngIf="game.question.grids?.length">
+                    <ng-template ngbSlide [id]="slideId('grids')">
+                        <div style="display: grid; place-items: center;">
+                            <div class="grids">
+                                <div class="grids__one" *ngFor="let g of game.question.grids">
+                                    <small class="text-muted">{{ g.label }}</small>
+                                    <app-question-map [plot]="{ map: g.map, axes: game.question.gridAxes, bounds: game.question.gridBounds }"></app-question-map>
+                                </div>
+                            </div>
+                        </div>
+                    </ng-template>
+                </ng-container>
+
+                                <ng-container *ngIf="game.question.webs?.length">
                     <ng-template ngbSlide [id]="slideId('webs')">
                         <div style="display: grid; place-items: center;">
                             <div class="webs">
@@ -166,12 +186,27 @@
 
             <!-- Relational Web states itself in pictures; there are no
                  premises to list. -->
-            <div class="webs" *ngIf="game.question.webs?.length; else premiseList">
+            <div class="webs" *ngIf="game.question.webs?.length; else gridsOrPremises">
                 <div class="webs__one" *ngFor="let w of game.question.webs; let i = index">
                     <small class="text-muted">{{ i === 0 ? "First web" : "Second web" }}</small>
-                    <app-relational-web [web]="w"></app-relational-web>
+                    <app-relational-web [web]="w" (pick)="onWebPick($event)"></app-relational-web>
                 </div>
             </div>
+
+            <!--
+              And so does Transformation Matching. Listing the coordinates
+              underneath would put the arithmetic form back beside the picture
+              that replaced it, which is the reading habit the drawing exists to
+              break.
+            -->
+            <ng-template #gridsOrPremises>
+                <div class="grids" *ngIf="game.question.grids?.length; else premiseList">
+                    <div class="grids__one" *ngFor="let g of game.question.grids">
+                        <small class="text-muted">{{ g.label }}</small>
+                        <app-question-map [plot]="{ map: g.map, axes: game.question.gridAxes, bounds: game.question.gridBounds }"></app-question-map>
+                    </div>
+                </div>
+            </ng-template>
 
             <ng-template #premiseList>
                 <div>
@@ -321,12 +356,26 @@
 
         <!-- Choice: the question is which statement follows, so a True button
              would have nothing to refer to. -->
-        <div class="choices" *ngIf="game.question.answerMode === 'choice'">
+        <div class="choices" *ngIf="game.question.answerMode === 'choice' && !game.question.choiceGrids?.length">
             <button *ngFor="let c of game.question.choices; let i = index"
                     class="btn choice"
                     (click)="game.checkChoice(i)">
                 <span class="choice__key">{{ i + 1 }}</span>
                 <span [innerHTML]="c"></span>
+            </button>
+        </div>
+
+        <!--
+          Options that are themselves arrangements. Drawn on the item's own
+          frame, so an option can be compared against the premises rather than
+          only against the other options.
+        -->
+        <div class="choices choices--grid" *ngIf="game.question.answerMode === 'choice' && game.question.choiceGrids?.length">
+            <button *ngFor="let g of game.question.choiceGrids; let i = index"
+                    class="btn choice choice--grid"
+                    (click)="game.checkChoice(i)">
+                <span class="choice__key">{{ i + 1 }}</span>
+                <app-question-map [plot]="{ map: g, axes: game.question.gridAxes, bounds: game.question.gridBounds }"></app-question-map>
             </button>
         </div>
 

@@ -26,10 +26,40 @@ import {
     GridMap, Structure, applyMap, composeMaps, describeMap, describeStructure,
     distinguishing, mapPool, randomMap, sameStructure, signature,
 } from "../utils/gridmap.utils";
+import { sharedExtent } from "../utils/map.utils";
 
 const FRAME_NOTE =
-    "Positions are <b>(east, north)</b> from a fixed centre. The same change is"
-    + " applied to every point at once.";
+    "Each grid shows where the labelled points sit. Every grid of an item is"
+    + " drawn on the <b>same frame</b>, so a point that has moved is in a"
+    + " different square. The same change is applied to every point at once.";
+
+/**
+ * Hand the structures over to be drawn rather than listed.
+ *
+ * Coordinate lists made this mode arithmetic. A rotation, a reflection and a
+ * shift are all the same kind of thing to a column of numbers — you work out
+ * which by subtracting, which is the operation the mode is supposed to be
+ * asking you to *see*. Drawn on one shared frame they are three obviously
+ * different pictures.
+ *
+ * The frame is shared across every grid the item shows, options included: fitted
+ * separately, a shape and the same shape shifted two east both fill their own
+ * grid corner to corner and look identical.
+ */
+function draw(
+    question: Question,
+    labelled: Array<{ label: string; structure: Structure }>,
+    options: Structure[] = [],
+) {
+    const all = [...labelled.map(l => l.structure), ...options];
+    question.gridAxes = ["East-west", "North-south"];
+    question.gridBounds = sharedExtent(all.map(asCoordMap));
+    question.grids = labelled.map(l => ({ label: l.label, map: asCoordMap(l.structure) }));
+    if (options.length) question.choiceGrids = options.map(asCoordMap);
+}
+
+const asCoordMap = (s: Structure): Record<string, number[]> =>
+    Object.fromEntries(Object.keys(s).map(k => [k, [s[k][0], s[k][1]]]));
 
 /** Which forms are live. Verify is always available; the rest are earned. */
 function forms(ctx: GeneratorContext, type: EnumQuestionType) {
@@ -123,10 +153,13 @@ function drawStructure(order: string[]): Structure | null {
 const rnd = () => Math.floor(Math.random() * 7) - 3;
 
 function stateBoth(question: Question, order: string[], a: Structure, b: Structure) {
+    // Kept as text too: the history list and the stats screens have no room
+    // for a picture, and a recorded item still has to say what it was.
     question.premises = [
         `Before: ${describeStructure(a, order)}`,
         `After: ${describeStructure(b, order)}`,
     ];
+    draw(question, [{ label: "Before", structure: a }, { label: "After", structure: b }]);
 }
 
 /* ---------------- verify ---------------- */
@@ -223,6 +256,11 @@ function buildApply(
         `After: ${describeStructure(image, order)}`,
         `Now the same change is applied to: ${describeStructure(second, otherNames)}`,
     ];
+    draw(question, [
+        { label: "Before", structure: source },
+        { label: "After", structure: image },
+        { label: "Now this set", structure: second },
+    ], options);
     question.answerMode = "choice";
     question.choicePrompt = "Where does the second set end up?";
     question.choices = options.map(s => describeStructure(s, otherNames));
@@ -306,6 +344,12 @@ function buildCompose(
         `After the second change: ${describeStructure(end, order)}`,
         `Both changes, in the same order, are applied to: ${describeStructure(other, otherNames)}`,
     ];
+    draw(question, [
+        { label: "Start", structure: source },
+        { label: "After the first change", structure: middle },
+        { label: "After the second change", structure: end },
+        { label: "Both applied to this set", structure: other },
+    ]);
     question.conclusion = `It ends at ${describeStructure(shown, otherNames)}`;
     question.isValid = claimTrue;
     question.explanation = [
@@ -386,6 +430,11 @@ function buildSequence(question: Question, order: string[], source: Structure): 
         `Second: ${describeStructure(terms[1], order)}`,
         `Third: ${describeStructure(terms[2], order)}`,
     ];
+    draw(question, [
+        { label: "First", structure: terms[0] },
+        { label: "Second", structure: terms[1] },
+        { label: "Third", structure: terms[2] },
+    ], options);
     question.answerMode = "choice";
     question.choicePrompt = "What comes fourth?";
     question.choices = options.map(s => describeStructure(s, order));

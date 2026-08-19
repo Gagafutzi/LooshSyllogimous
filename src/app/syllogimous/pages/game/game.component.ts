@@ -270,8 +270,17 @@ export class GameComponent {
         const q = this.game.question;
         const ids: string[] = [];
         if (q.setup?.length) ids.push(this.slideId("setup"));
+        if (q.grids?.length) ids.push(this.slideId("grids"));
         if (q.webs?.length) ids.push(this.slideId("webs"));
-        q.premises.forEach((_, i) => ids.push(this.slideId("premise-" + i)));
+        /*
+         * Not when the item draws itself. The grids carry the same content as
+         * the text premises, so listing both is the picture and the column of
+         * numbers side by side — and the numbers are what the drawing was
+         * introduced to stop people reading.
+         */
+        if (!q.grids?.length) {
+            q.premises.forEach((_, i) => ids.push(this.slideId("premise-" + i)));
+        }
         if (q.answerMode === "choice") {
             ids.push(this.slideId("choices"));
         } else if (q.answerMode !== "construct" && q.answerMode !== "map") {

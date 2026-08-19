@@ -16,7 +16,7 @@
  * the rendered text.
  */
 
-import { assert, seeded, test } from "./harness";
+import { assert, equal, seeded, test } from "./harness";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -249,4 +249,104 @@ test("a sequence extends by the step it actually shows", () => {
     }
 
     assert(checked >= 20, `only ${checked} sequence items were checkable`);
+});
+
+/**
+ * The item as a picture rather than a column of numbers.
+ *
+ * Coordinate lists made this mode arithmetic. A rotation, a reflection and a
+ * shift are all the same kind of thing to a list — you work out which by
+ * subtracting, which is the operation the mode is meant to be asking you to
+ * *see*.
+ *
+ * The property that makes the drawing work is a **shared frame**. Fitted
+ * separately, a shape and the same shape shifted two east each fill their own
+ * grid corner to corner and look identical, so the change disappears exactly
+ * when it is a translation — the commonest map in the pool.
+ */
+test("every structure is drawn, on one frame, with nothing lost", () => {
+    for (const rung of ["", "apply", "compose", "sequence"]) {
+        const ctx = context(rung ? [rung] : []);
+        let checked = 0;
+
+        for (let run = 0; run < 40 && checked < 8; run++) {
+            const q = seeded(run * 5843 + 19, () => createTransformMatch(ctx, 4));
+            assert(!!q.grids?.length, `${rung || "verify"}: the item was not drawn at all`);
+            assert(!!q.gridBounds?.length, `${rung || "verify"}: no frame was recorded`);
+
+            // Every grid, options included, sits inside the one frame — and the
+            // frame is no larger than it needs to be.
+            const all = [...q.grids!.map(g => g.map), ...(q.choiceGrids ?? [])];
+            const bounds = q.gridBounds!;
+
+            let touchesLow = bounds.map(() => false);
+            let touchesHigh = bounds.map(() => false);
+
+            for (const map of all) {
+                for (const point of Object.values(map)) {
+                    point.forEach((v, axis) => {
+                        assert(v >= bounds[axis][0] && v <= bounds[axis][1],
+                            `a point at ${v} falls outside the frame `
+                            + `${bounds[axis][0]}..${bounds[axis][1]}`);
+                        if (v === bounds[axis][0]) touchesLow[axis] = true;
+                        if (v === bounds[axis][1]) touchesHigh[axis] = true;
+                    });
+                }
+            }
+
+            bounds.forEach((_, axis) => {
+                assert(touchesLow[axis] && touchesHigh[axis],
+                    `the frame is padded on axis ${axis}, so the grids are bigger than the content`);
+            });
+
+            // Nothing dropped in translation: every named point is plotted.
+            for (const g of q.grids!) {
+                const named = Object.keys(g.map);
+                assert(named.length >= 2, `${g.label} was drawn with ${named.length} points`);
+            }
+
+            checked++;
+        }
+
+        assert(checked >= 8, `${rung || "verify"}: only ${checked} items were drawn`);
+    }
+});
+
+test("what is drawn is what the text says", () => {
+    /*
+     * The pictures and the recorded text are two renderings of one structure,
+     * and the text is what the history keeps. If they ever disagreed, an item
+     * would be reviewed later as a different item from the one that was played.
+     */
+    const ctx = context(["apply"]);
+    let checked = 0;
+
+    for (let run = 0; run < 40 && checked < 10; run++) {
+        const q = seeded(run * 977 + 3, () => createTransformMatch(ctx, 4));
+        if (!q.grids?.length) continue;
+
+        q.premises.forEach((line, i) => {
+            const fromText = parse(line);
+            const drawn = q.grids![i]?.map;
+            assert(!!drawn, `premise ${i} has no matching grid`);
+
+            for (const [name, point] of Object.entries(fromText)) {
+                equal(drawn[name], [point[0], point[1]],
+                    `${name} is drawn somewhere other than where the text puts it`);
+            }
+        });
+
+        // And the options likewise, for the forms that have picture options.
+        (q.choiceGrids ?? []).forEach((grid, i) => {
+            const fromText = parse(q.choices[i]);
+            for (const [name, point] of Object.entries(fromText)) {
+                equal(grid[name], [point[0], point[1]],
+                    `option ${i + 1} draws ${name} somewhere other than it says`);
+            }
+        });
+
+        checked++;
+    }
+
+    assert(checked >= 10, `only ${checked} drawn items appeared`);
 });
