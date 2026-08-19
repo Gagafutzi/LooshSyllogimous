@@ -305,12 +305,39 @@ export class SettingsOverrideService {
         };
     }
 
+    /** Stimulus choices, which apply whether or not the override layer is on. */
+    private applyPresentation(settings: Settings) {
+        try {
+            const f = this.state.flags;
+            settings.setEnable("useText", f.useText);
+            settings.setEnable("useEmojis", f.useEmojis);
+            settings.setEnable("meaningfulWords", f.meaningfulWords);
+            settings.setEnable("visualNoise", f.visualNoise);
+            settings.setEnable("junkEmojis", f.junkEmojis);
+            for (const [kind, weight] of Object.entries(f.stimulusMix ?? {})) {
+                settings.setMix(kind, weight);
+            }
+        } catch { /* leave the incoming settings untouched */ }
+    }
+
     /**
      * Mutates a tier-built Settings in place. Called from the settings getter,
      * so it must stay cheap and must never throw — a bad saved override should
      * degrade to stock behaviour, not break question generation.
      */
     applyTo(settings: Settings): Settings {
+        /*
+         * How a question is *shown* is not a difficulty override, so it does not
+         * wait for the override layer to be switched on. Whether the stimuli are
+         * words, emoji or shapes changes what you are looking at, not how hard
+         * the reasoning is, and these controls now live on Display & timer where
+         * nobody has to turn Customise on to reach them.
+         *
+         * Their defaults match the stock ones exactly, so applying them always
+         * changes nothing for anyone who has not touched them.
+         */
+        this.applyPresentation(settings);
+
         if (!this.live) return settings;
 
         try {
@@ -332,14 +359,7 @@ export class SettingsOverrideService {
             // deciding, which is what an untouched profile should change least.
             if (this.state.flags.meta !== null) settings.setEnable("meta", this.state.flags.meta);
             if (this.state.flags.negation !== null) settings.setEnable("negation", this.state.flags.negation);
-            settings.setEnable("useText", this.state.flags.useText);
-            settings.setEnable("useEmojis", this.state.flags.useEmojis);
-            settings.setEnable("meaningfulWords", this.state.flags.meaningfulWords);
-            settings.setEnable("visualNoise", this.state.flags.visualNoise);
-            settings.setEnable("junkEmojis", this.state.flags.junkEmojis);
-            for (const [kind, weight] of Object.entries(this.state.flags.stimulusMix ?? {})) {
-                settings.setMix(kind, weight);
-            }
+
         } catch {
             /* fall through to whatever the tier produced */
         }

@@ -32,6 +32,56 @@
           modifiers that change what has to be worked out; they only change how
           the same facts are phrased, so they belong here.
         -->
+        <!--
+          What the things in a question are made of. Moved here from Customise:
+          it changes what you are looking at rather than how hard the reasoning
+          is, and it should not have needed an override layer switched on.
+        -->
+        <div class="card shadow-sm">
+            <div class="card-header py-2 small">What the stimuli are</div>
+            <div class="card-body d-grid" style="gap: 0.5rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="stimulusFlags.meaningfulWords" (change)="setStimulus('meaningfulWords', $any($event.target).checked)">
+                    <span>Meaningful words
+                        <small class="d-block text-muted">Real nouns instead of nonsense tokens</small>
+                    </span>
+                </label>
+
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="stimulusFlags.useText" (change)="setStimulus('useText', $any($event.target).checked)">
+                    <span>Text stimuli
+                        <small class="d-block text-muted">Words or letter triples, per the setting above</small>
+                    </span>
+                </label>
+
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="stimulusFlags.useEmojis" (change)="setStimulus('useEmojis', $any($event.target).checked)">
+                    <span>Emoji stimuli
+                        <small class="d-block text-muted">Harder to subvocalise than letters</small>
+                    </span>
+                </label>
+
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="stimulusFlags.junkEmojis" (change)="setStimulus('junkEmojis', $any($event.target).checked)">
+                    <span>Junk shapes
+                        <small class="d-block text-muted">Flat coloured shapes with no names — "the orange pentagon" is all there is to hold</small>
+                    </span>
+                </label>
+
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="stimulusFlags.visualNoise" (change)="setStimulus('visualNoise', $any($event.target).checked)">
+                    <span>Visual noise stimuli
+                        <small class="d-block text-muted">Abstract patterns that resist naming. Selected kinds are mixed within a question.</small>
+                    </span>
+                </label>
+            </div>
+        </div>
+
         <div class="card shadow-sm">
             <div class="card-header py-2 small">How premises are worded</div>
             <div class="card-body d-grid" style="gap: 0.75rem;">

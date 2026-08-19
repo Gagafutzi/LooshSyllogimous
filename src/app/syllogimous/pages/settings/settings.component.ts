@@ -50,6 +50,21 @@ export class SettingsComponent {
         },
     ];
 
+    /* ---- what the stimuli are made of ---- */
+
+    /**
+     * Presentation, not difficulty — which is why these moved off Customise.
+     * They apply whether or not the override layer is switched on.
+     */
+    get stimulusFlags() { return this.overrides.state.flags; }
+
+    setStimulus(
+        key: "useText" | "useEmojis" | "meaningfulWords" | "visualNoise" | "junkEmojis",
+        value: boolean,
+    ) {
+        this.overrides.setFlag(key, value);
+    }
+
     phrasingOf(key: LinearToggle): boolean | null {
         return this.overrides.state.linear?.[key] ?? null;
     }

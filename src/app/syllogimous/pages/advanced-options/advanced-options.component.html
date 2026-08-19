@@ -152,45 +152,12 @@
             </span>
         </label>
 
-        <label class="flag">
-            <input type="checkbox" class="form-check-input" [disabled]="!active"
-                   [checked]="flags.meaningfulWords" (change)="setFlag('meaningfulWords', $any($event.target).checked)">
-            <span>Meaningful words
-                <small class="d-block text-muted">Real nouns instead of nonsense tokens</small>
-            </span>
-        </label>
-
-        <label class="flag">
-            <input type="checkbox" class="form-check-input" [disabled]="!active"
-                   [checked]="flags.useText" (change)="setFlag('useText', $any($event.target).checked)">
-            <span>Text stimuli
-                <small class="d-block text-muted">Words or letter triples, per the setting above</small>
-            </span>
-        </label>
-
-        <label class="flag">
-            <input type="checkbox" class="form-check-input" [disabled]="!active"
-                   [checked]="flags.useEmojis" (change)="setFlag('useEmojis', $any($event.target).checked)">
-            <span>Emoji stimuli
-                <small class="d-block text-muted">Harder to subvocalise than letters</small>
-            </span>
-        </label>
-
-        <label class="flag">
-            <input type="checkbox" class="form-check-input" [disabled]="!active"
-                   [checked]="flags.junkEmojis" (change)="setFlag('junkEmojis', $any($event.target).checked)">
-            <span>Junk shapes
-                <small class="d-block text-muted">Flat coloured shapes with no names — "the orange pentagon" is all there is to hold</small>
-            </span>
-        </label>
-
-        <label class="flag">
-            <input type="checkbox" class="form-check-input" [disabled]="!active"
-                   [checked]="flags.visualNoise" (change)="setFlag('visualNoise', $any($event.target).checked)">
-            <span>Visual noise stimuli
-                <small class="d-block text-muted">Abstract patterns that resist naming. Selected kinds are mixed within a question.</small>
-            </span>
-        </label>
+        <p class="text-muted small mb-0">
+            How the stimuli look — words, emoji or shapes — is on
+            <strong>Display &amp; timer</strong>. It changes what you are looking
+            at rather than how hard the reasoning is, so it does not wait for
+            this switch.
+        </p>
     </div>
 
     <app-mode-modifiers [enabled]="active"></app-mode-modifiers>

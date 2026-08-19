@@ -250,3 +250,67 @@ test("the key list is read from storage, not maintained by hand", () => {
 
     localStorage.clear();
 });
+
+/**
+ * What the stimuli are made of is presentation, not difficulty.
+ *
+ * Words, emoji or shapes changes what you are looking at; it does not change
+ * how hard the reasoning is. These lived on Customise, so reaching them meant
+ * switching on an override layer that also seizes the premise counts, the
+ * modifiers and which modes appear — a large price for choosing emoji.
+ *
+ * They are on Display & timer now, and they apply whether or not the override
+ * layer is on.
+ */
+test("stimulus choices apply without the override layer", () => {
+    localStorage.clear();
+    const o = new SettingsOverrideService();
+    assert(!o.state.active, "the override layer should start off");
+
+    o.setFlag("useEmojis", true);
+    o.setFlag("meaningfulWords", false);
+
+    const settings = new Settings();
+    o.applyTo(settings);
+
+    assert(settings.enabled.useEmojis, "emoji stimuli were ignored with Customise off");
+    assert(!settings.enabled.meaningfulWords, "the word choice was ignored with Customise off");
+
+    localStorage.clear();
+});
+
+test("choosing a stimulus does not drag the rest of Customise in with it", () => {
+    /*
+     * The reason they moved. Presentation must not switch on the layer that
+     * pins premise counts and dictates modifiers — otherwise picking emoji
+     * quietly takes the ladder away.
+     */
+    localStorage.clear();
+    const o = new SettingsOverrideService();
+    o.setFlag("junkEmojis", true);
+
+    assert(!o.state.active, "picking a stimulus switched the override layer on");
+    const pins = o.pinned();
+    equal(pins.premises.size, 0, "picking a stimulus pinned premise counts");
+    assert(!pins.negation && !pins.meta, "picking a stimulus took over the modifiers");
+
+    localStorage.clear();
+});
+
+test("untouched stimulus settings match the stock ones exactly", () => {
+    // Applying them unconditionally is only safe because the defaults agree; if
+    // they drifted apart, every player would silently get the override's idea.
+    localStorage.clear();
+    const o = new SettingsOverrideService();
+
+    const stock = new Settings();
+    const applied = new Settings();
+    o.applyTo(applied);
+
+    for (const key of ["useText", "useEmojis", "meaningfulWords", "visualNoise", "junkEmojis"] as const) {
+        equal(applied.enabled[key], stock.enabled[key],
+            `${key} differs from stock before anybody has chosen anything`);
+    }
+
+    localStorage.clear();
+});
