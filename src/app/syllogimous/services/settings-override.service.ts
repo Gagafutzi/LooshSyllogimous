@@ -343,15 +343,33 @@ export class SettingsOverrideService {
     }
 
     /** The part of the state a profile carries. */
+    /**
+     * What a profile stores: the settings, not whether they are switched on.
+     *
+     * `active` used to be captured too, which made a profile record the state of
+     * the master switch at the moment it was saved — so a profile saved while
+     * Customise was off carried "off" around with it forever.
+     */
     private snapshot(): ProfileConfig {
-        const { profiles, activeProfile, ...config } = this.state;
-        return JSON.parse(JSON.stringify(config));
+        const { profiles, activeProfile, active, ...rest } = this.state;
+        return JSON.parse(JSON.stringify({ ...rest, active: true }));
     }
 
     saveProfile(name: string, practice = false): string {
         const id = `p${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
         this.state.profiles = [...this.profiles, { id, name, practice, config: this.snapshot() }];
         this.state.activeProfile = id;
+        /*
+         * Saving a profile and marking it the current one is asking to use it.
+         *
+         * This used to set `activeProfile` and stop there, leaving the master
+         * switch off. The panel reads "In use" off `activeProfile` alone, so a
+         * profile saved from a fresh install announced itself as in use while
+         * none of its settings were applied to anything — and there was no
+         * reason for anyone to press "Use" on a profile already claiming to be
+         * in use.
+         */
+        this.state.active = true;
         this.save();
         return id;
     }
@@ -374,6 +392,18 @@ export class SettingsOverrideService {
             active: true,
         };
         this.save();
+    }
+
+    /**
+     * Whether a profile is not merely loaded but actually in force.
+     *
+     * Two flags decide it — which profile is loaded, and whether the overrides
+     * are switched on at all — and the panel showed only the first. A loaded
+     * profile with the switch off changes nothing, which is the one state the
+     * label must not describe as "in use".
+     */
+    profileApplied(id: string): boolean {
+        return this.state.activeProfile === id && this.state.active;
     }
 
     /** Stop using any profile, leaving its settings in place to edit freely. */

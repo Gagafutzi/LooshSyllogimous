@@ -129,3 +129,71 @@ test("profiles survive a reload", () => {
     equal(carried.profiles.length, 1, "the profile list did not persist");
     equal(carried.profiles[0].name, "Kept", "the profile name did not persist");
 });
+
+/**
+ * A profile that says it is in use has to be in use.
+ *
+ * Reported with a screenshot: a profile named "playthrough" showing "IN USE",
+ * while the saved state had `active: false` — so none of its settings reached a
+ * single question. The panel read the label off `activeProfile` alone, and
+ * whether the overrides applied at all lived in a second flag it never
+ * consulted.
+ *
+ * `saveProfile` is how the state arose: it marked the new profile as the
+ * current one and left the master switch alone. So a profile saved on a fresh
+ * install announced itself as in use and did nothing, and nobody had reason to
+ * press "Use" on a profile already claiming to be in use.
+ */
+test("saving a profile puts it in force, not just in the list", () => {
+    localStorage.clear();
+    const o = new SettingsOverrideService();
+
+    assert(!o.state.active, "overrides start switched off");
+    const id = o.saveProfile("playthrough");
+
+    assert(o.state.activeProfile === id, "the new profile is not the current one");
+    assert(o.state.active, "the profile was saved as current while switched off");
+    assert(o.profileApplied(id), "a saved profile reports itself as not applied");
+
+    localStorage.clear();
+});
+
+test("a loaded profile with the switch off is not reported as in use", () => {
+    localStorage.clear();
+    const o = new SettingsOverrideService();
+    const id = o.saveProfile("playthrough");
+
+    o.setActive(false);
+    assert(o.state.activeProfile === id, "turning the switch off should not unload the profile");
+    assert(!o.profileApplied(id),
+        "a profile whose settings reach nothing still reports itself as in use");
+
+    // And pressing Use puts it back in force, which is the way out of that state.
+    o.useProfile(id);
+    assert(o.profileApplied(id), "pressing Use on a switched-off profile did not switch it on");
+
+    localStorage.clear();
+});
+
+test("a profile does not carry the master switch around with it", () => {
+    /*
+     * `snapshot` captured `active`, so a profile saved while Customise was off
+     * stored "off" as part of its settings — and every later load of it
+     * reinstated that. A profile describes what the settings are, not whether
+     * they are switched on.
+     */
+    localStorage.clear();
+    const o = new SettingsOverrideService();
+    o.setActive(false);
+    const id = o.saveProfile("saved while off");
+
+    const stored = o.profiles.find(p => p.id === id)!;
+    assert((stored.config as { active?: boolean }).active !== false,
+        "the profile stored the master switch as part of its settings");
+
+    o.setActive(false);
+    o.useProfile(id);
+    assert(o.state.active, "loading the profile reinstated the switched-off state");
+
+    localStorage.clear();
+});

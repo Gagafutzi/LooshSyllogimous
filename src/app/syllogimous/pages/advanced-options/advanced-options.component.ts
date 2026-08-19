@@ -148,6 +148,20 @@ export class AdvancedOptionsComponent {
     get profiles() { return this.overrides.profiles; }
     get activeProfileId() { return this.overrides.state.activeProfile; }
 
+    /**
+     * In force, rather than merely loaded.
+     *
+     * The row used to key off `activeProfileId` alone, so a profile could
+     * announce itself as in use while the master switch was off and none of its
+     * settings reached a question.
+     */
+    applied(id: string) { return this.overrides.profileApplied(id); }
+
+    /** Loaded, but doing nothing — the state the label used to hide. */
+    loadedButOff(id: string) {
+        return id === this.activeProfileId && !this.overrides.state.active;
+    }
+
     saveCurrent() {
         const name = this.newProfileName.trim() || `Profile ${this.profiles.length + 1}`;
         this.overrides.saveProfile(name);

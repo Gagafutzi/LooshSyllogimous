@@ -19,7 +19,7 @@
             score, stats or your level.
         </p>
 
-        <div class="profile" *ngFor="let p of profiles" [class.is-on]="p.id === activeProfileId">
+        <div class="profile" *ngFor="let p of profiles" [class.is-on]="applied(p.id)">
             <span class="profile__name">
                 <input class="form-control form-control-sm" [value]="p.name"
                        (change)="rename(p.id, $any($event.target).value)"
@@ -31,9 +31,18 @@
                 </label>
             </span>
             <span class="profile__acts">
+                <!--
+                  Three states, not two: in force, loaded but switched off, and
+                  not loaded. The middle one used to read "In use" and do
+                  nothing.
+                -->
                 <button type="button" class="btn btn-sm"
-                        [class.is-on]="p.id === activeProfileId"
-                        (click)="use(p.id)">{{ p.id === activeProfileId ? "In use" : "Use" }}</button>
+                        [class.is-on]="applied(p.id)"
+                        [disabled]="applied(p.id)"
+                        [attr.title]="applied(p.id) ? 'Already in use' : loadedButOff(p.id)
+                            ? 'Loaded, but Customise is switched off — press to switch it on'
+                            : 'Load these settings and switch Customise on'"
+                        (click)="use(p.id)">{{ applied(p.id) ? "In use" : loadedButOff(p.id) ? "Switched off" : "Use" }}</button>
                 <button type="button" class="btn btn-sm" (click)="duplicate(p.id)">Copy</button>
                 <button type="button" class="btn btn-sm" (click)="remove(p.id)">Delete</button>
             </span>
