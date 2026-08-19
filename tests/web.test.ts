@@ -8,10 +8,11 @@
  * generator, on the graphs it actually produces.
  */
 
+import { readFileSync } from "fs";
 import { assert, equal, seeded, test } from "./harness";
 import {
     WEB_PROPERTIES, Web, cloneWeb, edgesOf, emptyWeb, isomorphic, mappings, nearMiss, orbitOf,
-    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout, arrowPath, bowFor, samplePath,
+    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout, arrowPath, bowFor, layoutArrows, samplePath,
 } from "../src/app/syllogimous/utils/web.utils";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
@@ -482,4 +483,117 @@ test("the same pair always bows the same way", () => {
     const fan = [1, 2, 3, 4].map(j => bowFor(0, j));
     assert(fan.some(b => b > 0) && fan.some(b => b < 0),
         "every edge out of a node bows the same way, which does not open a fan");
+});
+
+/**
+ * Near-parallel arrows, which are the ones that actually merge.
+ *
+ * Arrows crossing at a steep angle are perfectly legible — you can see they
+ * cross. It is the near-parallel ones that fuse into a single thick line with
+ * an ambiguous head at each end, and the first two attempts at this failed by
+ * not making that distinction: a fixed bow moved every edge the same way, and
+ * chasing *every* close approach spent the curvature on crossings that never
+ * needed it, moving 14% of pairs to 12%.
+ *
+ * Measured only over near-parallel pairs, which is what the drawing is now
+ * asked to keep apart.
+ */
+test("no two near-parallel arrows are drawn on top of each other", () => {
+    const size = 200;
+
+    const parse = (d: string) => {
+        const m = /M ([-\d.]+) ([-\d.]+) Q ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+)/.exec(d)!
+            .map(Number);
+        return { d, from: [m[1], m[2]] as [number, number], to: [m[5], m[6]] as [number, number] };
+    };
+
+    const merged = (useLayout: boolean) => seeded(useLayout ? 8101 : 8101, () => {
+        let bad = 0, pairs = 0;
+
+        for (let trial = 0; trial < 120; trial++) {
+            const n = 5 + (trial % 6);
+            const w = randomWeb(n, 0.28, false);
+            const pts = scatterLayout(n).map(([x, y]) => [x * size, y * size] as [number, number]);
+            const radius = Math.max(8, Math.min(13, Math.round(52 / Math.sqrt(n))));
+
+            const edges: Array<{ from: number; to: number; both: boolean }> = [];
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    if (!w.adj[i][j] || i === j) continue;
+                    if (w.adj[j][i] && j < i) continue;
+                    edges.push({ from: i, to: j, both: w.adj[j][i] });
+                }
+            }
+            if (edges.length < 2) continue;
+
+            const paths = useLayout
+                ? layoutArrows(edges, pts, radius, radius + 1)
+                : edges.map(e => ({
+                    d: arrowPath(pts[e.from], pts[e.to], radius, radius + 1,
+                        bowFor(e.from, e.to)).d,
+                }));
+            const samples = paths.map(p => samplePath(parse(p.d)));
+
+            for (let i = 0; i < edges.length; i++) {
+                for (let j = i + 1; j < edges.length; j++) {
+                    const ca = [pts[edges[i].to][0] - pts[edges[i].from][0],
+                                pts[edges[i].to][1] - pts[edges[i].from][1]];
+                    const cb = [pts[edges[j].to][0] - pts[edges[j].from][0],
+                                pts[edges[j].to][1] - pts[edges[j].from][1]];
+                    const cos = Math.abs((ca[0] * cb[0] + ca[1] * cb[1])
+                        / ((Math.hypot(ca[0], ca[1]) || 1) * (Math.hypot(cb[0], cb[1]) || 1)));
+                    if (cos <= 0.9) continue;
+
+                    const shares = edges[i].from === edges[j].from || edges[i].from === edges[j].to
+                        || edges[i].to === edges[j].from || edges[i].to === edges[j].to;
+                    const k = shares ? 8 : 4;
+                    const a = samples[i].slice(k, -k), b = samples[j].slice(k, -k);
+
+                    let min = Infinity;
+                    for (const p of a) for (const q of b) {
+                        min = Math.min(min, Math.hypot(p[0] - q[0], p[1] - q[1]));
+                    }
+                    pairs++;
+                    if (min < 10) bad++;
+                }
+            }
+        }
+
+        return { rate: pairs ? bad / pairs : 0, pairs };
+    });
+
+    const before = merged(false);
+    const after = merged(true);
+
+    assert(before.pairs > 200, `only ${before.pairs} near-parallel pairs to judge on`);
+    assert(before.rate > 0.04,
+        `a fixed bow already merged only ${(100 * before.rate).toFixed(1)}%, so this proves nothing`);
+    assert(after.rate < 0.035,
+        `${(100 * after.rate).toFixed(1)}% of near-parallel arrows still merge`);
+    assert(after.rate < before.rate / 2.5,
+        `barely better: ${(100 * before.rate).toFixed(1)}% to ${(100 * after.rate).toFixed(1)}%`);
+});
+
+test("every web draws its arrowheads from a marker of its own", () => {
+    /*
+     * The reason the heads never appeared, through three attempts at making
+     * them bigger and brighter. Every instance defined `id="web-head"`, and a
+     * page holds up to four: two webs, drawn twice because the carousel and the
+     * all-at-once view both sit in the DOM with one hidden. `url(#web-head)`
+     * resolves to the *first* match in the document — inside the hidden half —
+     * and a marker in a `display: none` subtree does not render.
+     */
+    const template = readFileSync(
+        "src/app/syllogimous/components/relational-web/relational-web.component.html", "utf8");
+
+    assert(!/id="web-head"/.test(template),
+        "the marker id is hardcoded, so every drawing on the page shares one");
+    assert(/\[attr\.id\]="headId"/.test(template), "the marker does not take a per-instance id");
+    assert(!/url\(#web-head\)/.test(template),
+        "an arrow still points at the shared marker id");
+
+    const component = readFileSync(
+        "src/app/syllogimous/components/relational-web/relational-web.component.ts", "utf8");
+    assert(/headId = `web-head-\$\{\+\+webInstance\}`/.test(component),
+        "the id is not unique per instance");
 });

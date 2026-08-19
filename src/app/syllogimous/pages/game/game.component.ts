@@ -377,14 +377,29 @@ export class GameComponent {
         this.showPicks();
     }
 
-    /** Mirror the picks onto the drawn web, which is what colours them. */
+    /**
+     * Mirror the picks onto the drawn web, which is what colours them.
+     *
+     * Mutated in place, deliberately. Replacing the array — or the web object
+     * inside it — makes `*ngFor` destroy and rebuild a component that lives
+     * *inside a carousel slide*, and ngb-carousel re-picks its active slide
+     * whenever its content children churn. Every tap therefore threw the reader
+     * back to the first slide, which is a mode that does not work in carousel.
+     */
     private showPicks() {
         const second = this.game.question.webs?.[1];
-        if (second) this.game.question.webs = [
-            this.game.question.webs![0],
-            { ...second, picked: [...this.mapPicks] },
-        ];
+        if (second) second.picked = [...this.mapPicks];
+        this.webRedraw++;
     }
+
+    /**
+     * Bumped on every pick, purely to give the drawing a changed input.
+     *
+     * The web object is mutated rather than replaced, so an `@Input` bound to
+     * it never sees a new reference; this is the changed reference, and it
+     * costs nothing structural.
+     */
+    webRedraw = 0;
 
     get mapComplete() {
         return this.game.question.answerMode === "map"
@@ -398,6 +413,7 @@ export class GameComponent {
 
     private resetPicks() {
         this.mapPicks = [];
+        this.webRedraw = 0;
         this.picks = blankPicks(this.game.question.construct);
         this.armCarousel();
     }

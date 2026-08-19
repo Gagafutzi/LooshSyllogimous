@@ -99,7 +99,7 @@
                             <div class="webs">
                                 <div class="webs__one" *ngFor="let w of game.question.webs; let i = index">
                                     <small class="text-muted">{{ i === 0 ? "First web" : "Second web" }}</small>
-                                    <app-relational-web [web]="w"
+                                    <app-relational-web [web]="w" [redraw]="webRedraw"
                                                         (pick)="onWebPick($event)"></app-relational-web>
                                 </div>
                             </div>
@@ -189,7 +189,8 @@
             <div class="webs" *ngIf="game.question.webs?.length; else gridsOrPremises">
                 <div class="webs__one" *ngFor="let w of game.question.webs; let i = index">
                     <small class="text-muted">{{ i === 0 ? "First web" : "Second web" }}</small>
-                    <app-relational-web [web]="w" (pick)="onWebPick($event)"></app-relational-web>
+                    <app-relational-web [web]="w" [redraw]="webRedraw"
+                                        (pick)="onWebPick($event)"></app-relational-web>
                 </div>
             </div>
 

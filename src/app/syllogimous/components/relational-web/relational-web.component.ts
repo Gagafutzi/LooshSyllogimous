@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { DIM_SLOTS } from "../../utils/phrasing";
-import { arrowPath, bowFor } from "../../utils/web.utils";
+import { layoutArrows } from "../../utils/web.utils";
 
 export interface DrawnWeb {
     adj: boolean[][];
@@ -42,12 +42,28 @@ interface Node {
  * rather than at its centre — an arrowhead buried under a circle points at
  * nothing, and direction is the whole content of the picture.
  */
+let webInstance = 0;
+
 @Component({
     selector: "app-relational-web",
     templateUrl: "./relational-web.component.html",
     styleUrls: ["./relational-web.component.css"],
 })
 export class RelationalWebComponent {
+    /**
+     * A marker id of this drawing's own.
+     *
+     * Every instance defined `<marker id="web-head">`, and a page holds up to
+     * four of them: two webs, drawn twice because the carousel and the
+     * all-at-once view both exist in the DOM with one hidden. `url(#web-head)`
+     * resolves to the *first* match in the document, which is inside the hidden
+     * half — and a marker in a `display: none` subtree does not render. That is
+     * why the arrowheads never appeared, whatever else was changed about them.
+     */
+    readonly headId = `web-head-${++webInstance}`;
+
+    /** Redraw signal for callers that mutate a web rather than replace it. */
+    @Input() set redraw(_: number) { this.rebuild(); }
     /** Viewbox units; the SVG scales to whatever box it is given. */
     readonly size = 200;
 
@@ -79,7 +95,15 @@ export class RelationalWebComponent {
     /** A node was pointed at. The page decides what that means. */
     @Output() pick = new EventEmitter<number>();
 
+    private current?: DrawnWeb;
+
     @Input() set web(w: DrawnWeb | undefined) {
+        this.current = w;
+        this.rebuild();
+    }
+
+    private rebuild() {
+        const w = this.current;
         this.nodes = [];
         this.arrows = [];
         this.loops = [];
@@ -107,15 +131,23 @@ export class RelationalWebComponent {
             mark: w.marks?.indexOf(i) ?? (w.picked?.indexOf(i) ?? -1),
         }));
 
+        const edges: Array<{ from: number; to: number; both: boolean }> = [];
         for (let i = 0; i < w.adj.length; i++) {
             for (let j = 0; j < w.adj.length; j++) {
                 if (!w.adj[i][j]) continue;
                 if (i === j) { this.loops.push(at(i)); continue; }
                 // Drawn once for a mutual pair, with a head at each end.
                 if (w.adj[j][i] && j < i) continue;
-                this.arrows.push(this.between(at(i), at(j), w.adj[j][i], i, j));
+                edges.push({ from: i, to: j, both: w.adj[j][i] });
             }
         }
+
+        this.arrows = layoutArrows(
+            edges,
+            w.labels.map((_, i) => [at(i).x, at(i).y] as [number, number]),
+            this.radius,
+            this.headRoom,
+        );
     }
 
     /*
@@ -133,19 +165,4 @@ export class RelationalWebComponent {
         return `color-mix(in srgb, var(--th-dim-${slot % DIM_SLOTS}) 22%, transparent)`;
     }
 
-    /** Geometry lives in `web.utils`, where it can be checked. */
-    private between(
-        a: { x: number; y: number },
-        b: { x: number; y: number },
-        both: boolean,
-        i: number,
-        j: number,
-    ): Arrow {
-        // Curvature from the node indices rather than from geometry, so the
-        // same pair always curves the same way and a redraw does not reshuffle
-        // the picture under someone mid-item.
-        const path = arrowPath(
-            [a.x, a.y], [b.x, b.y], this.radius, this.headRoom, bowFor(i, j));
-        return { d: path.d, both };
-    }
 }

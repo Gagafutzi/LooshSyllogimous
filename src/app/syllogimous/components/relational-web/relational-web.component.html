@@ -13,7 +13,7 @@
           not carried everywhere, and where it is missing the head falls back to
           black, which on a dark theme is a head you cannot see at all.
         -->
-        <marker id="web-head" viewBox="0 0 10 10" refX="9" refY="5"
+        <marker [attr.id]="headId" viewBox="0 0 10 10" refX="9" refY="5"
                 markerUnits="userSpaceOnUse"
                 markerWidth="11" markerHeight="11" orient="auto-start-reverse">
             <path class="web__head" d="M 0 0 L 10 5 L 0 10 z"/>
@@ -21,8 +21,8 @@
     </defs>
 
     <path class="web__arrow" *ngFor="let a of arrows" [attr.d]="a.d"
-          marker-end="url(#web-head)"
-          [attr.marker-start]="a.both ? 'url(#web-head)' : null"/>
+          [attr.marker-end]="'url(#' + headId + ')'"
+          [attr.marker-start]="a.both ? 'url(#' + headId + ')' : null"/>
 
     <!-- Self-arrows, which is what reflexivity looks like. -->
     <circle class="web__loop" *ngFor="let l of loops"
