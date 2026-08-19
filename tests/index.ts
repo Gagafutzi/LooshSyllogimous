@@ -30,6 +30,7 @@ import "./graphdist.test";
 import "./combinations.test";
 import "./width.test";
 import "./display.test";
+import "./timer.test";
 import "./ungated.test";
 import "./hierarchy-syllogism.test";
 import "./testimony.test";

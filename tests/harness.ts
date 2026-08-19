@@ -51,11 +51,18 @@ if (typeof (globalThis as any).document === "undefined") {
     };
 }
 
-type Case = { name: string; fn: () => void };
+/**
+ * A test may be async.
+ *
+ * Anything that settles a promise needs one microtask before the result is
+ * visible, and the timer service is exactly that: whether the clock ran out or
+ * was stopped arrives through a promise, which is the distinction under test.
+ */
+type Case = { name: string; fn: () => void | Promise<void> };
 
 const cases: Case[] = [];
 
-export function test(name: string, fn: () => void) {
+export function test(name: string, fn: () => void | Promise<void>) {
     cases.push({ name, fn });
 }
 
@@ -82,11 +89,11 @@ export function seeded<T>(seed: number, fn: () => T): T {
     try { return fn(); } finally { Math.random = original; }
 }
 
-export function run() {
+export async function run() {
     let failed = 0;
     for (const c of cases) {
         try {
-            c.fn();
+            await c.fn();
             console.log(`  ok   ${c.name}`);
         } catch (e) {
             failed++;
@@ -97,3 +104,6 @@ export function run() {
     console.log(`\n${cases.length - failed}/${cases.length} passed`);
     if (failed) process.exit(1);
 }
+
+/** Let pending promise callbacks run, for tests that settle one. */
+export const flush = () => new Promise<void>(resolve => setTimeout(resolve, 0));

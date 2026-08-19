@@ -558,6 +558,19 @@ export class GameService implements GeneratorContext {
     }
 
     async checkQuestion(value?: boolean) {
+        /*
+         * Once only, and the clock stops here.
+         *
+         * Two faults, one cause. Answering never stopped the timer, so it ran
+         * on through the explanation overlay — and when it reached zero it
+         * called this again with no value, overwriting a correct answer given a
+         * moment earlier with a timeout. Anyone answering in the last second of
+         * the clock lost the answer they had just given.
+         */
+        if (this.question.answered) return;
+        this.question.answered = true;
+        this.gameTimerService.stop();
+
         this.question.userAnswer = value;
         this.question.answeredAt = Date.now();
         this.question.timerTypeOnAnswer = localStorage.getItem(LS_TIMER) || "0";

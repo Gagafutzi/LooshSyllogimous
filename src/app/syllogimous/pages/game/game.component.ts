@@ -526,7 +526,9 @@ export class GameComponent {
     }
 
     kickTimer = async () => {
-        await this.gameTimerService.start(this.timerTimeSeconds);
-        this.game.checkQuestion();
+        // Only a clock that actually ran out is a timeout. Stopping it — which
+        // answering now does — used to look identical from here.
+        const elapsed = await this.gameTimerService.start(this.timerTimeSeconds);
+        if (elapsed) this.game.checkQuestion();
     }
 }

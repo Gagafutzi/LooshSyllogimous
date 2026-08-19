@@ -125,6 +125,16 @@ export class Question {
     premises: string[] = [];
     conclusion: string | string[] = "";
     createdAt = new Date().getTime();
+    /**
+     * Whether this question has been answered at all.
+     *
+     * `answeredAt` cannot serve: it is initialised to the moment the question
+     * was built, so it is truthy from the start. Without a flag, a timer tick
+     * arriving just after a real answer answered the question a second time —
+     * with no value, which reads as a timeout.
+     */
+    answered = false;
+
     answeredAt = new Date().getTime();
     userAnswer?: boolean;
     /**

@@ -10,8 +10,19 @@ export class GameTimerService {
     remainingSeconds = 0;
     running = false;
 
+    /** Resolves with whether the clock ran out, rather than merely that it ended. */
+    private settle?: (elapsed: boolean) => void;
+
+    /**
+     * Runs until it reaches zero or somebody stops it.
+     *
+     * The promise says *which*. It used to resolve only on reaching zero and
+     * simply never settle when stopped, so the caller could not tell a deadline
+     * from an interruption — it treated every resolution as a timeout, and a
+     * stopped timer leaked a pending promise for the life of the page.
+     */
     start(seconds?: number) {
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<boolean>((resolve, reject) => {
             if (this.running) {
                 return reject("GameTimerService: Already running");
             }
@@ -26,13 +37,16 @@ export class GameTimerService {
     
             this.remainingSeconds = seconds;
             this.running = true;
-    
+            this.settle = resolve;
+
             this.interval = setInterval(() => {
                 if (this.remainingSeconds > 0) {
                     this.remainingSeconds--;
                     if (this.remainingSeconds === 0) {
-                        this.stop();
-                        return resolve();
+                        const done = this.settle;
+                        this.settle = undefined;
+                        this.pause();
+                        return done?.(true);
                     }
                 }
             }, 1000);
@@ -49,7 +63,12 @@ export class GameTimerService {
     }
 
     stop() {
-        this.pause();
+        const done = this.settle;
+        this.settle = undefined;
+        if (this.running) this.pause();
         this.remainingSeconds = 0;
+        // Ended, but not by running out: whoever is waiting must not read this
+        // as a deadline that expired.
+        done?.(false);
     }
 }
