@@ -127,10 +127,24 @@
                         <div style="display: grid; place-items: center;">
                             <div>
                                 <small class="text-muted">{{ game.question.choicePrompt || "Which follows?" }}</small>
-                                <div class="choice-list">
+                                <!--
+                                  Options that are arrangements are drawn here
+                                  too. Listing their coordinates on the slide
+                                  while the buttons below show grids put the
+                                  column of numbers back beside the picture that
+                                  replaced it — the same duplication the
+                                  premises had.
+                                -->
+                                <div class="choice-list" *ngIf="!game.question.choiceGrids?.length">
                                     <div *ngFor="let c of game.question.choices; let i = index">
                                         <span class="choice__key">{{ i + 1 }}</span>
                                         <span [innerHTML]="c"></span>
+                                    </div>
+                                </div>
+                                <div class="grids" *ngIf="game.question.choiceGrids?.length">
+                                    <div class="grids__one" *ngFor="let g of game.question.choiceGrids; let i = index">
+                                        <small class="text-muted">{{ i + 1 }}</small>
+                                        <app-question-map [plot]="{ map: g, axes: game.question.gridAxes, bounds: game.question.gridBounds }"></app-question-map>
                                     </div>
                                 </div>
                             </div>

@@ -11,6 +11,7 @@ import { ConstructSlot } from '../../models/question.models';
 import { ProgressionService } from '../../services/progression.service';
 import { SlotAnswer, blankPicks, slotsRemaining } from '../../utils/construct.utils';
 import { KeybindService } from '../../services/keybind.service';
+import { slideNames } from '../../utils/slides.utils';
 
 @Component({
     selector: 'app-game',
@@ -267,34 +268,9 @@ export class GameComponent {
     slideOrder: string[] = [];
 
     private buildSlideOrder() {
-        const q = this.game.question;
-        const ids: string[] = [];
-        if (q.setup?.length) ids.push(this.slideId("setup"));
-        if (q.grids?.length) ids.push(this.slideId("grids"));
-        if (q.webs?.length) ids.push(this.slideId("webs"));
-        /*
-         * Not when the item draws itself. The grids carry the same content as
-         * the text premises, so listing both is the picture and the column of
-         * numbers side by side — and the numbers are what the drawing was
-         * introduced to stop people reading.
-         */
-        if (!q.grids?.length) {
-            q.premises.forEach((_, i) => ids.push(this.slideId("premise-" + i)));
-        }
-        if (q.answerMode === "choice") {
-            ids.push(this.slideId("choices"));
-        } else if (q.answerMode !== "construct" && q.answerMode !== "map") {
-            /*
-             * Construction and structure matching have no conclusion slide,
-             * because in both the conclusion is the thing being produced. For a
-             * match that is not merely redundant — the conclusion records which
-             * node goes with which, so showing it would print the answer above
-             * the buttons for giving it.
-             */
-            const count = Array.isArray(q.conclusion) ? q.conclusion.length : 1;
-            for (let i = 0; i < count; i++) ids.push(this.slideId("conclusion-" + i));
-        }
-        this.slideOrder = ids;
+        // The order itself lives in `slides.utils`, where its contract is
+        // tested; this only stamps the per-question token onto each name.
+        this.slideOrder = slideNames(this.game.question).map(name => this.slideId(name));
     }
 
     /** The final slide, which depends on which slides this question has. */

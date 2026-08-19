@@ -7,11 +7,15 @@
  * undone — and this is exactly the kind of check that used to need the app.
  */
 
-import { assert, equal, test } from "./harness";
-import { RUNG_COST, chooseConfig, DEFAULT_ABILITY, timeCost } from "../src/app/syllogimous/utils/ability.utils";
+import { assert, equal, seeded, test } from "./harness";
+import {
+    RUNG_COST, chooseConfig, DEFAULT_ABILITY, levelOf, pCorrect, timeCost,
+} from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
-import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
+import { RUNG_LADDERS, ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.constants";
+import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
+import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 
 const opts = (target: number, untimed = false) => ({
     minPremises: 2,
@@ -87,4 +91,86 @@ test("no rung is priced by accident", () => {
     const unreachable = [...priced].filter(r => !handed.has(r));
     assert(unreachable.length === 0,
         `priced but unreachable, so probably a stale name: ${unreachable.join(", ")}`);
+});
+
+/**
+ * Every mode is listed in the ladder table, and a mode that runs out of
+ * difficulty has genuinely run out.
+ *
+ * `ladderFor` falls back to an empty ladder for a mode it has no entry for, so
+ * forgetting one is silent: the mode can never earn a modifier, and a player
+ * who outgrows its premise ceiling is served the same item forever. Three modes
+ * were in that state — Infer the Relation, Shape and Rotation and Stimulus
+ * Function — and Space 7D had been left out while the five other composed
+ * spaces shared a ladder, despite being built by the same generator.
+ *
+ * The absent entry and the deliberate empty one are indistinguishable at the
+ * lookup, which is exactly why the table has to list both.
+ */
+test("no mode is missing from the ladder table", () => {
+    const missing = ORDERED_QUESTION_TYPES.filter(t => !(t in RUNG_LADDERS));
+    assert(missing.length === 0,
+        `these fall back to an empty ladder rather than declaring one: ${missing.join(", ")}`);
+});
+
+test("the composed spaces all share a ladder", () => {
+    // They are one generator. A rung any of them honours, all of them honour.
+    const spaces = ORDERED_QUESTION_TYPES.filter(t => /^Space \d+D$/.test(t));
+    assert(spaces.length >= 5, `only found ${spaces.length} composed spaces`);
+
+    const first = ladderFor(spaces[0]).join(",");
+    for (const s of spaces) {
+        equal(ladderFor(s).join(","), first, `${s} has a different ladder from ${spaces[0]}`);
+    }
+});
+
+test("a mode only serves easy items when it has actually run out", () => {
+    /*
+     * A strong player should be stretched. Where they are not — where the mode
+     * serves items they get right more than nineteen times in twenty — it must
+     * be because the mode has *nothing left*: every rung claimed and the premise
+     * ceiling reached. Anything else is a wiring fault wearing the appearance of
+     * a design limit, which is what the missing ladder entries were.
+     */
+    const ABLE = 16;
+    const complaints: string[] = [];
+
+    for (const type of ORDERED_QUESTION_TYPES) {
+        const outcome = seeded(4177, () => {
+            localStorage.clear();
+            const service = new ProgressionService();
+
+            for (let i = 0; i < 250; i++) {
+                const c = service.configFor(type);
+                const level = levelOf({
+                    type, premises: c.premises,
+                    rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds,
+                }, DEFAULT_ABILITY);
+                const p = pCorrect(DEFAULT_ABILITY, ABLE, level, 0.5);
+                service.record(type, Math.random() < p ? "right" : "wrong", 8);
+            }
+
+            const c = service.configFor(type);
+            const level = levelOf({
+                type, premises: c.premises,
+                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds,
+            }, DEFAULT_ABILITY);
+            return { c, served: pCorrect(DEFAULT_ABILITY, ABLE, level, 0.5) };
+        });
+
+        if (outcome.served <= 0.95) continue;
+
+        const ladder = ladderFor(type);
+        const ceiling = QUESTION_TYPE_SETTING_PARAMS[type].maxNumOfPremises;
+        const exhausted = outcome.c.rungs >= ladder.length && outcome.c.premises >= ceiling;
+
+        if (!exhausted) {
+            complaints.push(`${type}: serves ${(100 * outcome.served).toFixed(0)}% items at`
+                + ` ${outcome.c.premises}/${ceiling} premises and ${outcome.c.rungs}/${ladder.length}`
+                + ` rungs — it has more to give and is not giving it`);
+        }
+    }
+
+    localStorage.clear();
+    assert(complaints.length === 0, `\n  ${complaints.join("\n  ")}`);
 });

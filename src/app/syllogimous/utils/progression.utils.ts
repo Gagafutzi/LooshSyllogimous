@@ -313,6 +313,34 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Space 5D":                  ND_LADDER,
     "Space 6D":                  ND_LADDER,
     /*
+     * Space 7D was missing from this table entirely, so `ladderFor` returned
+     * nothing and the mode could never earn a single modifier — while being
+     * built by the same generator as the other five, which honour all of them.
+     * A strong player was served plain seven-axis items forever.
+     */
+    "Space 7D":                  ND_LADDER,
+
+    /*
+     * These three had no entry here at all, and `ladderFor` falls back to an
+     * empty ladder — so they could never earn anything, and a player who
+     * outgrew their premise ceiling was served the same item forever. Two of
+     * them still have nothing to offer and say so; the third always could.
+     *
+     * Stimulus Function reads `settings.enabled.negation` when it renders its
+     * relations, so it has been able to honour the rung all along and was
+     * simply never offered one.
+     */
+    "Stimulus Function":         ["negation"],
+    /*
+     * Genuinely empty, and listed rather than omitted so the difference between
+     * "nothing to claim" and "nobody wrote it down" is visible. Both need a
+     * modifier of their own before they can go further than their premise
+     * ceiling — which is the answer this file gives everywhere else, rather
+     * than making the items longer.
+     */
+    "Infer the Relation":        [],
+    "Shape and Rotation":        [],
+    /*
      * Longer paths first — a small, continuous increase. Cycles are the
      * structural jump: in a hierarchy "reaches" is a partial order you can
      * reason about by level, and one loop destroys that.
