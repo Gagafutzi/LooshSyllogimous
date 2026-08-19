@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { EnumQuestionType } from "../constants/question.constants";
+import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { Settings } from "../models/settings.models";
 import { LinearScale } from "../utils/linear.utils";
 import { AXIS_CHOICES, axisWordConflicts } from "../utils/ndspace.utils";
@@ -17,6 +18,16 @@ import { AXIS_CHOICES, axisWordConflicts } from "../utils/ndspace.utils";
  */
 
 export interface ModeOverride {
+    /**
+     * Whether the premise count below was *chosen*, or merely defaulted in.
+     *
+     * Toggling a mode on writes a whole override, and the fallback it is built
+     * from carries the mode's minimum — so a stored count is no evidence that
+     * anybody asked for it. Treating it as evidence pinned every toggled mode
+     * at its minimum and locked progression out of it entirely, silently, for
+     * the rest of the account's life.
+     */
+    premisesChosen?: boolean;
     enabled: boolean;
     numOfPremises: number;
     /** Extra transformations, for the modes that have any. Premise-neutral. */
@@ -185,6 +196,36 @@ export interface OverrideState {
 
 const LS_OVERRIDES = "syllogimous-advanced-options";
 
+/**
+ * Decide, for state saved before the marker existed, whether a premise count
+ * was chosen or defaulted.
+ *
+ * The data cannot say outright, so it is read the only way it can be: a count
+ * equal to the mode's own minimum is what the fallback writes when a mode is
+ * merely toggled, and anything else is a number somebody typed. That leaves one
+ * misreading — a player who deliberately pinned a mode *at* its minimum is
+ * unpinned — and it is the right way round, because the alternative leaves
+ * every player who ever toggled a mode frozen at that minimum forever with no
+ * way to discover why.
+ */
+function adoptChosenPremises(
+    modes: Partial<Record<EnumQuestionType, ModeOverride>>,
+): Partial<Record<EnumQuestionType, ModeOverride>> {
+    const out: Partial<Record<EnumQuestionType, ModeOverride>> = {};
+
+    for (const [type, ov] of Object.entries(modes)) {
+        if (!ov) continue;
+        if (ov.premisesChosen !== undefined) { out[type as EnumQuestionType] = ov; continue; }
+
+        const floor = QUESTION_TYPE_SETTING_PARAMS[type as EnumQuestionType]?.minNumOfPremises;
+        out[type as EnumQuestionType] = {
+            ...ov,
+            premisesChosen: !!ov.numOfPremises && ov.numOfPremises !== floor,
+        };
+    }
+    return out;
+}
+
 const DEFAULT_STATE: OverrideState = {
     active: false,
     scrambleFactor: 100,
@@ -216,7 +257,7 @@ export class SettingsOverrideService {
         const premises = new Set<EnumQuestionType>();
         if (!this.live) return { premises, flags: false };
         for (const [type, ov] of Object.entries(this.state.modes)) {
-            if (ov?.numOfPremises) premises.add(type as EnumQuestionType);
+            if (ov?.premisesChosen && ov.numOfPremises) premises.add(type as EnumQuestionType);
         }
         return { premises, flags: true };
     }
@@ -399,7 +440,10 @@ export class SettingsOverrideService {
 
     setMode(type: EnumQuestionType, patch: Partial<ModeOverride>, fallback: ModeOverride) {
         const current = this.state.modes[type] ?? { ...fallback };
-        this.state.modes[type] = { ...current, ...patch };
+        // A patch that names a premise count is somebody choosing one; a patch
+        // that happens to carry the fallback's is not.
+        const chosen = current.premisesChosen || patch.numOfPremises !== undefined;
+        this.state.modes[type] = { ...current, ...patch, premisesChosen: chosen };
         this.save();
     }
 
@@ -536,7 +580,7 @@ export class SettingsOverrideService {
                     linear: { ...DEFAULT_LINEAR_FEATURES, ...(parsed.linear ?? {}) },
                     space: { ...DEFAULT_SPACE, ...(parsed.space ?? {}), axes: parsed.space?.axes ?? {} },
                     rungs: parsed.rungs ?? {},
-                    modes: parsed.modes ?? {},
+                    modes: adoptChosenPremises(parsed.modes ?? {}),
                     scrambleFactor: parsed.scrambleFactor ?? 100,
                     // Absent in states saved before profiles existed.
                     profiles: Array.isArray(parsed.profiles) ? parsed.profiles : [],

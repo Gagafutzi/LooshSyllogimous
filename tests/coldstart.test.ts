@@ -13,6 +13,8 @@ import { assert, test } from "./harness";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
+import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
+import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { buildChain, LINEAR_SCALES, renderPremises } from "../src/app/syllogimous/utils/linear.utils";
 
 /** A service with no saved history, whatever earlier tests left behind. */
@@ -107,4 +109,97 @@ test("negation never takes every premise at once", () => {
     }
 
     assert(sawSome, "the count never varied, so negation is now fixed at one");
+});
+
+/**
+ * Toggling a mode on must not freeze its difficulty forever.
+ *
+ * Reported from play: eighty answers, almost all correct, and the premise count
+ * never moved off each mode's minimum. The posterior was climbing the whole
+ * time — a replay of the session has Distinction reaching four premises with
+ * two rungs — so the model was right and the item never heard about it.
+ *
+ * The cause was the pin that makes a *chosen* premise count outrank
+ * progression. Turning a mode on in Customise writes a whole override, built
+ * from a fallback that carries the mode's minimum, so every toggled mode
+ * arrived with a stored count that nobody had asked for. The pin took it for a
+ * decision and locked progression out of that mode for good, silently.
+ */
+test("a mode toggled on in Customise is not pinned at its minimum", () => {
+    const type = EnumQuestionType.Distinction;
+    const floor = QUESTION_TYPE_SETTING_PARAMS[type].minNumOfPremises;
+
+    localStorage.clear();
+    const overrides = new SettingsOverrideService();
+    overrides.setActive(true);
+    // Exactly what the panel does when a mode is switched on.
+    overrides.setMode(type, { enabled: true }, { enabled: true, numOfPremises: floor });
+
+    assert(!overrides.pinned().premises.has(type),
+        "merely enabling a mode pinned its premise count");
+
+    // A number actually typed in still wins, which is the point of the pin.
+    overrides.setMode(type, { numOfPremises: floor + 3 }, { enabled: true, numOfPremises: floor });
+    assert(overrides.pinned().premises.has(type),
+        "a premise count the player chose was not honoured");
+
+    localStorage.clear();
+});
+
+test("an account already frozen by the old pin is released", () => {
+    /*
+     * The marker did not exist when these were written, so the state cannot say
+     * outright. A count equal to the mode's minimum is what the fallback writes
+     * for a toggle; anything else is a number somebody typed. That misreads a
+     * player who deliberately pinned a mode *at* its minimum, which is the right
+     * way round — the alternative leaves everyone who toggled a mode frozen
+     * with no way to find out why.
+     */
+    const type = EnumQuestionType.Distinction;
+    const floor = QUESTION_TYPE_SETTING_PARAMS[type].minNumOfPremises;
+
+    const saved = (n: number) => JSON.stringify({
+        active: true,
+        modes: { [type]: { enabled: true, numOfPremises: n } },
+    });
+
+    localStorage.clear();
+    localStorage.setItem("syllogimous-advanced-options", saved(floor));
+    assert(!new SettingsOverrideService().pinned().premises.has(type),
+        "a legacy default-shaped count is still treated as a decision");
+
+    localStorage.setItem("syllogimous-advanced-options", saved(floor + 4));
+    assert(new SettingsOverrideService().pinned().premises.has(type),
+        "a legacy count that was clearly typed was discarded");
+
+    localStorage.clear();
+});
+
+test("play advances the item, not only the estimate", () => {
+    /*
+     * The end-to-end version of the report, through the layer that actually
+     * hands a premise count to a generator. An estimate that climbs while the
+     * item stands still is the failure that was seen, and it is invisible to
+     * any test of the model alone.
+     */
+    const type = EnumQuestionType.Distinction;
+    const floor = QUESTION_TYPE_SETTING_PARAMS[type].minNumOfPremises;
+
+    localStorage.clear();
+    const overrides = new SettingsOverrideService();
+    overrides.setActive(true);
+    overrides.setMode(type, { enabled: true }, { enabled: true, numOfPremises: floor });
+
+    const progression = new ProgressionService();
+    for (let i = 0; i < 40; i++) progression.record(type, "right", 5);
+
+    const settings = new Settings();
+    for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;
+    progression.applyTo(overrides.applyTo(settings), overrides.pinned());
+
+    const served = settings.question[type].getNumOfPremises();
+    assert(served > floor,
+        `forty correct answers and the item is still ${served} premises, the mode's minimum`);
+
+    localStorage.clear();
 });
