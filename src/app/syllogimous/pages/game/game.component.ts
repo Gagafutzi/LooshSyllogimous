@@ -11,7 +11,7 @@ import { ConstructSlot } from '../../models/question.models';
 import { ProgressionService } from '../../services/progression.service';
 import { SlotAnswer, blankPicks, slotsRemaining } from '../../utils/construct.utils';
 import { KeybindService } from '../../services/keybind.service';
-import { slideNames } from '../../utils/slides.utils';
+import { slideNames, stepSlide } from '../../utils/slides.utils';
 
 @Component({
     selector: 'app-game',
@@ -225,33 +225,45 @@ export class GameComponent {
      * "Furthest reached", not "currently on the last slide": in the mode that
      * allows Prev, stepping back should not take the form away again.
      */
-    activeSlideId = "";
     private reachedEnd = false;
 
     /**
-     * Bumped per question, and part of every slide id.
+     * Which slide is showing, by name.
      *
-     * ngb-carousel keeps its own `activeId` across content changes and only
-     * falls back to the first slide when that id is gone. Slide ids used to be
-     * fixed — `s-conclusion-0` and so on — so answering from the conclusion left
-     * the carousel sitting on an id the *next* question also had, and that
-     * question opened on its conclusion with the premises never shown.
-     *
-     * Making the ids unique per question is what fixes it, rather than reaching
-     * for the carousel and calling `select`: the slides are rebuilt by `ngFor`
-     * on the same tick the question changes, so an imperative reset races the
-     * render, while an id that cannot match leans on the fallback the component
-     * already does correctly.
+     * Names rather than generated ids, and no per-question token. The token
+     * existed only to make `ngb-carousel` let go of a slide id it was still
+     * holding from the previous question — a workaround for a component that is
+     * no longer here.
      */
-    private questionToken = 0;
+    activeSlide = "";
 
-    slideId(name: string) {
-        return `s${this.questionToken}-${name}`;
+    private show(name: string) {
+        this.activeSlide = name;
+        if (name === this.slideOrder[this.slideOrder.length - 1]) this.reachedEnd = true;
     }
 
-    onSlideChange(id: string) {
-        this.activeSlideId = id;
-        if (id === this.lastSlideId) this.reachedEnd = true;
+    /**
+     * The index carried by the active slide's name, or -1.
+     *
+     * `premise-3` and `conclusion-0` are the only slides there can be several
+     * of, and the template needs to know which one without a second source of
+     * truth about the order.
+     */
+    slideIndexOf(prefix: string): number {
+        return this.activeSlide.startsWith(prefix)
+            ? Number(this.activeSlide.slice(prefix.length))
+            : -1;
+    }
+
+    conclusionAt(i: number) {
+        const c = this.game.question.conclusion;
+        return Array.isArray(c) ? c[i] : c;
+    }
+
+    conclusionLabel(i: number) {
+        const c = this.game.question.conclusion;
+        if (!Array.isArray(c)) return "Conclusion";
+        return i === c.length - 1 ? "Last conclusion" : `Conclusion ${i + 1}`;
     }
 
     /**
@@ -268,14 +280,8 @@ export class GameComponent {
     slideOrder: string[] = [];
 
     private buildSlideOrder() {
-        // The order itself lives in `slides.utils`, where its contract is
-        // tested; this only stamps the per-question token onto each name.
-        this.slideOrder = slideNames(this.game.question).map(name => this.slideId(name));
-    }
-
-    /** The final slide, which depends on which slides this question has. */
-    private get lastSlideId() {
-        return this.slideOrder[this.slideOrder.length - 1] ?? "";
+        // The order lives in `slides.utils`, where its contract is tested.
+        this.slideOrder = slideNames(this.game.question);
     }
 
     /**
@@ -287,9 +293,7 @@ export class GameComponent {
      */
     step(delta: number) {
         if (!this.slideOrder.length) return;
-        const at = this.slideOrder.indexOf(this.activeSlideId);
-        const next = Math.min(this.slideOrder.length - 1, Math.max(0, (at < 0 ? 0 : at) + delta));
-        this.onSlideChange(this.slideOrder[next]);
+        this.show(stepSlide(this.slideOrder, this.activeSlide, delta));
     }
 
     /** All-at-once has no slides to wait for, so the form is there from the start. */
@@ -298,10 +302,8 @@ export class GameComponent {
     }
 
     private armCarousel() {
-        // Before the ids are computed, so this question's slides are all new.
-        this.questionToken++;
         this.buildSlideOrder();
-        this.activeSlideId = this.slideOrder[0] ?? "";
+        this.activeSlide = this.slideOrder[0] ?? "";
         // A one-slide question is already at its end and would otherwise never
         // fire a slide event to say so.
         this.reachedEnd = this.slideOrder.length <= 1;
@@ -444,8 +446,6 @@ export class GameComponent {
         this.game.checkConstruction(this.picks);
     }
 
-    /** The carousel, so the keyboard can step it as the buttons do. */
-    @ViewChild("carousel") carousel?: { next(): void; prev(): void };
 
     /**
      * Playing from the keyboard.

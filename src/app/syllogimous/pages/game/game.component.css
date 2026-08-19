@@ -421,3 +421,25 @@
     padding: 0.6rem;
     height: auto;
 }
+
+/*
+ * One slide at a time, rendered directly.
+ *
+ * The height is held steady across slides so advancing does not make the card
+ * jump — a premise is one line and a pair of webs is several hundred pixels,
+ * and a control that moves under the pointer between clicks is its own bug.
+ */
+.slides {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 11rem;
+    padding-block: 1rem 3.5rem;
+}
+
+.slides__one {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    text-align: center;
+}

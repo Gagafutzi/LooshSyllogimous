@@ -75,3 +75,22 @@ export function slideNames(q: SlideSource): string[] {
 
     return ids;
 }
+
+
+/**
+ * Move by one slide, clamped at both ends.
+ *
+ * Deliberately not wrapping: reaching the end is what unlocks answering, and
+ * wrapping round to the first premise again made that a lap counter rather than
+ * a position.
+ *
+ * Trivial, and here rather than in the page because "advancing does not work"
+ * has been the report three times running. A clamp is easy to get right and
+ * easier to check than to argue about.
+ */
+export function stepSlide(order: string[], current: string, delta: number): string {
+    if (!order.length) return "";
+    const at = order.indexOf(current);
+    const from = at < 0 ? 0 : at;
+    return order[Math.min(order.length - 1, Math.max(0, from + delta))];
+}

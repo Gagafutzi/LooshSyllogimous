@@ -44,141 +44,81 @@
             </ngb-progressbar>
         </div>
 
-        <div [class.d-none]="gameMode === '0'"
+        <!--
+          One slide, rendered directly.
+
+          This was an `ngb-carousel`. Everything it offered was already computed
+          here — the order of the slides, which one is active, and the buttons
+          that move between them — and all it added was a second state machine
+          with its own idea of the active slide, which had to be coaxed into
+          agreeing with this one and repeatedly did not. Rendering the active
+          slide is what a carousel is; the rest was overhead.
+        -->
+        <div class="slides" [class.d-none]="gameMode === '0'"
              [style.cursor]="carouselAdvance === 'click' ? 'pointer' : null"
              (click)="onSlideAreaClick($event)">
-            <ngb-carousel
-                #carousel
-                [animation]="false"
-                [activeId]="activeSlideId"
-                [interval]="0"
-                [pauseOnHover]="false"
-                [showNavigationArrows]="false"
-                [showNavigationIndicators]="false"
-                (slide)="onSlideChange($event.current)"
-                style="border: 0; box-shadow: none;"
-            >
-                <ng-template ngbSlide [id]="slideId('setup')" *ngIf="game.question.setup?.length">
-                    <div style="display: grid; place-items: center;">
-                        <ng-container *ngTemplateOutlet="questionSetup"></ng-container>
-                    </div>
-                </ng-template>
+
+            <div class="slides__one" [attr.data-slide]="activeSlide">
+
+                <ng-container *ngIf="activeSlide === 'setup'">
+                    <ng-container *ngTemplateOutlet="questionSetup"></ng-container>
+                </ng-container>
 
                 <!--
-                  Both webs on one slide, like the choice candidates.
-
-                  Comparing them *is* the task, so showing one at a time would
-                  make it a memory test with a comparison bolted on. This mode
-                  states itself in pictures and leaves `premises` empty, so
-                  without this slide a carousel showed the setup and the
-                  conclusion and nothing in between.
+                  Every arrangement on one slide. Comparing them *is* the task,
+                  so showing one at a time would make it a memory test with a
+                  comparison bolted on.
                 -->
-<!--
-                  Every arrangement on one slide, like the webs.
+                <div class="grids" *ngIf="activeSlide === 'grids'">
+                    <div class="grids__one" *ngFor="let g of game.question.grids">
+                        <small class="text-muted">{{ g.label }}</small>
+                        <app-question-map [plot]="{ map: g.map, axes: game.question.gridAxes, bounds: game.question.gridBounds }"></app-question-map>
+                    </div>
+                </div>
 
-                  Comparing them *is* the task — the question is what changed
-                  between them — so showing one at a time would make it a memory
-                  test with a comparison bolted on.
+                <!-- Both webs together, for the same reason. -->
+                <div class="webs" *ngIf="activeSlide === 'webs'">
+                    <div class="webs__one" *ngFor="let w of game.question.webs; let i = index">
+                        <small class="text-muted">{{ i === 0 ? "First web" : "Second web" }}</small>
+                        <app-relational-web [web]="w" [redraw]="webRedraw"
+                                            (pick)="onWebPick($event)"></app-relational-web>
+                    </div>
+                </div>
+
+                <div *ngIf="slideIndexOf('premise-') >= 0">
+                    <small class="text-muted">
+                        {{ slideIndexOf('premise-') === game.question.premises.length - 1
+                           ? "Last premise" : "Premise " + (slideIndexOf('premise-') + 1) }}
+                    </small>
+                    <div [innerHTML]="game.question.premises[slideIndexOf('premise-')]"></div>
+                </div>
+
+                <!--
+                  Candidates together, not one at a time: they have to be
+                  compared against each other.
                 -->
-                <ng-container *ngIf="game.question.grids?.length">
-                    <ng-template ngbSlide [id]="slideId('grids')">
-                        <div style="display: grid; place-items: center;">
-                            <div class="grids">
-                                <div class="grids__one" *ngFor="let g of game.question.grids">
-                                    <small class="text-muted">{{ g.label }}</small>
-                                    <app-question-map [plot]="{ map: g.map, axes: game.question.gridAxes, bounds: game.question.gridBounds }"></app-question-map>
-                                </div>
-                            </div>
-                        </div>
-                    </ng-template>
-                </ng-container>
-
-                                <ng-container *ngIf="game.question.webs?.length">
-                    <ng-template ngbSlide [id]="slideId('webs')">
-                        <div style="display: grid; place-items: center;">
-                            <div class="webs">
-                                <div class="webs__one" *ngFor="let w of game.question.webs; let i = index">
-                                    <small class="text-muted">{{ i === 0 ? "First web" : "Second web" }}</small>
-                                    <app-relational-web [web]="w" [redraw]="webRedraw"
-                                                        (pick)="onWebPick($event)"></app-relational-web>
-                                </div>
-                            </div>
-                        </div>
-                    </ng-template>
-                </ng-container>
-
-                <ng-template ngbSlide [id]="slideId('premise-' + i)" *ngFor="let p of game.question.premises; let i = index; let last = last;">
-                    <div style="display: grid; place-items: center;">
-                        <div>
-                            <small class="text-muted">{{last ? "Last premise" : "Premise " + (i + 1)}}</small>
-                            <div [innerHTML]="p"></div>
+                <div *ngIf="activeSlide === 'choices'">
+                    <small class="text-muted">{{ game.question.choicePrompt || "Which follows?" }}</small>
+                    <div class="choice-list" *ngIf="!game.question.choiceGrids?.length">
+                        <div *ngFor="let c of game.question.choices; let i = index">
+                            <span class="choice__key">{{ i + 1 }}</span>
+                            <span [innerHTML]="c"></span>
                         </div>
                     </div>
-                </ng-template>
+                    <div class="grids" *ngIf="game.question.choiceGrids?.length">
+                        <div class="grids__one" *ngFor="let g of game.question.choiceGrids; let i = index">
+                            <small class="text-muted">{{ i + 1 }}</small>
+                            <app-question-map [plot]="{ map: g, axes: game.question.gridAxes, bounds: game.question.gridBounds }"></app-question-map>
+                        </div>
+                    </div>
+                </div>
 
-                <!--
-                  Choice mode gets one slide holding every candidate, not one
-                  slide each: they have to be compared against each other, and
-                  a carousel that shows them one at a time would make that a
-                  memory task on top of the reasoning task.
-                -->
-                <ng-container *ngIf="game.question.answerMode === 'choice'">
-                    <ng-template ngbSlide [id]="slideId('choices')">
-                        <div style="display: grid; place-items: center;">
-                            <div>
-                                <small class="text-muted">{{ game.question.choicePrompt || "Which follows?" }}</small>
-                                <!--
-                                  Options that are arrangements are drawn here
-                                  too. Listing their coordinates on the slide
-                                  while the buttons below show grids put the
-                                  column of numbers back beside the picture that
-                                  replaced it — the same duplication the
-                                  premises had.
-                                -->
-                                <div class="choice-list" *ngIf="!game.question.choiceGrids?.length">
-                                    <div *ngFor="let c of game.question.choices; let i = index">
-                                        <span class="choice__key">{{ i + 1 }}</span>
-                                        <span [innerHTML]="c"></span>
-                                    </div>
-                                </div>
-                                <div class="grids" *ngIf="game.question.choiceGrids?.length">
-                                    <div class="grids__one" *ngFor="let g of game.question.choiceGrids; let i = index">
-                                        <small class="text-muted">{{ i + 1 }}</small>
-                                        <app-question-map [plot]="{ map: g, axes: game.question.gridAxes, bounds: game.question.gridBounds }"></app-question-map>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </ng-template>
-                </ng-container>
+                <div *ngIf="slideIndexOf('conclusion-') >= 0">
+                    <small class="text-muted">{{ conclusionLabel(slideIndexOf('conclusion-')) }}</small>
+                    <div [innerHTML]="conclusionAt(slideIndexOf('conclusion-'))"></div>
+                </div>
 
-                <!--
-                  Not for a structure match either: its conclusion records which
-                  node goes with which, so showing it would print the answer.
-                -->
-                <ng-container *ngIf="game.question.answerMode !== 'choice' && game.question.answerMode !== 'map'">
-                <ng-container *ngIf="Array.isArray(game.question.conclusion); else conclusionsIsStringCarouselTemplate">
-                    <ng-template ngbSlide [id]="slideId('conclusion-' + i)" *ngFor="let c of game.question.conclusion; let i = index; let last = last;">
-                        <div style="display: grid; place-items: center;">
-                            <div>
-                                <small class="text-muted">{{last ? "Last conclusion" : "Conclusion " + (i + 1)}}</small>
-                                <div [innerHTML]="c"></div>
-                            </div>
-                        </div>
-                    </ng-template>
-                </ng-container>
-                <ng-template #conclusionsIsStringCarouselTemplate>
-                    <ng-template ngbSlide [id]="slideId('conclusion-0')">
-                        <div style="display: grid; place-items: center;">
-                            <div>
-                                <small class="text-muted">Conclusion</small>
-                                <div [innerHTML]="game.question.conclusion"></div>
-                            </div>
-                        </div>
-                    </ng-template>
-                </ng-template>
-                </ng-container>
-            </ngb-carousel>
+            </div>
     
             <div class="flex-between p-3" style="position: absolute; left: 0; bottom: 0; width: 100%;"
                  *ngIf="carouselAdvance === 'manual'">

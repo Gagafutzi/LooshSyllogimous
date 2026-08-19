@@ -12,7 +12,7 @@
  * there is always something to read before answering.
  */
 
-import { assert, seeded, test } from "./harness";
+import { assert, equal, seeded, test } from "./harness";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -22,7 +22,9 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
-import { concealsConclusion, drawsItself, slideNames } from "../src/app/syllogimous/utils/slides.utils";
+import {
+    concealsConclusion, drawsItself, slideNames, stepSlide,
+} from "../src/app/syllogimous/utils/slides.utils";
 import { BUILD } from "./modes";
 
 function context(everyRung: boolean): GeneratorContext {
@@ -147,4 +149,54 @@ test("an item that draws itself never lists the same content as text", () => {
                 `${type} shows its premises as text as well as drawing them`);
         }
     }
+});
+
+/**
+ * Advancing, which is the part that kept not working.
+ *
+ * It was an `ngb-carousel` driven by a bound `activeId`, which meant two state
+ * machines with their own ideas of the active slide — and every fix that made
+ * one agree broke the other. The page renders the active slide itself now, so
+ * stepping is an index clamp, and an index clamp is easier to check than to
+ * argue about.
+ */
+test("stepping forward visits every slide once and stops at the end", () => {
+    const ctx = context(true);
+
+    for (const type of ORDERED_QUESTION_TYPES) {
+        const make = BUILD[type];
+        if (!make) continue;
+
+        const params = QUESTION_TYPE_SETTING_PARAMS[type];
+        const q = seeded(7717, () => make(ctx, params.minNumOfPremises + 1));
+        const order = slideNames(q);
+        assert(order.length > 0, `${type}: nothing to step through`);
+
+        // Forward from the first slide, one step at a time.
+        const seen: string[] = [order[0]];
+        let at = order[0];
+        for (let i = 0; i < order.length + 4; i++) {
+            const next = stepSlide(order, at, 1);
+            if (next !== at) seen.push(next);
+            at = next;
+        }
+
+        assert(seen.join(",") === order.join(","),
+            `${type}: stepping visited ${seen.join(",")} for an order of ${order.join(",")}`);
+        assert(at === order[order.length - 1],
+            `${type}: stepping did not finish on the last slide`);
+
+        // And back again, without wrapping past the start.
+        for (let i = 0; i < order.length + 4; i++) at = stepSlide(order, at, -1);
+        assert(at === order[0], `${type}: stepping back did not stop at the first slide`);
+    }
+});
+
+test("stepping copes with a slide name that is no longer in the order", () => {
+    // Happens for one change-detection pass when a question is replaced: the
+    // active name is the old question's, the order is the new one's.
+    equal(stepSlide(["setup", "premise-0"], "conclusion-0", 1), "premise-0",
+        "a stale name should step from the start rather than nowhere");
+    equal(stepSlide([], "setup", 1), "", "an empty order has no slide to show");
+    equal(stepSlide(["webs"], "webs", 1), "webs", "a single slide has nowhere to go");
 });
