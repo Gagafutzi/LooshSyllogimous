@@ -325,24 +325,147 @@ export function ringLayout(n: number, rotation = Math.random()): Array<[number, 
  * because a force-directed one settles into *regular* arrangements — which is
  * the problem being fixed.
  */
-export function scatterLayout(n: number, margin = 0.14): Array<[number, number]> {
+export function scatterLayout(n: number, margin = 0.12): Array<[number, number]> {
     const lo = margin, hi = 1 - margin;
     const out: Array<[number, number]> = [];
 
-    // Starts above what n points can comfortably manage and eases off, so a
-    // small graph gets a well-spread picture and a large one still terminates.
-    let floor = 0.9 / Math.sqrt(n);
+    /*
+     * How far apart two nodes want to be, given how many there are.
+     *
+     * There is no separation that works at every size: twelve nodes a fifth of
+     * the box apart do not fit in the box, and demanding it only means the
+     * sampler starves. What scales instead is the *drawing* — the renderer
+     * shrinks its circles as the count rises — so the target here can come down
+     * with it rather than fighting geometry.
+     */
+    let floor = Math.max(0.15, 0.82 / Math.sqrt(n));
 
-    for (let guard = 0; out.length < n && guard < n * 400; guard++) {
+    for (let guard = 0; out.length < n && guard < n * 600; guard++) {
         const p: [number, number] = [lo + Math.random() * (hi - lo), lo + Math.random() * (hi - lo)];
         if (out.every(q => Math.hypot(q[0] - p[0], q[1] - p[1]) >= floor)) {
             out.push(p);
             continue;
         }
-        // Nothing fits: loosen rather than spin.
-        if (guard % (n * 20) === (n * 20) - 1) floor *= 0.85;
+        if (guard % (n * 20) === (n * 20) - 1) floor *= 0.92;
     }
 
-    // A ring is still better than nothing if the sampler somehow starves.
-    return out.length === n ? out : ringLayout(n);
+    // Never a ring, even when the sampler cannot finish: falling back to one
+    // would reinstate the regular picture this exists to avoid, at exactly the
+    // sizes where the graph is most likely to have a symmetry worth hiding.
+    return out.length === n ? out : jitteredGrid(n, margin);
+}
+
+/**
+ * Cells, shuffled, each node placed loosely inside one.
+ *
+ * Always terminates and always separates, which rejection sampling does
+ * neither of at the tighter sizes. Irregular enough to serve: the jitter is
+ * large enough that nodes are not at equal distances from the centre, which is
+ * the property that would let a symmetry be read off the picture.
+ */
+function jitteredGrid(n: number, margin: number): Array<[number, number]> {
+    const cols = Math.ceil(Math.sqrt(n));
+    const rows = Math.ceil(n / cols);
+    const span = 1 - 2 * margin;
+    const cw = span / cols, ch = span / rows;
+
+    const cells: Array<[number, number]> = [];
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) cells.push([c, r]);
+    }
+    for (let i = cells.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cells[i], cells[j]] = [cells[j], cells[i]];
+    }
+
+    // A quarter of a cell each way: enough to look unplanned, little enough
+    // that two neighbours cannot close more than half the gap between them.
+    const jitter = 0.25;
+    return cells.slice(0, n).map(([c, r]) => [
+        margin + (c + 0.5 + (Math.random() - 0.5) * 2 * jitter) * cw,
+        margin + (r + 0.5 + (Math.random() - 0.5) * 2 * jitter) * ch,
+    ] as [number, number]);
+}
+
+
+/**
+ * How much a given edge bows, and which way.
+ *
+ * A *uniform* bow does not solve the problem it was introduced for. Two edges
+ * leaving one node at similar angles curve by the same proportion in the same
+ * direction, so both arcs shift together and the gap between them is what it
+ * always was — measured, 20.3 units apart straight and 20.4 bowed.
+ *
+ * The magnitude has to differ per edge. Derived from the two node indices so it
+ * is stable across redraws, spread over a range wide enough to separate a fan
+ * of edges leaving one node, and never zero — a straight edge among curved ones
+ * reads as a different kind of thing.
+ */
+export function bowFor(i: number, j: number): number {
+    /*
+     * Both signs, not one. Curving every edge the same way moves a fan of them
+     * together and leaves the gaps where they were — measured, 20.3 units apart
+     * straight and 21.0 bowed. Curving them in opposite directions is what
+     * actually opens a fan out.
+     */
+    const CURVES = [-0.26, 0.13, -0.13, 0.26];
+    return CURVES[(i * 5 + j * 11) % CURVES.length];
+}
+
+/** Points along an arrow's curve, for measuring how near two of them pass. */
+export function samplePath(p: ArrowPath, steps = 24): Array<[number, number]> {
+    const [, cx, cy] = /Q ([-\d.]+) ([-\d.]+)/.exec(p.d)!.map(Number);
+    return Array.from({ length: steps + 1 }, (_, k) => {
+        const t = k / steps, u = 1 - t;
+        return [
+            u * u * p.from[0] + 2 * u * t * cx + t * t * p.to[0],
+            u * u * p.from[1] + 2 * u * t * cy + t * t * p.to[1],
+        ] as [number, number];
+    });
+}
+
+export interface ArrowPath {
+    d: string;
+    /** Where the line starts and ends after trimming, for checking. */
+    from: [number, number];
+    to: [number, number];
+}
+
+/**
+ * One arrow, trimmed clear of both nodes and bowed away from its neighbours.
+ *
+ * Lives here rather than in the component because it is geometry, and geometry
+ * is the part that can be wrong in ways nobody notices by looking — an arrow
+ * that points backwards still looks like an arrow.
+ *
+ * Two things it has to guarantee. The trim is **clamped**: nodes closer
+ * together than twice the gap would otherwise leave a segment running
+ * backwards, so the arrowhead would sit at the wrong end. And the line **bows**,
+ * because straight lines between scattered nodes routinely lie almost on top of
+ * one another — three edges leaving a node at similar angles read as one thick
+ * line, and which head belongs to which is then unrecoverable. Each edge bows by
+ * a fraction of its own length, so near-parallel neighbours separate.
+ */
+export function arrowPath(
+    a: [number, number],
+    b: [number, number],
+    radius: number,
+    headRoom: number,
+    bow: number,
+): ArrowPath {
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const len = Math.hypot(dx, dy) || 1;
+
+    const wanted = radius + 3;
+    // Leave a shaft even when the two are nearly touching.
+    const gap = Math.min(wanted, Math.max(0, (len - headRoom) / 2));
+
+    const from: [number, number] = [a[0] + (dx / len) * gap, a[1] + (dy / len) * gap];
+    const to: [number, number] = [b[0] - (dx / len) * gap, b[1] - (dy / len) * gap];
+
+    // Perpendicular to the chord, a fixed fraction of its length.
+    const cx = (from[0] + to[0]) / 2 - (to[1] - from[1]) * bow;
+    const cy = (from[1] + to[1]) / 2 + (to[0] - from[0]) * bow;
+
+    return { d: `M ${from[0]} ${from[1]} Q ${cx} ${cy} ${to[0]} ${to[1]}`, from, to };
 }

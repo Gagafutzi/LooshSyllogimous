@@ -364,8 +364,27 @@
 
 /* Two webs, side by side while there is room. Comparing them is the task, so
  * stacking them on a wide screen would make it a memory task instead. */
-.webs { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
-.webs__one { display: grid; justify-items: center; gap: 0.15rem; }
+/*
+ * Two webs, given the width the card actually has.
+ *
+ * They were capped small enough that half the panel sat empty, which cost the
+ * one thing this mode needs — arrowheads big enough to read a direction from.
+ */
+.webs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(0.5rem, 2vw, 1.5rem);
+    justify-content: center;
+    width: 100%;
+}
+
+.webs__one {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    flex: 1 1 18rem;
+    max-width: 26rem;
+}
 
 /*
  * Arrangements shown together.

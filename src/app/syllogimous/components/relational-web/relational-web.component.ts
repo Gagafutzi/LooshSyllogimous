@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { DIM_SLOTS } from "../../utils/phrasing";
+import { arrowPath, bowFor } from "../../utils/web.utils";
 
 export interface DrawnWeb {
     adj: boolean[][];
@@ -20,7 +21,8 @@ export interface DrawnWeb {
     picked?: number[];
 }
 
-interface Arrow { x1: number; y1: number; x2: number; y2: number; both: boolean; }
+/** Drawn as a path, so it can bow away from its neighbours. */
+interface Arrow { d: string; both: boolean; }
 interface Loop { x: number; y: number; }
 interface Node {
     x: number;
@@ -48,7 +50,26 @@ interface Node {
 export class RelationalWebComponent {
     /** Viewbox units; the SVG scales to whatever box it is given. */
     readonly size = 200;
-    readonly radius = 13;
+
+    /**
+     * Node size falls as the count rises, and the arrows are why.
+     *
+     * A line is trimmed to each node's rim, so two circles of a fixed size
+     * eventually leave no room between them for a head and a shaft — and twelve
+     * nodes far enough apart for thirteen-unit circles do not fit in the box at
+     * all. Shrinking the circles buys the arrows their space back, which is the
+     * right trade: a slightly smaller label is a minor cost, and an arrow whose
+     * direction cannot be read is the whole picture failing.
+     */
+    radius = 13;
+
+    /**
+     * How much line an arrowhead needs, to read as pointing somewhere.
+     *
+     * A head with no shaft behind it is a triangle sitting between two circles,
+     * and which of them it belongs to is anyone's guess.
+     */
+    get headRoom() { return this.radius + 1; }
 
     nodes: Node[] = [];
     arrows: Arrow[] = [];
@@ -64,6 +85,8 @@ export class RelationalWebComponent {
         this.loops = [];
         this.selectable = !!w?.selectable;
         if (!w) return;
+
+        this.radius = Math.max(8, Math.min(13, Math.round(52 / Math.sqrt(w.labels.length))));
 
         const at = (i: number) => ({
             x: w.layout[i][0] * this.size,
@@ -90,7 +113,7 @@ export class RelationalWebComponent {
                 if (i === j) { this.loops.push(at(i)); continue; }
                 // Drawn once for a mutual pair, with a head at each end.
                 if (w.adj[j][i] && j < i) continue;
-                this.arrows.push(this.between(at(i), at(j), w.adj[j][i]));
+                this.arrows.push(this.between(at(i), at(j), w.adj[j][i], i, j));
             }
         }
     }
@@ -110,18 +133,19 @@ export class RelationalWebComponent {
         return `color-mix(in srgb, var(--th-dim-${slot % DIM_SLOTS}) 22%, transparent)`;
     }
 
-    /** Trimmed to the rim at both ends, so the heads are visible. */
-    private between(a: { x: number; y: number }, b: { x: number; y: number }, both: boolean): Arrow {
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const len = Math.hypot(dx, dy) || 1;
-        const gap = this.radius + 3;
-        return {
-            x1: a.x + (dx / len) * gap,
-            y1: a.y + (dy / len) * gap,
-            x2: b.x - (dx / len) * gap,
-            y2: b.y - (dy / len) * gap,
-            both,
-        };
+    /** Geometry lives in `web.utils`, where it can be checked. */
+    private between(
+        a: { x: number; y: number },
+        b: { x: number; y: number },
+        both: boolean,
+        i: number,
+        j: number,
+    ): Arrow {
+        // Curvature from the node indices rather than from geometry, so the
+        // same pair always curves the same way and a redraw does not reshuffle
+        // the picture under someone mid-item.
+        const path = arrowPath(
+            [a.x, a.y], [b.x, b.y], this.radius, this.headRoom, bowFor(i, j));
+        return { d: path.d, both };
     }
 }
-

@@ -11,7 +11,7 @@
 import { assert, equal, seeded, test } from "./harness";
 import {
     WEB_PROPERTIES, Web, cloneWeb, edgesOf, emptyWeb, isomorphic, mappings, nearMiss, orbitOf,
-    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout,
+    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout, arrowPath, bowFor, samplePath,
 } from "../src/app/syllogimous/utils/web.utils";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
@@ -380,4 +380,106 @@ test("Relational Web is answered on the picture, never from a menu", () => {
 
         assert(pointed > 8, `only ${pointed} pointing items in forty`);
     }
+});
+
+/**
+ * Arrow geometry, which is the part that can be wrong invisibly.
+ *
+ * An arrow pointing backwards still looks like an arrow. The ring layout kept
+ * every pair far enough apart that trimming a line to both rims could never
+ * overshoot; scattering the nodes made it reachable, and a reversed arrow is a
+ * worse failure than a hard-to-see one because it reads as a confident claim
+ * about the opposite relation.
+ */
+test("an arrow always runs from its source to its target", () => {
+    const radius = 13, headRoom = 14;
+
+    seeded(3313, () => {
+        for (let run = 0; run < 400; run++) {
+            // Deliberately includes pairs far closer than two node radii.
+            const a: [number, number] = [Math.random() * 200, Math.random() * 200];
+            const b: [number, number] = [a[0] + (Math.random() - 0.5) * 60,
+                                         a[1] + (Math.random() - 0.5) * 60];
+            if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 1) continue;
+
+            const { from, to } = arrowPath(a, b, radius, headRoom, 0.14);
+
+            // The trimmed segment must point the same way as the pair does.
+            const along = (to[0] - from[0]) * (b[0] - a[0]) + (to[1] - from[1]) * (b[1] - a[1]);
+            assert(along > 0,
+                `the arrow runs backwards for a pair `
+                + `${Math.hypot(b[0] - a[0], b[1] - a[1]).toFixed(1)} units apart`);
+
+            // And it must be long enough to carry a head that means something.
+            const shaft = Math.hypot(to[0] - from[0], to[1] - from[1]);
+            assert(shaft >= Math.min(headRoom, Math.hypot(b[0] - a[0], b[1] - a[1])) - 0.001,
+                `only ${shaft.toFixed(1)} units of shaft`);
+        }
+    });
+});
+
+test("arrows bow, so near-parallel ones do not merge", () => {
+    /*
+     * The failure this fixes, from the screenshot: several edges leaving one
+     * node at similar angles draw as one thick line, and which arrowhead
+     * belongs to which cannot be recovered.
+     *
+     * Measured as the closest the two *curves* pass, sampled along their
+     * lengths — not as the distance between their midpoints, which was the
+     * first attempt and measured nothing: two arcs of different lengths have
+     * distant midpoints whether or not they overlap. The near end is skipped
+     * because both edges leave the same node and must be close there.
+     */
+    const radius = 13, headRoom = 14;
+
+    const origin: [number, number] = [20, 100];
+    const far = (deg: number, len: number): [number, number] =>
+        [origin[0] + Math.cos(deg * Math.PI / 180) * len,
+         origin[1] + Math.sin(deg * Math.PI / 180) * len];
+
+    const closest = (bowA: number, bowB: number) => {
+        // The first quarter is skipped: both edges leave the same node and
+        // have to be close there, in any drawing.
+        const a = samplePath(arrowPath(origin, far(0, 150), radius, headRoom, bowA)).slice(6);
+        const b = samplePath(arrowPath(origin, far(4, 110), radius, headRoom, bowB)).slice(6);
+        let min = Infinity;
+        for (const p of a) for (const q of b) {
+            min = Math.min(min, Math.hypot(p[0] - q[0], p[1] - q[1]));
+        }
+        return min;
+    };
+
+    const straight = closest(0, 0);
+    const bowed = closest(bowFor(0, 1), bowFor(0, 2));
+
+    /*
+     * Thresholds from measurement, not from taste. On this deliberately harsh
+     * case — two edges four degrees apart — straight lines pass 3.2 units from
+     * each other and bowed ones 7.1, on a 200-unit picture drawn with a
+     * 1.7-unit stroke. Four stroke widths of clear gap is the difference
+     * between two lines and one thick one.
+     */
+    assert(straight < 4.5,
+        `the straight case was already ${straight.toFixed(1)} apart, so this proves nothing`);
+    assert(bowed > 6,
+        `two near-parallel arrows still pass within ${bowed.toFixed(1)} units,`
+        + " which is close to one stroke width of separation");
+    assert(bowed > straight * 1.8,
+        `bowing barely helped: ${straight.toFixed(1)} straight, ${bowed.toFixed(1)} bowed`);
+});
+
+test("the same pair always bows the same way", () => {
+    // Sign taken from the node indices rather than from geometry, so a redraw
+    // does not reshuffle the picture under a reader mid-item.
+    const a: [number, number] = [30, 40], b: [number, number] = [170, 150];
+    equal(arrowPath(a, b, 13, 14, bowFor(2, 5)).d, arrowPath(a, b, 13, 14, bowFor(2, 5)).d,
+        "the same edge drew two different paths");
+    assert(bowFor(0, 1) !== bowFor(0, 2),
+        "two edges out of one node curve identically, which is what merged them");
+
+    // And a fan out of one node must curve *both* ways. All one way moves the
+    // whole fan together and leaves the gaps exactly where they were.
+    const fan = [1, 2, 3, 4].map(j => bowFor(0, j));
+    assert(fan.some(b => b > 0) && fan.some(b => b < 0),
+        "every edge out of a node bows the same way, which does not open a fan");
 });

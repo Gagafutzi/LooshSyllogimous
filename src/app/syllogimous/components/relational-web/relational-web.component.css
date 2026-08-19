@@ -1,13 +1,27 @@
 .web {
     width: 100%;
-    max-width: 15rem;
+    /* The card has the room; the old cap left most of it empty and made every
+       node and arrowhead smaller than it needed to be. */
+    max-width: 24rem;
     height: auto;
     overflow: visible;
 }
 
 .web__arrow {
+    fill: none;
     stroke: var(--th-text-dim, #7d8ca6);
-    stroke-width: 1.4;
+    stroke-width: 1.7;
+}
+
+/*
+ * The head, coloured here rather than inherited from the line.
+ *
+ * One marker serves every arrow and they are all the same colour, so there is
+ * nothing to inherit — and doing it this way does not depend on `context-stroke`
+ * being implemented.
+ */
+.web__head {
+    fill: var(--th-text-dim, #7d8ca6);
 }
 
 .web__loop {
