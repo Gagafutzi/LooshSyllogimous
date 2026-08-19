@@ -10,7 +10,7 @@ import { GameTimerService } from '../../services/game-timer.service';
 import { ConstructSlot } from '../../models/question.models';
 import { ProgressionService } from '../../services/progression.service';
 import { SlotAnswer, blankPicks, slotsRemaining } from '../../utils/construct.utils';
-import { KeybindService } from '../../services/keybind.service';
+import { KeybindService, keyLabel } from '../../services/keybind.service';
 import { slideNames, stepSlide } from '../../utils/slides.utils';
 
 @Component({
@@ -236,6 +236,12 @@ export class GameComponent {
      * no longer here.
      */
     activeSlide = "";
+
+    /** How the skip key reads, for the button that says so. */
+    get skipKeyLabel() {
+        const key = this.keys.binds.submit;
+        return key ? keyLabel(key) : "";
+    }
 
     private show(name: string) {
         this.activeSlide = name;

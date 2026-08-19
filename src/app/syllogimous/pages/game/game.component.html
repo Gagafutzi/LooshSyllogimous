@@ -18,8 +18,13 @@
     <!-- The state, beside the reasoning: one says how the answer follows, the
          other says where everything was. -->
     <app-question-map [question]="game.question"></app-question-map>
+    <!--
+      The key is named on the button, because a keyboard shortcut nobody is
+      told about is a shortcut for the person who wrote it.
+    -->
     <button class="btn btn-primary review__go" (click)="game.dismissReview()" autofocus>
         Continue <i class="bi bi-arrow-right"></i>
+        <small class="review__key" *ngIf="skipKeyLabel">{{ skipKeyLabel }}</small>
     </button>
 </div>
 

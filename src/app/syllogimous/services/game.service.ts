@@ -102,7 +102,16 @@ export class GameService implements GeneratorContext {
     /** The derivation for an item just got wrong; empty means move straight on. */
     review: string[] = [];
 
+    /**
+     * Once only.
+     *
+     * The skip key is space, and the Continue button takes focus when the
+     * explanation opens — so a browser that turned the keypress into a click as
+     * well would dismiss twice, and the second one builds a question nobody
+     * sees. `preventDefault` should stop that; not depending on it costs a line.
+     */
     dismissReview() {
+        if (!this.review.length) return;
         this.review = [];
         this.play(true, true);
     }

@@ -28,7 +28,13 @@ export const DEFAULT_KEYBINDS: Keybinds = {
     answerFalse: "ArrowDown",
     next: "ArrowRight",
     prev: "ArrowLeft",
-    submit: "Enter",
+    /*
+     * Space, not Enter. Dismissing the explanation is the one key you press
+     * without looking — you have just read the thing and want the next
+     * question — and space is where the thumb already is. Enter remains bindable
+     * for anyone who prefers it, which is the point of this table.
+     */
+    submit: " ",
 };
 
 export const ACTION_LABELS: Array<{ action: GameAction; label: string; hint: string }> = [
@@ -36,7 +42,7 @@ export const ACTION_LABELS: Array<{ action: GameAction; label: string; hint: str
     { action: "answerFalse", label: "Answer false", hint: "" },
     { action: "next",        label: "Next premise", hint: "Carousel modes" },
     { action: "prev",        label: "Previous premise", hint: "Carousel modes, where going back is allowed" },
-    { action: "submit",      label: "Continue",     hint: "Dismisses the explanation after a wrong answer" },
+    { action: "submit",      label: "Skip explanation", hint: "Dismisses the explanation shown after a wrong answer" },
 ];
 
 const LS_KEYBINDS = "SYL_KEYBINDS";

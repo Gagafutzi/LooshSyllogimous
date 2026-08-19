@@ -79,3 +79,56 @@ test("keys read as symbols where they have one", () => {
     equal(keyLabel(" "), "Space");
     equal(keyLabel("a"), "A");
 });
+
+/**
+ * Skipping the explanation.
+ *
+ * The explanation is the one screen you leave without looking — you have just
+ * read it and want the next question — so the key for it should be the one the
+ * thumb is already on. It was Enter, which is a reach, and nothing on screen
+ * said it existed.
+ */
+test("space skips the explanation by default", () => {
+    localStorage.clear();
+    const keys = new KeybindService();
+
+    equal(keys.binds.submit, " ", "the default skip key is not space");
+    equal(keyLabel(keys.binds.submit), "Space", "space does not read as Space");
+
+    const press = { key: " ", metaKey: false, ctrlKey: false, altKey: false } as KeyboardEvent;
+    equal(keys.actionFor(press), "submit", "pressing space does not skip");
+
+    localStorage.clear();
+});
+
+test("the skip key can be any key, which is the point of binding it", () => {
+    localStorage.clear();
+    const keys = new KeybindService();
+
+    keys.set("submit", "Enter");
+    const enter = { key: "Enter", metaKey: false, ctrlKey: false, altKey: false } as KeyboardEvent;
+    equal(keys.actionFor(enter), "submit", "a rebound skip key does nothing");
+
+    const space = { key: " ", metaKey: false, ctrlKey: false, altKey: false } as KeyboardEvent;
+    equal(keys.actionFor(space), null, "the old key still skips after rebinding");
+
+    // And taking a key from another action leaves that one visibly unbound,
+    // rather than two actions racing for one press.
+    keys.set("submit", "ArrowUp");
+    equal(keys.binds.answerTrue, "", "the key was silently shared with answering");
+
+    localStorage.clear();
+});
+
+test("a saved binding survives the default changing under it", () => {
+    // The defaults are merged, not replaced, so moving the default from Enter to
+    // space does not reach anyone who had already chosen.
+    localStorage.clear();
+    localStorage.setItem("SYL_KEYBINDS", JSON.stringify({ submit: "Enter" }));
+
+    const keys = new KeybindService();
+    equal(keys.binds.submit, "Enter", "a chosen binding was overwritten by the new default");
+    equal(keys.binds.answerTrue, "ArrowUp", "an unset binding did not fall back to its default");
+
+    localStorage.clear();
+});
