@@ -242,7 +242,19 @@ export interface AbilityConfig {
     /** Geometric discount on accumulated evidence, since ability moves. */
     forgetting: number;
 
-    /** Clock the difficulty scale is anchored at; no contribution at this value. */
+    /**
+     * The clock at which a deadline stops being a constraint.
+     *
+     * A fixed sixty seconds is the wrong anchor for anybody, and badly wrong for
+     * a fast player: someone answering a two-premise item in three seconds is
+     * charged nearly two levels for an eighteen-second limit they will never
+     * come near. Half the difficulty budget then goes on a clock that changes
+     * nothing, and the item itself never grows.
+     *
+     * `ProgressionService` replaces this per mode with what the player's own
+     * answers say, so the axis measures time pressure rather than the presence
+     * of a number.
+     */
     referenceSeconds: number;
     /** Levels added per halving of the time limit. */
     perTimeHalving: number;
@@ -345,7 +357,12 @@ export function levelOf(spec: ItemSpec, config = DEFAULT_ABILITY): number {
  */
 export function timeCost(seconds: number | null, config = DEFAULT_ABILITY): number {
     if (seconds == null || seconds <= 0) return 0;
-    return config.perTimeHalving * Math.log2(config.referenceSeconds / seconds);
+    /*
+     * Never negative. A limit more generous than the reference is not *easier*
+     * than having no limit at all — it is simply not a constraint, and letting
+     * it subtract difficulty would let a loose clock pay for a longer item.
+     */
+    return Math.max(0, config.perTimeHalving * Math.log2(config.referenceSeconds / seconds));
 }
 
 /** The deadline that contributes exactly `levels` of difficulty. */
@@ -745,6 +762,8 @@ export interface Trial {
     estimate: number;
     guess: number;
     correct: boolean;
+    /** How long the answer took, for calibrating the clock to this player. */
+    answerSeconds?: number;
     /** Bits wider or narrower than typical for the configuration, or 0. */
     widthDelta?: number;
 }
@@ -923,4 +942,31 @@ export function fitWidthCoefficient(
     }
 
     return { levelsPerBit: best, trials: usable.length, sd };
+}
+
+/**
+ * The deadline at which this player stops being under time pressure.
+ *
+ * Taken from what they actually do: a high quantile of their recent answer
+ * times, with headroom. Below it a clock bites; at or above it there is nothing
+ * to feel, whatever the number says.
+ *
+ * Falls back to the configured default until there is enough evidence, and
+ * never returns something so tight that the scale would price every deadline as
+ * enormous — a player having one very fast run should not make the next
+ * ordinary answer count as a crisis.
+ */
+export function referenceSecondsFrom(
+    times: number[],
+    fallback: number,
+    minSamples = 8,
+): number {
+    const usable = times.filter(t => Number.isFinite(t) && t > 0).sort((a, b) => a - b);
+    if (usable.length < minSamples) return fallback;
+
+    const at = (q: number) => usable[Math.min(usable.length - 1, Math.floor(q * usable.length))];
+    // Comfortably above their slower answers, so an unhurried item is unhurried.
+    const unhurried = at(0.85) * 1.6;
+
+    return Math.max(6, Math.min(fallback, unhurried));
 }

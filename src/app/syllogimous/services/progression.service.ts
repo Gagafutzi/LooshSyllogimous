@@ -8,7 +8,7 @@ import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
     abilityUpdate, aggregate, chooseConfig, guessRateFor, initAbility, levelOf,
     pCorrect, priorForNewMode, targetLevel,
-    Trial, fitRungCosts, fitWidthCoefficient,
+    Trial, fitRungCosts, fitWidthCoefficient, referenceSecondsFrom,
 } from "../utils/ability.utils";
 
 /**
@@ -197,6 +197,25 @@ export class ProgressionService {
         this.saveConfig();
         this.configCache = {};
         this.saveConfig();
+    }
+
+    /**
+     * The ability config, with the clock anchored to this player's own pace.
+     *
+     * Without the mode, the default sixty seconds stands. With it, the anchor
+     * comes from their answer times: a deadline only counts as difficulty when
+     * it approaches what they actually need.
+     */
+    private configForMode(type?: EnumQuestionType) {
+        const base = this.abilityConfig;
+        if (!type) return base;
+
+        const times = this.trials()
+            .filter(t => t.type === type && typeof t.answerSeconds === "number")
+            .slice(-40)
+            .map(t => t.answerSeconds!);
+
+        return { ...base, referenceSeconds: referenceSecondsFrom(times, base.referenceSeconds) };
     }
 
     /** Config for the ability model, with the user-tunable parts applied. */
@@ -397,7 +416,7 @@ export class ProgressionService {
 
         const params = QUESTION_TYPE_SETTING_PARAMS[type];
         const est = this.estimateFor(type);
-        const cfg = this.abilityConfig;
+        const cfg = this.configForMode(type);
 
         /*
          * Aimed below the estimate by a fraction of its own uncertainty.
@@ -623,7 +642,7 @@ export class ProgressionService {
     record(
         type: EnumQuestionType,
         outcome: Outcome,
-        _answerSeconds: number,
+        answerSeconds: number,
         item?: { answerMode?: string; slots?: number; choices?: number; options?: number; widthDelta?: number },
     ): LadderEvent[] {
         if (!this.config.enabled) { this.lastEvents = []; return []; }
@@ -642,7 +661,7 @@ export class ProgressionService {
             rungs: ladderFor(type).slice(0, before.rungs),
             seconds: before.seconds,
             widthDelta: item?.widthDelta ?? 0,
-        }, this.abilityConfig);
+        }, this.configForMode(type));
 
         const guess = guessRateFor(
             item?.answerMode ?? "boolean", item?.slots ?? 0, item?.choices ?? 0, item?.options ?? 3);
@@ -675,6 +694,7 @@ export class ProgressionService {
             guess,
             correct,
             widthDelta: item?.widthDelta ?? 0,
+            answerSeconds,
         });
 
         /*

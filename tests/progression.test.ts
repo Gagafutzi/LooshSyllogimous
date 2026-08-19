@@ -9,7 +9,7 @@
 
 import { assert, equal, seeded, test } from "./harness";
 import {
-    RUNG_COST, chooseConfig, DEFAULT_ABILITY, levelOf, pCorrect, timeCost,
+    RUNG_COST, chooseConfig, DEFAULT_ABILITY, levelOf, pCorrect, referenceSecondsFrom, timeCost,
 } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { RUNG_LADDERS, ladderFor } from "../src/app/syllogimous/utils/progression.utils";
@@ -173,4 +173,74 @@ test("a mode only serves easy items when it has actually run out", () => {
 
     localStorage.clear();
     assert(complaints.length === 0, `\n  ${complaints.join("\n  ")}`);
+});
+
+/**
+ * The clock has to be a clock, not a number.
+ *
+ * From a playtest: eighty-one answers, seventy-nine correct, and seventy-four
+ * of the items had two premises. Progression was working — rungs climbed from
+ * none to three and a limit was armed on most items — but the limits were
+ * eighteen to fifty-seven seconds for a player answering in three to nine.
+ *
+ * The scale anchored every deadline to a fixed sixty seconds, so an eighteen
+ * second limit was priced at nearly two levels: about two extra premises' worth
+ * of difficulty, for a constraint that never once bit. Half the budget went on
+ * a clock that changed nothing, and the item never grew.
+ *
+ * The answer time was being passed to `record` and thrown away — the parameter
+ * was named `_answerSeconds`.
+ */
+test("a deadline nobody could hit is worth nothing", () => {
+    const fast = { ...DEFAULT_ABILITY, referenceSeconds: 6 };
+
+    // Someone who answers in three seconds is not troubled by eighteen.
+    equal(timeCost(18, fast), 0, "a loose limit was still priced as difficulty");
+    equal(timeCost(60, fast), 0, "a limit far beyond the player was priced as difficulty");
+    assert(timeCost(4, fast) > 0.5, "a limit that genuinely bites should cost something");
+
+    // And a generous limit is never *easier* than no limit, which would let a
+    // loose clock pay for a longer item.
+    assert(timeCost(600, DEFAULT_ABILITY) >= 0, "a very loose clock subtracted difficulty");
+});
+
+test("the clock is anchored to what the player actually does", () => {
+    const fallback = DEFAULT_ABILITY.referenceSeconds;
+
+    // Too little evidence: keep the default rather than guess from a handful.
+    equal(referenceSecondsFrom([3, 4, 3], fallback), fallback,
+        "three answers were enough to re-anchor the whole scale");
+
+    // A fast player: the anchor comes down to near their own pace.
+    const quick = referenceSecondsFrom([2.4, 3.1, 2.8, 4.4, 3.2, 2.9, 3.7, 3.0, 4.1, 2.6], fallback);
+    assert(quick < 12, `anchor stayed at ${quick.toFixed(1)}s for a player answering in three`);
+    assert(quick >= 6, `anchor fell to ${quick.toFixed(1)}s, which would price every clock as a crisis`);
+
+    // A slow player is not punished: the anchor never exceeds the default.
+    const slow = referenceSecondsFrom(Array(20).fill(80), fallback);
+    equal(slow, fallback, "the anchor drifted above the configured ceiling");
+});
+
+test("a fast player's difficulty goes into the item, not into a slack clock", () => {
+    /*
+     * The end-to-end version. Answers are fast and correct, the timer is on, and
+     * what matters is that the item grows rather than the limit hovering at a
+     * number the player never approaches.
+     */
+    const type = EnumQuestionType.Distinction;
+
+    const outcome = seeded(2029, () => {
+        localStorage.clear();
+        localStorage.setItem("SYL_TIMER_TYPE", "2");
+        const service = new ProgressionService();
+        for (let i = 0; i < 60; i++) service.record(type, "right", 3 + Math.random() * 2);
+        return service.configFor(type);
+    });
+    localStorage.clear();
+
+    const floor = QUESTION_TYPE_SETTING_PARAMS[type].minNumOfPremises;
+    assert(outcome.premises > floor || (outcome.seconds != null && outcome.seconds <= 10),
+        `sixty fast correct answers left ${outcome.premises} premises and a`
+        + ` ${outcome.seconds == null ? "nonexistent" : Math.round(outcome.seconds) + "s"} clock —`
+        + " neither the item nor the deadline became demanding");
 });
