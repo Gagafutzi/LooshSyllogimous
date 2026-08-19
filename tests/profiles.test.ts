@@ -9,6 +9,8 @@
 
 import { assert, equal, test } from "./harness";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
+import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
+import { Settings } from "../src/app/syllogimous/models/settings.models";
 
 function fresh() {
     localStorage.clear();
@@ -194,6 +196,95 @@ test("a profile does not carry the master switch around with it", () => {
     o.setActive(false);
     o.useProfile(id);
     assert(o.state.active, "loading the profile reinstated the switched-off state");
+
+    localStorage.clear();
+});
+
+/**
+ * A profile says what you changed and stays silent about the rest.
+ *
+ * The complaint, in its general form: switching a profile on replaced the whole
+ * adaptive system with fixed settings, and there was no way to hand any of it
+ * back. The tri-state modifier rows had the right shape all along — Ladder, Off,
+ * On — while the mode list had only values, every one of which was applied
+ * whether or not anybody had touched it.
+ *
+ * So the ladder could never run under a profile: premises were pinned, negation
+ * and meta were forced on by fields that defaulted to true, and which modes
+ * appear was decided by the profile rather than by the tier.
+ */
+test("an untouched profile changes nothing about how play adapts", () => {
+    localStorage.clear();
+    const o = new SettingsOverrideService();
+    o.saveProfile("playthrough");
+
+    assert(o.state.active, "the profile should be in force");
+
+    const pins = o.pinned();
+    equal(pins.premises.size, 0, "a profile nobody edited still pins premise counts");
+    assert(!pins.negation, "a profile nobody edited still dictates negation");
+    assert(!pins.meta, "a profile nobody edited still dictates meta");
+
+    // And it does not seize control of which modes appear.
+    const settings = new Settings();
+    const before = Object.fromEntries(
+        Object.entries(settings.question).map(([t, q]) => [t, q.enabled]));
+    o.applyTo(settings);
+    for (const [t, was] of Object.entries(before)) {
+        equal(settings.question[t as EnumQuestionType].enabled, was,
+            `${t} had its availability decided by an untouched profile`);
+    }
+
+    localStorage.clear();
+});
+
+test("a setting can be given back after it has been changed", () => {
+    /*
+     * The half that was missing entirely. Fixing a premise count was possible;
+     * un-fixing it was not, at any point, by any control — so one edit removed
+     * the premise ladder from that mode permanently.
+     */
+    const type = EnumQuestionType.Distinction;
+
+    localStorage.clear();
+    const o = new SettingsOverrideService();
+    o.saveProfile("playthrough");
+
+    o.setMode(type, { numOfPremises: 7 });
+    assert(o.pinned().premises.has(type), "a chosen premise count was not honoured");
+
+    o.clearModeSetting(type, "numOfPremises");
+    assert(!o.pinned().premises.has(type), "a premise count could not be handed back");
+
+    // Same for whether the mode appears at all.
+    o.setMode(type, { enabled: false });
+    const off = new Settings();
+    o.applyTo(off);
+    assert(!off.question[type].enabled, "a mode switched off was not switched off");
+
+    o.clearModeSetting(type, "enabled");
+    const back = new Settings();
+    const was = back.question[type].enabled;
+    o.applyTo(back);
+    equal(back.question[type].enabled, was, "the tier did not get its say back");
+
+    localStorage.clear();
+});
+
+test("choosing one setting does not quietly choose its neighbours", () => {
+    // Overrides used to be seeded from a fallback carrying values for every
+    // field, so writing one wrote them all.
+    const type = EnumQuestionType.Distinction;
+
+    localStorage.clear();
+    const o = new SettingsOverrideService();
+    o.saveProfile("playthrough");
+    o.setMode(type, { enabled: true });
+
+    assert(!o.pinned().premises.has(type),
+        "switching a mode on also fixed its premise count");
+    equal(o.state.modes[type]?.numOfPremises, undefined,
+        "an unrelated setting was written alongside the one that was chosen");
 
     localStorage.clear();
 });

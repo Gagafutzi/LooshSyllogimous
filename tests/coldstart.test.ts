@@ -90,7 +90,7 @@ test("a premise count set in Customise is not overwritten by progression", () =>
         "progression should raise an unpinned count for a strong player");
 
     const pinned = set(2);
-    p.applyTo(pinned, { premises: new Set([type]), flags: true });
+    p.applyTo(pinned, { premises: new Set([type]), negation: true, meta: true });
     assert(pinned.question[type].numOfPremises === 2,
         `Customise said 2, play got ${pinned.question[type].numOfPremises}`);
 });

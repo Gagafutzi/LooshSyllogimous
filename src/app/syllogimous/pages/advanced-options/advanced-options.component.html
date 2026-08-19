@@ -83,7 +83,7 @@
                 <input type="checkbox"
                        class="form-check-input"
                        [disabled]="!active"
-                       [checked]="modeOf(row).enabled"
+                       [checked]="shownEnabled(row)"
                        (change)="toggleMode(row, $any($event.target).checked)">
                 <span>
                     {{ row.type }}
@@ -92,13 +92,33 @@
             </label>
 
             <span class="mode__premises">
+                <!--
+                  Auto is a real state, not the absence of one. Without it a
+                  profile can only ever *fix* a premise count, so switching
+                  Customise on took the premise ladder away with no way to give
+                  it back.
+                -->
                 <input type="number"
                        class="form-control form-control-sm"
-                       [disabled]="!active || !modeOf(row).enabled"
+                       [class.is-auto]="!premisesSet(row)"
+                       [disabled]="!active || !shownEnabled(row)"
                        [min]="row.min" [max]="row.max"
-                       [value]="modeOf(row).numOfPremises"
+                       [value]="shownPremises(row)"
                        (change)="setPremises(row, $any($event.target).value)">
-                <small class="text-muted">premises ({{ row.min }}–{{ row.max }})</small>
+                <small class="text-muted">
+                    <button type="button" class="mode__auto"
+                            [class.is-on]="!premisesSet(row)"
+                            [disabled]="!active"
+                            (click)="clearPremises(row)"
+                            title="Let play decide this, as it would with no profile">auto</button>
+                    premises ({{ row.min }}–{{ row.max }})
+                    <span *ngIf="enabledSet(row)">
+                        · <button type="button" class="mode__auto"
+                                  [disabled]="!active"
+                                  (click)="clearEnabled(row)"
+                                  title="Let the tier decide whether this mode appears">unset on/off</button>
+                    </span>
+                </small>
 
                 <ng-container *ngIf="hasDepth(row)">
                     <input type="number"

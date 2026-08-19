@@ -464,7 +464,7 @@ export class ProgressionService {
      * Modifiers are forced *off* unless the configuration carries them — they
      * are earned here, so leaving a global toggle on would skip the ladder.
      */
-    applyTo(settings: Settings, pinned?: { premises: Set<EnumQuestionType>; flags: boolean }): Settings {
+    applyTo(settings: Settings, pinned?: { premises: Set<EnumQuestionType>; negation: boolean; meta: boolean }): Settings {
         if (!this.live) return settings;
 
         try {
@@ -476,13 +476,16 @@ export class ProgressionService {
                 qs.setNumOfPremises(qs.clampNumOfPremises(this.configFor(type).premises));
             }
 
-            if (pinned?.flags) {
-                // Same reasoning: an active profile states which modifiers it
-                // wants, so the ladder does not get to add or remove them.
-            } else if (this.scopedType) {
+            /*
+             * Per flag. A player who has an opinion about one of these has not
+             * thereby expressed one about the other, and treating the pair as a
+             * unit meant any Customise setting at all silenced the ladder on
+             * both.
+             */
+            if (this.scopedType) {
                 const rungs = this.rungsFor(this.scopedType);
-                settings.setEnable("negation", rungs.includes("negation"));
-                settings.setEnable("meta", rungs.includes("meta"));
+                if (!pinned?.negation) settings.setEnable("negation", rungs.includes("negation"));
+                if (!pinned?.meta) settings.setEnable("meta", rungs.includes("meta"));
             } else {
                 // Unscoped reads are for display, so show the union rather than
                 // implying nothing is unlocked.

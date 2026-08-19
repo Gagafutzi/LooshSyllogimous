@@ -184,14 +184,45 @@ export class AdvancedOptionsComponent {
     get flags() { return this.overrides.state.flags; }
 
     /** Tier defaults stand in until the user actually touches a mode. */
-    private fallback(row: Row): ModeOverride {
-        return {
-            enabled: QUESTION_TYPE_SETTING_PARAMS[row.type].enabled,
-            numOfPremises: row.min,
-        };
+    /**
+     * An empty override. Nothing is seeded, because a seeded value is
+     * indistinguishable from a chosen one once it is written down — which is
+     * how toggling a mode came to pin its premise count at the minimum for good.
+     */
+    private fallback(_row: Row): ModeOverride { return {}; }
+
+    /* ---- what this profile actually says, versus what it leaves alone ---- */
+
+    /** Whether the row overrides its enabled state at all. */
+    enabledSet(row: Row) { return this.overrides.state.modes[row.type]?.enabled !== undefined; }
+
+    /** Whether the row fixes a premise count, rather than letting play decide. */
+    premisesSet(row: Row) {
+        return this.overrides.state.modes[row.type]?.numOfPremises !== undefined;
     }
 
+    /** What the mode would be doing with no override: what "auto" means here. */
+    autoPremises(row: Row) {
+        try { return this.progression.configFor(row.type).premises; }
+        catch { return row.min; }
+    }
+
+    autoEnabled(row: Row) { return QUESTION_TYPE_SETTING_PARAMS[row.type].enabled; }
+
+    /** Give a setting back to the tier and the ladder. */
+    clearEnabled(row: Row) { this.overrides.clearModeSetting(row.type, "enabled"); }
+    clearPremises(row: Row) { this.overrides.clearModeSetting(row.type, "numOfPremises"); }
+
     modeOf(row: Row) { return this.overrides.modeOf(row.type, this.fallback(row)); }
+
+    /** The value to show: the override if there is one, else what play gives. */
+    shownEnabled(row: Row) {
+        return this.enabledSet(row) ? !!this.modeOf(row).enabled : this.autoEnabled(row);
+    }
+
+    shownPremises(row: Row) {
+        return this.premisesSet(row) ? this.modeOf(row).numOfPremises : this.autoPremises(row);
+    }
 
     setActive(value: boolean) { this.overrides.setActive(value); }
 

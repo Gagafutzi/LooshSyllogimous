@@ -28,8 +28,18 @@ export interface ModeOverride {
      * the rest of the account's life.
      */
     premisesChosen?: boolean;
-    enabled: boolean;
-    numOfPremises: number;
+    /**
+     * Undefined means *leave it alone* — the tier and progression decide, as
+     * they would with no profile at all.
+     *
+     * Everything in this layer used to be a value that was always applied, so
+     * switching Customise on replaced the adaptive system wholesale even for
+     * settings nobody had touched. The tri-state modifier rows had the right
+     * idea all along: an override should say what you changed, and stay silent
+     * about the rest.
+     */
+    enabled?: boolean;
+    numOfPremises?: number;
     /** Extra transformations, for the modes that have any. Premise-neutral. */
     transformDepth?: number;
 }
@@ -166,8 +176,17 @@ export interface OverrideState {
     scrambleFactor: number;
     modes: Partial<Record<EnumQuestionType, ModeOverride>>;
     flags: {
-        meta: boolean;
-        negation: boolean;
+        /**
+         * Tri-state, like every other modifier: null leaves it to progression.
+         *
+         * These two were plain booleans defaulting to *true*, so switching
+         * Customise on — or merely saving a profile, which now switches it on —
+         * forced negation and meta onto every mode at once, whatever any of
+         * them had earned. Nobody chose that; it was the default value of a
+         * field that had no way to say "no opinion".
+         */
+        meta: boolean | null;
+        negation: boolean | null;
         useText: boolean;
         useEmojis: boolean;
         meaningfulWords: boolean;
@@ -208,6 +227,23 @@ const LS_OVERRIDES = "syllogimous-advanced-options";
  * every player who ever toggled a mode frozen at that minimum forever with no
  * way to discover why.
  */
+/**
+ * Decide, for state saved before these were tri-state, whether negation and
+ * meta were *chosen* or merely the old defaults.
+ *
+ * Both defaulted to true, so a stored `true` is indistinguishable from a
+ * decision — the same ambiguity the premise counts had, resolved the same way
+ * and for the same reason: leaving everyone who ever switched Customise on with
+ * both modifiers forced everywhere is the worse mistake, and "on" is what
+ * progression grants anyway once a mode has earned it.
+ */
+function adoptChosenFlags(flags: Record<string, unknown>): OverrideState["flags"] {
+    const merged = { ...DEFAULT_STATE.flags, ...flags } as OverrideState["flags"];
+    if (flags["meta"] === true) merged.meta = null;
+    if (flags["negation"] === true) merged.negation = null;
+    return merged;
+}
+
 function adoptChosenPremises(
     modes: Partial<Record<EnumQuestionType, ModeOverride>>,
 ): Partial<Record<EnumQuestionType, ModeOverride>> {
@@ -230,7 +266,7 @@ const DEFAULT_STATE: OverrideState = {
     active: false,
     scrambleFactor: 100,
     modes: {},
-    flags: { meta: true, negation: true, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false, stimulusMix: {} },
+    flags: { meta: null, negation: null, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false, stimulusMix: {} },
     linear: { ...DEFAULT_LINEAR_FEATURES },
     space: { axes: {}, circularAxes: null, spread: null },
     rungs: {},
@@ -253,13 +289,20 @@ export class SettingsOverrideService {
      * A number typed into Customise is a decision, not a suggestion, so
      * progression is told to leave those alone.
      */
-    pinned(): { premises: Set<EnumQuestionType>; flags: boolean } {
+    pinned(): { premises: Set<EnumQuestionType>; negation: boolean; meta: boolean } {
         const premises = new Set<EnumQuestionType>();
-        if (!this.live) return { premises, flags: false };
+        if (!this.live) return { premises, negation: false, meta: false };
+
         for (const [type, ov] of Object.entries(this.state.modes)) {
-            if (ov?.premisesChosen && ov.numOfPremises) premises.add(type as EnumQuestionType);
+            if (ov?.premisesChosen && ov.numOfPremises !== undefined) premises.add(type as EnumQuestionType);
         }
-        return { premises, flags: true };
+        // Per flag rather than all-or-nothing: an opinion about negation is not
+        // an opinion about meta, and it was silencing progression on both.
+        return {
+            premises,
+            negation: this.state.flags.negation !== null,
+            meta: this.state.flags.meta !== null,
+        };
     }
 
     /**
@@ -274,16 +317,21 @@ export class SettingsOverrideService {
             for (const [type, ov] of Object.entries(this.state.modes)) {
                 const qs = settings.question[type as EnumQuestionType];
                 if (!qs || !ov) continue;
-                qs.enabled = ov.enabled;
-                if (ov.numOfPremises) qs.setNumOfPremises(qs.clampNumOfPremises(ov.numOfPremises));
+                // Only what was actually chosen; silence means "as it would be".
+                if (ov.enabled !== undefined) qs.enabled = ov.enabled;
+                if (ov.numOfPremises !== undefined) {
+                    qs.setNumOfPremises(qs.clampNumOfPremises(ov.numOfPremises));
+                }
             }
 
             // At least one type must survive or generation has nothing to pick.
             const anyEnabled = Object.values(settings.question).some(q => q.enabled);
             if (!anyEnabled) settings.question[EnumQuestionType.Distinction].enabled = true;
 
-            settings.setEnable("meta", this.state.flags.meta);
-            settings.setEnable("negation", this.state.flags.negation);
+            // Only when the player has an opinion; otherwise progression keeps
+            // deciding, which is what an untouched profile should change least.
+            if (this.state.flags.meta !== null) settings.setEnable("meta", this.state.flags.meta);
+            if (this.state.flags.negation !== null) settings.setEnable("negation", this.state.flags.negation);
             settings.setEnable("useText", this.state.flags.useText);
             settings.setEnable("useEmojis", this.state.flags.useEmojis);
             settings.setEnable("meaningfulWords", this.state.flags.meaningfulWords);
@@ -468,8 +516,30 @@ export class SettingsOverrideService {
         this.save();
     }
 
-    setMode(type: EnumQuestionType, patch: Partial<ModeOverride>, fallback: ModeOverride) {
-        const current = this.state.modes[type] ?? { ...fallback };
+    /** Hand a setting back to the tier and the ladder. */
+    clearModeSetting(type: EnumQuestionType, key: "enabled" | "numOfPremises") {
+        const current = this.state.modes[type];
+        if (!current) return;
+
+        const next = { ...current };
+        delete next[key];
+        if (key === "numOfPremises") delete next.premisesChosen;
+
+        // An override that says nothing is not an override.
+        if (next.enabled === undefined && next.numOfPremises === undefined
+            && next.transformDepth === undefined) {
+            const { [type]: _drop, ...rest } = this.state.modes;
+            this.state.modes = rest;
+        } else {
+            this.state.modes[type] = next;
+        }
+        this.save();
+    }
+
+    setMode(type: EnumQuestionType, patch: Partial<ModeOverride>, _fallback?: ModeOverride) {
+        // No fallback seeding: an override carries what was chosen and nothing
+        // else, so writing one setting cannot quietly pin another.
+        const current = this.state.modes[type] ?? {};
         // A patch that names a premise count is somebody choosing one; a patch
         // that happens to carry the fallback's is not.
         const chosen = current.premisesChosen || patch.numOfPremises !== undefined;
@@ -606,7 +676,7 @@ export class SettingsOverrideService {
                 this.state = {
                     ...DEFAULT_STATE,
                     ...parsed,
-                    flags: { ...DEFAULT_STATE.flags, ...(parsed.flags ?? {}) },
+                    flags: adoptChosenFlags(parsed.flags ?? {}),
                     linear: { ...DEFAULT_LINEAR_FEATURES, ...(parsed.linear ?? {}) },
                     space: { ...DEFAULT_SPACE, ...(parsed.space ?? {}), axes: parsed.space?.axes ?? {} },
                     rungs: parsed.rungs ?? {},

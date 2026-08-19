@@ -274,3 +274,33 @@ input[type="checkbox"]:disabled { cursor: default; }
 }
 
 .profile__new input { max-width: 16rem; }
+
+/*
+ * A setting left to play, rather than fixed here.
+ *
+ * Shown rather than blank: the number is what you would get, so leaving the
+ * field empty would hide the very thing the row is about.
+ */
+.mode__premises .is-auto {
+    opacity: 0.62;
+    font-style: italic;
+}
+
+.mode__auto {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-decoration: underline dotted;
+    cursor: pointer;
+}
+
+.mode__auto.is-on {
+    color: var(--th-accent);
+    text-decoration: none;
+    font-weight: 600;
+    cursor: default;
+}
+
+.mode__auto:disabled { opacity: 0.5; cursor: default; }
