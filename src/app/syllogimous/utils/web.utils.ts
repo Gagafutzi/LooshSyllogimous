@@ -306,3 +306,43 @@ export function ringLayout(n: number, rotation = Math.random()): Array<[number, 
         return [0.5 + 0.38 * Math.cos(angle), 0.5 + 0.38 * Math.sin(angle)] as [number, number];
     });
 }
+
+/**
+ * Positions that say nothing about the structure.
+ *
+ * A ring was the wrong picture for this mode, and wrong in a way that undercut
+ * it. Every node sits at the same distance from the centre and the same angle
+ * apart, so a graph with a rotational symmetry *looks* rotationally symmetric —
+ * the automorphism is visible as a turn of the picture rather than something to
+ * be established from the arrows. And drawing both webs as rings invites
+ * matching by position, which is the one route the mode is meant to close.
+ *
+ * Scattered instead, independently for each web, with a floor on how close two
+ * nodes may sit: crossing arrows cost some legibility, and overlapping nodes
+ * would cost more than that.
+ *
+ * Rejection sampling with a relaxing floor rather than a force-directed layout,
+ * because a force-directed one settles into *regular* arrangements — which is
+ * the problem being fixed.
+ */
+export function scatterLayout(n: number, margin = 0.14): Array<[number, number]> {
+    const lo = margin, hi = 1 - margin;
+    const out: Array<[number, number]> = [];
+
+    // Starts above what n points can comfortably manage and eases off, so a
+    // small graph gets a well-spread picture and a large one still terminates.
+    let floor = 0.9 / Math.sqrt(n);
+
+    for (let guard = 0; out.length < n && guard < n * 400; guard++) {
+        const p: [number, number] = [lo + Math.random() * (hi - lo), lo + Math.random() * (hi - lo)];
+        if (out.every(q => Math.hypot(q[0] - p[0], q[1] - p[1]) >= floor)) {
+            out.push(p);
+            continue;
+        }
+        // Nothing fits: loosen rather than spin.
+        if (guard % (n * 20) === (n * 20) - 1) floor *= 0.85;
+    }
+
+    // A ring is still better than nothing if the sampler somehow starves.
+    return out.length === n ? out : ringLayout(n);
+}

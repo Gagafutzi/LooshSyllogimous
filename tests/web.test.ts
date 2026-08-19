@@ -11,7 +11,7 @@
 import { assert, equal, seeded, test } from "./harness";
 import {
     WEB_PROPERTIES, Web, cloneWeb, edgesOf, emptyWeb, isomorphic, mappings, nearMiss, orbitOf,
-    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine,
+    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout,
 } from "../src/app/syllogimous/utils/web.utils";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
@@ -291,5 +291,93 @@ test("a structure match never shows its conclusion as a slide", () => {
         // The page decides what to show, so this pins the property the page
         // relies on: `map` is a mode whose conclusion is an answer, not a claim.
         assert(q.answerMode === "map", "mode changed under the test");
+    }
+});
+
+/**
+ * Where the nodes are drawn, which turned out to be part of the question.
+ *
+ * A ring puts every node at the same distance from the centre and the same
+ * angle apart, so a graph with a rotational symmetry *looks* rotationally
+ * symmetric — the automorphism is visible as a turn of the picture rather than
+ * something to be established from the arrows. Drawing both webs as rings
+ * additionally invites matching by position, which is the one route the mode
+ * exists to close.
+ */
+test("nodes are scattered, not arranged on a ring", () => {
+    seeded(7717, () => {
+        for (const n of [4, 6, 8, 11]) {
+            const points = scatterLayout(n);
+            equal(points.length, n, "a node was not placed");
+
+            for (const [x, y] of points) {
+                assert(x > 0 && x < 1 && y > 0 && y < 1, `a node fell outside the box at ${x},${y}`);
+            }
+
+            // No two on top of each other, or the picture loses a node.
+            for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                    const d = Math.hypot(points[i][0] - points[j][0], points[i][1] - points[j][1]);
+                    assert(d > 0.06, `two nodes sit ${d.toFixed(3)} apart, which is on top of each other`);
+                }
+            }
+
+            /*
+             * The property that matters: not equidistant from the centre. On a
+             * ring every radius is identical, so the spread of radii is the
+             * thing that says this is not one.
+             */
+            const radii = points.map(([x, y]) => Math.hypot(x - 0.5, y - 0.5));
+            const mean = radii.reduce((a, b) => a + b, 0) / n;
+            const spread = Math.sqrt(radii.reduce((a, r) => a + (r - mean) ** 2, 0) / n);
+            assert(spread > 0.02, `radii vary by only ${spread.toFixed(3)} — that is a ring`);
+        }
+    });
+});
+
+test("the two webs are never laid out alike", () => {
+    /*
+     * Independently drawn, so position carries no correspondence. If the two
+     * shared a layout, the answer to a mapping item would often be "the node in
+     * the same place", which is not a fact about the structure at all.
+     */
+    const ctx = context();
+
+    for (let run = 0; run < 30; run++) {
+        const q = seeded(run * 2411 + 13, () => createRelationalWeb(ctx, 5));
+        if (!q.webs || q.webs.length < 2) continue;
+
+        const [a, b] = q.webs;
+        const same = a.layout.length === b.layout.length
+            && a.layout.every((p, i) => Math.hypot(p[0] - b.layout[i][0], p[1] - b.layout[i][1]) < 1e-9);
+        assert(!same, "both webs were drawn in exactly the same positions");
+    }
+});
+
+test("Relational Web is answered on the picture, never from a menu", () => {
+    /*
+     * A menu of node names turns a question about a structure into a question
+     * about a list: find the answer in the drawing, then hunt for its label
+     * underneath. Both the single-node and the whole-structure trials point at
+     * the second web instead, so the mode has one way of answering and the
+     * rung only changes how many nodes it asks for.
+     */
+    for (const rungs of [[], ["structure-match"]]) {
+        const ctx = context(rungs);
+        let pointed = 0;
+
+        for (let run = 0; run < 40; run++) {
+            const q = seeded(run * 1301 + 7, () => createRelationalWeb(ctx, 5));
+            assert(q.answerMode !== "choice",
+                `a ${rungs.length ? "structure" : "base"} item still offers a menu`);
+
+            if (q.answerMode !== "map") continue;
+            assert(!!q.webs?.[1]?.selectable, "the answer cannot be given on the second web");
+            assert(!!q.webs?.[0]?.marks?.length, "nothing is marked on the first web");
+            equal(q.webs![0].marks, q.mapTargets, "the marks are not what is being asked about");
+            pointed++;
+        }
+
+        assert(pointed > 8, `only ${pointed} pointing items in forty`);
     }
 });

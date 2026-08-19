@@ -30,7 +30,7 @@ import { shuffle } from "../utils/question.utils";
 import { hi, subj } from "../utils/phrasing";
 import {
     WEB_PROPERTIES, Web, edgesOf, isomorphic, nearMiss, orbitOf, permuteWeb,
-    degreeTwins, randomPermutation, randomWeb, ringLayout,
+    degreeTwins, randomPermutation, randomWeb, scatterLayout,
 } from "../utils/web.utils";
 import { GeneratorContext } from "./context";
 
@@ -103,8 +103,14 @@ export function createRelationalWeb(ctx: GeneratorContext, numOfPremises: number
 /** Both webs, laid out, ready to draw. */
 function attach(question: Question, left: Web, right: Web, highlight?: number) {
     question.webs = [
-        { adj: left.adj, labels: NODE_LABELS.slice(0, left.n), layout: ringLayout(left.n), highlight },
-        { adj: right.adj, labels: NODE_LABELS.slice(0, right.n), layout: ringLayout(right.n) },
+        /*
+         * Drawn independently, and scattered rather than ringed. A ring makes a
+         * rotational symmetry visible as a turn of the picture, and two rings
+         * invite matching by position — both of which answer the question
+         * without looking at the arrows.
+         */
+        { adj: left.adj, labels: NODE_LABELS.slice(0, left.n), layout: scatterLayout(left.n), highlight },
+        { adj: right.adj, labels: NODE_LABELS.slice(0, right.n), layout: scatterLayout(right.n) },
     ];
 }
 
@@ -207,16 +213,29 @@ function buildMapping(ctx: GeneratorContext, question: Question, left: Web, n: n
     const right = permuteWeb(left, perm);
     attach(question, left, right, v);
 
-    const order = shuffle(Array.from({ length: n }, (_, i) => i));
-    question.choices = order.map(i => subj(NODE_LABELS[i]));
-    question.correctChoice = order.indexOf(perm[v]);
-    question.answerMode = "choice";
+    /*
+     * Answered on the picture, not from a list of names.
+     *
+     * A menu of labels turns a question about a structure into a question about
+     * a menu: the reader finds the answer in the drawing and then hunts for its
+     * name underneath. The drawing is where the structure is, so the drawing is
+     * where the answer belongs — and this way the mode has one way of
+     * answering, with `structure-match` simply asking for more nodes.
+     */
+    question.webs![0].marks = [v];
+    question.webs![1].selectable = true;
+
+    question.answerMode = "map";
+    question.mapTargets = [v];
+    question.mapAnswer = [perm[v]];
     question.isValid = true;
-    question.conclusion = "";
-    question.choicePrompt = `Which node of the second web is ${NODE_LABELS[v]}?`;
+    question.conclusion = `${subj(NODE_LABELS[v])} \u2192 ${subj(NODE_LABELS[perm[v]])}`;
+    question.choicePrompt = `Point out the node of the second web that is ${NODE_LABELS[v]}.`;
     question.setup = [
         "The second web is the first one relabelled and redrawn. Same arrows, "
-        + "different names and positions.",
+        + "different names, different positions.",
+        "The coloured node on the left is the one to find. Tap its counterpart "
+        + "on the right.",
     ];
     question.explanation = [
         `${subj(NODE_LABELS[v])} has ${hi(String(left.adj[v].filter(Boolean).length))} arrows out `

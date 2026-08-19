@@ -342,11 +342,14 @@
           player is. The colours on the second web are the answer being given.
         -->
         <div *ngIf="game.question.answerMode === 'map'" class="d-grid">
+            <div class="small text-muted text-center mb-2"
+                 *ngIf="game.question.choicePrompt">{{ game.question.choicePrompt }}</div>
             <button class="btn btn-lg btn-primary"
                     [disabled]="!mapComplete || !builderReady"
                     (click)="submitMapping()">
                 {{ !builderReady ? 'Look at both webs first'
                    : mapComplete ? 'Submit'
+                   : game.question.mapTargets.length === 1 ? 'Tap the matching node'
                    : 'Pick node ' + (mapPicks.length + 1) + ' of ' + game.question.mapTargets.length }}
             </button>
             <small class="text-muted text-center mt-2" *ngIf="builderReady && mapPicks.length">
