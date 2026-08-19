@@ -167,9 +167,9 @@
                 <div class="d-grid" style="gap: 0.75rem;">
                     <app-input
                         type="range"
-                        min="15"
-                        max="60"
-                        step="5"
+                        min="20"
+                        max="180"
+                        step="10"
                         name="dailyProgressMinutes"
                         [label]="'Daily goal: ' + dailyProgressMinutes.value + ' minutes'"
                         [ngControl]="dailyProgressMinutes"
@@ -179,8 +179,8 @@
                     <app-input
                         type="range"
                         min="60"
-                        max="240"
-                        step="5"
+                        max="1260"
+                        step="30"
                         name="weeklyProgressMinutes"
                         [label]="'Weekly goal: ' + weeklyProgressMinutes.value + ' minutes'"
                         [ngControl]="weeklyProgressMinutes"
