@@ -135,7 +135,21 @@ export class Question {
      * coin-flip floor — a guess is worth 1/n rather than 1/2, so the same number
      * of trials says considerably more about whether the item was understood.
      */
-    answerMode: "boolean" | "choice" | "construct" = "boolean";
+    answerMode: "boolean" | "choice" | "construct" | "map" = "boolean";
+
+    /**
+     * A whole-structure match, answered by pointing rather than by picking.
+     *
+     * `mapTargets` are nodes of the first web, in the order they are to be
+     * matched; the renderer colours them by that order. `mapAnswer` is where
+     * each one lands in the second web. A menu could only ever ask about one
+     * node at a time, and asking about one node is not matching a structure —
+     * it is the difference between reading a correspondence and constructing
+     * one.
+     */
+    mapTargets: number[] = [];
+    mapAnswer: number[] = [];
+    userMap: number[] = [];
     /** Candidate conclusions, in display order. Choice mode only. */
     choices: string[] = [];
     /**
@@ -203,6 +217,12 @@ export class Question {
         layout: Array<[number, number]>;
         /** The node being asked about, in the first web only. */
         highlight?: number;
+        /** Nodes to be matched, in the order they are to be matched. */
+        marks?: number[];
+        /** This web takes the answer: its nodes can be pointed at. */
+        selectable?: boolean;
+        /** Filled in as the player answers, never by the generator. */
+        picked?: number[];
     }>;
     wordCoordMap?: Record<string, number[]>;
     /** Axis names for the map, in the same order as the coordinates. */

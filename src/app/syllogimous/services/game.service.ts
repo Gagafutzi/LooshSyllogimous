@@ -542,6 +542,21 @@ export class GameService implements GeneratorContext {
         return this.checkQuestion(constructionSatisfied(this.question.construct, picked));
     }
 
+    /**
+     * Answer a structure match.
+     *
+     * Every node, in order, or nothing — the same rule construction follows and
+     * for the same reason. A correspondence that is right about two nodes out of
+     * three is not two-thirds of a correspondence; it is a different and wrong
+     * claim about how the two structures line up.
+     */
+    checkMapping(picked: number[]) {
+        this.question.userMap = [...picked];
+        const answer = this.question.mapAnswer;
+        return this.checkQuestion(
+            picked.length === answer.length && picked.every((v, i) => v === answer[i]));
+    }
+
     async checkQuestion(value?: boolean) {
         this.question.userAnswer = value;
         this.question.answeredAt = Date.now();
@@ -576,8 +591,14 @@ export class GameService implements GeneratorContext {
                     // Every slot of every claim. Counting only the first
                     // claim's understated a three-claim item threefold, and
                     // would credit a five-way ranking at one in five.
-                    slots: this.question.construct.reduce((n, c) => n + c.slots.length, 0),
-                    options: this.question.construct?.[0]?.slots[0]?.directions.length ?? 3,
+                    // A structure match has one slot per node to be found, and
+                    // as many options as the second web has nodes.
+                    slots: this.question.answerMode === "map"
+                        ? this.question.mapTargets.length
+                        : this.question.construct.reduce((n, c) => n + c.slots.length, 0),
+                    options: this.question.answerMode === "map"
+                        ? (this.question.webs?.[1]?.labels.length ?? 3)
+                        : this.question.construct?.[0]?.slots[0]?.directions.length ?? 3,
                     choices: this.question.choices?.length ?? 0,
                     // Logged so the bits-to-levels coefficient can be fitted
                     // rather than guessed; nothing reads it for difficulty yet.

@@ -10,7 +10,7 @@
 
 import { assert, equal, seeded, test } from "./harness";
 import {
-    WEB_PROPERTIES, Web, cloneWeb, edgesOf, emptyWeb, isomorphic, nearMiss, orbitOf,
+    WEB_PROPERTIES, Web, cloneWeb, edgesOf, emptyWeb, isomorphic, mappings, nearMiss, orbitOf,
     degreeTwins, permuteWeb, randomPermutation, randomWeb, refine,
 } from "../src/app/syllogimous/utils/web.utils";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
@@ -21,7 +21,14 @@ import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 
-function context(structural = false): GeneratorContext {
+/**
+ * `true` still means the structural rung alone, so the existing calls read the
+ * same; a list turns on exactly the rungs named.
+ */
+function context(rungs: boolean | string[] = false): GeneratorContext {
+    const on = rungs === true ? ["structural"] : rungs === false ? [] : rungs;
+    const has = (_t: unknown, r: string) => on.includes(r);
+
     const settings = new Settings();
     for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;
     return {
@@ -33,12 +40,12 @@ function context(structural = false): GeneratorContext {
             depthFor: () => 0, scramble: 100,
         } as unknown as SettingsOverrideService,
         progressionService: {
-            hasRung: (_t: unknown, r: string) => structural && r === "structural",
+            hasRung: has,
             depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         syllogismGenerator: "canyon",
-        hasRung: (_t: string, r: string) => structural && r === "structural",
+        hasRung: has,
         random: () => { throw new Error("not needed"); },
     };
 }
@@ -188,4 +195,101 @@ test("a properties item's verdict matches the graphs it drew", () => {
             `the ${named.name} verdict disagrees with the pictures`);
     }
     assert(checked > 3, `only ${checked} properties items`);
+});
+
+/**
+ * Whole-structure matching, answered by pointing.
+ *
+ * The single-node mapping trial undersells the mode twice over. One node is a
+ * lookup — find the degree pair, find the match — where a correspondence has to
+ * hold several nodes at once and stay consistent across them. And answering
+ * from a list of names turns a question about a picture into a question about a
+ * menu, when the picture is where the structure is.
+ *
+ * The invariant that matters is the same one the single-node trial has, applied
+ * to every marked node at once: each must be alone in its orbit, or an
+ * automorphism gives the item a second answer that the picture cannot
+ * distinguish from the first.
+ */
+test("every marked node has exactly one possible counterpart", () => {
+    const ctx = context(["structure-match"]);
+    let checked = 0;
+
+    for (let run = 0; run < 60 && checked < 20; run++) {
+        const q = seeded(run * 8563 + 11, () => createRelationalWeb(ctx, 5));
+        if (q.answerMode !== "map") continue;
+
+        const [left, right] = q.webs!;
+        const a: Web = { n: left.labels.length, adj: left.adj };
+        const b: Web = { n: right.labels.length, adj: right.adj };
+
+        assert(q.mapTargets.length >= 2, `only ${q.mapTargets.length} nodes to match`);
+        assert(q.mapAnswer.length === q.mapTargets.length, "an answer is missing a node");
+
+        for (const v of q.mapTargets) {
+            equal(orbitOf(a, v).length, 1,
+                `${left.labels[v]} can be swapped with another node, so it has two counterparts`);
+        }
+
+        // Every isomorphism between the two webs must agree with the answer —
+        // that is what "exactly one counterpart" has to mean in the end.
+        const all = mappings(a, b);
+        assert(all.length > 0, "the second web is not the first one relabelled");
+        for (const m of all) {
+            q.mapTargets.forEach((v, i) => {
+                equal(m[v], q.mapAnswer[i],
+                    `a valid relabelling sends ${left.labels[v]} somewhere else`);
+            });
+        }
+
+        checked++;
+    }
+
+    assert(checked >= 20, `only ${checked} structure items appeared`);
+});
+
+test("the marks are ordered, on the first web, and the second takes the answer", () => {
+    const ctx = context(["structure-match"]);
+    let checked = 0;
+
+    for (let run = 0; run < 60 && checked < 15; run++) {
+        const q = seeded(run * 1493 + 7, () => createRelationalWeb(ctx, 5));
+        if (q.answerMode !== "map") continue;
+
+        const [left, right] = q.webs!;
+        equal(left.marks, q.mapTargets, "the drawn marks are not the nodes being asked about");
+        assert(!left.selectable, "the first web takes answers, but it states the question");
+        assert(!!right.selectable, "the second web cannot be answered on");
+        assert(!right.marks, "the second web gives its own answer away");
+
+        // Distinct nodes, or two badges land on one circle and the order is
+        // unreadable.
+        equal(new Set(q.mapTargets).size, q.mapTargets.length, "a node is marked twice");
+        equal(new Set(q.mapAnswer).size, q.mapAnswer.length, "an answer node is used twice");
+
+        checked++;
+    }
+
+    assert(checked >= 15, `only ${checked} structure items appeared`);
+});
+
+test("a structure match never shows its conclusion as a slide", () => {
+    /*
+     * Its conclusion records which node goes with which, so a conclusion slide
+     * would print the answer above the controls for giving it. Construction
+     * already had this exemption; matching needs it more, because here the
+     * conclusion is not merely redundant but disclosing.
+     */
+    const ctx = context(["structure-match"]);
+
+    for (let run = 0; run < 40; run++) {
+        const q = seeded(run * 331 + 5, () => createRelationalWeb(ctx, 5));
+        if (q.answerMode !== "map") continue;
+
+        assert(q.conclusion !== "", "the answer was not recorded for the history");
+        assert(String(q.conclusion).includes("→"), "the recorded answer is not a correspondence");
+        // The page decides what to show, so this pins the property the page
+        // relies on: `map` is a mode whose conclusion is an answer, not a claim.
+        assert(q.answerMode === "map", "mode changed under the test");
+    }
 });

@@ -285,7 +285,12 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Nested Spaces":             ["collide"],
     // Earned: until then in- and out-degree identify the node, which is
     // counting rather than seeing.
-    "Relational Web":            ["structural"],
+    /*
+     * `structure-match` replaces the single-node mapping with a whole
+     * correspondence, answered on the picture. `structural` then removes the
+     * arrow-counting shortcut from underneath it.
+     */
+    "Relational Web":            ["structure-match", "structural"],
     "Distinction":               ["negation", "meta"],
     "Comparison Numerical":      LINEAR_LADDER,
     "Comparison Chronological":  LINEAR_LADDER,

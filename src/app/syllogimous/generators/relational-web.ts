@@ -37,7 +37,7 @@ import { GeneratorContext } from "./context";
 /** Node names, so an answer can be spoken rather than pointed at. */
 const NODE_LABELS = "ABCDEFGHIJKL".split("");
 
-export type WebTrial = "mapping" | "comparison" | "properties";
+export type WebTrial = "mapping" | "structure" | "comparison" | "properties";
 
 /**
  * Nodes scale with the premise budget, and stop at twelve.
@@ -56,8 +56,14 @@ function nodeCount(numOfPremises: number): number {
  * that "look for the one node with three arrows out" stops being a strategy
  * that survives the whole session.
  */
-function pickTrial(): WebTrial {
+function pickTrial(structure: boolean): WebTrial {
     const roll = Math.random();
+    if (structure) {
+        // Structure takes over from mapping as the centre once it is earned:
+        // it is the same question asked properly, so running both would mean
+        // asking the easier version half the time for no reason.
+        return roll < 0.5 ? "structure" : roll < 0.78 ? "comparison" : "properties";
+    }
     return roll < 0.5 ? "mapping" : roll < 0.78 ? "comparison" : "properties";
 }
 
@@ -77,12 +83,13 @@ export function createRelationalWeb(ctx: GeneratorContext, numOfPremises: number
     const density = 0.22 + Math.random() * 0.12;
 
     for (let attempt = 0; attempt < 240; attempt++) {
-        const trial = pickTrial();
+        const trial = pickTrial(ctx.hasRung(type, "structure-match"));
         const left = randomWeb(n, density, trial === "properties");
         if (edgesOf(left).length < n) continue;
 
         const question = new Question(type);
         const built = trial === "mapping" ? buildMapping(ctx, question, left, n)
+            : trial === "structure" ? buildStructure(ctx, question, left, n)
             : trial === "comparison" ? buildComparison(question, left, n)
             : buildProperties(question, left, n);
         if (!built) continue;
@@ -99,6 +106,83 @@ function attach(question: Question, left: Web, right: Web, highlight?: number) {
         { adj: left.adj, labels: NODE_LABELS.slice(0, left.n), layout: ringLayout(left.n), highlight },
         { adj: right.adj, labels: NODE_LABELS.slice(0, right.n), layout: ringLayout(right.n) },
     ];
+}
+
+/**
+ * Match the structure, not one node of it.
+ *
+ * `mapping` asks where a single node went and takes the answer from a list.
+ * Both halves of that undersell the mode. One node is a lookup — find the
+ * degree pair, find the match — where a correspondence has to hold several
+ * nodes at once and stay consistent across them. And a list of names turns a
+ * question about a picture into a question about a menu: the picture is where
+ * the structure is, so the picture is where the answer belongs.
+ *
+ * So several nodes are marked, in order and by colour, and the answer is given
+ * by pointing at their counterparts in the second web. Same palette on both
+ * sides, because the colour *is* the correspondence being asserted.
+ *
+ * Each marked node must be alone in its orbit. An automorphism that moved one
+ * would give the item a second answer, and unlike the single-node case a reader
+ * cannot tell from the picture which of the two was wanted.
+ */
+function buildStructure(ctx: GeneratorContext, question: Question, left: Web, n: number): boolean {
+    const structural = ctx.hasRung(EnumQuestionType.RelationalWeb, "structural");
+
+    const rigid = shuffle(Array.from({ length: n }, (_, i) => i))
+        .filter(node => orbitOf(left, node).length === 1);
+
+    /*
+     * Three where the web allows it, two at a minimum. Beyond three the item
+     * stops being harder and starts being longer — the fourth node is the same
+     * act again, and the picture only has so much room for badges.
+     */
+    const wanted = Math.min(3, rigid.length);
+    if (wanted < 2) return false;
+
+    // Under the structural rung at least one target must have a degree twin,
+    // or counting arrows answers the whole thing without seeing the shape.
+    const targets = rigid.slice(0, wanted);
+    if (structural && !targets.some(v => degreeTwins(left, v).length > 0)) return false;
+
+    const perm = randomPermutation(n);
+    const right = permuteWeb(left, perm);
+    attach(question, left, right);
+
+    question.webs![0].marks = targets;
+    question.webs![1].selectable = true;
+
+    question.answerMode = "map";
+    question.mapTargets = targets;
+    question.mapAnswer = targets.map(v => perm[v]);
+    question.isValid = true;
+    question.conclusion = targets
+        .map((v, i) => `${i + 1}. ${subj(NODE_LABELS[v])} \u2192 ${subj(NODE_LABELS[perm[v]])}`)
+        .join(", ");
+    question.choicePrompt =
+        `Point out the ${wanted} matching nodes in the second web, in the numbered order.`;
+    question.setup = [
+        "The second web is the first one relabelled and redrawn. Same arrows, "
+        + "different names and positions.",
+        "The numbered, coloured nodes on the left are the ones to find. "
+        + "Tap their counterparts on the right in the same order.",
+    ];
+    question.explanation = [
+        ...targets.map((v, i) => {
+            const out = left.adj[v].filter(Boolean).length;
+            const into = left.adj.filter(r => r[v]).length;
+            const arrows = (k: number) => `${hi(String(k))} arrow${k === 1 ? "" : "s"}`;
+            return `${i + 1}. ${subj(NODE_LABELS[v])} has ${arrows(out)} out and `
+                + `${arrows(into)} in, and is the only node of the first web that `
+                + `nothing can be swapped with \u2014 so it has exactly one counterpart.`;
+        }),
+        `Following the arrows from each in turn lands on `
+        + targets.map(v => subj(NODE_LABELS[perm[v]])).join(", ") + ".",
+        `so the match is ` + targets
+            .map(v => `${subj(NODE_LABELS[v])} \u2192 ${subj(NODE_LABELS[perm[v]])}`)
+            .join(", "),
+    ];
+    return true;
 }
 
 /**

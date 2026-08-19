@@ -17,10 +17,32 @@
     <circle class="web__loop" *ngFor="let l of loops"
             [attr.cx]="l.x" [attr.cy]="l.y - radius" [attr.r]="radius * 0.55"/>
 
-    <g *ngFor="let n of nodes">
-        <circle class="web__node" [class.is-lit]="n.lit"
+    <g *ngFor="let n of nodes" [class.web__pickable]="selectable"
+       (click)="selectable && pick.emit(n.index)">
+        <!--
+          A wider invisible disc under each node, so pointing at one is not a
+          test of aim. The drawn radius is tuned for legibility, not for thumbs.
+        -->
+        <circle *ngIf="selectable" class="web__target"
+                [attr.cx]="n.x" [attr.cy]="n.y" [attr.r]="radius * 1.8"/>
+
+        <circle class="web__node"
+                [class.is-lit]="n.lit"
+                [class.is-marked]="n.mark >= 0"
+                [style.stroke]="n.mark >= 0 ? markColor(n.mark) : null"
+                [style.fill]="n.mark >= 0 ? markFill(n.mark) : null"
                 [attr.cx]="n.x" [attr.cy]="n.y" [attr.r]="radius"/>
+
         <text class="web__label" [class.is-lit]="n.lit"
               [attr.x]="n.x" [attr.y]="n.y">{{ n.label }}</text>
+
+        <!--
+          The position in the order, not the node's name. Colour alone would
+          carry it, but colour alone is no use to a reader who cannot separate
+          two of them.
+        -->
+        <text *ngIf="n.mark >= 0" class="web__order"
+              [style.fill]="markColor(n.mark)"
+              [attr.x]="n.x + radius * 1.15" [attr.y]="n.y - radius * 0.9">{{ n.mark + 1 }}</text>
     </g>
 </svg>

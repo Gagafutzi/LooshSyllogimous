@@ -164,6 +164,13 @@ export const RUNG_COST: Record<string, number> = {
     // Relational Web without the counting shortcut: in- and out-degree stop
     // identifying a node, so the structure has to be seen rather than tallied.
     structural: 1.4,
+    /*
+     * Several nodes held at once and kept consistent, rather than one looked
+     * up. The guess rate collapses too — an ordered three-from-eight is one in
+     * 336 — so a correct answer is worth far more evidence than the menu
+     * version, and the difficulty has to say so.
+     */
+    "structure-match": 1.7,
 };
 
 /**
@@ -363,6 +370,18 @@ export function guessRateFor(answerMode: string, slots = 0, choices = 0, options
     // how decisive a correct answer is by orders of magnitude.
     if (answerMode === "construct") {
         return slots > 0 ? Math.pow(1 / Math.max(2, options), slots) : 0.05;
+    }
+    /*
+     * An ordered pick of `slots` nodes out of `options`, without repeats — so
+     * the denominator falls as the picks are made. Treating it as `options`
+     * choices per slot would credit a correct match at rather less than it is
+     * worth, and treating it as a single choice at rather more.
+     */
+    if (answerMode === "map") {
+        if (slots <= 0 || options <= 1) return 0.25;
+        let ways = 1;
+        for (let i = 0; i < slots; i++) ways *= Math.max(1, options - i);
+        return 1 / ways;
     }
     return 0.5;
 }

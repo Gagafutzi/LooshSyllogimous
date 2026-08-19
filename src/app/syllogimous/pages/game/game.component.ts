@@ -274,9 +274,14 @@ export class GameComponent {
         q.premises.forEach((_, i) => ids.push(this.slideId("premise-" + i)));
         if (q.answerMode === "choice") {
             ids.push(this.slideId("choices"));
-        } else if (q.answerMode !== "construct") {
-            // A construction item has no conclusion slide — the conclusion is
-            // the thing being built.
+        } else if (q.answerMode !== "construct" && q.answerMode !== "map") {
+            /*
+             * Construction and structure matching have no conclusion slide,
+             * because in both the conclusion is the thing being produced. For a
+             * match that is not merely redundant — the conclusion records which
+             * node goes with which, so showing it would print the answer above
+             * the buttons for giving it.
+             */
             const count = Array.isArray(q.conclusion) ? q.conclusion.length : 1;
             for (let i = 0; i < count; i++) ids.push(this.slideId("conclusion-" + i));
         }
@@ -333,7 +338,57 @@ export class GameComponent {
             () => this.step(1), Math.max(1, this.carouselSeconds) * 1000);
     }
 
+    /* ---------------- structure matching ---------------- */
+
+    /**
+     * Nodes pointed at in the second web, in the order they were pointed at.
+     *
+     * Held here rather than on the question so that a redraw cannot lose them
+     * and an unfinished answer is never mistaken for a submitted one.
+     */
+    mapPicks: number[] = [];
+
+    /**
+     * Pointing at a node adds it; pointing at one already chosen takes it back
+     * out, along with everything after it.
+     *
+     * Removing the tail rather than closing the gap is the honest behaviour: the
+     * order is part of the answer, so silently promoting the later picks would
+     * change claims the player never revisited.
+     */
+    onWebPick(node: number) {
+        if (this.game.question.answerMode !== "map") return;
+
+        const at = this.mapPicks.indexOf(node);
+        if (at >= 0) {
+            this.mapPicks = this.mapPicks.slice(0, at);
+        } else if (this.mapPicks.length < this.game.question.mapTargets.length) {
+            this.mapPicks = [...this.mapPicks, node];
+        }
+        this.showPicks();
+    }
+
+    /** Mirror the picks onto the drawn web, which is what colours them. */
+    private showPicks() {
+        const second = this.game.question.webs?.[1];
+        if (second) this.game.question.webs = [
+            this.game.question.webs![0],
+            { ...second, picked: [...this.mapPicks] },
+        ];
+    }
+
+    get mapComplete() {
+        return this.game.question.answerMode === "map"
+            && this.mapPicks.length === this.game.question.mapTargets.length;
+    }
+
+    submitMapping() {
+        if (!this.mapComplete || !this.builderReady) return;
+        this.game.checkMapping(this.mapPicks);
+    }
+
     private resetPicks() {
+        this.mapPicks = [];
         this.picks = blankPicks(this.game.question.construct);
         this.armCarousel();
     }

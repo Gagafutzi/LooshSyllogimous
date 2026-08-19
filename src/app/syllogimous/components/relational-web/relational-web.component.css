@@ -39,3 +39,38 @@
 }
 
 .web__label.is-lit { fill: var(--th-bg, #05070c); }
+
+/*
+ * A node that is part of the match.
+ *
+ * Stroke and fill come from the palette inline, because the slot is only known
+ * at runtime; what belongs here is the weight, which has to hold against a
+ * background of unmarked nodes without shouting over the arrows.
+ */
+.web__node.is-marked {
+    stroke-width: 3;
+}
+
+.web__order {
+    font-size: 11px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    /* Never intercepts the click meant for the node under it. */
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Bigger than it looks, so pointing at a node is not a test of aim. */
+.web__target {
+    fill: transparent;
+    stroke: none;
+}
+
+.web__pickable {
+    cursor: pointer;
+}
+
+.web__pickable:hover .web__node {
+    stroke-width: 3;
+}
