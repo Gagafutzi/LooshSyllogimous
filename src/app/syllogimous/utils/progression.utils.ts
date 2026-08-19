@@ -260,6 +260,44 @@ const ND_LADDER = [
     "multi-conclusion", "choose-conclusion", "construct-conclusion", "construct-distance",
 ];
 
+/**
+ * Modes that are one skill wearing several vocabularies.
+ *
+ * The five scale modes are the same engine: identical weight, identical
+ * ceiling, identical ladder, and a premise reads the same way in all of them
+ * with the words swapped. Keeping a separate ability estimate for each meant a
+ * player who spread thirty answers across the family had five estimates of six
+ * answers apiece, none of them with enough evidence to move — so the family as
+ * a whole crawled while each part looked individually reasonable.
+ *
+ * Ability is shared; *difficulty* still is not. Each mode keeps its own premise
+ * bounds and its own scale entry, so sharing a posterior says "you are this
+ * good at reading a scale", not "these items are interchangeable".
+ *
+ * Anything absent is its own family, which is the honest default: two modes
+ * should only pool evidence when being good at one really does mean being good
+ * at the other.
+ */
+export const MODE_FAMILIES: Record<string, string> = {
+    "Comparison Numerical": "scale",
+    "Comparison Chronological": "scale",
+    "Vertical Order": "scale",
+    "Horizontal Order": "scale",
+    "Containment": "scale",
+};
+
+/** The ledger a mode's evidence goes in. */
+export function familyOf(type: string): string {
+    return MODE_FAMILIES[type] ?? type;
+}
+
+/** Every mode that shares a ledger with this one, including itself. */
+export function familyMembers(type: string): string[] {
+    const family = familyOf(type);
+    if (family === type) return [type];
+    return Object.keys(MODE_FAMILIES).filter(t => MODE_FAMILIES[t] === family);
+}
+
 export const RUNG_LADDERS: Record<string, string[]> = {
     // Ranking every candidate rather than picking the furthest one. Same
     // evidence, no guess floor to speak of — so it is earned, not given.

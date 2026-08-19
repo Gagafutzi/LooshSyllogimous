@@ -3,7 +3,9 @@ import { EnumQuestionType } from "../constants/question.constants";
 import { LS_TIMER } from "../constants/local-storage.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { Settings } from "../models/settings.models";
-import { LadderEvent, LadderState, Outcome, ladderFor } from "../utils/progression.utils";
+import {
+    LadderEvent, LadderState, Outcome, familyMembers, familyOf, ladderFor,
+} from "../utils/progression.utils";
 import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
     abilityUpdate, aggregate, chooseConfig, guessRateFor, initAbility, levelOf,
@@ -210,8 +212,11 @@ export class ProgressionService {
         const base = this.abilityConfig;
         if (!type) return base;
 
+        // The family's answers, not just this mode's: they are the same task at
+        // the same pace, and one mode alone rarely has enough to calibrate with.
+        const kin = new Set(familyMembers(type));
         const times = this.trials()
-            .filter(t => t.type === type && typeof t.answerSeconds === "number")
+            .filter(t => kin.has(t.type) && typeof t.answerSeconds === "number")
             .slice(-40)
             .map(t => t.answerSeconds!);
 
@@ -286,8 +291,9 @@ export class ProgressionService {
     /* ---------------- per-mode posteriors ---------------- */
 
     abilityFor(type: EnumQuestionType): AbilityState {
+        const key = familyOf(type);
         try {
-            const raw = localStorage.getItem(LS_ABILITY + type);
+            const raw = localStorage.getItem(LS_ABILITY + key);
             if (raw) {
                 const p = JSON.parse(raw);
                 if (Array.isArray(p?.logPost) && p.logPost.length === this.abilityConfig.bins) {
@@ -295,7 +301,52 @@ export class ProgressionService {
                 }
             }
         } catch { /* fall through */ }
+
+        // A family whose ledger does not exist yet, but whose members do: their
+        // evidence was always about the same skill, so it is carried across
+        // rather than discarded.
+        const merged = this.mergeFamily(type);
+        if (merged) { this.saveAbility(type, merged); return merged; }
+
         return this.freshPrior(type);
+    }
+
+    /**
+     * Combine the members' separate posteriors into the family's one.
+     *
+     * Adding log-posteriors is what accumulating independent evidence about a
+     * single quantity *is*. The prior is in each of them, though, so it would be
+     * counted once per member; subtracting the surplus copies leaves the
+     * evidence added once and the prior counted once, which is the whole point
+     * of doing this rather than picking the best-evidenced member and throwing
+     * the rest away.
+     */
+    private mergeFamily(type: EnumQuestionType): AbilityState | null {
+        const members = familyMembers(type);
+        if (members.length < 2) return null;
+
+        const states: AbilityState[] = [];
+        for (const member of members) {
+            try {
+                const raw = localStorage.getItem(LS_ABILITY + member);
+                if (!raw) continue;
+                const p = JSON.parse(raw);
+                if (Array.isArray(p?.logPost) && p.logPost.length === this.abilityConfig.bins) {
+                    states.push({ logPost: p.logPost, trials: p.trials ?? 0, lastSeen: p.lastSeen ?? Date.now() });
+                }
+            } catch { /* skip a member that will not parse */ }
+        }
+        if (!states.length) return null;
+
+        const prior = this.freshPrior(type).logPost;
+        const logPost = prior.map((_, i) =>
+            states.reduce((sum, st) => sum + st.logPost[i], 0) - (states.length - 1) * prior[i]);
+
+        return {
+            logPost,
+            trials: states.reduce((n, st) => n + st.trials, 0),
+            lastSeen: Math.max(...states.map(st => st.lastSeen)),
+        };
     }
 
     /**
@@ -345,7 +396,7 @@ export class ProgressionService {
         try {
             // Rounded: 80 full-precision floats per mode is needless in storage.
             const logPost = s.logPost.map(v => Math.round(v * 1000) / 1000);
-            localStorage.setItem(LS_ABILITY + type,
+            localStorage.setItem(LS_ABILITY + familyOf(type),
                 JSON.stringify({ logPost, trials: s.trials, lastSeen: s.lastSeen }));
         } catch { /* private mode */ }
         this.configCache = {};
@@ -357,7 +408,11 @@ export class ProgressionService {
 
     resetAll() {
         for (const type of Object.values(EnumQuestionType)) {
-            try { localStorage.removeItem(LS_ABILITY + type); } catch { /* ignore */ }
+            try {
+                localStorage.removeItem(LS_ABILITY + type);
+                // And the shared ledger it may write to instead.
+                localStorage.removeItem(LS_ABILITY + familyOf(type));
+            } catch { /* ignore */ }
         }
         this.clearFatigue();
         this.configCache = {};
@@ -599,9 +654,16 @@ export class ProgressionService {
 
     private aggregateNow(): Aggregate {
         const states: Array<{ state: AbilityState; type: EnumQuestionType }> = [];
+        // One entry per *ledger*. Counting a shared family once per member would
+        // weight the scale modes five times over in the overall skill number.
+        const counted = new Set<string>();
+
         for (const type of Object.values(EnumQuestionType)) {
+            const key = familyOf(type);
+            if (counted.has(key)) continue;
+            counted.add(key);
             try {
-                const raw = localStorage.getItem(LS_ABILITY + type);
+                const raw = localStorage.getItem(LS_ABILITY + key);
                 if (!raw) continue;
                 const p = JSON.parse(raw);
                 if (Array.isArray(p?.logPost) && p.logPost.length === this.abilityConfig.bins) {

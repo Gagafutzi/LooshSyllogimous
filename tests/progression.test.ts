@@ -244,3 +244,106 @@ test("a fast player's difficulty goes into the item, not into a slack clock", ()
         + ` ${outcome.seconds == null ? "nonexistent" : Math.round(outcome.seconds) + "s"} clock —`
         + " neither the item nor the deadline became demanding");
 });
+
+/**
+ * The scale modes are one skill, and now share one ledger.
+ *
+ * Reported from play: the five scale modes each crawled while looking
+ * individually reasonable. They are the same engine — identical weight,
+ * identical ceiling, identical ladder, a premise reading the same way with the
+ * words swapped — but each kept its own ability estimate. Thirty answers spread
+ * across the family were five estimates of six answers apiece, none with enough
+ * evidence to move.
+ *
+ * Ability is shared; difficulty is not. Each mode keeps its own premise bounds,
+ * so this says "you are this good at reading a scale", not "these items are
+ * interchangeable".
+ */
+test("answers anywhere in the scale family move all of it", () => {
+    localStorage.clear();
+    const service = new ProgressionService();
+
+    const family = [
+        EnumQuestionType.ComparisonNumerical,
+        EnumQuestionType.ComparisonChronological,
+        EnumQuestionType.LinearVertical,
+        EnumQuestionType.LinearHorizontal,
+        EnumQuestionType.LinearContains,
+    ];
+
+    const before = service.estimateFor(EnumQuestionType.LinearContains).level;
+
+    // Thirty answers spread across the family, none of them on Containment.
+    for (let i = 0; i < 30; i++) {
+        service.record(family[i % 4], "right", 6);
+    }
+
+    const after = service.estimateFor(EnumQuestionType.LinearContains).level;
+    assert(after > before + 1.5,
+        `a mode nobody played sat at ${after.toFixed(1)}, up only`
+        + ` ${(after - before).toFixed(1)} from ${before.toFixed(1)}`);
+
+    // Every member reads the same, because there is one ledger.
+    for (const mode of family) {
+        equal(service.estimateFor(mode).level.toFixed(3), after.toFixed(3),
+            `${mode} disagrees with the rest of its family`);
+    }
+
+    localStorage.clear();
+});
+
+test("sharing a ledger does not make the modes interchangeable", () => {
+    // Difficulty is still per mode: they have different premise floors, and a
+    // shared estimate must not paper over that.
+    localStorage.clear();
+    const service = new ProgressionService();
+    for (let i = 0; i < 20; i++) service.record(EnumQuestionType.ComparisonNumerical, "right", 5);
+
+    const numeric = service.configFor(EnumQuestionType.ComparisonNumerical);
+    const vertical = service.configFor(EnumQuestionType.LinearVertical);
+
+    assert(numeric.premises >= QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.ComparisonNumerical].minNumOfPremises,
+        "a shared estimate broke a mode's own floor");
+    assert(vertical.premises >= QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.LinearVertical].minNumOfPremises,
+        "a shared estimate broke a mode's own floor");
+
+    localStorage.clear();
+});
+
+test("evidence already earned per mode is carried into the shared ledger", () => {
+    /*
+     * Existing accounts have five separate posteriors that were always about
+     * the same skill. Adding log-posteriors is what accumulating independent
+     * evidence *is*; the prior sits in each of them, so the surplus copies come
+     * back out, leaving the evidence added once and the prior counted once.
+     * Picking the best-evidenced member and discarding the rest would throw
+     * away most of what the player had done.
+     */
+    localStorage.clear();
+
+    /*
+     * Built through a mode with a ledger of its own, then filed under two scale
+     * modes — which is the shape an older build left behind. Recording on a
+     * scale mode now writes to the shared ledger directly, so it cannot produce
+     * the state being migrated.
+     */
+    const seed = new ProgressionService();
+    for (let i = 0; i < 15; i++) seed.record(EnumQuestionType.Distinction, "right", 5);
+    const earned = localStorage.getItem("syllogimous-ability:Distinction")!;
+
+    localStorage.clear();
+    localStorage.setItem("syllogimous-ability:Comparison Numerical", earned);
+    localStorage.setItem("syllogimous-ability:Vertical Order", earned);
+
+    const migrated = new ProgressionService();
+    const est = migrated.estimateFor(EnumQuestionType.LinearContains);
+
+    assert(est.trials >= 30,
+        `only ${est.trials} trials survived the move to a shared ledger, of thirty`);
+
+    // And the family now reads from one place, so it was written down.
+    assert(!!localStorage.getItem("syllogimous-ability:scale"),
+        "the merged ledger was never saved, so it would be recomputed forever");
+
+    localStorage.clear();
+});
