@@ -153,3 +153,95 @@ for (const everyRung of [false, true]) {
         assert(built > 400, `only ${built} items were built`);
     });
 }
+
+/**
+ * A conclusion may only name objects the premises name.
+ *
+ * An item was found in the wild whose conclusion asked about `Grass` while no
+ * premise mentioned it — the word was in the stimulus bank, which is
+ * deliberately larger than the layout needs, and the conclusion picker reached
+ * into the bank rather than into what had been stated. The item was not hard,
+ * it was unanswerable, and it was graded `true`.
+ *
+ * `isPremiseLikeConclusion` does not cover this and was never meant to: it
+ * rejects a conclusion whose subject *pair* repeats a premise's, which is the
+ * opposite failure — too little distance from the premises rather than too
+ * much.
+ *
+ * Reads only rendered HTML, so it holds for any generator however it works
+ * inside, and it sweeps the same matrix the build check does because a bank two
+ * words too large shows up at one premise count and not at another.
+ */
+/**
+ * Graph Matching is the one honest exception, and it is not a loophole.
+ *
+ * Its premises describe one structure and its conclusion describes a *second*
+ * one, deliberately relabelled — the question is whether the two match, so
+ * disjoint names are the entire mechanism rather than a leak. Every other mode
+ * asks about the objects it told you about.
+ */
+const EXEMPT = new Set<string>([EnumQuestionType.GraphMatching]);
+
+const SUBJECTS = /<span class="subject">([^<]*)<\/span>/g;
+const subjectsIn = (html: string) => [...html.matchAll(SUBJECTS)].map(m => m[1]);
+
+for (const everyRung of [false, true]) {
+    test(`a conclusion names only what the premises name, rungs ${everyRung ? "on" : "off"}`, () => {
+        const ctx = context(everyRung);
+        const failures: string[] = [];
+
+        for (const type of ORDERED_QUESTION_TYPES) {
+            const make = BUILD[type];
+            if (!make || EXEMPT.has(type)) continue;
+
+            const params = QUESTION_TYPE_SETTING_PARAMS[type];
+            const top = Math.min(params.maxNumOfPremises, params.minNumOfPremises + 3);
+
+            for (let n = params.minNumOfPremises; n <= top; n++) {
+                for (let rep = 0; rep < 40; rep++) {
+                    let q: Question;
+                    try {
+                        q = seeded(n * 7717 + rep * 131 + 5, () => make(ctx, n));
+                    } catch {
+                        continue; // the build sweep above is what reports these
+                    }
+
+                    /*
+                     * Everything the reader is shown before answering. `setup`
+                     * counts: it exists precisely for facts the premises do not
+                     * state but the answer needs.
+                     */
+                    const stated = new Set([
+                        ...q.premises.flatMap(subjectsIn),
+                        ...q.setup.flatMap(subjectsIn),
+                        ...(q.webs ?? []).flatMap(w => w.labels),
+                        ...Object.keys(q.wordCoordMap ?? {}),
+                    ]);
+                    if (!stated.size) continue; // drawn modes state nothing as text
+
+                    /*
+                     * The correct answer only. A distractor that names an
+                     * unmentioned object is a separate complaint — it gives
+                     * itself away — and not this invariant.
+                     */
+                    const asked = [
+                        ...(Array.isArray(q.conclusion) ? q.conclusion : [q.conclusion ?? ""]),
+                        ...(q.answerMode === "choice" && q.correctChoice >= 0
+                            ? [q.choices[q.correctChoice] ?? ""] : []),
+                        ...q.construct.flatMap(c => [c.a, c.b].map(s => `<span class="subject">${s}</span>`)),
+                    ];
+
+                    for (const word of asked.flatMap(subjectsIn)) {
+                        if (!stated.has(word)) {
+                            failures.push(`${type} n=${n}: conclusion names "${word}", no premise does`);
+                        }
+                    }
+                }
+            }
+        }
+
+        const unique = [...new Set(failures)];
+        assert(unique.length === 0,
+            `${unique.length} unanswerable items:\n  ${unique.slice(0, 20).join("\n  ")}`);
+    });
+}
