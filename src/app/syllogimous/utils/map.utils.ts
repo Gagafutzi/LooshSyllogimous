@@ -33,18 +33,66 @@ export interface MapSlice {
     planes: MapPlane[];
 }
 
+/**
+ * Every object's position, one row each, one column per axis.
+ *
+ * What a map above three axes has to be. The grid form draws the fourth axis
+ * and beyond as *slices* — one small picture per combination of the remaining
+ * axes — which is sixteen pictures at five axes and a few dozen at six, before
+ * the reader has found the one that matters. That is not a rendering bug to
+ * tidy: small multiples over three free axes is a Cartesian product, and
+ * fixing the label collisions would produce a legible version of a picture that
+ * should not be drawn.
+ *
+ * A table is readable at any dimensionality, and it is what people reconstruct
+ * on paper when an item beats them.
+ */
+export interface MapTable {
+    axes: string[];
+    /**
+     * The object everything else is measured from.
+     *
+     * Coordinates are stated relative to it, because that is all the premises
+     * determine: they chain offsets, so the arrangement is fixed only up to
+     * where the chain is pinned. Transformation's derivation already states
+     * coordinates this way and records why it is safe.
+     */
+    origin: string;
+    rows: Array<{ word: string; coords: number[] }>;
+}
+
 export interface QuestionMap {
     dims: number;
     /** Names for the drawn axes: across, up, through. */
     across: string;
     up: string;
     slices: MapSlice[];
+    /**
+     * Set instead of `slices` above three axes, where the grid stops working.
+     *
+     * Both are never populated: a screen showing a table *and* thirty unreadable
+     * grids has not replaced anything.
+     */
+    table: MapTable | null;
 }
 
 /** Coordinates keyed by word, one entry per axis. */
 export type CoordMap = Record<string, number[]>;
 
 const range = (lo: number, hi: number) => Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
+
+/**
+ * Which object the frame is pinned to.
+ *
+ * The one already at the origin if there is one — the generators put the first
+ * object there — and otherwise the first listed, so the choice is stable rather
+ * than arbitrary. It only shifts the whole frame, which is safe: every relation
+ * the premises state is between two objects and moves with them.
+ */
+function pickOrigin(list: Array<[string, number[]]>): string {
+    const zeroed = list.find(([, c]) => c.every(v => v === 0));
+    return (zeroed ?? list[0])[0];
+}
 
 const entries = (map: CoordMap) =>
     Object.entries(map).filter(([, c]) => Array.isArray(c) && c.length);
@@ -101,6 +149,34 @@ export function buildQuestionMap(
     const dims = bounds.length;
     const name = (i: number) => axisNames[i] ?? `axis ${i + 1}`;
 
+    /*
+     * Above three axes the grid becomes a Cartesian product of slices, so the
+     * table replaces it rather than joining it. Three and below keep the grid,
+     * which is genuinely better than a table when the axes can be *seen* — that
+     * is what it is for, and it stops being true the moment they cannot be.
+     */
+    if (dims > 3) {
+        const origin = pickOrigin(list);
+        const base = map[origin] ?? [];
+        return {
+            dims,
+            across: name(0),
+            up: dims > 1 ? name(1) : "",
+            slices: [],
+            table: {
+                axes: bounds.map((_, i) => name(i)),
+                origin,
+                // Origin first: a frame with nothing marking it is a column of
+                // numbers measured from somewhere the reader has to work out.
+                rows: [origin, ...list.map(([w]) => w).filter(w => w !== origin)]
+                    .map(word => ({
+                        word,
+                        coords: bounds.map((_, i) => (map[word][i] ?? 0) - (base[i] ?? 0)),
+                    })),
+            },
+        };
+    }
+
     const [ax, ay, az] = bounds;
     const columns = range(ax[0], ax[1]);
     // Drawn top-down, so the highest coordinate is the first row.
@@ -130,7 +206,7 @@ export function buildQuestionMap(
         })),
     }));
 
-    return { dims, across: name(0), up: dims > 1 ? name(1) : "", slices };
+    return { dims, across: name(0), up: dims > 1 ? name(1) : "", slices, table: null };
 }
 
 /**

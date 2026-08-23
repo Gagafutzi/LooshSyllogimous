@@ -41,8 +41,17 @@ function context(): GeneratorContext {
 }
 
 /** Every word drawn anywhere in the map. */
-const drawn = (m: ReturnType<typeof buildQuestionMap>) =>
-    (m?.slices ?? []).flatMap(s => s.planes.flatMap(p => p.rows.flat().flat()));
+/**
+ * Everything the map shows, whichever form it took.
+ *
+ * Above three axes the grid is replaced by a coordinate table, so a helper that
+ * only reads slices would report an empty picture for exactly the maps that
+ * needed replacing.
+ */
+const drawn = (m: ReturnType<typeof buildQuestionMap>) => [
+    ...(m?.slices ?? []).flatMap(s => s.planes.flatMap(p => p.rows.flat().flat())),
+    ...(m?.table?.rows ?? []).map(r => r.word),
+];
 
 test("a one-axis layout draws as a single row, in order", () => {
     const m = buildQuestionMap(coordMapFromPositions({ A: 2, B: 0, C: 1 }), ["Height"]);
@@ -69,14 +78,20 @@ test("three axes stack into planes", () => {
     assert(m!.slices[0].planes[0].label.includes("Z"), "planes are not labelled by their axis");
 });
 
-test("past three axes, the rest become labelled slices", () => {
-    // v3 hardcoded "Time N" for the fourth. The composed spaces here go to six,
-    // so any further axis is labelled with its own name and value.
+/**
+ * Past three axes the map stops being a picture.
+ *
+ * It used to become labelled *slices* — one small grid per combination of the
+ * axes past the third — which is a Cartesian product and unreadable by five
+ * axes, let alone six. It is a table now, and the axis keeps its own name as a
+ * column heading rather than appearing in a panel caption. See maptable.test.
+ */
+test("past three axes, the map becomes a table with a column per axis", () => {
     const m = buildQuestionMap(
         { Early: [0, 0, 0, 0], Late: [0, 0, 0, 1] },
         ["East-west", "North-south", "Up-down", "Time"]);
-    equal(m!.slices.length, 2);
-    assert(m!.slices[1].label.includes("Time"), `slice label was "${m!.slices[1].label}"`);
+    equal(m!.slices.length, 0, "it still draws a stack of grids");
+    assert(m!.table!.axes.includes("Time"), "the fourth axis lost its name");
     equal(drawn(m).sort(), ["Early", "Late"]);
 });
 

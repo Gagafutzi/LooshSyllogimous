@@ -1,4 +1,5 @@
 import { Component, Input } from "@angular/core";
+import { dimClass, dimSlot } from "../../utils/phrasing";
 import { Question } from "../../models/question.models";
 import {
     CoordMap, QuestionMap, buildQuestionMap, coordMapFromTuples,
@@ -24,6 +25,16 @@ import {
     styleUrls: ["./question-map.component.css"],
 })
 export class QuestionMapComponent {
+    /**
+     * The colour this axis's clauses were painted in, so a column and the
+     * premises that filled it are found by the same cue.
+     *
+     * Through `dimSlot` because the palette is numbered from one and a column
+     * index starts at zero — asking for `--th-dim-0` gets an undefined property
+     * and a black cell.
+     */
+    axisClass(index: number) { return dimClass(dimSlot(index)); }
+
     map: QuestionMap | null = null;
     /** Ordering modes: a single ranked line rather than a grid. */
     chain: string[] = [];

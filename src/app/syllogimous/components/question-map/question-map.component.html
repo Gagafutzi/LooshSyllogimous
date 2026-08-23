@@ -13,7 +13,44 @@
         </div>
     </div>
 
-    <ng-container *ngIf="map">
+    <!--
+      Above three axes: a table, not a stack of grids.
+
+      Every object's position, one row each, one column per axis, measured from
+      whichever object the frame is pinned to. The grid form draws the fourth
+      axis and beyond as one small picture per combination of the rest, which is
+      a Cartesian product — dozens of panels at six axes, and the reader has to
+      find the one that matters before reading anything in it.
+
+      Scrolls sideways rather than wrapping: seven columns of numbers is narrow,
+      and a wrapped row stops being a row.
+    -->
+    <div class="qmap__tablewrap" *ngIf="map?.table as t">
+        <table class="qmap__table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th *ngFor="let axis of t.axes; let i = index" [ngClass]="axisClass(i)">
+                        {{ axis }}
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let row of t.rows" [class.is-origin]="row.word === t.origin">
+                    <th [innerHTML]="row.word"></th>
+                    <td *ngFor="let value of row.coords; let i = index" [ngClass]="axisClass(i)">
+                        {{ value > 0 ? "+" + value : value }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <small class="qmap__axes text-muted">
+            Measured from <span [innerHTML]="t.origin"></span> — the premises chain
+            offsets, so they fix the arrangement only up to where it is pinned.
+        </small>
+    </div>
+
+    <ng-container *ngIf="map && !map.table">
         <div class="qmap__slice" *ngFor="let slice of map.slices">
             <small class="text-muted d-block" *ngIf="slice.label">{{ slice.label }}</small>
 

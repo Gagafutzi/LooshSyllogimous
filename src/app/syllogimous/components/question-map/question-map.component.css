@@ -68,3 +68,16 @@
     .qmap__scene.is-stacked .qmap__plane { grid-area: auto; transform: none; }
     .qmap__planelabel { position: static; transform: none; display: block; }
 }
+
+/* Seven columns of numbers is narrow; a wrapped row stops being a row. */
+.qmap__tablewrap { overflow-x: auto; max-width: 100%; }
+
+.qmap__table { border-collapse: collapse; font-size: 0.9em; margin-inline: auto; }
+.qmap__table th,
+.qmap__table td { padding: 0.15rem 0.55rem; text-align: right; white-space: nowrap; }
+.qmap__table thead th { font-weight: 700; text-align: right; }
+.qmap__table tbody th { text-align: left; font-weight: 700; }
+
+/* The frame everything else is measured from, marked rather than merely first. */
+.qmap__table tbody tr.is-origin { opacity: 0.75; }
+.qmap__table tbody tr.is-origin td { font-style: italic; }

@@ -69,7 +69,34 @@ one of its endpoints. Both are properties of the layout, both are computable fro
 
 ---
 
-## 4.2 The composed-space explanation diagram
+## 4.2 The composed-space explanation diagram — **BUILT**
+
+**It was never only the 6-D one.** The author's read is right: the grid draws
+the fourth axis and beyond as *slices* — one small picture per combination of
+the remaining axes — so it is a Cartesian product and it fails from four axes
+up. Four is a row of stacked-plane scenes, five is sixteen of them, six is the
+screenshot. Fixing the label collisions would have produced a legible version of
+a picture that should not be drawn.
+
+Above three axes `buildQuestionMap` now returns a **table** instead: one row per
+object, one column per axis, coordinates relative to the object the frame is
+pinned to, columns painted with the same per-axis colours the premises use.
+`slices` is empty when `table` is set — a screen showing a table *and* thirty
+unreadable grids has replaced nothing.
+
+**Three and under keep the grid**, because three is where the axes can still be
+seen: two as a grid and the third as stacked planes, which is v3's drawing and
+works.
+
+The frame is named and comes first. Coordinates are relative because that is all
+the premises determine — they chain offsets, so the arrangement is fixed only up
+to where the chain is pinned, which is what Transformation's derivation already
+says and records why it is safe.
+
+**Still to do:** marking the axis the conclusion asks about, which the sketch
+below has and the built version does not.
+
+### The original diagnosis
 
 ![](shots/11-ndspace-6d-diagram.png)
 
