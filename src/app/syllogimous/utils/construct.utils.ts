@@ -80,3 +80,72 @@ export function blankPicks(claims: ConstructClaim[]): SlotAnswer[][] {
 export function slotsRemaining(picks: SlotAnswer[][]): number {
     return picks.reduce((a, c) => a + c.filter(s => s.direction < 0).length, 0);
 }
+
+/** One dimension of a construct answer, as the result screen shows it. */
+export interface SlotComparison {
+    /** The dimension's name, as the premises painted it. */
+    label: string;
+    /** Axis colour class, so the row matches the clause it is about. */
+    colorClass?: string;
+    /** What the truth was, worded. */
+    correct: string;
+    /** What was entered, worded, or null if the slot was left blank. */
+    entered: string | null;
+    ok: boolean;
+    /**
+     * Right way, wrong distance.
+     *
+     * Worth telling apart from a wrong direction, because they are different
+     * mistakes: one is a slip in arithmetic and the other is a slip in reading,
+     * and a screen that reports both as "wrong" cannot say which was made.
+     */
+    directionOk: boolean;
+}
+
+/** How a slot's answer reads out loud. */
+function wordSlot(slot: ConstructSlot, direction: number, magnitude: number): string {
+    const word = slot.directions[direction] ?? "—";
+    if (!slot.asksDistance || direction === 2) return word;
+    return `${word} by ${magnitude}`;
+}
+
+/**
+ * A construct answer, dimension by dimension.
+ *
+ * The result screen collapsed a seven-dimension answer to `true` or `false`,
+ * which throws away the reason construction exists: its own justification is
+ * that a binary answer cannot tell a lucky run from an understood one, and then
+ * the result was reported as a binary. Six dimensions right and one wrong is a
+ * different event from all seven wrong, and only one of them means the item was
+ * misread.
+ *
+ * Pure, and beside `slotSatisfied` rather than in a component, because the
+ * screen and the placement test both have to say the same thing about the same
+ * answer — and a second opinion about what "correct" means is how a trainer
+ * ends up marking a right answer wrong.
+ */
+export function compareConstruction(
+    claims: ConstructClaim[],
+    picks: SlotAnswer[][] | undefined,
+): SlotComparison[][] {
+    return claims.map((claim, i) => claim.slots.map((slot, j) => {
+        const answer = picks?.[i]?.[j];
+        const answered = !!answer && answer.direction >= 0;
+        return {
+            label: slot.label,
+            colorClass: slot.colorClass,
+            correct: wordSlot(slot, slot.answerDirection, slot.answerMagnitude),
+            entered: answered ? wordSlot(slot, answer!.direction, answer!.magnitude) : null,
+            ok: slotSatisfied(slot, answer),
+            /*
+             * On a circular axis there is no separate direction to be right
+             * about: two steps clockwise round a five-loop *is* three steps
+             * anticlockwise, so the pair (direction, distance) means one thing
+             * and splitting it would report a correct answer as half wrong.
+             */
+            directionOk: slot.modulus
+                ? slotSatisfied(slot, answer)
+                : answered && answer!.direction === slot.answerDirection,
+        };
+    }));
+}

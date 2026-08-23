@@ -13,7 +13,33 @@ The three instances differ in kind, so they are three fixes, not one. Section
 
 ---
 
-## 3.1 Construct answers scored per dimension
+## 3.1 Construct answers scored per dimension — **BUILT**
+
+`compareConstruction` in
+[`utils/construct.utils.ts`](../src/app/syllogimous/utils/construct.utils.ts)
+returns one row per dimension — label, axis colour, what was entered, what was
+right — and History renders it above the verdict cells. Beside `slotSatisfied`
+rather than in a component, because the screen and the placement test both have
+to say the same thing about the same answer, and a second opinion about what
+"correct" means is how a trainer marks a right answer wrong.
+
+Two distinctions it draws that the request did not name, and both matter more
+than the row itself:
+
+- **Right way, wrong distance** is reported as its own outcome. It is a slip in
+  arithmetic where a wrong direction is a slip in reading, and a screen calling
+  both "wrong" cannot say which was made.
+- **A circular slot is judged as one claim.** Two steps clockwise round a
+  five-loop *is* three anticlockwise, so splitting it into a direction and a
+  distance would report a correct answer as half wrong — and `slotSatisfied`
+  already accepts it, so the two would have disagreed about the same answer.
+
+**Still to do:** the same rows on the game screen's result card, not only in
+History; and recording per-slot correctness so the stats screen can say which
+*dimension* a player loses, which is the most actionable number the app could
+show about the composed spaces.
+
+### The original diagnosis
 
 ![](shots/01-construct-scoring.png)
 

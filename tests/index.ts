@@ -28,6 +28,7 @@ import "./knaves.test";
 import "./nested.test";
 import "./graphdist.test";
 import "./depth.test";
+import "./construct.test";
 import "./combinations.test";
 import "./width.test";
 import "./display.test";

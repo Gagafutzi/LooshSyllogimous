@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { GameService } from '../../services/game.service';
 import { Question } from '../../models/question.models';
+import { compareConstruction } from '../../utils/construct.utils';
 import { Router } from '@angular/router';
 import { EnumScreens } from '../../constants/game.constants';
 import { ToastService } from 'src/app/services/toast.service';
@@ -13,6 +14,20 @@ import { ToastService } from 'src/app/services/toast.service';
 export class HistoryComponent {
     Array = Array;
     EnumScreens = EnumScreens;
+
+    /**
+     * A construct answer, dimension by dimension.
+     *
+     * `Correct Answer: true / User Answer: false` is the whole report a
+     * seven-dimension answer used to get, which is the one thing construction
+     * was built to avoid — its argument is that a binary cannot tell a lucky
+     * run from an understood one, and the result screen turned it back into
+     * one. Six right and one wrong is a different event from seven wrong.
+     */
+    breakdown(q: Question) {
+        if (q.answerMode !== "construct" || !q.construct.length) return null;
+        return compareConstruction(q.construct, q.userConstruct);
+    }
 
     allQuestions: Question[] = [];
     questions: Question[] = [];

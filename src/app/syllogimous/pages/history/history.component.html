@@ -63,6 +63,28 @@
                     </ng-template>
                 </div>
     
+                <!--
+                  A built conclusion, dimension by dimension.
+                  `true` against `false` is one bit about a seven-part answer,
+                  and which part went wrong is the only thing worth knowing.
+                -->
+                <div *ngIf="breakdown(q) as claims" class="mb-2">
+                    <div class="small text-muted mb-1">By dimension</div>
+                    <div *ngFor="let slots of claims" class="mb-1">
+                        <div *ngFor="let s of slots"
+                             class="d-flex small gap-2 align-items-baseline">
+                            <span class="fw-bold" [ngClass]="s.colorClass">{{ s.label }}</span>
+                            <span [class.is-negated]="!s.ok">
+                                {{ s.entered === null ? "not answered" : s.entered }}
+                            </span>
+                            <span *ngIf="!s.ok" class="text-muted">
+                                &rarr; {{ s.correct }}<ng-container
+                                    *ngIf="s.directionOk"> (right way, wrong distance)</ng-container>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
                 <small class="d-grid" style="grid-template-columns: repeat(4, 1fr);">
                     <div class="bd-left">
                         <div class="fw-bold">Type</div>
