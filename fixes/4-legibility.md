@@ -46,26 +46,46 @@ inventing improvements.
   is a choice rather than a fix — see below.
 - **A legend states the task**, in the picture, every time.
 
-**Recommended, in order:**
+**Done:**
 
-1. Arrow stroke to a bright, high-contrast colour with a theme variable of its
-   own. Weight up. This alone recovers most of the difference.
-2. Opaque node fill.
-3. Replace the circular layout with a layered one — sources at the top, sinks at
-   the bottom — and drop the bowing entirely once edges stop crossing. This is
-   the largest change and `layoutArrows` mostly *deletes* under it.
-4. Keep the letter labels, and add the `out/in` counts as a **rung**, not as the
-   default. The reference's labelling makes the exercise easier by design, and
-   the roadmap already treats "no counting arrows" as a rung
-   (`structural` in [`mode-modifiers.component.ts`](../src/app/syllogimous/components/mode-modifiers/mode-modifiers.component.ts)),
-   so degree labels belong at the bottom of that same ladder rather than
-   replacing it.
+1. **Arrows in the foreground colour, at 2.2.** They were `--th-text-dim` — the
+   colour reserved for what should recede — at 1.7, in a picture whose entire
+   content is which way each arrow runs. Heads and self-loops with them.
+2. **Opaque nodes.** They were the panel colour at 85%, and the missing 15% was
+   enough for a shaft to show through a circle, which in this mode is not a
+   cosmetic difference.
+3. **`clearestScatter`: the clearest of eighty scatters.** Measured over real
+   generated webs, about **18%** of drawn arrows passed under a node that was
+   neither of their ends — an arrow that does that reads as ending there. Now
+   about **3%**. Zero is not reachable: a dense web on twelve nodes has no
+   arrangement in which no arrow passes near any node.
 
-**Verification.** This is appearance, so it is checked by eye and not by test —
-with two exceptions worth automating: no two nodes may be drawn closer than the
-node diameter, and no arrow may pass within a node radius of a node that is not
-one of its endpoints. Both are properties of the layout, both are computable from
-`layout` and `arrows`, and both are the actual causes of the mess.
+**Item 3 of the original plan was wrong, and is not done.** It said to replace
+the scatter with a layered layout, sources at the top and sinks at the bottom.
+`scatterLayout`'s own comment explains why that undercuts the mode: a ring made
+a rotational symmetry visible *as a turn of the picture*, and a force-directed
+layout settles into regular arrangements — both hand over structure the mode
+exists to make you derive from the arrows. A layered layout does it worse than
+either, since ranking the nodes by depth is most of the answer drawn on the
+page. The bowing stays for the same reason it was written: it separates
+near-parallel edges leaving one node, which is a different problem from
+crossings and is already solved.
+
+`clearestScatter` respects that reasoning rather than working around it. The
+scatters are still structure-blind and still random; it only chooses among
+them, on a measure about *arrows and nodes* rather than about structure, so
+every arrangement it can produce is one the sampler could have produced first
+time.
+
+4. **Degree labels stay a rung, unbuilt.** The reference's `out/in` labelling
+   makes the exercise easier by design, and the roadmap already treats "no
+   counting arrows" as a rung (`structural`), so they belong at the bottom of
+   that ladder rather than replacing the letters.
+
+**Verification.** Appearance is checked by eye, but two of the causes are not
+appearance and are now tested: no two nodes drawn closer than the node diameter,
+and the obstructed-arrow rate, with the bar set at 6% so a regression shows
+rather than at wherever the number happens to sit today.
 
 ---
 

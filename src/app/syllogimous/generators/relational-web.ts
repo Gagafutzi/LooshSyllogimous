@@ -30,7 +30,7 @@ import { shuffle } from "../utils/question.utils";
 import { hi, subj } from "../utils/phrasing";
 import {
     WEB_PROPERTIES, Web, edgesOf, isomorphic, nearMiss, orbitOf, permuteWeb,
-    degreeTwins, randomPermutation, randomWeb, scatterLayout,
+    clearestScatter, degreeTwins, randomPermutation, randomWeb, scatterLayout,
 } from "../utils/web.utils";
 import { GeneratorContext } from "./context";
 
@@ -109,8 +109,8 @@ function attach(question: Question, left: Web, right: Web, highlight?: number) {
          * invite matching by position — both of which answer the question
          * without looking at the arrows.
          */
-        { adj: left.adj, labels: NODE_LABELS.slice(0, left.n), layout: scatterLayout(left.n), highlight },
-        { adj: right.adj, labels: NODE_LABELS.slice(0, right.n), layout: scatterLayout(right.n) },
+        { adj: left.adj, labels: NODE_LABELS.slice(0, left.n), layout: clearestScatter(left.n, left.adj), highlight },
+        { adj: right.adj, labels: NODE_LABELS.slice(0, right.n), layout: clearestScatter(right.n, right.adj) },
     ];
 }
 

@@ -7,10 +7,18 @@
     overflow: visible;
 }
 
+/*
+ * The arrows are the premises, so nothing on the canvas should be brighter.
+ *
+ * They were `--th-text-dim` — the colour chosen for things that should recede —
+ * at 1.7, which is how a picture whose entire content is "which way does each
+ * arrow run" ended up with the arrows as the faintest thing in it. `--th-text`
+ * at 2.2 is the same weight the reference drawing gives them.
+ */
 .web__arrow {
     fill: none;
-    stroke: var(--th-text-dim, #7d8ca6);
-    stroke-width: 1.7;
+    stroke: var(--th-text, #d7e3f4);
+    stroke-width: 2.2;
 }
 
 /*
@@ -21,19 +29,26 @@
  * being implemented.
  */
 .web__head {
-    fill: var(--th-text-dim, #7d8ca6);
+    fill: var(--th-text, #d7e3f4);
 }
 
 .web__loop {
     fill: none;
-    stroke: var(--th-text-dim, #7d8ca6);
-    stroke-width: 1.4;
+    stroke: var(--th-text, #d7e3f4);
+    stroke-width: 1.8;
 }
 
+/*
+ * Opaque, so an arrow passing behind a node does not read as passing into it.
+ *
+ * It was the panel colour at 85%, and the missing 15% was enough for a shaft to
+ * show through a circle — which in a picture about what points at what is not a
+ * cosmetic difference.
+ */
 .web__node {
-    fill: color-mix(in srgb, var(--th-panel) 85%, transparent);
-    stroke: rgba(var(--th-accent-rgb, 34, 211, 238), 0.55);
-    stroke-width: 1.4;
+    fill: var(--th-panel, #12161f);
+    stroke: rgba(var(--th-accent-rgb, 34, 211, 238), 0.75);
+    stroke-width: 1.6;
 }
 
 /* The node being asked about. Filled rather than merely outlined, so it is

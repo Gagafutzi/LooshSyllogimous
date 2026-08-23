@@ -12,7 +12,7 @@ import { readFileSync } from "fs";
 import { assert, equal, seeded, test } from "./harness";
 import {
     WEB_PROPERTIES, Web, cloneWeb, edgesOf, emptyWeb, isomorphic, mappings, nearMiss, orbitOf,
-    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout, arrowPath, bowFor, layoutArrows, samplePath,
+    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout, clearestScatter, obstructions, arrowPath, bowFor, layoutArrows, samplePath,
 } from "../src/app/syllogimous/utils/web.utils";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
@@ -643,4 +643,91 @@ test("no drawing asks for a dimension colour outside the defined range", () => {
         assert(!/--th-dim-\$\{[^}]*%[^}]*\}/.test(source),
             `${path} builds a dimension variable with a raw modulo; use dimSlot`);
     }
+});
+
+/**
+ * The drawing has to be readable, and two of the reasons it was not are
+ * properties of the layout rather than matters of taste.
+ *
+ * Appearance is checked by eye. These are not appearance: a node drawn on top
+ * of another and an arrow passing through a node it has nothing to do with are
+ * both wrong pictures, and both are computable from the numbers the component
+ * already has.
+ */
+test("no two nodes are drawn on top of each other", () => {
+    seeded(4711, () => {
+        for (let n = 3; n <= 12; n++) {
+            const radius = Math.max(8, Math.min(13, Math.round(52 / Math.sqrt(n))));
+            const size = 200;
+            for (let rep = 0; rep < 20; rep++) {
+                const pts = scatterLayout(n).map(([x, y]) => [x * size, y * size] as [number, number]);
+                for (let i = 0; i < pts.length; i++) {
+                    for (let j = i + 1; j < pts.length; j++) {
+                        const gap = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]);
+                        assert(gap >= radius * 2,
+                            `${n} nodes: two circles ${gap.toFixed(1)} apart with radius ${radius}`);
+                    }
+                }
+            }
+        }
+    });
+});
+
+/**
+ * An arrow that runs under an unrelated node reads as ending there.
+ *
+ * Measured on the edges that are actually drawn, over real generated webs,
+ * because that is the picture -- scoring every possible pair counts arrows the
+ * item does not have. A plain scatter leaves this at roughly one arrow in five;
+ * `clearestScatter` picks among scatters on exactly this measure, which changes
+ * nothing about how a layout is produced and only which of several is used.
+ */
+test("arrows rarely run through a node they have nothing to do with", () => {
+    let plain = 0, chosen = 0, edges = 0;
+
+    seeded(1234, () => {
+        for (let n = 4; n <= 10; n++) {
+            for (let rep = 0; rep < 25; rep++) {
+                const web = randomWeb(n);
+                const drawn = web.adj.flat().filter(Boolean).length;
+                if (!drawn) continue;
+                edges += drawn;
+                plain += obstructions(scatterLayout(n), web.adj);
+                chosen += obstructions(clearestScatter(n, web.adj), web.adj);
+            }
+        }
+    });
+
+    const rate = chosen / edges;
+    assert(chosen < plain,
+        `choosing among scatters did not help: ${chosen} against ${plain}`);
+    /*
+     * Measured at about 18% before and 3% after, so the bar is set where a
+     * regression shows up rather than where the current number happens to sit.
+     * Zero is not reachable: a dense web on twelve nodes has arrangements only
+     * in which *some* arrow passes near *some* node.
+     */
+    assert(rate < 0.06,
+        `${(rate * 100).toFixed(1)}% of drawn arrows still pass under an unrelated node`);
+});
+
+/**
+ * The arrows must not be the faintest thing in a picture that is about arrows.
+ *
+ * They were `--th-text-dim`, the colour reserved for what should recede, while
+ * every node label used `--th-text`. Checked at the stylesheet because that is
+ * where it was decided and where it would be undone.
+ */
+test("arrows are drawn in the foreground colour", () => {
+    const css = readFileSync(
+        "src/app/syllogimous/components/relational-web/relational-web.component.css", "utf8");
+    const rule = (name: string) =>
+        css.slice(css.indexOf(`.${name} {`), css.indexOf("}", css.indexOf(`.${name} {`)));
+
+    for (const name of ["web__arrow", "web__head", "web__loop"]) {
+        assert(!/--th-text-dim/.test(rule(name)),
+            `.${name} recedes, in a drawing whose whole content is its arrows`);
+    }
+    assert(!/transparent/.test(rule("web__node")),
+        "a node is translucent, so an arrow behind it reads as running into it");
 });
