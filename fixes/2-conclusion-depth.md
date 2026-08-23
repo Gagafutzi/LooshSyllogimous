@@ -189,9 +189,18 @@ claim and the reversal in the wording changed nothing.
 The reported item failed on both counts at once, which is why it read as
 derivable from a single premise: it was.
 
-**Still to do:** the absolute form below, which is the version where the turns
-have to be computed rather than dismissed. Both forms should exist; the mode
-already has the choice-among-corner-names renderer for it.
+**The absolute form now carries the weight.** It already existed — "which corner
+is X on after the turns?" — but at two items in five, and it asked about a
+*random* object. Half the time that was one named outright, whose answer is its
+stated corner plus the turns: one premise and the arithmetic, with every
+relative placement in the item unused. It now asks about the object furthest
+from the frame, so the whole chain is load-bearing, and it is three items in
+four.
+
+Invariance stays at the remaining quarter. It is worth teaching — a turn cannot
+change how two objects sit relative to each other — but a relative claim is
+invariant under rotation, so the turns are there to be dismissed rather than
+computed, and that is not most of a mode about turning things.
 
 Shape Rotation needs one thing beyond the depth gate, because the depth gate
 alone would not save it. Its conclusion asks for a **relative** position — *"X

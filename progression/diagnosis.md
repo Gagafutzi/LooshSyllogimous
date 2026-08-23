@@ -178,7 +178,23 @@ Advanced Options.
 
 ---
 
-## Finding 3 — the discrete steps hide small gains
+## Finding 3 — the discrete steps hide small gains — **ADDRESSED**
+
+The steps are still discrete, which is not a fault: an item is a whole number of
+premises and a whole number of rungs. What was a fault is that the *only* signal
+was the item, so most of a level could be earned with nothing to show for it.
+
+Each mode's row in Customise now carries what the model believes — the level,
+how sure it is, the configuration that produces, and how many answers it rests
+on. A number that goes up is the cheapest possible answer to "I am not
+advancing", and an honest one: it really did go up.
+
+The uncertainty is shown beside it deliberately. A wide estimate is *why* items
+feel easy, and it is the thing that shrinks by playing a mode rather than by
+climbing it — so a player wondering why a mode is not getting harder can see
+that the model is not yet sure enough to make it so.
+
+The original notes follow.
 
 Secondary, but it shapes the feel.
 

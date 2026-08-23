@@ -176,11 +176,19 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
             + ". Objects turn with the shape.",
         ];
 
-        // Asking where something ended up, or what a turn left alone.
-        if (words.length >= 2 && Math.random() < 0.4) {
+        /*
+         * Asking where something ended up, or what a turn left alone.
+         *
+         * The absolute form carries the weight, and it is the one the turns
+         * matter to: a relative claim is invariant under rotation, so the
+         * turns are there to be dismissed rather than computed. Invariance is
+         * worth teaching and worth a quarter of the items; it is not worth
+         * most of them.
+         */
+        if (words.length >= 2 && Math.random() < 0.25) {
             if (!fillInvarianceQuestion(question, words, neighbors, start, final, order, shape)) continue;
         } else {
-            fillPositionQuestion(question, words, final, shape);
+            fillPositionQuestion(question, words, neighbors, final, shape);
         }
 
         return question;
@@ -199,10 +207,28 @@ const plainName = (s: string) => s.replace(/<[^>]+>/g, "");
 function fillPositionQuestion(
     question: Question,
     words: string[],
+    neighbors: Record<string, string[]>,
     final: Record<string, number>,
     shape: { name: string; corners: string[] },
 ) {
-    const asked = words[Math.floor(Math.random() * words.length)];
+    /*
+     * The object furthest from the frame, not a random one.
+     *
+     * Drawing at random meant asking about a *named* object about half the
+     * time, and a named object's answer is its stated corner plus the turns —
+     * one premise and the arithmetic, with every relative placement in the item
+     * unused. Asking about the far end of the chain makes the whole chain
+     * load-bearing, which is the same thing the depth work asks of every other
+     * mode.
+     */
+    const FRAME = "\u0000frame";
+    const reach = words.map(w => ({ w, d: hops(FRAME, w, neighbors) }))
+        .filter(x => Number.isFinite(x.d));
+    const far = reach.length ? Math.max(...reach.map(x => x.d)) : 0;
+    const candidates = reach.filter(x => x.d === far).map(x => x.w);
+    const asked = candidates.length
+        ? candidates[Math.floor(Math.random() * candidates.length)]
+        : words[Math.floor(Math.random() * words.length)];
     const order = shuffle([...Array(shape.corners.length).keys()]);
 
     question.choices = order.map(i => rel(shape.corners[i]));

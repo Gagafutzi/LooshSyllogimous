@@ -291,3 +291,64 @@ test("a structure match shows which name goes with which", () => {
     assert(sameItems > 3 && diffItems > 3,
         `only saw ${sameItems} matching and ${diffItems} differing items`);
 });
+
+/**
+ * The absolute form asks about the far end of the chain.
+ *
+ * Drawing at random meant asking about a *named* object about half the time,
+ * and a named object's answer is its stated corner plus the turns -- one
+ * premise and the arithmetic, with every relative placement in the item unused.
+ */
+test("a position question is not answered by one premise", () => {
+    const ctx = ndContext();
+    let asked = 0;
+
+    seeded(1357, () => {
+        for (let n = 4; n <= 8; n++) {
+            for (let rep = 0; rep < 25; rep++) {
+                let q;
+                try { q = createShapeRotation(ctx, n); } catch { continue; }
+                const prompt = q.choicePrompt;
+                if (!prompt.includes("Which corner")) continue;   // the relative form
+                asked++;
+
+                const who = /Which corner is (.*?) on after/.exec(prompt)![1];
+                /*
+                 * A named object states its own corner outright. Asking about
+                 * one is asking for a premise back, with the turns applied.
+                 */
+                const named = q.premises.some(p => {
+                    const m = /^<span class="subject">([^<]*)<\/span> is on the/.exec(p);
+                    return m?.[1] === who;
+                });
+                assert(!named, `asked where ${who} is, and a premise says outright`);
+            }
+        }
+    });
+
+    assert(asked > 20, `only ${asked} absolute-form items in the sample`);
+});
+
+/**
+ * And it is the commoner of the two forms.
+ *
+ * A relative claim is invariant under rotation, so the turns are there to be
+ * dismissed rather than computed. That is worth teaching and worth a quarter of
+ * the items; it is not worth most of them.
+ */
+test("the form where the turns matter is the commoner one", () => {
+    const ctx = ndContext();
+    let absolute = 0, relative = 0;
+
+    seeded(2468, () => {
+        for (let rep = 0; rep < 120; rep++) {
+            let q;
+            try { q = createShapeRotation(ctx, 6); } catch { continue; }
+            if (q.choicePrompt.includes("Which corner")) absolute++;
+            else relative++;
+        }
+    });
+
+    assert(absolute > relative * 1.5,
+        `${absolute} absolute against ${relative} relative`);
+});

@@ -121,6 +121,35 @@ export class AdvancedOptionsComponent {
         this.progression.set(key as any, value as any);
     }
 
+    /**
+     * What the model currently believes about this mode, in one line.
+     *
+     * The estimate moves on every answer and the *item* only changes when it
+     * crosses a step — a premise is worth about a level, a rung half of one, so
+     * most of a level can be earned with nothing to show for it. That is
+     * Finding 3 in `progression/diagnosis.md`, and the complaint it produces is
+     * "I am not advancing" when the honest answer is "you advanced 0.4 and the
+     * next thing costs 0.6".
+     *
+     * A number that goes up is the cheapest possible answer to that, and an
+     * honest one: it really did go up.
+     */
+    abilityOf(row: Row) {
+        const est = this.progression.estimateFor(row.type);
+        const choice = this.progression.configFor(row.type);
+        const ladder = ladderFor(row.type);
+        return {
+            level: est.level,
+            // Shown because a wide estimate is why items feel easy, and it is
+            // the thing that shrinks as a mode is played rather than climbed.
+            sure: est.sd,
+            trials: est.trials,
+            premises: choice.premises,
+            rungs: choice.rungs,
+            ofRungs: ladder.length,
+        };
+    }
+
     ladderState(row: Row) {
         const s = this.progression.stateFor(row.type);
         const ladder = ladderFor(row.type);

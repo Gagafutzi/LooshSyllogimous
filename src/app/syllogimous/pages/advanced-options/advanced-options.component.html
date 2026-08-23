@@ -78,6 +78,23 @@
                 <span>
                     {{ row.type }}
                     <small class="text-muted d-block">{{ row.group }}</small>
+                    <!--
+                      The estimate, so that progress below a whole step is
+                      visible. An item only changes when the level crosses a
+                      premise or a rung, and most of a level can be earned with
+                      nothing to show for it.
+                    -->
+                    <small class="text-muted d-block" *ngIf="prog.enabled">
+                        <ng-container *ngIf="abilityOf(row) as a">
+                            <ng-container *ngIf="a.trials">
+                                level {{ a.level | number:'1.1-1' }}
+                                <span class="opacity-75">± {{ a.sure | number:'1.1-1' }}</span>
+                                · {{ a.premises }}p, {{ a.rungs }}/{{ a.ofRungs }} rungs
+                                · {{ a.trials }} answered
+                            </ng-container>
+                            <ng-container *ngIf="!a.trials">not measured yet</ng-container>
+                        </ng-container>
+                    </small>
                 </span>
             </label>
 

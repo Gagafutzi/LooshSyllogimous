@@ -7,6 +7,7 @@
  * undone — and this is exactly the kind of check that used to need the app.
  */
 
+import { readFileSync } from "fs";
 import { assert, equal, seeded, test } from "./harness";
 import {
     RUNG_COST, chooseConfig, DEFAULT_ABILITY, levelOf, pCorrect, referenceSecondsFrom, timeCost,
@@ -439,5 +440,42 @@ test("probes can be switched off", () => {
                 rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
             service.record(type, "right", 8);
         }
+    });
+});
+
+/**
+ * The estimate is visible, so progress below a whole step is too.
+ *
+ * An item only changes when the level crosses a premise (about a level) or a
+ * rung (about half of one), so most of a level can be earned with nothing to
+ * show for it. That is what produces "I am not advancing" when the honest answer
+ * is "you advanced 0.4 and the next thing costs 0.6" -- see Finding 3 in
+ * progression/diagnosis.md.
+ */
+test("the ability estimate is shown per mode", () => {
+    const src = readFileSync(
+        "src/app/syllogimous/pages/advanced-options/advanced-options.component.ts", "utf8");
+    const html = readFileSync(
+        "src/app/syllogimous/pages/advanced-options/advanced-options.component.html", "utf8");
+
+    assert(/abilityOf\(row: Row\)/.test(src), "there is no per-mode readout to show");
+    assert(/abilityOf\(row\)/.test(html), "the readout exists but the page does not use it");
+
+    // The number itself, not only the configuration it produced -- the whole
+    // point is the part that moves between steps.
+    assert(/level \{\{ a\.level/.test(html), "the level is not printed");
+    assert(/a\.trials/.test(html), "nothing distinguishes an unmeasured mode from a weak one");
+});
+
+/**
+ * A mode with no answers must say so rather than print a prior as though it
+ * were a measurement.
+ */
+test("an unmeasured mode says it is unmeasured", () => {
+    seeded(24, () => {
+        localStorage.clear();
+        const service = new ProgressionService();
+        equal(service.estimateFor(EnumQuestionType.Knaves).trials, 0,
+            "a mode nobody has played reports answers");
     });
 });
