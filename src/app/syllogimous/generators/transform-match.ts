@@ -91,7 +91,16 @@ export function createTransformMatch(ctx: GeneratorContext, numOfPremises: numbe
      * them agreeing. Two points is the floor at which a map can be wrong in a
      * way that shows.
      */
-    const pointCount = Math.max(2, Math.min(6, numOfPremises));
+    /*
+     * Three is the floor, not two.
+     *
+     * Two points and four options is a picture with almost nothing in it: the
+     * distractor rules below need somewhere for a near miss to *be* wrong, and
+     * on two points there is rarely a map that agrees on one and not the other.
+     * Three is the smallest structure where "which point does this option get
+     * wrong" is a real question.
+     */
+    const pointCount = Math.max(3, Math.min(6, numOfPremises));
     const live = forms(ctx, type);
 
     const choices: Array<"verify" | "identify" | "apply" | "compose" | "sequence"> = ["verify"];
@@ -201,8 +210,8 @@ function buildIdentify(question: Question, order: string[], source: Structure): 
         .filter(m => describeMap(m) !== describeMap(truth));
     if (wrong.length < 3) return false;
 
-    shuffle(wrong);
-    const options = [truth, ...wrong.slice(0, 3)];
+    const options = nearMissOptions(order, source, truth, wrong);
+    if (!options) return false;
     shuffle(options);
 
     stateBoth(question, order, source, image);
@@ -214,6 +223,87 @@ function buildIdentify(question: Question, order: string[], source: Structure): 
     question.isValid = true;
     question.explanation = explainMap(order, source, image, truth, null);
     return true;
+}
+
+/**
+ * Three wrong maps that have to be *read off the picture* to be ruled out.
+ *
+ * The old rule was only that a distractor act differently from the truth
+ * somewhere. That admits an option wrong on every point, which is eliminated by
+ * checking any one of them — and with three such options the whole item falls
+ * to a single glance at a single point. The screenshot that prompted this had
+ * two points and four options, and the answer could be had from one.
+ *
+ * Two conditions, and they are the two that make the picture necessary:
+ *
+ *   1. **Every distractor agrees with the truth somewhere.** A near miss has to
+ *      be excluded by the point it gets wrong, which means finding that point.
+ *   2. **No single point decides the item.** For every point, at least two
+ *      options must move it to the same place, so no one point can be checked
+ *      and the rest discarded.
+ *
+ * Searched rather than constructed, because whether two maps agree on a point
+ * depends on where the point is; the pool is small enough that trying triples
+ * is cheaper than reasoning about it. Ordered by how much each candidate agrees
+ * with the truth, so the closest misses are tried first and the search usually
+ * ends on its first few attempts.
+ */
+function nearMissOptions(
+    order: string[],
+    source: Structure,
+    truth: GridMap,
+    pool: GridMap[],
+): GridMap[] | null {
+    const image = applyMap(source, truth);
+    const at = (m: GridMap, n: string) => applyMap(source, m)[n].join(",");
+
+    /** Points where this map lands where the truth does. */
+    const agreement = (m: GridMap) =>
+        order.filter(n => at(m, n) === image[n].join(",")).length;
+
+    if (pool.length < 3) return null;
+
+    // Closest misses first, so the search reaches a good set early and the
+    // fallback below is already the best of a well-ordered field.
+    const near = [...pool].sort((a, b) => agreement(b) - agreement(a));
+
+    /** Points that answer the item on their own, which is what to minimise. */
+    const decidingPoints = (options: GridMap[]) =>
+        order.filter(n => {
+            const places = options.map(m => at(m, n));
+            return places.filter(p => p === image[n].join(",")).length === 1
+                && new Set(places).size === options.length;
+        }).length;
+
+    /*
+     * The best set, not the first acceptable one.
+     *
+     * Refusing to build unless a perfect set exists sounds stricter and is
+     * worse: the structure and the map are already drawn by the time this runs,
+     * so a refusal costs the whole attempt, and at three points with a spread
+     * structure a perfect set often does not exist. Every attempt then fails
+     * and the mode stops generating. Taking the least-decidable set always
+     * produces an item, and produces the best one available for this pair.
+     */
+    let best: GridMap[] | null = null;
+    let bestScore = Infinity;
+
+    const limit = Math.min(near.length, 8);
+    for (let i = 0; i < limit; i++) {
+        for (let j = i + 1; j < limit; j++) {
+            for (let k = j + 1; k < limit; k++) {
+                const options = [truth, near[i], near[j], near[k]];
+                const score = decidingPoints(options)
+                    // Tie-break on how near the misses are, so an item that
+                    // cannot avoid a deciding point at least makes the others
+                    // worth reading.
+                    - 0.01 * (agreement(near[i]) + agreement(near[j]) + agreement(near[k]));
+                if (score < bestScore) { bestScore = score; best = options; }
+                if (bestScore <= -0.01 * order.length * 3) return best;
+            }
+        }
+    }
+    return best;
 }
 
 /* ---------------- apply ---------------- */

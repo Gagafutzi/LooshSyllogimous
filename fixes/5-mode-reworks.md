@@ -11,7 +11,42 @@ replacements is exactly the thing that is hard to judge by eye.
 
 ---
 
-## 5.1 Transformation Matching
+## 5.1 Transformation Matching — **SUPERSEDED**, see P13
+
+> I did not like the grid structure in general. I would rather replace the whole
+> thing with P13, or make it a variant of P13 — but never a grid, and always
+> with Anchor Space anchors as permanent coordinate anchors. Besides, this way
+> it can be more than 2-dimensional.
+
+Settled: this mode is not repaired, it is **replaced** by
+[P13, Axis maps](../roadmap/open.md#p13-axis-maps--proposed-not-built-replaces-transformation-matching).
+Same question — two descriptions of the same objects, induce what maps one to
+the other — stated relationally against a fixed anchor frame instead of drawn as
+two grids.
+
+Three reasons the grid had to go, and only the first is about looks: a grid is
+two-dimensional and the mode has no reason to be; reading two pictures side by
+side is a visual diff where reading two descriptions is an inference; and a grid
+cannot state a shift without restating everything.
+
+Recording it also fixed a mistake in P13's first draft, which had the map
+applying to the anchors as well and therefore pinning two of six axes. The map
+acts on objects' *displacements* and the anchors are the frame those are
+measured in — so nothing is pinned, every axis is free, and offsets become
+detectable, since a shift is invisible between objects and obvious against a
+frame that does not move.
+
+**Interim.** Transformation Matching keeps working until P13 replaces it, and
+one fault worth fixing meanwhile has been: its distractors only had to *differ*
+from the truth, which admits an option wrong on every point — eliminated by
+checking any one of them, so three such options let the whole item fall to a
+single glance. They must now be near misses, agreeing with the truth somewhere,
+and the option set is chosen to minimise how many points decide the item alone.
+That is the actual reason the screenshot was obvious; the generator's
+transformation pool already held rotations, reflections and scalings, which the
+original diagnosis below assumed it lacked.
+
+### The original diagnosis, kept for the parts that carried over
 
 ![](shots/04-transform-match.png)
 

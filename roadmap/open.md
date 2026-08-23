@@ -363,26 +363,50 @@ Eleven are specced below. In rough cost order:
 
 ## Proposed modes
 
-## P13. Axis substitution — **PROPOSED**, not built
+## P13. Axis maps — **PROPOSED**, not built. Replaces Transformation Matching.
 
-Two arrangements of the same objects, stated relationally. Every direction word
-in the second is the first's word run through a **substitution on the axes** —
-and the task is to induce that dictionary from worked examples and then apply it.
+Two descriptions of the same objects. The second is the first with an **axis
+map** applied, and the task is to induce the map and then use it.
 
-Six axes, one direction pair each: north/south, east/west, above/below,
-after/before, more/less, warmer/cooler. Every object chains back to an anchor.
+Everything is **relational and anchored**. There is no grid, at any point, and
+that is the point rather than a rendering preference — see
+[Why not a grid](#why-not-a-grid).
+
+### The frame
+
+[Anchor Space's four markers](../src/app/syllogimous/utils/anchor.utils.ts):
+★ ● ▲ ◆, at fixed coordinates, never moved by anything. They are **permanent
+coordinate anchors**: every object is stated against an anchor or against
+another object that chains back to one.
+
+Six axes, one direction pair each — north/south, east/west, above/below,
+after/before, more/less, warmer/cooler — and the mode is not limited to two,
+which is the second thing a grid could not do.
+
+### The map
+
+A **signed permutation of the axes, with optional offsets**. Three kinds, and
+they are one kind seen three ways:
+
+| kind | what it does | how it reads |
+|---|---|---|
+| substitution | axis *i* becomes axis *j* | `east → above` |
+| reversal | an axis keeps its identity and flips | `east → west` |
+| offset | everything shifts along an axis | `+2 east` |
+
+All three are dictionary entries on direction words, which is what makes the
+solver induce a **dictionary rather than a transform**, and what makes chains
+survive intact: the map is linear, so "1 east of Moon" becomes "1 above Moon"
+with no reanchoring.
 
 ```
 Example 1
-  before:  moon is 3 east of ●        after:  moon is 3 above ●
-           key is 1 east of moon              key is 1 above moon
+  before:  moon is 3 east of ●          after:  moon is 3 above ●
+           key is 1 east of moon                key is 1 above moon
 
 Example 2
-  before:  bell is 2 above ▲          after:  bell is 2 before ▲
-           coin is 1 north of bell            coin is 1 north of bell
-
-Example 3
-  before:  drum is 4 after ★          after:  drum is 4 east of ★
+  before:  bell is 2 above ▲            after:  bell is 2 before ▲
+           coin is 1 north of bell              coin is 1 north of bell
 
 Now apply it
   before:  ring is 2 east of ●
@@ -394,65 +418,66 @@ Now apply it
            owl is 1 east of lamp
 ```
 
-**Why the relational form is the point.** Stated as coordinates this is a
-permutation matrix and the exercise is bookkeeping. Stated as relations it is a
-substitution on *words* — east→above, above→before, after→east — so what the
-solver induces is a **dictionary**, not a transform. And because the map is
-linear, chains survive intact: "1 east of moon" becomes "1 above moon" with no
-reanchoring. That is the property worth training, and it is invisible in the
-coordinate form.
+### The anchors are the frame, not participants
 
-### The anchors are Anchor Space's, and that changes the shape of it
+This is the correction to the first version of this entry, and it is what makes
+the whole thing work.
 
-The proposal came with its own pair — triangle and heart, heart fixed two north
-of triangle — chosen so exactly one axis was pinned and therefore immune to the
-substitution. The frame here is [`utils/anchor.utils.ts`](../src/app/syllogimous/utils/anchor.utils.ts)
-instead: **four** markers in v3's diamond, ★ north, ● east, ▲ west, ◆ south, at
-`[0,1] [1,0] [-1,0] [0,-1]`. Reusing it costs nothing and buys the glyphs, the
-renderer and the "anchors are never moved" invariant that already exists.
+That version had the map applying to *everything*, so an anchor pair lying on an
+axis pinned that axis — the map could not touch it without contradicting a fixed
+marker. With four anchors in a diamond that pinned two of six axes, cutting the
+search from 6! to 4! and making the mode easier than asked for. Two ways out
+were written up and neither was any good.
 
-It also pins **two** axes rather than one. The frame states ★–◆ on north/south
-and ●–▲ on east/west, so a substitution touching either would contradict the
-anchors, which are fixed by definition. So:
+Neither is needed. **The map acts on objects' displacements; the anchors are the
+frame those displacements are measured in.** ● stays where it is and Ring moves
+within the frame, so "Ring is 2 east of ●" becoming "Ring is 2 above ●" says
+Ring moved, not that ● did. Nothing is pinned, every axis is free, and the full
+search is back — with the anchors doing exactly the job the author named:
+permanent coordinate anchors.
 
-- **north/south and east/west are immune.** The dictionary permutes the other
-  four — above/below, after/before, more/less, warmer/cooler — among themselves.
-- That is **4! = 24** possible dictionaries rather than 6! constrained, which
-  is a smaller search and an easier item. Worth knowing before it is priced.
-- The compensation is that the invariant is *visible*: the anchors are on the
-  card, so "the anchor axes cannot move" is something to notice rather than a
-  rule to be told. The original one-axis version had to state it.
+It also makes offsets detectable at all. Relative positions are
+translation-invariant, so a shift is invisible between objects; against a frame
+that does not shift, every object's relation to every anchor changes.
 
-Two ways to get the harder version back, neither obviously right:
+### Why not a grid
 
-1. **Give the anchors coordinates on more axes.** They are 2-D today; extending
-   them to four would pin four and free two, which is worse. Extending to *one*
-   axis — a single anchor pair — is the proposal's own design and means not
-   reusing the frame.
-2. **Let the dictionary touch a pinned axis, and make the anchors move with
-   it.** This breaks the invariant that anchors are fixed, which is load-bearing
-   elsewhere in Anchor Space, so it would have to be a separate frame.
+Transformation Matching states the same puzzle by drawing two grids, and the
+author's objection to it was the grid itself. Three things follow from dropping
+it, and only the first is about looks:
 
-Recommended: build it with the four-anchor frame and two pinned axes, and treat
-the number of free axes as the difficulty dial — three at the bottom, all four
-at the top. The mode's difficulty should come from how many worked examples are
-given and how much of the dictionary they cover, not from the permutation count.
+- **A grid is two-dimensional.** Six axes drawn as small multiples is the same
+  Cartesian product that made the composed-space explanation unreadable —
+  see [fixes/4.2](../fixes/4-legibility.md). Relations have no such limit.
+- **A grid gives the answer away by position.** Reading two pictures side by
+  side is a visual diff; reading two descriptions is an inference. The mode is
+  meant to train the second.
+- **A grid cannot state an offset without stating everything else.** In
+  relations, "shifted 2 east" is one changed word per premise.
+
+Transformation Matching is therefore **superseded rather than repaired**: same
+question, stated the way it should have been. It keeps working until this
+replaces it.
 
 ### What has to be got right
 
-- **The examples must determine the dictionary.** Three examples covering three
-  substitutions leave the fourth free, and an item whose answer is not forced is
-  not answerable. Either cover every axis the target uses, or accept a partial
-  dictionary and ask only about the covered ones.
-- **An axis mapping to itself has to be possible**, and has to appear, or the
-  solver learns that no word ever survives.
-- **Chains must be long enough to matter.** The whole claim is that chains
-  survive substitution intact; an item with one link never tests it.
-- **Answer mode.** Construction fits it exactly — state the transformed
-  relation yourself, one slot per link — and gives the low guess rate the
-  ability model wants. Choice among four whole answers is the easier rung.
+- **The examples must determine the map.** Worked examples covering three axes
+  leave the rest free, and an item whose answer is not forced is not answerable.
+  Either cover every axis the target uses, or ask only about covered ones.
+- **An axis mapping to itself has to appear**, or the solver learns that no word
+  ever survives.
+- **Chains must be long enough to matter.** The claim is that chains survive the
+  map intact; an item with one link never tests it.
+- **Offsets need a frame mention.** An item whose target chain never touches an
+  anchor cannot show a shift, so either the chain reaches an anchor or the map
+  has no offset.
+- **Answer mode.** Construction fits exactly — state the mapped relation
+  yourself, one slot per link — and carries the low guess rate the ability model
+  wants. Choice among whole answers is the easier rung.
+- **Difficulty dials**, in order: how many axes the objects use, how many of
+  them the examples cover, chain length, and whether offsets are in play.
 - **Verification**, per the ground rules: an independent solver that reads only
-  the rendered examples, induces the dictionary, applies it, and agrees.
+  the rendered examples, induces the map, applies it, and agrees.
 
 The five-registry checklist in [ROADMAP.md](../ROADMAP.md) applies.
 
