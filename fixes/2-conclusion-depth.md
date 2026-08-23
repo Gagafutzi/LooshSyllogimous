@@ -288,10 +288,33 @@ The author's proposal, and it is a good one:
 **Two conclusions, not a spread of them.** One at the halfway point and one at
 the end:
 
-| | depth | form |
+| | what it is derivable from | form |
 |---|---|---|
-| halfway | about `premises / 2` | boolean or choice |
-| final | the full set, per [2.2](#22-the-mechanism-measure-depth-then-require-it) | construct, or choose from several |
+| halfway | the first half of the premises, **as displayed** | boolean or choice |
+| final | the whole set, per [2.2](#22-the-mechanism-measure-depth-then-require-it) | construct, or choose from several |
+
+**"Halfway" means halfway through the reading, not half the depth.** The
+distinction matters and it is the whole point of the checkpoint: a conclusion
+that needs any five of ten premises is not answerable halfway down the page,
+because which five is not known until the tenth has been read. The halfway
+conclusion has to be entailed by premises 1…k *in displayed order*, so a player
+who has read that far can answer it and then carry on.
+
+Two consequences:
+
+- **Premise order becomes load-bearing**, where today it is a presentation
+  choice — `scrambleByFactor` shuffles it, and the Customise scramble control
+  sets how much. An item with a checkpoint has to hold its first `k` premises
+  fixed as a set; they can still be shuffled *among themselves*. This is the
+  same constraint [2.4](#24-transformations-that-arrive-before-the-thing-they-transform)
+  puts on operation premises, so both belong to `premise-order.utils.ts` rather
+  than being solved twice.
+- **The halfway pair is chosen from the prefix layout.** Build the first `k`
+  premises, pick a full-depth pair *within* what they determine, then extend the
+  layout to the remaining premises and pick the final pair across the whole.
+  Choosing the final conclusion first and hoping a prefix happens to entail
+  something is the same "pick and hope" that
+  [2.2](#22-the-mechanism-measure-depth-then-require-it) rejects.
 
 **The halfway conclusion appears only above four premises.** Below that there is
 no halfway to speak of — on a three-premise item the midpoint is depth 1 or 2,
