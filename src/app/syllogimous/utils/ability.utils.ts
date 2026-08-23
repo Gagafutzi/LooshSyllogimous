@@ -116,6 +116,12 @@ export const RUNG_COST: Record<string, number> = {
      */
     "groups-2": 1.6, "groups-3": 1.2, "groups-4": 1.0,
     /*
+     * The examples stop handing the map over an axis at a time. Fewer lines to
+     * read and a correspondence to solve instead, which is the mode's own
+     * skill asked more directly.
+     */
+    "dense-examples": 1.5,
+    /*
      * A one-point lead instead of two. The comparison stops being a glance and
      * has to be measured, which is the whole difficulty of the mode in a single
      * rung.

@@ -476,6 +476,20 @@ replaces it.
   wants. Choice among whole answers is the easier rung.
 - **Difficulty dials**, in order: how many axes the objects use, how many of
   them the examples cover, chain length, and whether offsets are in play.
+- **Fewer, denser examples.** One object per axis is what makes a map
+  *readable* — "east went to above, tripled" with nothing to work out — and it
+  costs a line per axis. One object carrying a distinct magnitude on every axis
+  says the same thing in one line and makes the reader solve the correspondence
+  instead, which is more inductive work rather than less. So it is a rung, not
+  a default.
+
+  It is unambiguous by construction rather than by search: with factors capped
+  at three, `p × f = q × g` has no solution in 1..3 for any pair of 1, 5, 7 and
+  11, so each after-component divides cleanly by exactly one before-component.
+  An offset breaks the argument — a shift and a stretch are indistinguishable on
+  one object — so an item that shifts also shows something *at* the marker,
+  which maps to the offset alone.
+
 - **Several groups, one chain.** Giving every group its own chain makes the item
   two puzzles printed side by side — four options, each a run-on of both
   answers, and nothing gained that a longer single chain would not give. The

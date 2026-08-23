@@ -227,17 +227,24 @@ function clauses(delta: number[], axes: LinearScale[]): string {
     return parts.join(", ");
 }
 
-function relationLine(from: string, to: string, delta: number[], axes: LinearScale[]): string {
-    const body = clauses(delta, axes);
-    if (!body) return `${subj(from)} is at the same point as ${subj(to)}`;
-    /*
-     * "relative to", not "of". Each axis carries its own connector — "east
-     * *of*", "later *than*", "above" with none at all — and a displacement
-     * names several axes at once, so no single one of them can be borrowed for
-     * the whole phrase. The composed spaces settled on this for the same
-     * reason.
-     */
-    return `${subj(from)} is ${body} relative to ${subj(to)}`;
+/**
+ * A position, as short as it can be said.
+ *
+ * The long form — "Sick is 2 east relative to ▲" — repeats the object and the
+ * marker on every line, and an item states eight or nine of them. Written out
+ * twice per worked example, that is most of the card spent on words that do not
+ * vary. The marker is named once in the heading it sits under, so the lines
+ * beneath it carry only what changes.
+ */
+function shortLine(name: string, delta: number[], axes: LinearScale[], from?: string): string {
+    const body = clauses(delta, axes) || hi("no change");
+    const tail = from ? ` ${rel("from")} ${subj(from)}` : "";
+    return `${subj(name)}: ${body}${tail}`;
+}
+
+/** The two halves of one worked example, on one line. */
+function exampleLine(name: string, before: number[], after: number[], axes: LinearScale[]): string {
+    return `${subj(name)}: ${clauses(before, axes)} ${hi("→")} ${clauses(after, axes) || hi("nowhere")}`;
 }
 
 const minus = (a: number[], b: number[]) => a.map((v, i) => v - b[i]);
@@ -292,7 +299,20 @@ function features(ctx: GeneratorContext, type: EnumQuestionType) {
      */
     const groups = has("groups-3") ? 3 : has("groups-2") ? 2 : 1;
 
-    return { dims, kinds, count, groups };
+    /*
+     * One example covering every axis at once, instead of one per axis.
+     *
+     * The default puts each example object on a single axis, which is what
+     * makes a map *readable* — "east went to above, tripled" is handed over
+     * with nothing to work out. A dense example carries the same information in
+     * one line and makes the reader solve the correspondence instead, which is
+     * more inductive work rather than less. So it is a rung, and it sits after
+     * substitution: it is only worth asking once direction words can stop
+     * meaning what they say.
+     */
+    const dense = has("dense-examples");
+
+    return { dims, kinds, count, groups, dense };
 }
 
 export function createAxisMap(ctx: GeneratorContext, numOfPremises: number): Question {
@@ -342,6 +362,55 @@ interface Group {
     trail: AxisMap[];
 }
 
+/**
+ * Magnitudes that cannot be confused for one another under any allowed factor.
+ *
+ * A dense example is only readable if the correspondence is forced, and it is
+ * forced when no after-magnitude could have come from two different
+ * before-axes. That happens exactly when no ratio between two of these is an
+ * allowed factor: with factors capped at three, `p * f = q * g` has no solution
+ * in 1..3 for any pair here, so each after-component divides cleanly by exactly
+ * one of them.
+ *
+ * Chosen rather than searched for, which is why the mode does not need to
+ * enumerate candidate maps and check them: the item is unambiguous by
+ * construction. Four is enough because `covered` is capped at four.
+ */
+const MARKS = [1, 5, 7, 11];
+
+/**
+ * One or two examples that pin the whole map.
+ *
+ * Without an offset, one object carrying a distinct magnitude on every covered
+ * axis is enough: each after-component divides by exactly one before-component,
+ * so the permutation and the factors fall out together.
+ *
+ * With an offset it takes two, and the second is placed at the marker itself.
+ * A shift and a stretch are indistinguishable on a single object — "2 east
+ * becomes 4 east" is twice as far or two further — and an object sitting on the
+ * marker maps to the offset alone, which separates them and reads as exactly
+ * what it is.
+ */
+function denseExamples(
+    names: string[],
+    covered: number[],
+    dims: number,
+    map: AxisMap,
+): Array<{ name: string; coord: number[]; after: number[] }> {
+    const spread = Array(dims).fill(0);
+    covered.forEach((axis, k) => {
+        spread[axis] = (Math.random() < 0.5 ? -1 : 1) * MARKS[k % MARKS.length];
+    });
+
+    const out = [{ name: names[0], coord: spread, after: applyAxisMap(spread, map) }];
+
+    if (map.offset.some(v => v !== 0) && names.length > 1) {
+        const origin = Array(dims).fill(0);
+        out.push({ name: names[1], coord: origin, after: applyAxisMap(origin, map) });
+    }
+    return out;
+}
+
 function buildGroups(
     ctx: GeneratorContext,
     feat: ReturnType<typeof features>,
@@ -387,14 +456,14 @@ function buildGroups(
         const exampleNames = names.slice(cursor, cursor + covered.length);
         cursor += covered.length;
 
-        const shown = covered
-            .map((axis, k) => {
+        const shown = (feat.dense
+            ? denseExamples(exampleNames, covered, d, map)
+            : covered.map((axis, k) => {
                 const coord = Array(d).fill(0);
                 coord[axis] = pick([1, 2, 3]);
                 return { name: exampleNames[k], coord, after: applyAxisMap(coord, map) };
             })
-            .filter(ex => relationLine(ex.name, anchor, ex.coord, axes)
-                !== relationLine(ex.name, anchor, ex.after, axes));
+        ).filter(ex => clauses(ex.coord, axes) !== clauses(ex.after, axes));
         if (!shown.length) return null;
 
         const chain = g === target ? names.slice(cursor, cursor + chainLen) : [];
@@ -442,21 +511,23 @@ function buildGroups(
 
     const premises: string[] = [];
     for (const g of groups) {
-        premises.push(hi(g.label ? `${g.label} — worked examples:` : "Worked examples:"));
+        /*
+         * The marker heads its own group. "Group 1" is a second name for
+         * something the marker already names, and the marker is what the reader
+         * has to match the chain against — so the label is the marker.
+         */
+        premises.push(`${g.anchor} ${hi("— examples")}`);
         for (const ex of g.shown) {
-            premises.push(`${relationLine(ex.name, g.anchor, ex.coord, axes)}`
-                + ` ${hi("→")} ${relationLine(ex.name, g.anchor, ex.after, axes)}`);
+            premises.push(exampleLine(ex.name, ex.coord, ex.after, axes));
         }
     }
     // The chain names its own marker in its first line, which is what says
     // whose change applies to it.
-    premises.push(hi(feat.groups > 1
-        ? `Now these, against ${asked.anchor}:`
-        : "Now these:"));
+    premises.push(`${hi("Now, from")} ${asked.anchor}`);
     premises.push(...asked.chain.map((n, i) =>
         i === 0
-            ? relationLine(n, asked.anchor, asked.coords[0], axes)
-            : relationLine(n, asked.chain[i - 1], minus(asked.coords[i], asked.coords[i - 1]), axes)));
+            ? shortLine(n, asked.coords[0], axes)
+            : shortLine(n, minus(asked.coords[i], asked.coords[i - 1]), axes, asked.chain[i - 1])));
     question.premises = premises;
 
     /** The asked chain under a given map, rendered. */
@@ -464,9 +535,9 @@ function buildGroups(
         const after = asked.coords.map(c => applyAxisMap(c, m));
         return asked.chain.map((n, i) =>
             i === 0
-                ? relationLine(n, asked.anchor, after[0], axes)
-                : relationLine(n, asked.chain[i - 1], minus(after[i], after[i - 1]), axes))
-            .join("; ");
+                ? shortLine(n, after[0], axes)
+                : shortLine(n, minus(after[i], after[i - 1]), axes, asked.chain[i - 1]))
+            .join(` ${hi("·")} `);
     };
 
     const truth = render(asked.map);
@@ -538,8 +609,8 @@ function buildGroups(
 
     question.explanation = [
         ...(feat.groups > 1
-            ? [`The chain is stated against ${asked.anchor}, so it is`
-                + ` ${hi(asked.label)}'s change that applies.`]
+            ? [`The chain is stated from ${asked.anchor}, so it is`
+                + ` ${asked.anchor}'s change that applies.`]
             : []),
         ...(() => {
             const told = describeMap(asked.map, axes);

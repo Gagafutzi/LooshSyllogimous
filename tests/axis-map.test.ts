@@ -372,8 +372,8 @@ test("several groups, but only one chain to map", () => {
         for (let rep = 0; rep < 40; rep++) {
             const q = createAxisMap(ctx, 3);
 
-            const headers = q.premises.filter(p => strip(p).endsWith(":"));
-            const chainHeaders = headers.filter(p => /Now these/.test(strip(p)));
+            const headers = q.premises.filter(p => /— examples|Now, from/.test(strip(p)));
+            const chainHeaders = headers.filter(p => /Now, from/.test(strip(p)));
             equal(chainHeaders.length, 1,
                 `${chainHeaders.length} chains in one item -- that is that many puzzles`);
 
@@ -381,7 +381,7 @@ test("several groups, but only one chain to map", () => {
 
             // An option is one chain, not several joined together.
             for (const choice of q.choices) {
-                assert(!strip(choice).includes("Group"),
+                assert(!/— examples/.test(strip(choice)),
                     `an option answers for more than one group: ${strip(choice).slice(0, 60)}`);
             }
         }
@@ -405,7 +405,7 @@ test("applying the wrong group's change lands on an option", () => {
 
         for (let rep = 0; rep < 40; rep++) {
             const q = createAxisMap(ctx, 3);
-            const headers = q.premises.filter(p => strip(p).endsWith(":"));
+            const headers = q.premises.filter(p => /— examples|Now, from/.test(strip(p)));
             if (headers.length <= 2) continue;          // single group
             checked++;
 
@@ -415,8 +415,21 @@ test("applying the wrong group's change lands on an option", () => {
              * rather than three plus a near-repeat.
              */
             equal(new Set(q.choices).size, 4, "two options describe the same arrangement");
-            assert(q.choices.every(c => strip(c).includes("relative to")),
-                "an option is not a chain");
+
+            /*
+             * Every option names the same objects as the chain. Checked by cast
+             * rather than by phrasing, so a change to how a position is worded
+             * does not quietly turn this into a test of nothing.
+             */
+            const chainAt = q.premises.findIndex(p => /Now, from/.test(strip(p)));
+            const cast = new Set(q.premises.slice(chainAt + 1)
+                .flatMap(p => [...p.matchAll(/<span class="subject">([^<]*)<\/span>/g)].map(m => m[1])));
+            for (const choice of q.choices) {
+                const named = new Set([...choice.matchAll(/<span class="subject">([^<]*)<\/span>/g)]
+                    .map(m => m[1]));
+                equal([...named].sort().join(","), [...cast].sort().join(","),
+                    "an option is not the chain");
+            }
         }
 
         assert(checked > 10, `only ${checked} multi-group items to check`);
@@ -430,12 +443,111 @@ test("a multi-group derivation names the group whose change applied", () => {
         let checked = 0;
         for (let rep = 0; rep < 40; rep++) {
             const q = createAxisMap(ctx, 3);
-            const headers = q.premises.filter(p => strip(p).endsWith(":"));
+            const headers = q.premises.filter(p => /— examples|Now, from/.test(strip(p)));
             if (headers.length <= 2) continue;
             checked++;
-            assert(/Group \d+.s change that applies/.test(strip(q.explanation[0])),
+            assert(/change that applies/.test(strip(q.explanation[0])),
                 `the derivation does not say whose change applied: ${strip(q.explanation[0])}`);
         }
         assert(checked > 10, `only ${checked} multi-group items to check`);
+    });
+});
+
+/**
+ * A dense example set determines the map, and that is proved rather than
+ * asserted.
+ *
+ * The construction relies on magnitudes no allowed factor can confuse: with
+ * factors capped at three, `p * f = q * g` has no solution in 1..3 for any pair
+ * of 1, 5, 7 and 11, so each after-component divides cleanly by exactly one
+ * before-component. This enumerates every signed permutation with those factors
+ * and requires exactly one to fit — if the argument is wrong, this finds a
+ * second.
+ */
+test("one dense example pins the whole map", () => {
+    const FACTORS = [1, -1, 2, -2, 3, -3];
+
+    /** Every signed permutation of `d` axes, as (perm, factor) pairs. */
+    function* candidates(d: number): Generator<{ perm: number[]; factor: number[] }> {
+        const perms: number[][] = [];
+        const walk = (left: number[], acc: number[]) => {
+            if (!left.length) { perms.push([...acc]); return; }
+            for (let i = 0; i < left.length; i++) {
+                walk([...left.slice(0, i), ...left.slice(i + 1)], [...acc, left[i]]);
+            }
+        };
+        walk(Array.from({ length: d }, (_, i) => i), []);
+
+        for (const perm of perms) {
+            const factors: number[][] = [[]];
+            for (let i = 0; i < d; i++) {
+                const next: number[][] = [];
+                for (const acc of factors) for (const f of FACTORS) next.push([...acc, f]);
+                factors.length = 0;
+                factors.push(...next);
+            }
+            for (const factor of factors) yield { perm, factor };
+        }
+    }
+
+    seeded(31415, () => {
+        for (const d of [2, 3, 4]) {
+            for (let rep = 0; rep < 12; rep++) {
+                // A dense example: one distinct magnitude per axis.
+                const marks = [1, 5, 7, 11].slice(0, d);
+                const before = marks.map(m => (Math.random() < 0.5 ? -m : m));
+
+                const perm = shuffledPerm(d);
+                const factor = Array.from({ length: d }, () =>
+                    FACTORS[Math.floor(Math.random() * FACTORS.length)]);
+                const after = Array(d).fill(0);
+                for (let i = 0; i < d; i++) after[perm[i]] = factor[i] * before[i];
+
+                let fits = 0;
+                for (const cand of candidates(d)) {
+                    const got = Array(d).fill(0);
+                    for (let i = 0; i < d; i++) got[cand.perm[i]] = cand.factor[i] * before[i];
+                    if (got.every((v, i) => v === after[i])) fits++;
+                }
+                equal(fits, 1,
+                    `${fits} maps fit one dense example on ${d} axes -- the item has that many answers`);
+            }
+        }
+    });
+});
+
+function shuffledPerm(d: number): number[] {
+    const out = Array.from({ length: d }, (_, i) => i);
+    for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+}
+
+/**
+ * With an offset it takes two, and the second sits on the marker.
+ *
+ * A shift and a stretch are indistinguishable on one object -- "2 east becomes
+ * 4 east" is twice as far or two further -- so an item whose map shifts must
+ * show something at the marker, which maps to the offset alone.
+ */
+test("an offset is shown by an example at the marker", () => {
+    seeded(2718, () => {
+        const ctx = context([...FULL.slice(0, FULL.indexOf("dense-examples") + 1)]);
+        let withOffset = 0;
+
+        for (let rep = 0; rep < 60; rep++) {
+            const q = createAxisMap(ctx, 3);
+            const shifts = q.explanation.some(l => /everything shifts/.test(strip(l)));
+            if (!shifts) continue;
+            withOffset++;
+
+            const examples = q.premises.filter(p => strip(p).includes("→"));
+            assert(examples.length >= 2,
+                "an item that shifts shows one example, which cannot separate a shift from a stretch");
+        }
+
+        assert(withOffset > 5, `only ${withOffset} shifting items in sixty`);
     });
 });

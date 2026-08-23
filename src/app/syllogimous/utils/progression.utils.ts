@@ -328,6 +328,9 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      *               and so adds least on its own
      *   dim-N       the space widens, three axes to seven
      *   compose-N   more changes at once, up to five
+     *   dense-examples  one example covering every axis at once instead of one
+     *               per axis. Fewer lines and *more* work: the correspondence
+     *               has to be solved rather than read off
      *   groups-N    several groups, each with its own change and its own
      *               marker — the reader keeps two or three dictionaries apart
      *               and applies each to the right chain
@@ -356,7 +359,8 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     ],
     "Axis Maps":                 [
         "compose-2", "dim-4", "offset", "groups-2", "compose-3",
-        "dim-5", "compose-4", "groups-3", "dim-6", "compose-5", "dim-7",
+        "dim-5", "dense-examples", "compose-4", "groups-3", "dim-6",
+        "compose-5", "dim-7",
     ],
     "Knights and Knaves":        ["compound", "undetermined"],
     /*
