@@ -178,6 +178,49 @@ target gets **no clock at all**.
 6. Events (`rung-up`, `premise-up`, …) are emitted only if the *chosen
    configuration* changed — not if the estimate merely moved.
 
+## 4b. Which modes exist at all
+
+Separate from difficulty, and it used to be decided by something incommensurate
+with it.
+
+`TIERS_MATRIX` has one row per unlock step and one column per mode. The row was
+picked by the **tier**, and the tier by the **score** — which is two different
+quantities depending on a setting:
+
+- **derived** (default): the ability estimate × 100, so it stops at 2600;
+- **accumulated**: unbounded, and a measure of how much you have played.
+
+Both were compared against thresholds written for the second. Under the derived
+score, Space 3D wanted 1250 points — meaning level 12.5 — and only 11 of the 25
+tiers were reachable at all, since the ceiling is 2600.
+
+**The row now comes from ability**, in the units the ability model already uses:
+
+```
+level = max(aggregate across modes, best single mode)
+row   = the highest threshold in TIER_UNLOCK_LEVELS that level clears
+        (forced to the top if any mode has run out entirely)
+```
+
+`TIER_UNLOCK_LEVELS` is `[0, 3, 4, 5, 6, 7, 8]`, giving 4 modes at the start,
+rising to all 33 by level 8. Deliberately low: the gate exists so a first
+session is not thirty-three modes at once, not to be a months-long treadmill,
+and a mode opened early is not an unfair one because `priorForNewMode` places it
+against what the player has already shown.
+
+Two rules carry the weight:
+
+- **The best evidence, not the average.** A player deep in one mode has
+  demonstrated that much reasoning, and gating on their average is backwards
+  twice over — it withholds the modes that would raise the average, and it makes
+  breadth a prerequisite for depth in an app that measures depth.
+- **Anything exhausted forces a full unlock.** Every rung claimed and the
+  premise ceiling reached means there is nothing left to serve there, and a
+  pacing system that responds to that with nothing new is not pacing anything.
+
+The **tier badge still comes from the score**. A name is flavour; withholding
+content is not.
+
 ## 5. Fatigue
 
 `observed − predicted` averaged over the last `fatigueWindow` answers. Past

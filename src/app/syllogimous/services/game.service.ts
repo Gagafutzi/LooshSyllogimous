@@ -42,7 +42,7 @@ import { EnumArrangements, EnumQuestionType } from "../constants/question.consta
 import { EnumQuestionGroup, QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { Logger } from "../utils/logger";
 import { GameTimerService } from "./game-timer.service";
-import { settingsForTier } from "../utils/tier.utils";
+import { settingsForTier, unlockRow } from "../utils/tier.utils";
 import { getSyllogismGeneratorValue, SyllogismGenerator } from "../pages/settings/game-mode-choose/game-mode-choose.component";
 import { neg, subj } from "../utils/phrasing";
 import { createAnalogy } from "../generators/analogy";
@@ -248,7 +248,26 @@ export class GameService implements GeneratorContext {
         return settingsForTier(tier, {
             gated: this.progressionActive,
             premisesFor: type => this.progressAndPerformanceService.getTrainingUnit(type).premises,
-        });
+        }, this.unlockedRow);
+    }
+
+    /**
+     * How much of the app is unlocked, decided by ability rather than by score.
+     *
+     * The badge still comes from the score, because a name is flavour and
+     * pacing it off play time is harmless. What was not harmless was gating the
+     * *modes* on the same number: with the derived score it meant "level 12.5"
+     * and with the accumulated one "played this long", and neither had anything
+     * to do with having outgrown what was already on offer.
+     *
+     * Falls back to the tier's own index when nothing is adapting, since there
+     * is then no ability estimate to ask.
+     */
+    get unlockedRow(): number {
+        if (!this.progressionService.config.enabled) {
+            return ORDERED_TIERS.findIndex(t => t === this.tier);
+        }
+        return unlockRow(this.progressionService.unlockEvidence());
     }
 
     /** Given question type and number of premises, returns a question creator function */

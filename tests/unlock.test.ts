@@ -1,0 +1,77 @@
+
+/**
+ * Which modes exist, decided by ability rather than by a score.
+ *
+ * The matrix was indexed by the tier and the tier by the score -- and the score
+ * is two different quantities depending on a setting. Accumulated it is
+ * unbounded and measures how much you have played; derived it is the ability
+ * estimate times a hundred, stopping at 2600. Both were compared against
+ * thresholds written for the first, so unlocking bore no relation to what a
+ * player could do: seven premises with every modifier on one mode, and Space 3D
+ * still withheld.
+ */
+
+import { assert, equal, test } from "./harness";
+import { TIER_UNLOCK_LEVELS, unlockRow } from "../src/app/syllogimous/utils/tier.utils";
+import { ORDERED_QUESTION_TYPES, TIERS_MATRIX } from "../src/app/syllogimous/constants/game.constants";
+import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
+
+const modesAt = (row: number) => TIERS_MATRIX[row].filter(v => v).length;
+
+test("more ability never means fewer modes", () => {
+    let last = -1;
+    for (let level = 0; level <= 20; level += 0.5) {
+        const row = unlockRow({ aggregateLevel: level, bestLevel: level, anyExhausted: false });
+        const open = modesAt(row);
+        assert(open >= last, `level ${level} opened ${open} modes after ${last}`);
+        last = open;
+    }
+    equal(last, TIERS_MATRIX[0].length, "the ramp never reaches every mode");
+});
+
+/**
+ * The best evidence, not the average of it.
+ *
+ * A player deep in one mode has demonstrated that much reasoning, and cannot
+ * raise their average without the modes being withheld from them -- which is
+ * the trap the old rule set: breadth was a prerequisite for depth, in an app
+ * where depth is what the ability model measures.
+ */
+test("being strong at one mode is enough to unlock", () => {
+    const broad = unlockRow({ aggregateLevel: 8, bestLevel: 8, anyExhausted: false });
+    const deep = unlockRow({ aggregateLevel: 3, bestLevel: 8, anyExhausted: false });
+    equal(deep, broad, "a player strong in one mode was gated on their average");
+});
+
+/**
+ * Running out is the case that must never leave a player with nothing new.
+ *
+ * Every rung claimed and the premise ceiling reached means the app has nothing
+ * left to serve in that mode. A pacing system that answers that by offering
+ * nothing else is not pacing anything.
+ */
+test("a mode with nothing left to give unlocks the rest", () => {
+    const stuck = unlockRow({ aggregateLevel: 1, bestLevel: 1, anyExhausted: true });
+    equal(modesAt(stuck), TIERS_MATRIX[0].length,
+        "a player who has exhausted a mode was still being held back");
+});
+
+test("a first session is not thirty-three modes at once", () => {
+    const fresh = unlockRow({ aggregateLevel: 0, bestLevel: 0, anyExhausted: false });
+    equal(fresh, 0, "an unmeasured player did not start at the first row");
+    assert(modesAt(fresh) <= 6, `a first session offers ${modesAt(fresh)} modes`);
+});
+
+/** The gate is an onboarding ramp, not a treadmill. */
+test("everything is open to a competent player", () => {
+    const top = TIER_UNLOCK_LEVELS[TIER_UNLOCK_LEVELS.length - 1];
+    assert(top <= 10, `the last unlock waits for level ${top}, which is an expert`);
+    const row = unlockRow({ aggregateLevel: top, bestLevel: top, anyExhausted: false });
+    equal(modesAt(row), TIERS_MATRIX[0].length, "the top threshold does not open everything");
+
+    // The mode the complaint named, specifically.
+    const idx = ORDERED_QUESTION_TYPES.indexOf(EnumQuestionType.Space3D);
+    const at7 = unlockRow({ aggregateLevel: 7, bestLevel: 7, anyExhausted: false });
+    assert(TIERS_MATRIX[at7][idx] === 1,
+        "a level-7 player still cannot see Space 3D");
+});

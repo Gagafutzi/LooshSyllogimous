@@ -6,6 +6,7 @@ import { Settings } from "../models/settings.models";
 import {
     LadderEvent, LadderState, Outcome, familyMembers, familyOf, ladderFor,
 } from "../utils/progression.utils";
+import { UnlockEvidence } from "../utils/tier.utils";
 import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
     abilityUpdate, aggregate, cautionPenalty, chooseConfig, guessRateFor, guessRateForRungs, initAbility, levelOf,
@@ -775,6 +776,35 @@ export class ProgressionService {
     get skill(): Aggregate { return this.aggregateNow(); }
 
     get skillPoints(): number { return this.aggregateNow().points; }
+
+    /**
+     * What the player has shown they can do, for deciding what to unlock.
+     *
+     * The best single mode as well as the average, because a player deep in one
+     * mode has demonstrated that much reasoning and cannot raise their average
+     * without the modes being withheld from them. And whether anything has run
+     * out entirely, which is the case that must never leave a player with
+     * nothing new: every rung claimed and the premise ceiling reached means the
+     * app has nothing left to serve there.
+     */
+    unlockEvidence(): UnlockEvidence {
+        const agg = this.aggregateNow();
+        let bestLevel = 0;
+        let anyExhausted = false;
+
+        for (const type of Object.values(EnumQuestionType)) {
+            const state = this.abilityFor(type);
+            if (!state.trials) continue;
+            bestLevel = Math.max(bestLevel, abilityEstimate(state, this.abilityConfig).level);
+
+            const choice = this.configFor(type, false);
+            const params = QUESTION_TYPE_SETTING_PARAMS[type];
+            if (choice.rungs >= ladderFor(type).length
+                && choice.premises >= params.maxNumOfPremises) anyExhausted = true;
+        }
+
+        return { aggregateLevel: agg.level, bestLevel, anyExhausted };
+    }
 
     /* ---------------- recording ---------------- */
 
