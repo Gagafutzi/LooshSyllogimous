@@ -14,7 +14,7 @@ come back with them.
 | | what it is | why it is here |
 |---|---|---|
 | [1 — Correctness](1-correctness.md) | items that are wrong, not merely ugly | cheap, unambiguous, and one of them is a two-character fix |
-| [2 — Conclusion depth](2-conclusion-depth.md) | conclusions that follow from half a premise | the author's own summary of the whole list |
+| [2 — Conclusion depth](2-conclusion-depth.md) | conclusions reachable without the whole relation | the author's own summary of the whole list |
 | [3 — Explanations](3-explanations.md) | derivations that do not explain | the payoff for getting an item wrong |
 | [4 — Legibility](4-legibility.md) | things that cannot be read | includes the icon, which is the same class of problem |
 | [5 — Mode reworks](5-mode-reworks.md) | Transformation Matching and Oddest Relation | the two the author wants rebuilt, not patched |
@@ -26,16 +26,16 @@ come back with them.
 |---|---|---|
 | 01 | Construct answers scored as one bit, not per dimension | [3](3-explanations.md#31-construct-answers-scored-per-dimension) |
 | 02 | Graph Matching explains nothing | [3](3-explanations.md#32-graph-matching-has-no-derivation) |
-| 03 | Nested: conclusion restates a bracket verbatim | [2](2-conclusion-depth.md) |
+| 03 | Nested: conclusion restates a bracket verbatim | [2](2-conclusion-depth.md#21-what-is-actually-wrong) |
 | 04 | Transformation Matching is trivial and mostly empty space | [5](5-mode-reworks.md#51-transformation-matching) |
 | 05 | Shape Rotation: conclusion from one premise, rotation is a no-op | [2](2-conclusion-depth.md#23-the-rotation-no-op) |
 | 06 | Relational Web: arrows indistinct, one node drawn black | [4](4-legibility.md#41-relational-web) |
 | 07 | The good Relational Web, for reference | [4](4-legibility.md#41-relational-web) |
 | 08 |  Syllogism derivation reads as a chain, not a syllogism | [3](3-explanations.md#33-the-syllogism-derivation-reads-as-a-chain) |
 | 09 | Oddest Relation should be about groups | [5](5-mode-reworks.md#52-oddest-relation) |
-| 10 | Deictic: two-premise conclusion, reversal stated first | [2](2-conclusion-depth.md#22-transformations-that-arrive-before-the-thing-they-transform) |
+| 10 | Deictic: two-premise conclusion, reversal stated first | [2](2-conclusion-depth.md#24-transformations-that-arrive-before-the-thing-they-transform) |
 | 11 | 6-D explanation diagram is unreadable | [4](4-legibility.md#42-the-composed-space-explanation-diagram) |
-| 12 | 7-D premises, 1-D conclusion | [2](2-conclusion-depth.md#24-conclusion-width-should-track-premise-width) |
+| 12 | 7-D premises, 1-D conclusion; an N-D map wants an N-D conclusion | [2](2-conclusion-depth.md#25-an-n-dimensional-map-deserves-an-n-dimensional-conclusion) |
 | 13 | Conclusion names an object no premise mentions | [1](1-correctness.md#11-a-conclusion-naming-an-object-no-premise-states) |
 | 14 | Syllogism served in the linear-chain premise layout | [3](3-explanations.md#33-the-syllogism-derivation-reads-as-a-chain) |
 

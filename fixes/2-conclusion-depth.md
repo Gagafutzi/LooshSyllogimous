@@ -14,6 +14,19 @@ a new shared mechanism rather than a per-mode repair.
 
 ## 2.1 What is actually wrong
 
+**A conclusion should take the whole relation to reach, or near enough.** That
+is the requirement, and everything below is a way of enforcing it. Two things
+follow from it that are worth separating, because they are enforced by different
+means:
+
+- **Depth** — reaching the conclusion must use the whole premise set, not a
+  fragment of it. [2.2](#22-the-mechanism-measure-depth-then-require-it).
+- **Width** — the conclusion must be about every dimension the item is built on,
+  not one of them. [2.5](#25-an-n-dimensional-map-deserves-an-n-dimensional-conclusion).
+
+An item can fail either independently. The 7-D item below is full depth and
+one-seventh width; the nested item is full width and depth 1.
+
 The app already measures item difficulty carefully — the ability model, the
 width estimate in bits, the rung ladders. None of it measures **how much of the
 premise set the conclusion needs**. A ten-relation nested item and a
@@ -100,26 +113,48 @@ these modes and it is free.
 Every generator that builds a conclusion gains a floor and rejects candidates
 below it, the way `isPremiseLikeConclusion` is used today: draw, check, redraw.
 
-The floor should be a function of the premise count rather than a constant,
-because "depth 2" means something different in a three-premise item and a
-ten-premise one. A reasonable starting rule, to be calibrated against
-`tests/rungfit.test.ts` rather than guessed at permanently:
+**The floor is the whole premise set, or one short of it.** Not half — half was
+the first draft of this section and it is not what was asked for. The
+requirement is that reaching the conclusion takes the *whole* relation, or
+near enough:
 
 ```
-minDepth = clamp(ceil(premises / 2), 2, premises)
+minDepth = premises - slack        // slack is 0 or 1, and 0 is the default
 ```
 
-Two things to get right:
+An item with five premises should need five of them. `slack` exists for the
+layouts that genuinely cannot offer a full-depth pair — see the rejection note
+below — and for the deliberate case where one premise is *meant* to be
+discardable, so that noticing it is discardable is the exercise. It is a
+setting with a default of zero, not a tolerance the generator drifts into.
+
+That is a much stronger constraint than a floor at half, and it has a
+consequence worth stating plainly: **the generator can no longer pick a pair
+and hope.** For most layouts only a handful of pairs are at full depth — on a
+chain, exactly the two ends — so the conclusion pair has to be chosen *first*,
+from the pairs at maximum distance, and the layout built or rejected around it.
+That inversion is the actual work of this section; the floor is just how it is
+checked.
+
+Three things to get right:
 
 - **Count relations, not premises, where a premise carries several.** Nested's
   five premises hold ten relations and the composed spaces' three premises hold
   twenty-one. A depth measured in premises would pass the nested item at depth
   2 while the conclusion still came from a single bracket. Measure in the units
   the mode's solver works in.
-- **Rejection has to be bounded.** Some layouts admit no deep conclusion at all
-  — a star-shaped branching layout has span 2 between every pair. Cap the
-  retries and, on exhaustion, rebuild the *layout* rather than shipping a
-  shallow conclusion or throwing.
+- **Rejection has to be bounded.** Some layouts admit no full-depth conclusion
+  at all — a star-shaped branching layout has span 2 between every pair,
+  whatever its premise count. Cap the retries and, on exhaustion, rebuild the
+  *layout* rather than shipping a shallow conclusion or throwing. If a mode
+  turns out to reject most of what it builds, the layout generator is what
+  needs changing, not the floor.
+- **A restated premise is the floor's worst case, not a separate rule.**
+  `isPremiseLikeConclusion` exists because depth 1 was the failure people
+  noticed; it can go once depth is measured, since depth ≥ premises − 1 rules
+  out a restatement at any premise count above two, and rules out the cases the
+  pair-matching guard never saw — the nested item's bracket, and a
+  self-inverse relation restated backwards.
 
 ### Record it
 
@@ -192,7 +227,7 @@ group-aware and the fix is which group goes first.
 
 ---
 
-## 2.5 Conclusion width should track premise width
+## 2.5 An N-dimensional map deserves an N-dimensional conclusion
 
 Twenty-one stated relations, a conclusion naming one
 ([shot 12](shots/12-ndspace-7d-1d-conclusion.png)). The cause is direct:
@@ -211,28 +246,38 @@ two"*. The problem is purely that construction sits at the far end of the ND
 ladder (`construct-conclusion`, `construct-distance`), so a player at 7-D who
 has not climbed that far gets a 1-D claim about a 7-D layout.
 
-**Fix.** Make the conclusion's axis count a function of the item's axis count
-rather than of the ladder position. Concretely, three forms in increasing order,
-and the *number of axes asked about* rises with dimensionality in all three:
+**Fix. The conclusion states every axis the item is built on.** A 2-D map gets
+a 2-D conclusion, a 3-D map a 3-D one, a 7-D map all seven. Not a proportion of
+them — the whole relation, the same way [2.2](#22-the-mechanism-measure-depth-then-require-it)
+asks for the whole premise set. Axis count is a property of the item, and the
+ladder position decides only *how the answer is given*, never how much of the
+item the answer is about:
 
-- boolean, but the claim names every axis at once — a full relation, true or
-  false. This form does not exist yet and is the missing rung.
-- choice among full relations that differ on one or two axes.
-- construct, as today.
+| answer mode | what changes with the ladder |
+|---|---|
+| boolean | one claim naming all N axes, true or false |
+| choice | several full-width relations, one of which holds |
+| construct | all N axes, stated by the player, as today |
 
-The middle two already exist. The first is a small addition to `axisClaim`:
-build the claim over all axes rather than one, flip exactly one axis to make a
-false variant. Making false variants differ on exactly one axis is deliberate —
-a false claim that is wrong on five axes is spotted from the first one checked.
+Only the first is missing, and it is a small addition to `axisClaim`: build the
+claim across every axis rather than one, and make a false variant by flipping
+exactly one of them. Flipping exactly one is deliberate — a claim wrong on five
+axes out of seven is spotted from whichever axis you check first, which turns a
+seven-dimensional item back into a one-dimensional one by the back door.
 
-**Verification.** For every composed-space item, the number of axes named in the
-conclusion is at least `ceil(axes / 2)`. And the existing derivation check —
-*a replayed trace ends where the answer says it does* — extends to the new claim
-form for free, since it reads the rendered conclusion.
+This also removes the reason `axisClaim` picks an axis at all, and with it the
+question of *which* axis it picks — a question that had no good answer, since
+any choice makes six-sevenths of every premise decoration.
+
+**Verification.** For every composed-space item, the set of axes named in the
+conclusion equals the set the premises are built on — equality, not a floor,
+because a floor is what let this drift to one in the first place. The existing
+derivation check — *a replayed trace ends where the answer says it does* —
+extends to the new claim form for free, since it reads the rendered conclusion.
 
 ---
 
-## 2.6 Several conclusions, of graded depth
+## 2.6 A halfway conclusion and a final one
 
 The author's proposal, and it is a good one:
 
@@ -240,20 +285,37 @@ The author's proposal, and it is a good one:
 > are of different complexity to estimate where the user got it wrong) and one
 > final one you have to construct or choose from multiple options.
 
-This is a partial-credit structure, and it needs `derivationDepth` to exist
-first — the "spread in between" is a spread *in depth*, which is not currently a
-quantity the app can compute. Once it is:
+**Two conclusions, not a spread of them.** One at the halfway point and one at
+the end:
 
-- An item with premise-depth *d* offers conclusions at roughly `d/3`, `2d/3` and
-  `d`, the last in construct or choice form.
-- The intermediate ones are stepping stones and are scored as such. Their value
-  is diagnostic: a player who gets the first two right and the last wrong made a
-  different error from one who got the first wrong, and the ability model
-  currently cannot tell those apart because it sees one bit.
-- `multi-conclusion` already exists as a rung, but it means *several claims all
-  of which must hold* — an AND, not a ladder. This is a new form and should be a
-  new rung rather than a redefinition, because the existing one is load-bearing
-  in several ladders.
+| | depth | form |
+|---|---|---|
+| halfway | about `premises / 2` | boolean or choice |
+| final | the full set, per [2.2](#22-the-mechanism-measure-depth-then-require-it) | construct, or choose from several |
+
+**The halfway conclusion appears only above four premises.** Below that there is
+no halfway to speak of — on a three-premise item the midpoint is depth 1 or 2,
+which is the shallow conclusion this whole section exists to prevent, and
+serving one deliberately would teach exactly the habit the depth floor is
+removing. Four is the boundary: five premises and up get both, four and under
+get the final one alone.
+
+Its value is diagnostic, and that is the whole argument for it. A player who
+answers the halfway one correctly and the final one wrongly lost the thread in
+the second half; one who fails both never had it. Today both look identical to
+[`ability.utils.ts`](../src/app/syllogimous/utils/ability.utils.ts), because it
+sees one bit per item — and the difference between "cannot hold six relations at
+once" and "cannot read a relation" is the most useful thing an item could report.
+
+The halfway conclusion is also the answer to a problem the full-depth floor
+creates. Requiring the whole premise set means a wrong answer says only *"you
+did not get to the end"*, with no indication of where the chain broke. A
+checkpoint restores that, and it does it without weakening the final conclusion.
+
+`multi-conclusion` already exists as a rung and is not this: it means *several
+claims all of which must hold* — an AND, scored as one. This is two questions
+with two answers, so it needs a rung of its own rather than a redefinition of
+one that several ladders already depend on.
 
 **This should be built last of the six sections**, not because it is least
 valuable but because it is the one thing here that changes what the ability
