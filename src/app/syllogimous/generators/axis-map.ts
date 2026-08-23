@@ -44,7 +44,14 @@ export interface AxisMap {
     factor: number[];
     /** Added on target axis j, after the permutation. */
     offset: number[];
-    /** For the derivation: what was actually done, in order. */
+    /**
+     * What was done, in order — for building only, never for explaining.
+     *
+     * Composed changes can cancel: two swaps of the same pair leave the axes
+     * where they started, and a derivation replaying the steps then claims two
+     * changes an item does not contain. `describeMap` reads the finished map
+     * instead, so the explanation describes what the reader is looking at.
+     */
     steps: string[];
 }
 
@@ -130,7 +137,52 @@ function buildMap(axes: LinearScale[], covered: number[], kinds: MapKind[], coun
         }
         if (!done) return null;
     }
-    return m.steps.length ? m : null;
+    /*
+     * Judged by what it does, not by how many times something was done to it.
+     *
+     * Changes compose and can cancel — two swaps of one pair put the axes back
+     * — so a map built from three steps may be a map of one change, or of none.
+     * Rejecting those keeps the count honest: an item said to carry three
+     * changes has to carry three.
+     */
+    return describeMap(m, axes).length >= count ? m : null;
+}
+
+/**
+ * The finished map, in words, read off the map itself.
+ *
+ * A swap is reported once for the pair rather than once per axis, because
+ * "A and B trade places" said twice is the same fact said twice.
+ */
+export function describeMap(m: AxisMap, axes: LinearScale[]): string[] {
+    const say = (i: number) => hi(axes[i].name || axes[i].axisName, dimClass(dimSlot(i)));
+    const out: string[] = [];
+    const paired = new Set<number>();
+
+    for (let i = 0; i < m.perm.length; i++) {
+        if (m.perm[i] === i || paired.has(i)) continue;
+        const j = m.perm[i];
+        if (m.perm[j] === i) {
+            paired.add(i); paired.add(j);
+            out.push(`${say(i)} and ${say(j)} trade places`);
+        } else {
+            out.push(`${say(i)} becomes ${say(j)}`);
+        }
+    }
+    for (let i = 0; i < m.factor.length; i++) {
+        const f = m.factor[i];
+        if (f === 1) continue;
+        if (f === -1) out.push(`${say(i)} runs the other way`);
+        else if (f < 0) out.push(`${say(i)} runs the other way and stretches ${hi(`${-f}×`)}`);
+        else out.push(`${say(i)} stretches ${hi(`${f}×`)}`);
+    }
+    for (let j = 0; j < m.offset.length; j++) {
+        const k = m.offset[j];
+        if (!k) continue;
+        const word = k > 0 ? axes[j].direction[0] : axes[j].direction[1];
+        out.push(`everything shifts ${hi(`${Math.abs(k)} ${word}`)}`);
+    }
+    return out;
 }
 
 /* ------------------------------------------------------------------ *
@@ -250,19 +302,43 @@ export function createAxisMap(ctx: GeneratorContext, numOfPremises: number): Que
         question.setup = [
             `The markers ${ANCHORS.map(a => a.token).join(" ")} never move — everything`
             + ` else is placed against them.`,
-            `The same change is applied to every object at once.`
-            + (covered.length < feat.dims
-                ? ` Any direction not shown below is unchanged.`
-                : ""),
+            `The same change is applied to every object at once, and`
+            + ` <b>every change it makes is shown below</b> — anything the`
+            + ` examples leave alone stays as it is.`,
         ];
 
-        const lines: string[] = [];
-        for (const ex of examples) {
-            const after = applyAxisMap(ex.coord, map);
-            lines.push(
-                `${relationLine(ex.name, anchor.token, ex.coord, axes)}`
-                + ` ${hi("→")} ${relationLine(ex.name, anchor.token, after, axes)}`);
-        }
+        /*
+         * Only the axes the map actually changes get an example.
+         *
+         * An example whose before and after read identically is a line saying
+         * "this one is the same", which the convention already says of every
+         * direction not shown — so it costs a line, adds nothing, and reads
+         * like a generator that forgot to apply its own map. Dropped after the
+         * map is drawn rather than before, because whether an axis changes
+         * depends on the map: a shift moves objects sitting on other axes too,
+         * so an axis untouched by the permutation is not therefore unchanged.
+         */
+        const shown = examples
+            .map(ex => ({ ...ex, after: applyAxisMap(ex.coord, map) }))
+            .filter(ex => relationLine(ex.name, anchor.token, ex.coord, axes)
+                !== relationLine(ex.name, anchor.token, ex.after, axes));
+
+        /*
+         * One is enough, and has to be: the base state applies a single change,
+         * which touches a single axis, so demanding two examples makes the mode
+         * unbuildable at its own easiest setting.
+         *
+         * It is still determined, because the convention below is that *every*
+         * change is shown. A lone "3 north → 6 north" could otherwise be north
+         * stretching or everything shifting three north — the shift would move
+         * the other example object too, and that line is absent, which under
+         * "every change is shown" rules it out.
+         */
+        if (!shown.length) continue;
+
+        const lines = shown.map(ex =>
+            `${relationLine(ex.name, anchor.token, ex.coord, axes)}`
+            + ` ${hi("→")} ${relationLine(ex.name, anchor.token, ex.after, axes)}`);
 
         /*
          * The chain. First link against the anchor so an offset can show at
@@ -283,7 +359,18 @@ export function createAxisMap(ctx: GeneratorContext, numOfPremises: number): Que
                 ? relationLine(n, anchor.token, coords[0], axes)
                 : relationLine(n, chain[i - 1], minus(coords[i], coords[i - 1]), axes));
 
-        question.premises = [...lines, ...before];
+        /*
+         * Labelled halves. The examples and the chain are two different kinds
+         * of statement — one is evidence about the map, the other is the thing
+         * to apply it to — and eight lines of them running together reads as a
+         * single premise list where the reader has to work out where the
+         * evidence stops. The same device the graph modes use for their two
+         * relation sets.
+         */
+        question.premises = [
+            hi("Worked examples:"), ...lines,
+            hi("Now these:"), ...before,
+        ];
 
         const render = (m: AxisMap) => {
             const after = coords.map(c => applyAxisMap(c, m));
@@ -318,12 +405,16 @@ export function createAxisMap(ctx: GeneratorContext, numOfPremises: number): Que
         question.correctChoice = options.indexOf(truth);
         question.conclusion = "";
         question.isValid = true;
+        const told = describeMap(map, axes);
         question.explanation = [
-            ...map.steps.map(s => `Reading the examples: ${s}.`),
-            covered.length < feat.dims
-                ? `Everything else is unchanged.`
-                : `That is every direction.`,
-            `Applying it to the chain, in order, gives ${hi(truth)}.`,
+            told.length === 1
+                ? `The examples show one change: ${told[0]}.`
+                : `The examples show ${told.length} changes together:`,
+            ...(told.length === 1 ? [] : told.map(step => `— ${step}.`)),
+            `Nothing else moves.`,
+            `Each link maps on its own, because the change is the same`
+            + ` everywhere — so the chain comes through as`
+            + ` ${hi(truth)}.`,
         ];
 
         return question;

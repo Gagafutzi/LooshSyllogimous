@@ -46,6 +46,9 @@ function context(rungs: string[]): GeneratorContext {
 const strip = (h: string) => h.replace(/<[^>]+>/g, "");
 /** The example half of the premises: the lines showing a before and an after. */
 const examplesOf = (q: { premises: string[] }) => q.premises.filter(p => p.includes("→")).map(strip);
+/** The chain half: everything after the second heading. */
+const chainOf = (q: { premises: string[] }) =>
+    q.premises.filter(p => !p.includes("→") && !p.includes(":")).map(strip);
 
 test("an item states its examples, its chain, and four distinct options", () => {
     for (const rungs of [[], FULL.slice(0, 4), FULL]) {
@@ -53,10 +56,26 @@ test("an item states its examples, its chain, and four distinct options", () => 
             const ctx = context(rungs);
             for (let rep = 0; rep < 12; rep++) {
                 const q = createAxisMap(ctx, 3);
-                assert(examplesOf(q).length >= 2,
-                    "fewer than two worked examples: one shows a direction, it does not show a map");
-                assert(q.premises.length > examplesOf(q).length,
-                    "the examples are the whole item and there is no chain to map");
+                /*
+                 * One example is legitimate: the base state applies a single
+                 * change, and a change touches one axis. What must never
+                 * happen is *none* — an item with nothing to induce from.
+                 */
+                assert(examplesOf(q).length >= 1, "no worked examples at all");
+                assert(chainOf(q).length >= 2, "no chain to apply the map to");
+
+                // Every shown example is a change. An example whose two halves
+                // read alike says "this one is the same", which the convention
+                // already says of everything not shown.
+                for (const line of examplesOf(q)) {
+                    const [before, after] = line.split("→").map(x => x.trim());
+                    assert(before !== after, `an example shows no change: ${line}`);
+                }
+
+                // The two halves are labelled, or they read as one long list
+                // and the reader has to find where the evidence stops.
+                assert(q.premises.filter(p => p.includes(":")).length >= 2,
+                    "the examples and the chain are not labelled apart");
                 equal(q.choices.length, 4, "not four options");
                 equal(new Set(q.choices).size, 4, "two options say the same thing");
                 assert(q.correctChoice >= 0 && q.correctChoice < 4, "no correct option");
@@ -158,4 +177,54 @@ test("the rungs widen the space and the vocabulary", () => {
     const top = axisCount(FULL);
     equal(base, 2, `the base state uses ${base} axes, not two`);
     assert(top >= 6, `the full ladder reaches only ${top} axes`);
+});
+
+/**
+ * The derivation describes the map, not the steps that built it.
+ *
+ * Changes compose and can cancel: two swaps of one pair put the axes back where
+ * they started. A derivation replaying its own construction then reported
+ * "Distinction and Time trade places" followed by "Time and Distinction trade
+ * places" — two changes, in an item that contained none on those axes.
+ */
+test("a described change is a change the item actually carries", () => {
+    for (const rungs of [FULL.slice(0, 6), FULL]) {
+        seeded(31415, () => {
+            const ctx = context(rungs);
+            for (let rep = 0; rep < 40; rep++) {
+                const q = createAxisMap(ctx, 3);
+                const told = q.explanation.filter(l => l.startsWith("—") || l.includes("one change:"));
+
+                // No fact stated twice: a swap is one fact about a pair.
+                const said = told.map(strip);
+                equal(new Set(said).size, said.length,
+                    `a change is described twice: ${said.join(" / ")}`);
+
+                // And no pair reported as trading places both ways round.
+                for (const line of said) {
+                    const m = /(\w[\w -]*) and (\w[\w -]*) trade places/.exec(line);
+                    if (!m) continue;
+                    const mirrored = `${m[2]} and ${m[1]} trade places`;
+                    assert(!said.some(other => other.includes(mirrored)),
+                        `the same swap is reported both ways round: ${line}`);
+                }
+            }
+        });
+    }
+});
+
+/** An item claiming three changes has to carry three. */
+test("composing changes that cancel does not count as composing", () => {
+    seeded(2718, () => {
+        const ctx = context(FULL);
+        for (let rep = 0; rep < 40; rep++) {
+            const q = createAxisMap(ctx, 3);
+            const header = strip(q.explanation[0]);
+            const claimed = /(\d+) changes/.exec(header);
+            if (!claimed) continue;
+            const listed = q.explanation.filter(l => l.startsWith("—")).length;
+            equal(listed, Number(claimed[1]),
+                `the derivation announces ${claimed[1]} changes and lists ${listed}`);
+        }
+    });
 });
