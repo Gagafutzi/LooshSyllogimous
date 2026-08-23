@@ -1,0 +1,12 @@
+.stages { display: grid; gap: 0.4rem; justify-items: center; }
+
+.stages__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: min(24rem, 100%);
+}
+
+.stages__slider { flex: 1; }
+
+.stages__label { text-align: center; }

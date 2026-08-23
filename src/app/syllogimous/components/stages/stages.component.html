@@ -1,0 +1,24 @@
+<div class="stages" *ngIf="stages.length > 1">
+    <div class="stages__bar">
+        <button type="button" class="btn btn-sm" [disabled]="at === 0"
+                (click)="step(-1)" aria-label="Previous step">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        <input type="range" class="form-range stages__slider"
+               min="0" [max]="stages.length - 1" [value]="at"
+               [attr.aria-label]="'Step ' + (at + 1) + ' of ' + stages.length"
+               (input)="move($any($event.target).value)">
+        <button type="button" class="btn btn-sm" [disabled]="at === stages.length - 1"
+                (click)="step(1)" aria-label="Next step">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+    </div>
+
+    <!-- The caption names the step rather than numbering it: "then east-west
+         becomes north-south" is what the reader is checking, where "step 2 of
+         4" is only where they are. -->
+    <div class="stages__label small text-muted" [innerHTML]="current?.label"></div>
+
+    <app-question-map
+        [plot]="{ map: current!.map, axes: axisNames, bounds: bounds }"></app-question-map>
+</div>

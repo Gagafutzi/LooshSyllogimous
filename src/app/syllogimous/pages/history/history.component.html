@@ -82,6 +82,7 @@
                         <li *ngFor="let step of q.explanation" [innerHTML]="step"></li>
                     </ol>
                     <app-venn *ngIf="q.venn" [diagram]="q.venn"></app-venn>
+                    <app-stages [question]="q"></app-stages>
                 </div>
 
                 <!--

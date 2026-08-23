@@ -261,6 +261,19 @@ export class Question {
      */
     venn?: VennDiagram;
 
+    /**
+     * The arrangement at each point of a multi-step change, for stepping through.
+     *
+     * A picture of where things ended up says only *that* the answer was what
+     * it was. When the change is a composition, the reader who got it wrong is
+     * usually wrong about one of its steps, and the useful thing is to watch
+     * the steps happen — so each stage carries the whole arrangement after one
+     * more of them, and the screen offers a slider rather than a still.
+     *
+     * `axisNames` names the columns, as it does for `wordCoordMap`.
+     */
+    stages?: Array<{ label: string; map: Record<string, number[]> }>;
+
     wordCoordMap?: Record<string, number[]>;
     /** Axis names for the map, in the same order as the coordinates. */
     axisNames?: string[];

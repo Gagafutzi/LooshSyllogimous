@@ -55,6 +55,11 @@ export interface AxisMap {
     steps: string[];
 }
 
+/** A map's state, copied — for keeping the stages on the way to it. */
+const snapshot = (m: AxisMap): AxisMap => ({
+    perm: [...m.perm], factor: [...m.factor], offset: [...m.offset], steps: [...m.steps],
+});
+
 const identity = (d: number): AxisMap => ({
     perm: Array.from({ length: d }, (_, i) => i),
     factor: Array(d).fill(1),
@@ -126,8 +131,23 @@ function extend(m: AxisMap, kind: MapKind, axes: LinearScale[], covered: number[
     return true;
 }
 
-function buildMap(axes: LinearScale[], covered: number[], kinds: MapKind[], count: number): AxisMap | null {
+/**
+ * The map, and the map at every point on the way to it.
+ *
+ * Kept because the finished map alone cannot be *shown* being applied: a reader
+ * who got the item wrong is usually wrong about one of the changes, and a
+ * picture of the end state tells them only that they are wrong. The stages let
+ * the change be watched happening a step at a time.
+ */
+function buildMap(
+    axes: LinearScale[],
+    covered: number[],
+    kinds: MapKind[],
+    count: number,
+    trail?: AxisMap[],
+): AxisMap | null {
     const m = identity(axes.length);
+    if (trail) { trail.length = 0; trail.push(snapshot(m)); }
     for (let i = 0; i < count; i++) {
         // Tried a few times: an elementary change can find nothing left to act
         // on once earlier ones have used the free axes up.
@@ -136,6 +156,7 @@ function buildMap(axes: LinearScale[], covered: number[], kinds: MapKind[], coun
             done = extend(m, pick(kinds), axes, covered);
         }
         if (!done) return null;
+        if (trail) trail.push(snapshot(m));
     }
     /*
      * Judged by what it does, not by how many times something was done to it.
@@ -151,31 +172,37 @@ function buildMap(axes: LinearScale[], covered: number[], kinds: MapKind[], coun
 /**
  * The finished map, in words, read off the map itself.
  *
- * A swap is reported once for the pair rather than once per axis, because
- * "A and B trade places" said twice is the same fact said twice.
+ * **One line per axis that changes, saying everything about that axis.** The
+ * first version listed the parts separately — "East-west and North-south trade
+ * places", then "East-west stretches 2×" — and that is ambiguous in a way that
+ * matters: it does not say whether the stretch happens before the swap or
+ * after, and those give different answers. Saying where an axis ends up and by
+ * how much, in one clause, has no order left in it to get wrong.
+ *
+ * Offsets stay separate because they genuinely are: a shift is about the whole
+ * arrangement rather than about any one axis's contribution.
  */
 export function describeMap(m: AxisMap, axes: LinearScale[]): string[] {
     const say = (i: number) => hi(axes[i].name || axes[i].axisName, dimClass(dimSlot(i)));
     const out: string[] = [];
-    const paired = new Set<number>();
 
     for (let i = 0; i < m.perm.length; i++) {
-        if (m.perm[i] === i || paired.has(i)) continue;
         const j = m.perm[i];
-        if (m.perm[j] === i) {
-            paired.add(i); paired.add(j);
-            out.push(`${say(i)} and ${say(j)} trade places`);
+        const f = m.factor[i];
+        if (j === i && f === 1) continue;
+
+        const size = Math.abs(f) === 1 ? "" : `, ${hi(`${Math.abs(f)}×`)} as far`;
+        if (j === i) {
+            out.push(f < 0
+                ? `${say(i)} runs the other way${size}`
+                : `${say(i)} stays put${size}`);
         } else {
-            out.push(`${say(i)} becomes ${say(j)}`);
+            out.push(f < 0
+                ? `${say(i)} becomes ${say(j)}, reversed${size}`
+                : `${say(i)} becomes ${say(j)}${size}`);
         }
     }
-    for (let i = 0; i < m.factor.length; i++) {
-        const f = m.factor[i];
-        if (f === 1) continue;
-        if (f === -1) out.push(`${say(i)} runs the other way`);
-        else if (f < 0) out.push(`${say(i)} runs the other way and stretches ${hi(`${-f}×`)}`);
-        else out.push(`${say(i)} stretches ${hi(`${f}×`)}`);
-    }
+
     for (let j = 0; j < m.offset.length; j++) {
         const k = m.offset[j];
         if (!k) continue;
@@ -311,6 +338,8 @@ interface Group {
     shown: Array<{ name: string; coord: number[]; after: number[] }>;
     chain: string[];
     coords: number[][];
+    /** The map after each change, starting from no change at all. */
+    trail: AxisMap[];
 }
 
 function buildGroups(
@@ -336,7 +365,8 @@ function buildGroups(
     let cursor = 0;
 
     for (let g = 0; g < feat.groups; g++) {
-        const map = buildMap(axes, covered, feat.kinds, feat.count);
+        const trail: AxisMap[] = [];
+        const map = buildMap(axes, covered, feat.kinds, feat.count, trail);
         if (!map) return null;
 
         const anchor = markers[g].token;
@@ -367,7 +397,7 @@ function buildGroups(
 
         groups.push({
             label: feat.groups > 1 ? `Group ${g + 1}` : "",
-            anchor, map, shown, chain, coords,
+            anchor, map, shown, chain, coords, trail,
         });
     }
 
@@ -452,6 +482,57 @@ function buildGroups(
     question.conclusion = "";
     question.isValid = true;
 
+    /*
+     * One stage per step of the change, covering every group at once.
+     *
+     * Drawn in a single frame, which means the markers have to be at their real
+     * positions rather than all at the origin: each group states its chain
+     * against its own marker, so plotting the relative coordinates together
+     * would pile every group on top of the others and show the frame as one
+     * point. The markers carry the same coordinates in every stage, because not
+     * moving is the whole of what they do.
+     *
+     * A group with fewer changes than another simply stops moving, which is the
+     * honest picture — its change was finished earlier.
+     */
+    const anchorAt = (token: string) => {
+        const found = ANCHORS.find(a => a.token === token);
+        return Array.from({ length: d }, (_, i) => found?.coord[i] ?? 0);
+    };
+
+    const stageCount = Math.max(...groups.map(g => g.trail.length));
+    question.axisNames = axes.map(a => a.name || a.axisName);
+    question.stages = Array.from({ length: stageCount }, (_, step) => {
+        const plot: Record<string, number[]> = {};
+        for (const a of ANCHORS) plot[a.token] = anchorAt(a.token);
+        for (const g of groups) {
+            const at = g.trail[Math.min(step, g.trail.length - 1)];
+            const base = anchorAt(g.anchor);
+            g.chain.forEach((name, i) => {
+                plot[name] = applyAxisMap(g.coords[i], at).map((v, k) => v + base[k]);
+            });
+        }
+
+        if (step === 0) return { label: "Before any change", map: plot };
+
+        /*
+         * Captioned with what changed *at this step*, per group. With several
+         * groups more than one may move at once, and naming only the first
+         * leaves the rest of the picture unexplained — which is worse than a
+         * longer caption, because the reader cannot tell it is incomplete.
+         */
+        const said = groups
+            .map(g => {
+                if (step >= g.trail.length) return "";
+                const words = describeMap(diffBetween(g.trail[step - 1], g.trail[step]), axes);
+                if (!words.length) return "";
+                return (g.label ? `${g.label}: ` : "") + words.join(", ");
+            })
+            .filter(Boolean);
+
+        return { label: `Then — ${said.join(" · ") || `step ${step}`}`, map: plot };
+    });
+
     question.explanation = groups.flatMap(g => {
         const told = describeMap(g.map, axes);
         const who = g.label ? `${g.label}: ` : "";
@@ -465,4 +546,24 @@ function buildGroups(
     ]);
 
     return question;
+}
+
+/**
+ * The part of `after` that `before` did not already have.
+ *
+ * Read as the difference between two snapshots rather than from the step text,
+ * for the same reason the whole map is described from the map: the words beside
+ * a picture have to describe what the picture shows.
+ */
+function diffBetween(before: AxisMap, after: AxisMap): AxisMap {
+    const d = before.perm.length;
+    const changed: AxisMap = {
+        perm: [...after.perm], factor: [...after.factor], offset: [...after.offset], steps: [],
+    };
+    for (let i = 0; i < d; i++) {
+        if (before.perm[i] === after.perm[i]) changed.perm[i] = i;
+        if (before.factor[i] === after.factor[i]) changed.factor[i] = 1;
+        if (before.offset[i] === after.offset[i]) changed.offset[i] = 0;
+    }
+    return changed;
 }

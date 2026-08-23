@@ -26,6 +26,12 @@
     -->
     <app-venn *ngIf="game.question?.venn" [diagram]="game.question!.venn"></app-venn>
     <!--
+      A composed change, watched happening. A still of the end state says only
+      that the answer was what it was; the reader who got it wrong is usually
+      wrong about one step, and this is where theirs and the item's part company.
+    -->
+    <app-stages [question]="game.question"></app-stages>
+    <!--
       The key is named on the button, because a keyboard shortcut nobody is
       told about is a shortcut for the person who wrote it.
     -->

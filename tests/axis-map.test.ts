@@ -277,3 +277,89 @@ test("groups do not share a map", () => {
         assert(sawGroups > 5, `only ${sawGroups} multi-group items in forty`);
     });
 });
+
+/**
+ * The change, watched happening.
+ *
+ * A still of the end state says only *that* the answer was what it was. When
+ * the change is a composition — and this composes up to five — the reader who
+ * got it wrong is usually wrong about one step, and the stages are where their
+ * arrangement and the item's part company.
+ */
+test("a composed change carries a stage per step", () => {
+    seeded(4242, () => {
+        const ctx = context(FULL);
+        let composed = 0;
+        for (let rep = 0; rep < 30; rep++) {
+            const q = createAxisMap(ctx, 3);
+            const stages = q.stages ?? [];
+            assert(stages.length >= 2, "no stages at all");
+            equal(strip(stages[0].label), "Before any change",
+                "the first stage is not the arrangement as given");
+            if (stages.length > 2) composed++;
+
+            // Every stage plots the same cast, or the picture jumps.
+            const cast = Object.keys(stages[0].map).sort().join(",");
+            for (const s of stages) {
+                equal(Object.keys(s.map).sort().join(","), cast,
+                    "an object appears or vanishes between stages");
+            }
+            assert((q.axisNames ?? []).length > 0, "the stages have no axis names to label with");
+        }
+        assert(composed > 5, `only ${composed} items of thirty had more than one step`);
+    });
+});
+
+/**
+ * The markers never move, and are drawn where they actually are.
+ *
+ * Every group states its chain against its own marker, so plotting the relative
+ * coordinates together would pile the groups on top of each other and show the
+ * frame as a single point. And a frame that shifted between stages would make
+ * the change unreadable — everything would appear to move.
+ */
+test("the frame is fixed across every stage", () => {
+    seeded(31, () => {
+        const ctx = context(FULL);
+        for (let rep = 0; rep < 25; rep++) {
+            const q = createAxisMap(ctx, 3);
+            const stages = q.stages ?? [];
+            const markers = Object.keys(stages[0].map).filter(k => k.includes("anchor"));
+            assert(markers.length >= 2, "the frame is not in the picture at all");
+
+            const distinct = new Set(markers.map(m => stages[0].map[m].join(",")));
+            equal(distinct.size, markers.length, "two markers are drawn at the same point");
+
+            for (const s of stages) {
+                for (const m of markers) {
+                    equal(s.map[m].join(","), stages[0].map[m].join(","),
+                        "a marker moved between stages");
+                }
+            }
+        }
+    });
+});
+
+/** Every step after the first says what changed at it, for every group. */
+test("each stage is captioned with the change it shows", () => {
+    seeded(808, () => {
+        const ctx = context(FULL);
+        for (let rep = 0; rep < 25; rep++) {
+            const q = createAxisMap(ctx, 3);
+            const stages = q.stages ?? [];
+            const groups = new Set(q.explanation.map(strip)
+                .map(l => /^(Group \d+)/.exec(l)?.[1]).filter(Boolean));
+
+            for (const s of stages.slice(1)) {
+                const label = strip(s.label);
+                assert(label.startsWith("Then — "), `an unlabelled stage: ${label}`);
+                assert(!/step \d+$/.test(label), `a stage says only where it is: ${label}`);
+                // With several groups, more than one may move at a step, and
+                // naming only the first leaves the rest unexplained.
+                if (groups.size > 1) {
+                    assert(/Group \d+:/.test(label), `a multi-group stage names no group: ${label}`);
+                }
+            }
+        }
+    });
+});
