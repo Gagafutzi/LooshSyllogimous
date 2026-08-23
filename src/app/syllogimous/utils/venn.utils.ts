@@ -152,3 +152,136 @@ export function rolesFor(
     if (others.size !== 1) return null;
     return { s, p, m: [...others][0] };
 }
+
+/**
+ * The diagram for a claim, or nothing if the item is not three circles.
+ *
+ * `support` is the premises that actually force the answer — everything else in
+ * the item is a distractor, and shading from one would shade a region the
+ * answer does not turn on. Callers that have already computed it pass it in;
+ * the rest get the whole set and should not.
+ */
+export function vennDiagramFor(
+    support: SylPremise[],
+    claim: SylPremise,
+): VennDiagram | undefined {
+    const roles = rolesFor(support, claim);
+    if (!roles) return undefined;
+    const diagram = vennFor(support, roles);
+    /*
+     * All or nothing. A diagram missing one premise is not a weaker diagram, it
+     * is a wrong one: the Venn test decides by what is *not* shaded, so an
+     * un-drawn premise shows a region as open that the item closed.
+     */
+    return diagram.undrawn.length ? undefined : diagram;
+}
+
+/**
+ * The syllogistic order, and the term that joins the two premises.
+ *
+ * A syllogism is read major premise, minor premise, conclusion, and the middle
+ * term is what joins them. The derivation listed the load-bearing premises in
+ * whatever order the search left them, so the reader had to find the middle
+ * term before the argument could be followed at all — and nothing said which
+ * term it was.
+ *
+ * Major first: the premise carrying the conclusion's predicate. That is the
+ * convention, and it is the useful one, because the conclusion is read
+ * subject-to-predicate and the argument then runs backwards through the middle
+ * to meet it.
+ */
+export function inSyllogisticOrder(
+    support: SylPremise[],
+    roles: Record<Role, string>,
+): SylPremise[] {
+    const carries = (p: SylPremise, term: string) => p[0] === term || p[2] === term;
+    const major = support.filter(p => carries(p, roles.p));
+    const minor = support.filter(p => !carries(p, roles.p));
+    return [...major, ...minor];
+}
+
+/**
+ * What each premise does to the picture, and what the picture then shows.
+ *
+ * The first version of this was a mood table — one sentence per pair of
+ * quantifiers — and it was wrong, quietly, in half the figures. "All X is M"
+ * and "All M is X" carry the same pair of quantifiers and say different things,
+ * so a sentence keyed on the quantifiers alone described whichever figure it
+ * was written against and misdescribed the other three. It read plausibly,
+ * which is the worst way for an explanation to be wrong.
+ *
+ * Read off the diagram instead. Each premise's effect is stated in its own
+ * terms, and the conclusion is read by the same rule the Venn test uses:
+ * the claim follows exactly when the picture already shows it. That is correct
+ * in every figure by construction, and it teaches the method rather than a
+ * result — someone who follows it once can work the next one out.
+ */
+export function nameTheInference(
+    support: SylPremise[],
+    diagram: VennDiagram,
+    say: (term: string) => string,
+): string[] {
+    const lines = support.map(([a, kind, b]) => {
+        const A = say(a), B = say(b);
+        switch (kind) {
+            case "all":
+                return `<b>All ${A} is ${B}</b> empties every part of ${A} outside ${B}.`;
+            case "no":
+                return `<b>No ${A} is ${B}</b> empties the overlap of ${A} and ${B}.`;
+            case "some":
+                return `<b>Some ${A} is ${B}</b> puts something in the overlap of`
+                    + ` ${A} and ${B}.`;
+            default:
+                return `<b>Some ${A} is not ${B}</b> puts something in ${A},`
+                    + ` outside ${B}.`;
+        }
+    });
+
+    const read = readOff(diagram, say);
+    if (read) lines.push(read);
+    return lines;
+}
+
+/** The overlap of the conclusion's two terms, and the part of S outside P. */
+const OVERLAP = ["sp", "spm"];
+const S_ONLY = ["s", "sm"];
+
+/**
+ * What the finished picture says about the conclusion's two terms.
+ *
+ * This is the Venn test itself: shading says a region is empty, a mark says
+ * something is in it, and anything neither shaded nor marked is *open* — which
+ * is the reading the mode had no way to express and reported as plain "false".
+ */
+function readOff(d: VennDiagram, say: (term: string) => string): string | null {
+    const S = say(d.roles.s), P = say(d.roles.p);
+    const shaded = new Set(d.shaded);
+    const inside = (regions: string[], where: string[]) =>
+        regions.length > 0 && regions.every(r => where.includes(r));
+
+    if (OVERLAP.every(r => shaded.has(r))) {
+        return `That leaves nothing at all in the overlap of ${S} and ${P}:`
+            + ` <b>no ${S} is ${P}</b>.`;
+    }
+    if (S_ONLY.every(r => shaded.has(r))) {
+        return `That leaves no part of ${S} outside ${P}:`
+            + ` <b>all ${S} is ${P}</b>.`;
+    }
+    for (const mark of d.marks) {
+        if (inside(mark.regions, OVERLAP)) {
+            return `The thing that must exist lands in the overlap:`
+                + ` <b>some ${S} is ${P}</b>.`;
+        }
+        if (inside(mark.regions, S_ONLY)) {
+            return `The thing that must exist lands in ${S} and outside ${P}:`
+                + ` <b>some ${S} is not ${P}</b>.`;
+        }
+    }
+    /*
+     * Neither settled. Worth saying outright, because "the premises leave this
+     * open" and "the premises rule this out" both come back as a wrong answer
+     * and are not the same mistake.
+     */
+    return `Nothing is shaded or marked across the whole of ${S} against ${P},`
+        + ` so the premises leave it open either way.`;
+}

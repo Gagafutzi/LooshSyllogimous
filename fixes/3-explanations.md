@@ -221,8 +221,21 @@ overlap **open** — neither shaded nor marked — which is "the premises do not
 settle this", visibly distinct from "ruled out". That is the same distinction
 [1.2](1-correctness.md#12-the-two-negative-premise-syllogism) wants in words.
 
-**Still to do:** the three smaller fixes below, and pointing Set Hierarchy at
-the same component — it has the same content and the same chain-shaped display.
+**All three generators draw it.** It first went into `buildSetHierarchy` alone
+— which is the *rung* — so the two generators that produce the plain mode, and
+both reported items, got nothing. Fredo's premises are rendered strings, so
+`sylPremisesFromRule` rebuilds the structure from the rule rather than parsing
+the markup back; Canyon draws when the load-bearing premises come to a single
+syllogism, and skips a longer chain, where a picture of the last link would
+explain a step the reader has not been shown how to reach.
+
+That turned up a stale field: Fredo drew a rule for `question.rule` and a
+*second* one for the syllogism it built, so the recorded rule described a
+different item. Nothing read it closely enough to notice until the diagram
+needed to know which term was the middle.
+
+**The three smaller fixes are done too** — see below. Set Hierarchy is the same
+code path as the syllogism branch, so it was never a separate job.
 
 ### The original diagnosis
 
@@ -251,9 +264,23 @@ the natural place to show it: two arrangements consistent with the premises,
 disagreeing about the conclusion. That is a picture people understand
 immediately and a sentence almost nobody does.
 
-### Three smaller things in the same four lines
+### Three smaller things in the same four lines — **BUILT**
 
-Worth fixing, and none of them a substitute for the diagram.
+The derivation now reads: the load-bearing premises in syllogistic order, the
+middle term named, what each premise does to the picture, the reading, then the
+conclusion — with the bookkeeping about droppable premises moved to the end,
+where it is a footnote rather than an interruption.
+
+**The inference sentence was wrong before it was right.** The first version was
+a mood table, one sentence per pair of quantifiers, and it was quietly wrong in
+half the figures: "All X is M" and "All M is X" carry the same quantifiers and
+say different things, so a sentence keyed on quantifiers alone described
+whichever figure it was written against. It read plausibly, which is the worst
+way for an explanation to be wrong. It is read off the diagram now — shading
+says empty, a mark says occupied, neither says open — which is correct in every
+figure by construction and teaches the method rather than a result.
+
+The original notes follow.
 
 **The premises are in generator order, not syllogistic order.** A syllogism is
 read major premise, minor premise, conclusion, and the middle term is what joins

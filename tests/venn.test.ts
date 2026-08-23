@@ -10,7 +10,36 @@
 
 import { assert, equal, test } from "./harness";
 import { SylPremise } from "../src/app/syllogimous/models/syllogism.models";
-import { rolesFor, vennFor } from "../src/app/syllogimous/utils/venn.utils";
+import { nameTheInference, rolesFor, vennFor } from "../src/app/syllogimous/utils/venn.utils";
+import { seeded } from "./harness";
+import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
+import { sylPremisesFromRule } from "../src/app/syllogimous/utils/syllogism.utils";
+import { GeneratorContext } from "../src/app/syllogimous/generators/context";
+import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
+import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
+import { Settings } from "../src/app/syllogimous/models/settings.models";
+import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
+import { Logger } from "../src/app/syllogimous/utils/logger";
+import { createDistinction } from "../src/app/syllogimous/generators/distinction";
+
+function ndContext(): GeneratorContext {
+    const settings = new Settings();
+    for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;
+    const ctx: GeneratorContext = {
+        settings,
+        logger: new Logger("error", false),
+        settingsOverrideService: {
+            linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
+            spread: () => null, depthFor: () => 0, scramble: 100, rungOverride: () => null,
+        } as unknown as SettingsOverrideService,
+        progressionService: { hasRung: () => false, depthBonusFor: () => 0 } as unknown as ProgressionService,
+        forceConstruction: "off",
+        syllogismGenerator: "canyon",
+        hasRung: () => false,
+        random: (n?: number) => createDistinction(ctx, n ?? 2),
+    };
+    return ctx;
+}
 
 const shadedOf = (premises: SylPremise[], conclusion: SylPremise) => {
     const roles = rolesFor(premises, conclusion)!;
@@ -103,4 +132,126 @@ test("the middle term is the one the conclusion never mentions", () => {
     // Two candidates is not a syllogism, and guessing would draw a false picture.
     equal(rolesFor([["M", "all", "P"], ["S", "all", "N"]], ["S", "all", "P"]), null,
         "a premise set with two loose terms was forced into three circles");
+});
+
+/**
+ * Every syllogism generator draws its picture, not just one of the three.
+ *
+ * The diagram first went into `buildSetHierarchy` alone, which is the rung --
+ * so the two generators that produce the plain mode, and the reported items,
+ * got nothing. Coverage is the property worth testing here: a mode that
+ * explains itself in one of its three code paths does not explain itself.
+ */
+test("every syllogism generator produces a diagram", () => {
+    const ctx = ndContext();
+    const seen: Record<string, number> = {};
+
+    seeded(5150, () => {
+        for (const gen of ["fredo", "canyon"] as const) {
+            const g = { ...ctx, syllogismGenerator: gen } as GeneratorContext;
+            for (let rep = 0; rep < 30; rep++) {
+                let q;
+                try { q = createSyllogism(g, 2); } catch { continue; }
+                seen[gen] = (seen[gen] ?? 0) + (q.venn ? 1 : 0);
+
+                if (!q.venn) continue;
+                // Three roles, all named, all different: anything else is not a
+                // syllogism and the picture would be asserting one.
+                const roles = [q.venn.roles.s, q.venn.roles.p, q.venn.roles.m];
+                equal(new Set(roles).size, 3, `${gen}: a term plays two roles`);
+                for (const r of roles) assert(!!r, `${gen}: an unnamed circle`);
+                equal(q.venn.undrawn.length, 0, `${gen}: a premise went undrawn`);
+            }
+        }
+    });
+
+    for (const gen of ["fredo", "canyon"]) {
+        assert((seen[gen] ?? 0) > 10,
+            `${gen} drew ${seen[gen] ?? 0} diagrams out of 30`);
+    }
+});
+
+/**
+ * The recorded rule has to describe the item it is on.
+ *
+ * Fredo drew a rule for `question.rule` and then drew a *second* one for the
+ * syllogism it actually built, so the field described a different item. Nothing
+ * read it closely enough to notice until the diagram needed to know which term
+ * was the middle -- which is what a stale field is for.
+ */
+test("the rule on the item is the rule the item was built from", () => {
+    const ctx = { ...ndContext(), syllogismGenerator: "fredo" } as GeneratorContext;
+
+    seeded(272, () => {
+        for (let rep = 0; rep < 30; rep++) {
+            let q;
+            try { q = createSyllogism(ctx, 2); } catch { continue; }
+            if (!q.rule || !q.venn) continue;
+
+            const parts = sylPremisesFromRule(q.bucket[0], q.bucket[1], q.bucket[2], q.rule);
+            assert(!!parts, `rule ${q.rule} does not describe a syllogism`);
+
+            // The middle term the rule implies is the one the diagram drew.
+            equal(q.venn.roles.m, q.bucket[2],
+                `rule ${q.rule} and the drawn diagram disagree about the middle term`);
+        }
+    });
+});
+
+/**
+ * The inference is read off the diagram, so it is right in every figure.
+ *
+ * The first version was a mood table -- one sentence per pair of quantifiers --
+ * and it was quietly wrong in half the figures, because "All X is M" and
+ * "All M is X" carry the same quantifiers and say different things. It read
+ * plausibly, which is the worst way for an explanation to be wrong.
+ */
+test("the reading matches what the diagram shows, in every figure", () => {
+    const roles = { s: "S", p: "P", m: "M" };
+    const plain = (t: string) => t;
+    const last = (premises: SylPremise[]) => {
+        const d = vennFor(premises, roles);
+        const lines = nameTheInference(premises, d, plain);
+        return lines[lines.length - 1];
+    };
+
+    // Barbara, figure 1: All M is P, All S is M => all S is P.
+    assert(/all S is P/.test(last([["M", "all", "P"], ["S", "all", "M"]])),
+        "a universal chain was not read as one");
+
+    // Celarent: No M is P, All S is M => no S is P.
+    assert(/no S is P/.test(last([["M", "no", "P"], ["S", "all", "M"]])),
+        "an exclusion through the middle was not read as one");
+
+    // The same quantifiers, the other way round: All P is M, All S is M.
+    // Both inside M says nothing about each other -- the classic undistributed
+    // middle, and exactly the case a mood table gets wrong.
+    assert(/leave it open/.test(last([["P", "all", "M"], ["S", "all", "M"]])),
+        "an undistributed middle was read as though it concluded something");
+
+    // Darii: All M is P, Some S is M => some S is P.
+    assert(/some S is P/.test(last([["M", "all", "P"], ["S", "some", "M"]])),
+        "a particular through the middle was not read as one");
+
+    // Ferio: No M is P, Some S is M => some S is not P.
+    assert(/some S is not P/.test(last([["M", "no", "P"], ["S", "some", "M"]])),
+        "a particular against an exclusion was not read as one");
+
+    // Two negatives conclude nothing, and the picture has to say so rather than
+    // merely fail to say the opposite.
+    assert(/leave it open/.test(last([["S", "no", "M"], ["P", "no", "M"]])),
+        "two negative premises were read as concluding something");
+});
+
+/** Every premise gets its own line, in its own terms. */
+test("each premise's effect on the picture is stated", () => {
+    const roles = { s: "S", p: "P", m: "M" };
+    const premises: SylPremise[] = [["M", "all", "P"], ["S", "some", "M"]];
+    const lines = nameTheInference(premises, vennFor(premises, roles), t => t);
+
+    equal(lines.length, 3, "a premise or the reading went missing");
+    assert(/All M is P/.test(lines[0]) && /empties/.test(lines[0]),
+        "a universal premise does not say what it empties");
+    assert(/Some S is M/.test(lines[1]) && /puts something/.test(lines[1]),
+        "a particular premise does not say what it places");
 });

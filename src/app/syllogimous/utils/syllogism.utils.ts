@@ -479,3 +479,43 @@ export function formatSylPremise([a, k, b]: SylPremise, negated = false): string
         }
     }
 }
+/**
+ * The same syllogism `getSyllogism` renders, as data.
+ *
+ * `getSyllogism` returns three finished HTML strings, which is all the card
+ * needs and not enough to draw from — a diagram has to know which term is the
+ * middle and which quantifier each premise carries, and recovering that by
+ * parsing the markup back would make the drawing depend on the phrasing.
+ *
+ * The rule already says it. Digits 0-2 index `FORMS` — all, no, some, some not
+ * — and digit 3 is the figure, which is precisely the convention for where the
+ * middle term sits in each premise. So this is the same lookup `getSyllogism`
+ * does, stopping before the words.
+ */
+export function sylPremisesFromRule(
+    s: string,
+    p: string,
+    m: string,
+    rule: string,
+): { premises: SylPremise[]; conclusion: SylPremise } | null {
+    const kinds: SylKind[] = ["all", "no", "some", "some_not"];
+    const major = kinds[+rule[0]];
+    const minor = kinds[+rule[1]];
+    const concl = kinds[+rule[2]];
+    if (!major || !minor || !concl) return null;
+
+    /*
+     * The four figures, which are exactly the four ways two premises can share
+     * a middle term. The conclusion is always subject-to-predicate.
+     */
+    const shapes: Record<string, [SylPremise, SylPremise]> = {
+        "1": [[m, major, p], [s, minor, m]],
+        "2": [[p, major, m], [s, minor, m]],
+        "3": [[m, major, p], [m, minor, s]],
+        "4": [[p, major, m], [m, minor, s]],
+    };
+    const pair = shapes[rule[3]];
+    if (!pair) return null;
+
+    return { premises: pair, conclusion: [s, concl, p] };
+}

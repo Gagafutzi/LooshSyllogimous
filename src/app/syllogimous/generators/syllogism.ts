@@ -8,10 +8,10 @@
 import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, pickUniqueItems, shuffle } from "../utils/question.utils";
-import { rolesFor, vennFor } from "../utils/venn.utils";
-import { generatePolysyllogism, formatSylPremise, getRandomRuleValid, getRandomRuleInvalid, getSyllogism, sylEntails, sylIsConsistent, sylNegate } from "../utils/syllogism.utils";
+import { inSyllogisticOrder, nameTheInference, vennDiagramFor } from "../utils/venn.utils";
+import { generatePolysyllogism, formatSylPremise, getRandomRuleValid, getRandomRuleInvalid, getSyllogism, sylEntails, sylIsConsistent, sylNegate, sylPremisesFromRule } from "../utils/syllogism.utils";
 import { SylKind, SylPremise } from "../models/syllogism.models";
-import { subj } from "../utils/phrasing";
+import { hi, subj } from "../utils/phrasing";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 import { SyllogismGenerator } from "../pages/settings/game-mode-choose/game-mode-choose.component";
@@ -43,6 +43,15 @@ export function createSyllogismFredo(ctx: GeneratorContext, numOfPremises: numbe
     question.isValid = coinFlip();
 
     do {
+        /*
+         * One rule, drawn once and used.
+         *
+         * `question.rule` was assigned a rule and then a *second* one was drawn
+         * for `getSyllogism`, so the rule recorded on the item described a
+         * different syllogism from the one shown. Nothing read it closely
+         * enough to notice until the diagram needed to know which term was the
+         * middle, which is the sort of thing a stale field is for.
+         */
         question.rule = question.isValid ? getRandomRuleValid() : getRandomRuleInvalid();
         question.bucket = getRandomSymbols(settings, length);
         question.premises = [];
@@ -56,9 +65,22 @@ export function createSyllogismFredo(ctx: GeneratorContext, numOfPremises: numbe
             question.bucket[0],
             question.bucket[1],
             question.bucket[2],
-            question.isValid ? getRandomRuleValid() : getRandomRuleInvalid()
+            question.rule,
         );
     } while (isPremiseLikeConclusion(question.premises, question.conclusion));
+
+    /*
+     * The picture, from the rule rather than from the rendered text.
+     *
+     * Only the first two premises are a syllogism; everything appended below is
+     * a distractor built from an invalid rule, and drawing those would shade
+     * regions the answer does not turn on.
+     */
+    {
+        const parts = sylPremisesFromRule(
+            question.bucket[0], question.bucket[1], question.bucket[2], question.rule);
+        if (parts) question.venn = vennDiagramFor(parts.premises, parts.conclusion);
+    }
 
     for (let i = 3; i < length; i++) {
         const rnd = Math.floor(Math.random() * (i - 1));
@@ -108,6 +130,15 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
     question.premises = premises.map(p => formatSylPremise(p, negated));
     question.conclusion = formatSylPremise(conclusion, negated);
     question.explanation = explainPolysyllogism(trace, derived, conclusionIsTrue);
+    /*
+     * A polysyllogism is a chain, and three circles hold one link. Drawn when
+     * the load-bearing premises come to a single syllogism — which is every
+     * two-premise item, the shape the complaint was about — and skipped when
+     * the chain is longer, where a picture of the last link alone would explain
+     * a step the reader has not been shown how to reach.
+     */
+    const support = minimalSupport(premises, derived);
+    if (support.length === 2) question.venn = vennDiagramFor(support, derived);
 
     return question;
 }
@@ -311,15 +342,9 @@ function buildSetHierarchy(ctx: GeneratorContext, numOfPremises: number): Questi
          * relate — and then there is no three-circle picture to draw and the
          * words stand alone.
          */
-        {
-            const shown = support.length ? support : premises;
-            const target = wantTrue || !ruledOut ? claim : sylNegate(claim);
-            const roles = rolesFor(shown, target);
-            if (roles) {
-                const diagram = vennFor(shown, roles);
-                if (!diagram.undrawn.length) question.venn = diagram;
-            }
-        }
+        question.venn = vennDiagramFor(
+            support.length ? support : premises,
+            wantTrue || !ruledOut ? claim : sylNegate(claim));
 
         /*
          * Worded exactly as the item words it. A negated rendering says the same
@@ -327,16 +352,42 @@ function buildSetHierarchy(ctx: GeneratorContext, numOfPremises: number): Questi
          * with the verb struck through — so a derivation using the plain form
          * beside a negated conclusion reads as a flat contradiction.
          */
+        /*
+         * Read in syllogistic order, with the move named.
+         *
+         * Three things were wrong with listing the load-bearing premises and
+         * jumping to `so <conclusion>`. They came out in whatever order the
+         * search left them, so the reader had to find the middle term before
+         * the argument could be followed. The line about the other premises
+         * being droppable is bookkeeping about the *search*, and sat between
+         * the premises and the conclusion, interrupting the argument to talk
+         * about how it was found. And nothing named the inference — the one
+         * step someone who got the item wrong actually needs.
+         */
+        const ordered = question.venn
+            ? inSyllogisticOrder(support, question.venn.roles)
+            : support;
+        const move = question.venn
+            ? nameTheInference(ordered, question.venn, t => hi(t))
+            : [];
+        const middleNote = question.venn && support.length === 2
+            ? [`The two share ${hi(question.venn.roles.m)}, and the claim never`
+                + ` mentions it — that is the term the argument runs through.`]
+            : [];
+
         question.explanation = wantTrue
             ? [
-                ...support.map(p => `${formatSylPremise(p, negated)} \u2014 needed.`),
-                `Those alone force it; the rest can be dropped without changing`
-                + ` the answer.`,
+                ...ordered.map(p => formatSylPremise(p, negated)),
+                ...middleNote,
+                ...move,
                 `so ${formatSylPremise(claim, negated)}`,
+                `The other premises can be dropped without changing the answer.`,
             ]
             : ruledOut
             ? [
-                ...support.map(p => `${formatSylPremise(p, negated)} \u2014 needed.`),
+                ...ordered.map(p => formatSylPremise(p, negated)),
+                ...middleNote,
+                ...move,
                 `Those force the opposite of the claim, so it is not merely`
                 + ` unsupported \u2014 it is ruled out.`,
                 `so ${formatSylPremise(sylNegate(claim), negated)}`,

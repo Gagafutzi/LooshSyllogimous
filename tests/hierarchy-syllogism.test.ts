@@ -109,10 +109,23 @@ test("the premises named as needed really are all of them and only them", () => 
         const { q, premises, claim } = item(run * 811 + 7);
         if (!q.isValid) continue;
 
-        const needed = q.explanation
-            .filter(l => l.includes("needed"))
-            .map(l => parse(l.replace(/\s*—.*$/, "")))
-            .filter((p): p is SylPremise => !!p);
+        /*
+         * The leading lines, taken until one stops being a premise.
+         *
+         * They used to be tagged "— needed." and found by that word. The tag
+         * went when the derivation was put into syllogistic order: it was
+         * bookkeeping about the search rather than a step of the argument, and
+         * a reader does not need every line labelled with why it is there.
+         * Position carries it instead — the premises come first, then the move,
+         * then the conclusion — which is what "in syllogistic order" means and
+         * is worth testing directly.
+         */
+        const needed: SylPremise[] = [];
+        for (const line of q.explanation) {
+            const parsed = parse(line);
+            if (!parsed) break;
+            needed.push(parsed);
+        }
 
         assert(needed.length >= 2, `only ${needed.length} premises were named`);
         assert(sylEntails(needed, claim!), "the named premises do not entail the claim");
