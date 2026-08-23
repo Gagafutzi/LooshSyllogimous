@@ -196,6 +196,14 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      */
     [EnumQuestionType.TransformMatching]: { weight: 2.1, ceiling: 6 },
     /*
+     * Premises are chain links, and a link is cheap next to the induction that
+     * has to happen before any of them can be used: the map is found once and
+     * then applied, so the second link costs far less than the first. Lighter
+     * than Transformation Matching for the same reason it replaces it -- the
+     * width lives in the axis count and the rungs, not in the premise count.
+     */
+    [EnumQuestionType.AxisMap]: { weight: 1.4, ceiling: 5 },
+    /*
      * Each speaker is a biconditional that interacts with every other, so the
      * work grows faster than the count: a fourth statement can invalidate a
      * reading the first three allowed. Not as steep as it sounds in practice,

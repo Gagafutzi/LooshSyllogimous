@@ -303,6 +303,18 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         basic: false
     },
     /*
+     * Premises buy chain length, not statements: the worked examples come from
+     * how many axes the map touches, and the chain is what has to be carried
+     * through it. Five links is the ceiling — past that the item measures how
+     * long a list you can hold, which is not what induction is.
+     */
+    [EnumQuestionType.AxisMap]: {
+        enabled: true,
+        minNumOfPremises: 2,
+        maxNumOfPremises: 5,
+        basic: false
+    },
+    /*
      * One statement per speaker, so premises are speakers. Six is the ceiling:
      * the solver is fine past it, but a reader holding seven interlocking
      * biconditionals is being tested on working memory rather than on

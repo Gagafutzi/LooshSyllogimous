@@ -42,6 +42,7 @@ import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-r
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
+import { createAxisMap } from "../src/app/syllogimous/generators/axis-map";
 import { createTransformMatch } from "../src/app/syllogimous/generators/transform-match";
 import { createKnaves } from "../src/app/syllogimous/generators/knaves";
 import { createNested } from "../src/app/syllogimous/generators/nested";
@@ -80,6 +81,7 @@ const BUILD: Record<string, Build> = {
     [EnumQuestionType.RelationalWeb]: createRelationalWeb,
     [EnumQuestionType.StimulusFunction]: createStimulusFunction,
     [EnumQuestionType.TransformMatching]: createTransformMatch,
+    [EnumQuestionType.AxisMap]: createAxisMap,
     [EnumQuestionType.Knaves]: createKnaves,
     [EnumQuestionType.NestedSpaces]: createNested,
 };

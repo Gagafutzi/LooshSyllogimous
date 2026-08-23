@@ -316,6 +316,29 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      */
     "Transformation Matching":   ["identify", "apply", "compose", "sequence"],
     /*
+     * The only inductive mode in the app, and the widest ladder because of it.
+     * Three things open along it and they are deliberately interleaved rather
+     * than stacked, so a player is never climbing one axis for long:
+     *
+     *   dim-N       the space widens, two axes to seven
+     *   offset      everything shifts -- only visible against the fixed
+     *               markers, which is what having a frame buys
+     *   substitute  two axes trade places, so a direction word stops meaning
+     *               what it says. Last, because it is the one change that
+     *               cannot be seen without holding the whole dictionary
+     *   compose-N   more than one change at once
+     *
+     * Mirroring and stretching are the base rather than rungs. Both are read
+     * off a single example, and there is a harder reason: one change on a
+     * two-axis space is two possible maps in the whole world, so the item
+     * cannot field four distinct options and the mode fails to build at its own
+     * base state. The two together give six.
+     */
+    "Axis Maps":                 [
+        "dim-3", "offset", "dim-4", "compose-2", "dim-5",
+        "substitute", "dim-6", "compose-3", "dim-7",
+    ],
+    /*
      * Compound claims first: "at least one of you two is a knave" cannot be
      * resolved by looking at one speaker. Ambiguity second, because noticing
      * that the statements *failed* to settle something is a different act from

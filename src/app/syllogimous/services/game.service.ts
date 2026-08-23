@@ -63,6 +63,7 @@ import { createOddestRelation } from "../generators/oddest-relation";
 import { createShapeRotation } from "../generators/shape-rotation";
 import { createRelationalWeb } from "../generators/relational-web";
 import { createStimulusFunction } from "../generators/stimulus-function";
+import { createAxisMap } from "../generators/axis-map";
 import { createTransformMatch } from "../generators/transform-match";
 import { createKnaves } from "../generators/knaves";
 import { createNested } from "../generators/nested";
@@ -303,6 +304,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.ShapeRotation]: () => createShapeRotation(this, numOfPremises),
             [EnumQuestionType.RelationalWeb]: () => createRelationalWeb(this, numOfPremises),
             [EnumQuestionType.StimulusFunction]: () => createStimulusFunction(this, numOfPremises),
+            [EnumQuestionType.AxisMap]: () => createAxisMap(this, numOfPremises),
             [EnumQuestionType.TransformMatching]: () => createTransformMatch(this, numOfPremises),
             [EnumQuestionType.Knaves]: () => createKnaves(this, numOfPremises),
             [EnumQuestionType.NestedSpaces]: () => createNested(this, numOfPremises),

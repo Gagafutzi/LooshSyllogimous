@@ -93,6 +93,19 @@ export const RUNG_COST: Record<string, number> = {
     testimony: 2.6,
 
     circular: 1.2,
+
+    /*
+     * Axis Maps. Marginal costs over a prefix, like the transform pair above:
+     * each extra axis is one more entry to induce and carry, and it gets a
+     * little cheaper as the reader learns what the examples are for.
+     */
+    "dim-3": 0.7, "dim-4": 0.6, "dim-5": 0.6, "dim-6": 0.5, "dim-7": 0.5,
+    // A shift needs the frame to be visible at all; a swap is the one change
+    // where a direction word stops meaning what it says.
+    offset: 0.9,
+    substitute: 1.4,
+    "compose-2": 1.1,
+    "compose-3": 0.9,
     "circular-2": 0.8,
 
     "transform-1": 1.5,

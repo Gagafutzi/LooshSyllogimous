@@ -40,6 +40,7 @@ import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rot
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
+import { createAxisMap } from "../src/app/syllogimous/generators/axis-map";
 import { createTransformMatch } from "../src/app/syllogimous/generators/transform-match";
 import { createKnaves } from "../src/app/syllogimous/generators/knaves";
 import { createNested } from "../src/app/syllogimous/generators/nested";
@@ -123,6 +124,7 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.StimulusFunction, createStimulusFunction],
     [EnumQuestionType.Binary, createBinary],
     [EnumQuestionType.TransformMatching, createTransformMatch],
+    [EnumQuestionType.AxisMap, createAxisMap],
     [EnumQuestionType.Knaves, createKnaves],
     [EnumQuestionType.NestedSpaces, createNested],
 ];

@@ -45,6 +45,7 @@ export enum EnumQuestionType {
     RelationalWeb = "Relational Web",
     StimulusFunction = "Stimulus Function",
     TransformMatching = "Transformation Matching",
+    AxisMap = "Axis Maps",
     Knaves = "Knights and Knaves",
     NestedSpaces = "Nested Spaces",
 }

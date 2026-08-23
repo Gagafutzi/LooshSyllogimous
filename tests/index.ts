@@ -38,6 +38,7 @@ import "./display.test";
 import "./timer.test";
 import "./ungated.test";
 import "./unlock.test";
+import "./axis-map.test";
 import "./hierarchy-syllogism.test";
 import "./testimony.test";
 
