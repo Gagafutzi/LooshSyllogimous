@@ -13,6 +13,7 @@ import { assert, equal, test } from "./harness";
 import {
     ImportPlan, describeImport, isImportError, planImport,
 } from "../src/app/syllogimous/utils/save-data.utils";
+import { readFileSync } from "fs";
 import { LS_HISTORY, allStorageKeys } from "../src/app/syllogimous/constants/local-storage.constants";
 
 const plan = (o: unknown) => planImport(JSON.stringify(o)) as ImportPlan;
@@ -131,4 +132,46 @@ test("export then import returns the same account", () => {
     }
     equal(allStorageKeys().sort().join(","), Object.keys(account).sort().join(","),
         "the restored account holds keys the backup did not");
+});
+
+/**
+ * The file picker has to be reachable from a phone.
+ *
+ * Import did nothing there, and for two reasons that are both about the picker
+ * rather than about the data. Checked at the source, because the browser half
+ * cannot be exercised without a browser and the mistakes are one line each.
+ */
+test("the file picker is attached and unrestricted", () => {
+    const src = readFileSync(
+        "src/app/syllogimous/services/system-actions.service.ts", "utf8");
+
+    /*
+     * A detached input can be clicked on desktop and is ignored by several
+     * mobile browsers, so the picker never opened and the promise never
+     * settled -- the button did nothing, with no error to show for it.
+     */
+    assert(/document\.body\.appendChild\(fileInput\)/.test(src),
+        "the file input is not attached to the document");
+    assert(!/fileInput\.style\.display\s*=\s*"none"/.test(src),
+        "the input is hidden with display:none, which some browsers refuse to click");
+
+    /*
+     * `.json` narrows the picker to files the OS has typed as JSON, and a
+     * backup in Downloads is often typed octet-stream or not at all -- greyed
+     * out, unselectable. The contents are validated regardless.
+     */
+    assert(/fileInput\.accept = "";/.test(src),
+        "the picker still filters by extension, which hides untyped backups");
+
+    // A read that fails must settle the promise, or the button stops working.
+    assert(/reader\.onerror/.test(src), "a failed read never settles");
+});
+
+/** Coming back with nothing must offer a way forward, not a dead end. */
+test("a picker that reads nothing falls back to pasting", () => {
+    const src = readFileSync(
+        "src/app/syllogimous/services/system-actions.service.ts", "utf8");
+    const fallback = src.slice(src.indexOf("async import()"));
+    assert(/if \(!importJson && !this\.isSafari\(\)\)[\s\S]{0,200}prompt\(/.test(fallback),
+        "there is no paste fallback when the picker returns nothing");
 });

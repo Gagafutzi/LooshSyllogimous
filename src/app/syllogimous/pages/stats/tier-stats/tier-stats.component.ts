@@ -10,7 +10,8 @@ import { GameService } from 'src/app/syllogimous/services/game.service';
 export class TierStatsComponent {
     TIER_SCORE_RANGES = TIER_SCORE_RANGES;
     tiers = Object.values(EnumTiers);
-    nextTier = EnumTiers.HedgeWizard;
+    /** Null at the top of the ladder, where there is nothing left to reach. */
+    nextTier: EnumTiers | null = EnumTiers.HedgeWizard;
     pointsRemaining = 0;
 
     constructor(
@@ -19,7 +20,18 @@ export class TierStatsComponent {
 
     ngOnInit() {
         const currTierIdx = this.tiers.findIndex(tier => tier === this.game.tier);
-        this.nextTier = this.tiers[currTierIdx + 1] || "--";
-        this.pointsRemaining = this.nextTier ? (TIER_SCORE_RANGES[this.nextTier].minScore - this.game.score) : 0;
+        /*
+         * There may be no next tier, and `"--"` is truthy.
+         *
+         * At the top of the ladder this read `TIER_SCORE_RANGES["--"].minScore`
+         * and threw, taking the stats page with it. It was unreachable while
+         * the last tier began at six thousand points and the derived score
+         * stopped at 2600; making every tier earnable made it reachable.
+         */
+        const next = this.tiers[currTierIdx + 1];
+        this.nextTier = next ?? null;
+        this.pointsRemaining = next
+            ? Math.max(0, TIER_SCORE_RANGES[next].minScore - this.game.score)
+            : 0;
     }
 }

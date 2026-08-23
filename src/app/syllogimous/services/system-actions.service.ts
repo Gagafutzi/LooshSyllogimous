@@ -38,39 +38,80 @@ export class SystemActionsService {
     private createFileInput() {
         const fileInput = document.createElement("input");
         fileInput.type = "file";
-        fileInput.accept = ".json";
-        fileInput.style.display = "none";
+        /*
+         * No `accept`, and this is the phone fix.
+         *
+         * `.json` narrows the picker to files the OS has typed as JSON, and on
+         * Android a backup sitting in Downloads is very often typed
+         * `application/octet-stream` or nothing at all — so it is greyed out and
+         * cannot be chosen. The file is read as text and validated either way,
+         * so restricting the picker bought nothing and cost the one route a
+         * phone has.
+         */
+        fileInput.accept = "";
+        /*
+         * Off-screen rather than `display: none`, and attached to the document.
+         *
+         * A detached input can be clicked on desktop and is ignored by several
+         * mobile browsers, which is the other half of import doing nothing on a
+         * phone: the picker never opened, so nothing was ever selected and the
+         * promise below never settled.
+         */
+        fileInput.style.position = "fixed";
+        fileInput.style.left = "-9999px";
+        document.body.appendChild(fileInput);
         return fileInput;
     }
 
     private readFile(): Promise<string | null> {
         return new Promise(resolve => {
             const fileInput = this.createFileInput();
+            const done = (value: string | null) => {
+                fileInput.remove();
+                resolve(value);
+            };
+
             fileInput.onchange = (evt: any) => {
-                const file = evt.target.files[0];
-                if (!file) {
-                    alert("No JSON file selected");
-                    return resolve(null);
-                }
+                const file = evt.target.files?.[0];
+                if (!file) return done(null);
+
                 const reader = new FileReader();
                 reader.onload = e => {
                     const result = e.target?.result;
-                    resolve(typeof result === "string" ? result : null);
+                    done(typeof result === "string" ? result : null);
                 };
+                // A file can fail to read — a permission the picker granted and
+                // the OS then withdrew is common enough on a phone — and
+                // without this the promise never settles and the button simply
+                // stops working.
+                reader.onerror = () => done(null);
                 reader.readAsText(file);
             };
+
             fileInput.click();
         });
     }
 
     async import() {
         // Safari blocks the synthetic file-input click, so fall back to a paste.
-        const importJson = this.isSafari()
+        let importJson = this.isSafari()
             ? prompt("Paste your JSON here")
             : await this.readFile();
 
+        /*
+         * A picker that came back with nothing is offered the paste route.
+         *
+         * On a phone that is the common case rather than the exceptional one —
+         * the file may be somewhere the picker will not reach, or typed in a way
+         * it will not offer — and "Invalid/missing JSON file" with no way
+         * forward is where import stopped for anyone it happened to.
+         */
+        if (!importJson && !this.isSafari()) {
+            importJson = prompt("No file was read. Paste the contents of your backup here instead:");
+        }
+
         if (!importJson || typeof importJson !== "string") {
-            return alert("Invalid/missing JSON file");
+            return alert("Nothing to import.");
         }
 
         if (!confirm("Importing will overwrite all existing settings. Are you sure?")) {

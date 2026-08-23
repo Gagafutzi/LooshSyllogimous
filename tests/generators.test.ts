@@ -12,7 +12,7 @@
  * restate a premise as its conclusion.
  */
 
-import { assert, seeded, test } from "./harness";
+import { assert, equal, seeded, test } from "./harness";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -269,4 +269,50 @@ test("the rule-naming item names the majority pattern", () => {
     }
 
     assert(checked === 20, `only ${checked} rule-naming items were built`);
+});
+
+/**
+ * Every mode's items can be counted.
+ *
+ * The stats service buckets by premise count into 2, 3, 4, 5 and "6 or more" —
+ * and a premise count is not obliged to land in them. Relational Web states
+ * nothing in words, its premises *being* the picture, so its items carry a
+ * premise list of length zero; `stats["0"]` is undefined and reading `.sum` off
+ * it threw, which took the whole stats page down for anyone whose history held
+ * a single web answer. It broke on a save rather than on a build, which is why
+ * it survived: it works perfectly until you have played the mode.
+ */
+test("every mode produces items the stats page can count", () => {
+    const ctx = context(allEnabled());
+    const bad: string[] = [];
+
+    for (const [type, make] of GENERATORS) {
+        const premises = QUESTION_TYPE_SETTING_PARAMS[type].minNumOfPremises + 1;
+        let q: Question;
+        try {
+            q = seeded(4242, () => make(ctx, premises));
+        } catch { continue; }
+
+        // The bucket the stats service computes, in the same terms.
+        const n = Math.max(2, Math.min(6, q.premises.length));
+        const key = n < 6 ? String(n) : "6+";
+        if (!["2", "3", "4", "5", "6+"].includes(key)) {
+            bad.push(`${type}: ${q.premises.length} premises falls outside every bucket`);
+        }
+    }
+
+    assert(bad.length === 0, bad.join("; "));
+});
+
+/**
+ * A drawn mode has no premise count, and that is not an error.
+ *
+ * Worth pinning so the clamp is not mistaken for defensive noise later and
+ * removed: there really are modes whose premise list is empty by design.
+ */
+test("a drawn mode legitimately states nothing in words", () => {
+    const ctx = context(allEnabled());
+    const q = seeded(77, () => createRelationalWeb(ctx, 5));
+    equal(q.premises.length, 0, "Relational Web has started stating premises");
+    assert((q.webs?.length ?? 0) > 0, "it draws nothing either, which would be a real fault");
 });

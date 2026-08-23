@@ -30,7 +30,20 @@ export class StatsService {
             tbs.accuracy = questionsByType.filter(q => q.userAnswer === q.isValid).length / (questionsByType.length || 1);
 
             for (const q of questionsByType) {
-                const ps = ((q.premises.length < 6) ? String(q.premises.length) : "6+") as "2" | "3" | "4" | "5" | "6+";
+                /*
+                 * Clamped, because the buckets are 2 to 5 and "6 or more" and
+                 * a premise count is not obliged to land in them.
+                 *
+                 * Relational Web states nothing in words — its premises *are*
+                 * the picture — so its items carry a premise list of length
+                 * zero, and `stats["0"]` is undefined. Reading `.sum` off it
+                 * threw, which took the whole stats page down for anyone whose
+                 * history contained a single web answer. The drawn modes have
+                 * no meaningful premise count at all, so the smallest bucket is
+                 * as good a home as any; what matters is that the page renders.
+                 */
+                const n = Math.max(2, Math.min(6, q.premises.length));
+                const ps = (n < 6 ? String(n) : "6+") as "2" | "3" | "4" | "5" | "6+";
     
                 const dt = q.answeredAt - q.createdAt;
     
