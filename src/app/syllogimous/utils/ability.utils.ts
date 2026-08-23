@@ -237,6 +237,42 @@ export interface AbilityConfig {
      */
     caution: number;
 
+    /**
+     * Most levels uncertainty may cost, however unsure the model is.
+     *
+     * Caution turns width into difficulty loss, and it is indifferent to *why*
+     * the posterior is wide. That is the single mechanism behind most of what
+     * felt wrong (see `progression/diagnosis.md`): a streak widens it, time
+     * away widens it, and a cross-mode prior is born wide — so the model
+     * answers "I am no longer sure you are this good" by serving items well
+     * below a mean nothing has contradicted, which teaches it nothing and keeps
+     * it unsure.
+     *
+     * Bounding it keeps the part that was wanted — an unmeasured player is not
+     * handed a mid-range item — and removes the part that was a demotion in all
+     * but name. Measured across the failure cases:
+     *
+     *   cap    steady acc   answers to track +4   after 15 days idle   fresh mode P
+     *   none        0.880                    80          7.10 levels          0.956
+     *   0.6         0.860                    64          9.17                 0.876
+     *   1.0         0.856                    67          8.86                 0.906
+     *   0 (off)     0.828                    75          9.99                 0.804
+     *
+     * 0.6 is better than uncapped on every column. Off is better still on two,
+     * but caution has a job on the first item of a mode nobody has played and
+     * that is not a job worth abolishing for a tenth of a level elsewhere.
+     */
+    cautionCap: number;
+
+    /**
+     * Answers, across all modes, before the cap is fully in force.
+     *
+     * Ramped rather than switched: a step change would move every mode's
+     * difficulty on one answer. Before this many, the app has no basis for
+     * believing anything about the player and full caution is right.
+     */
+    cautionCapAfter: number;
+
     /** Ability grid, in linear-equivalent premises. */
     minLevel: number;
     maxLevel: number;
@@ -337,6 +373,9 @@ export const DEFAULT_ABILITY: AbilityConfig = {
     maxSeconds: 180,
 
     caution: 0.9,
+    cautionCap: 0.6,
+    // Twenty answers anywhere. Below that the app genuinely does not know you.
+    cautionCapAfter: 20,
     widthPerBit: 0,
     crossModeSd: 2.5,
     // ~15 days from a settled estimate to knowing very little. The mean is
@@ -772,6 +811,60 @@ function better(a: ConfigChoice, b: ConfigChoice, target: number) {
  * placing items where learning happens, one converging on threshold is placing
  * them where the estimate sharpens fastest.
  */
+/**
+ * How far below the mean to aim, given how unsure the estimate is.
+ *
+ * Was `caution * sd` at every call site, which is where the width-becomes-
+ * demotion fault lived. One function so the bound cannot be forgotten by a
+ * caller that reimplements the multiply.
+ */
+/**
+ * The guess rate a configuration will actually serve.
+ *
+ * The aim was computed at a flat 0.5 — the easiest rate any mode can serve —
+ * because the answer mode is not known until the item is built. But it *is*
+ * known: the answer mode is a rung, so the chosen configuration already
+ * determines it. Measured at a player level of 10 aiming for 80%, the flat 0.5
+ * delivered 0.838 on a true/false item and 0.698 on a six-axis construction —
+ * a fourteen-point spread, with the mode whose whole purpose is removing the
+ * guess floor served hardest of all.
+ *
+ * `slots` is unknown here — it depends on the item's axis count, which the
+ * generator picks — so a construction is priced at the shallow end. Being
+ * approximately right about the answer mode beats being exactly right about
+ * a rate the item never had.
+ */
+export function guessRateForRungs(claimed: string[]): number {
+    if (claimed.includes("construct-conclusion")) return guessRateFor("construct", 3);
+    if (claimed.includes("choose-conclusion")) return guessRateFor("choice", 0, 4);
+    return 0.5;
+}
+
+export function cautionPenalty(
+    sd: number,
+    config = DEFAULT_ABILITY,
+    /** Answers this account has given anywhere. Not this mode's — see below. */
+    evidence = Infinity,
+): number {
+    const full = config.caution * Math.max(0, sd);
+    /*
+     * The cap arrives as evidence does.
+     *
+     * Uncapped caution is right for a player the app has never seen: their
+     * posterior is wide because *nothing is known*, and handing them a
+     * mid-range item on that basis is the thing caution was written to stop.
+     * Capped is right for everyone else, where the width comes from a prior,
+     * from time away, or from a run of answers too easy to be informative —
+     * none of which is a reason to serve below a mean nothing has contradicted.
+     *
+     * Counted across every mode, not this one. A player with six hundred
+     * answers opening a mode they have never played is not an unknown player,
+     * and treating them as one is exactly the fault this bounds.
+     */
+    const t = Math.min(1, evidence / config.cautionCapAfter);
+    return Math.min(full, full * (1 - t) + config.cautionCap * t);
+}
+
 export function targetLevel(
     est: AbilityEstimate,
     targetP: number,

@@ -8,7 +8,7 @@ import {
 } from "../utils/progression.utils";
 import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
-    abilityUpdate, aggregate, chooseConfig, guessRateFor, initAbility, levelOf,
+    abilityUpdate, aggregate, cautionPenalty, chooseConfig, guessRateFor, guessRateForRungs, initAbility, levelOf,
     pCorrect, priorForNewMode, targetLevel,
     Trial, fitRungCosts, fitWidthCoefficient, referenceSecondsFrom,
 } from "../utils/ability.utils";
@@ -511,19 +511,39 @@ export class ProgressionService {
          * a lower quantile makes "unsure" mean "easier", and the penalty
          * disappears by itself as the posterior narrows.
          */
-        const cautious = { ...est, level: est.level - cfg.caution * est.sd };
+        const cautious = { ...est, level: est.level - cautionPenalty(est.sd, cfg, this.trials().length) };
 
-        // Aimed at the accuracy wanted, using the *easiest* guess rate the mode
-        // can serve; the answer mode is not known until the item is built.
-        const target = targetLevel(cautious, this.config.targetAccuracy, 0.5, cfg);
-
-        const choice = chooseConfig(type, {
+        const ladder = ladderFor(type);
+        const opts = {
             minPremises: params.minNumOfPremises,
             maxPremises: params.maxNumOfPremises,
-            ladder: ladderFor(type),
-            target,
+            ladder,
+            target: 0,
             structureBefore: this.config.structureBefore,
             untimed,
+        };
+
+        /*
+         * Aimed twice, because the aim depends on the answer mode and the
+         * answer mode depends on the aim.
+         *
+         * The first pass uses the flat 0.5 this always used, which is enough to
+         * settle how many rungs are claimed — and the answer mode *is* a rung,
+         * so that settles the real guess rate. The second pass re-aims at it.
+         *
+         * Not iterated further: a change of guess rate moves the target by
+         * about half a level, which almost never changes the rung count again,
+         * and a loop that can oscillate is worse than one that is slightly off.
+         */
+        const first = chooseConfig(type, {
+            ...opts,
+            target: targetLevel(cautious, this.config.targetAccuracy, 0.5, cfg),
+        }, cfg);
+
+        const guess = guessRateForRungs(ladder.slice(0, first.rungs));
+        const choice = guess === 0.5 ? first : chooseConfig(type, {
+            ...opts,
+            target: targetLevel(cautious, this.config.targetAccuracy, guess, cfg),
         }, cfg);
 
         this.configCache[type] = choice;

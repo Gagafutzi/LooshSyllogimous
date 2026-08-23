@@ -111,18 +111,28 @@ returning player is re-measured, never demoted.
 [`progression.service.ts:458`](../src/app/syllogimous/services/progression.service.ts)
 — `configFor`. Three subtractions, then a search.
 
-**a. Caution.** `cautious = mean − caution × sd`, with `caution = 0.9`.
-Uncertainty costs difficulty rather than adding it, so a brand-new player gets
-easy items instead of mid-range ones on no evidence.
+**a. Caution.** `cautious = mean − cautionPenalty(sd, config, answersEverGiven)`.
 
-**b. The success-rate offset.** `targetLevel(cautious, targetAccuracy, 0.5)`
+The penalty is `0.9 × sd`, **bounded at `cautionCap = 0.6` levels**, with the
+bound ramping in over the first `cautionCapAfter = 20` answers *across all
+modes*. Uncertainty costs difficulty rather than adding it, so a brand-new
+player gets easy items instead of mid-range ones on no evidence — and a player
+with hundreds of answers is not treated as a brand-new one merely because the
+posterior widened. See
+[diagnosis.md](diagnosis.md#what-changed) for why it is bounded and what the
+bound is worth.
+
+**b. The success-rate offset.** `targetLevel(cautious, targetAccuracy, guess)`
 solves `pCorrect` for the level at which you would succeed `targetAccuracy` of
 the time. At the default 0.8 with a true/false guess rate this is about
 **0.57 levels below** the cautious estimate.
 
-> Note the hardcoded `0.5`: the target is computed at the *easiest* guess rate
-> the mode could serve, because the answer mode is not known until the item is
-> built.
+`guess` used to be a hardcoded `0.5`, on the grounds that the answer mode is not
+known until the item is built. It is: the answer mode is a *rung*, so the chosen
+configuration determines it. `configFor` therefore aims twice — once at 0.5 to
+settle the rung count, then again at the guess rate those rungs imply. Without
+it a six-axis construction was served at 0.698 success against the 0.80 asked
+for, while true/false got 0.838.
 
 **c. `chooseConfig`** ([`ability.utils.ts:661`](../src/app/syllogimous/utils/ability.utils.ts))
 enumerates every `(rungs, premises)` pair, computes the clock that would close
@@ -209,6 +219,8 @@ Worth stating, because the names survive and mislead.
 |---|---|---|
 | `targetAccuracy` | 0.80 | how far below your estimate items sit |
 | `caution` | 0.9 sd | how much uncertainty lowers the aim |
+| `cautionCap` | 0.6 | most levels uncertainty may ever cost |
+| `cautionCapAfter` | 20 | answers before the cap is fully in force |
 | `slope` | 1.6 | how sharply difficulty changes success odds |
 | `memoryAnswers` | 100 | how much recent play outweighs history |
 | `lapseRate` | 0.03 | errors independent of difficulty |

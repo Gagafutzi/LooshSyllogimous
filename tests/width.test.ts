@@ -156,6 +156,7 @@ test("with every item at the calibrated middle, the fit declines to guess", () =
 
 /* ---------------- the loop, closed ---------------- */
 
+import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 
 /**
@@ -186,9 +187,17 @@ function play(service: ProgressionService, opts: {
         // Deterministic sweep of the band, standing in for the jittered draw.
         const widthDelta = ((i % 7) - 3) / 3 * opts.spreadSd;
 
+        /*
+         * The rungs the service actually chose.
+         *
+         * This said `rungs: []` while `configFor` was free to claim some, so the
+         * simulated item was easier than the model scored it and the estimate
+         * ran to the top of the grid. It only stayed hidden while caution kept
+         * the chosen configuration rung-free.
+         */
         const asked = levelOf({
             type, premises: chosen.premises,
-            rungs: [], seconds: chosen.seconds,
+            rungs: ladderFor(type).slice(0, chosen.rungs), seconds: chosen.seconds,
         }, DEFAULT_ABILITY);
         const actual = asked + opts.trueWidthCost * widthDelta;
 
@@ -227,7 +236,8 @@ test("width priced from play, and the estimate is better for it", () => {
             const chosen = service.configFor(type);
             const widthDelta = ((i % 7) - 3) / 3 * 0.45;
             const asked = levelOf({
-                type, premises: chosen.premises, rungs: [], seconds: chosen.seconds,
+                type, premises: chosen.premises,
+                rungs: ladderFor(type).slice(0, chosen.rungs), seconds: chosen.seconds,
             }, DEFAULT_ABILITY);
             const correct = Math.random()
                 < pCorrect(DEFAULT_ABILITY, ABILITY, asked + TRUE_COST * widthDelta, 0.5);

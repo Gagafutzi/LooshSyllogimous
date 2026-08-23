@@ -326,51 +326,84 @@ prior rather than from disagreement in the data.
 
 ---
 
-## Finding 8 — the rungs are climbed in an order that is not their difficulty
+## Finding 8 — ~~rung costs disagree with the ladder order~~ withdrawn, mostly
 
-Rungs must be claimed as a **prefix** of the ladder, and the ladder order is
-deliberate — `meta` sits before `overlap` for a mechanical reason recorded in
-`progression.utils.ts`, not a difficulty one. But `RUNG_COST` prices them
-independently, and the two disagree:
+**The claim was wrong.** This section said `circular` (1.2) before `circular-2`
+(0.8) "cannot be right, a second looping axis is not easier than the first", and
+proposed fixing the table. Reading the neighbouring entries settles it:
 
-| mode | claimed earlier | claimed later, but cheaper |
-|---|---|---|
-| the scale family | `meta` (1.0) | `overlap` (0.7) |
-| Direction | `meta` (1.0) | `incorrect-directions` (0.4) |
-| composed spaces | `circular` (1.2) | `circular-2` (0.8), `choose-conclusion` (0.8) |
+```
+"transform-1": 1.5,
+"transform-2": 1.2,
+```
 
-Two consequences.
+These are **marginal** costs, not totals. Rungs are claimed as a prefix, so
+holding `circular-2` means holding `circular` too and the item carries
+1.2 + 0.8 = 2.0. The second loop *is* a smaller addition than the first, because
+by then you know what a looping axis is. The totals are monotonic — every cost
+is non-negative — so there is no inversion and nothing to fix.
 
-**The steps are uneven.** A single rung can add anywhere from 0.4 to 1.2 levels.
-The psychometric slope is 1.6, so claiming `circular` moves P(correct) by
-roughly fifteen points in one go, while `incorrect-directions` moves it by five.
-Progression is jerky for a reason that has nothing to do with the player.
+Two things survive from the original section, both weaker than what was claimed:
 
-**`circular-2` cheaper than `circular` is probably wrong on its face.** A second
-looping axis should not be *easier* than the first. Either the ladder order or
-the cost is a mistake, and they cannot both be right.
+- **The steps are uneven**, from 0.4 (`incorrect-directions`) to 2.6
+  (`testimony`), against a psychometric slope of 1.6. A single rung can move
+  P(correct) by anything from five points to thirty. That is a granularity
+  problem and it compounds [Finding 3](#finding-3--the-discrete-steps-hide-small-gains),
+  but it is not a wrongness problem.
+- **The costs are hand-written and meant to be measured.** `fitRungCosts` reads
+  the trial log and exists precisely to replace them. Checking the table against
+  a fit is still worth doing — as measurement, not as bug-fixing.
 
-**Fix.** These costs are meant to be measured, not argued — `fitRungCosts`
-already exists and reads the trial log. The honest move is to check whether the
-fitted costs agree with the table, and treat any disagreement as the table being
-wrong rather than the fit.
+Recorded rather than deleted, for the same reason the caution recommendation in
+[Finding 1](#finding-1--a-streak-makes-the-model-less-sure-and-the-aim-goes-down)
+is: the reasoning looked sound, and only reading the adjacent lines settled it.
 
 ---
 
 ## What changed
 
-- **Memory: 200 → 100 answers**, and it is now a dial in Advanced Options
-  ("Recent answers weighed"), floored at 40 because below that the estimate
-  breaks down rather than sharpening.
-- **Tie-break: equal rungs now take the closer item**, not the shorter one.
-- **Withdrawn:** the caution recommendation, measured and shown not to matter.
+**Shipped, in two passes.**
 
-Not done, and still open: Findings 1, 3, and 5 through 8. Finding 1's compounding loop is
-softened by the shorter memory but not removed — a model that only ever asks
-questions it expects you to get right still cannot learn much, and occasionally
-aiming *at* the estimate rather than below it remains the principled fix.
-Finding 3 — that gains below half a level are invisible — argues for showing the
-level itself.
+| | change | effect |
+|---|---|---|
+| 1b | memory 200 → 100 answers, and a dial | tracking a real +4 gain: 168 → 67 answers |
+| 4 | equal rungs take the closer item, not the shorter | Infer the Relation: 0.951 → 0.804 success |
+| 6, 7 | **caution penalty bounded at 0.6 levels**, ramped in over the first 20 answers anywhere | 15 days idle: served level 7.10 → 9.13. Fresh mode for a measured player: 0.956 → 0.87 |
+| 5 | **the aim is re-computed once the answer mode is known** | construction is no longer targeted as though it were true/false |
+
+The caution bound is the load-bearing one, because it is the single mechanism
+behind Findings 1, 6 and 7. It keeps the idea — an unmeasured player is not
+handed a mid-range item — and removes the part that was a demotion in all but
+name. Measured across every failure case:
+
+| policy | steady accuracy | track +4 | after 15 days | fresh mode |
+|---|---|---|---|---|
+| was: 0.9 × sd, unbounded | 0.880 | 80 | 7.10 | 0.956 |
+| **now: bounded, ramped** | 0.860 | 71 | 9.13 | 0.87 |
+| bounded with no ramp | 0.860 | 64 | 9.17 | 0.876 |
+| no caution at all | 0.828 | 75 | 9.99 | 0.804 |
+
+The ramp costs a little on every column and buys one thing: a brand-new account
+still opens at two premises and **no rungs**. Without it the first item of a new
+account carried a modifier, which is exactly what caution was written to prevent
+— caught by an existing test, not by this table.
+
+**Two of this document's own recommendations were withdrawn** after measurement
+or closer reading: evidence-scaled caution as the fix for Finding 1, and the
+rung-cost inversion in Finding 8. Both are kept above rather than deleted.
+
+**A test defect surfaced too.** `width.test.ts` computed its simulated item
+level with `rungs: []` while `configFor` was free to claim some, so the item was
+easier than the model scored it. It only stayed hidden while caution kept the
+chosen configuration rung-free; with the bound in place the estimate ran to the
+top of the grid. Now honours the chosen rungs.
+
+**Still open: Findings 1, 2 (by design), 3, and the measurement half of 8.**
+Finding 1's compounding loop is much softened — the shorter memory and the
+bounded caution remove its two amplifiers — but the root remains: a model that
+only ever asks questions it expects you to get right cannot learn much.
+Occasionally aiming *at* the estimate rather than below it is still the
+principled fix, and it is the next thing worth building.
 
 ## What I would measure next
 
