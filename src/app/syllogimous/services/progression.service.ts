@@ -54,6 +54,19 @@ const TRIAL_LOG = 1500;
 /** Written by the pre-rework staircase; read once to migrate, never written. */
 const LS_LEGACY_STATE = "syllogimous-progression-state:";
 
+/**
+ * Answers of memory, as a geometric discount.
+ *
+ * Clamped rather than trusted: a stored value from an older build, or a hand
+ * edit, must not be able to produce a discount of zero or one — one never
+ * forgets and zero forgets everything, and both leave the posterior unable to
+ * represent anything at all.
+ */
+function forgettingFor(answers: number): number {
+    const n = Math.max(40, Math.min(1000, Math.round(answers) || 100));
+    return 1 - 1 / n;
+}
+
 export interface ProgressionSettings {
     enabled: boolean;
     /** Accuracy item selection aims for. Training wants ~0.8, measurement lower. */
@@ -67,6 +80,21 @@ export interface ProgressionSettings {
     crossModeSd: number;
     /** Posterior widening per idle day, in levels. */
     decayPerDay: number;
+    /**
+     * How many recent answers the estimate is effectively built from.
+     *
+     * Evidence is discounted geometrically, so this is a half-life rather than
+     * a window with an edge — nothing is dropped, older answers simply weigh
+     * less. It is the dial that decides how long a real improvement takes to be
+     * believed, and it was previously fixed at about two hundred, which took
+     * 168 answers to notice a four-level gain.
+     *
+     * Floored at forty in the UI because below about a hundred the estimate
+     * stops being one: it settles two levels high with an sd of four, and the
+     * caution term then reads that width as a reason to serve *easier* items.
+     * Shorter is not more responsive past that point, it is broken.
+     */
+    memoryAnswers: number;
     /** Show ability-derived skill points instead of the accumulated score. */
     derivedScore: boolean;
     /** Answers the fatigue signal is averaged over. */
@@ -91,6 +119,7 @@ const DEFAULT_SETTINGS: ProgressionSettings = {
     structureBefore: 5,
     crossModeSd: DEFAULT_ABILITY.crossModeSd,
     decayPerDay: DEFAULT_ABILITY.decayPerDay,
+    memoryAnswers: Math.round(1 / (1 - DEFAULT_ABILITY.forgetting)),
     derivedScore: true,
     fatigueWindow: 15,
     fatigueThreshold: 0.15,
@@ -231,6 +260,7 @@ export class ProgressionService {
             maxSeconds: this.config.ceilingSeconds,
             crossModeSd: this.config.crossModeSd,
             decayPerDay: this.config.decayPerDay,
+            forgetting: forgettingFor(this.config.memoryAnswers),
             widthPerBit: this.widthPerBit,
         };
     }

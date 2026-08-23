@@ -1,5 +1,9 @@
 # Why it feels slow
 
+> **Status:** two fixes shipped, and one of this document's own recommendations
+> was measured and withdrawn. See [What changed](#what-changed) at the bottom.
+
+
 The complaint, as reported:
 
 > Sometimes even though I am on a 90 streak I barely advance because my total
@@ -81,13 +85,23 @@ arrives at ninety.
 
 ### Fixes worth considering
 
-None of these is implemented; they are the candidates the measurement suggests.
+1. **~~Make caution one-sided.~~ Measured, and it is not the lever.** This was
+   the top recommendation here and it was wrong. Scaling caution by evidence, or
+   removing it outright, changes tracking speed **barely at all** — and at the
+   old memory length it made things *worse*:
 
-1. **Make caution one-sided.** It exists to stop an *unmeasured* player being
-   over-served. It has no business lowering the aim for a player with 200 logged
-   trials whose recent answers are all correct. Scaling it by evidence — trials
-   seen, or recency-weighted trials — would keep the protection where it belongs
-   and remove it where it backfires.
+   | caution | answers to track a real +4 improvement (memory 200) | (memory 100) |
+   |---|---|---|
+   | flat 0.9 (shipped) | 168 | 67 |
+   | decaying over 30 trials | 223 | 61 |
+   | decaying over 60 trials | 203 | 60 |
+   | off entirely | 218 | 57 |
+
+   Caution only dominated in the *forced-streak* simulation, and a forced streak
+   is data no real player produces — ninety correct answers regardless of
+   difficulty. Against a player who genuinely improves, the memory length is the
+   whole story. Recorded rather than deleted because the reasoning looked sound
+   and the measurement is the only thing that settled it.
 2. **Serve an informative item occasionally.** A model that only ever asks
    questions it expects you to get right cannot learn much. Periodically aiming
    *at* the estimate rather than below it — one item in five, say — costs a
@@ -102,6 +116,31 @@ None of these is implemented; they are the candidates the measurement suggests.
    information, it should ask a question whose answer carries some.
 
 ---
+
+## Finding 1b — memory length is the lever, and "recent only" breaks it
+
+A player of true ability 8 answers 200 items, then genuinely improves to 12.
+How long before the model believes it?
+
+| effective memory | settled estimate | answers to track the +4 jump | drift while steady |
+|---|---|---|---|
+| 200 answers (was shipped) | 8.30 / 0.36 | **168** | 0.38 |
+| **100 answers (now shipped)** | 8.38 / 0.47 | **67** | 0.69 |
+| 50 answers | 10.18 / 4.40 | 6 | 5.09 |
+| 20 answers | 11.06 / 5.34 | 1 | 8.05 |
+
+Two hundred answers of memory meant **168 answers to notice a real
+improvement** — most of a month of play. That is the complaint, quantified.
+
+But "reference recent history only" is not the fix either. Below about a
+hundred the estimate stops being an estimate: at 50 it settles at 10.18 when
+the truth is 8, with an sd of 4.40, and wanders five levels while nothing is
+changing. Worse, that width feeds straight into the caution term, which reads
+it as a reason to serve *easier* items — so a very short memory reproduces
+Finding 1 permanently rather than fixing it.
+
+**A hundred is the shortest memory that still measures anything**, and it is two
+and a half times more responsive than what shipped before.
 
 ## Finding 2 — "accuracy around my goal" is the system working
 
@@ -150,6 +189,48 @@ the cheapest possible fix for "I am not advancing", and it is honest — the
 number really did move.
 
 ---
+
+## Finding 4 — the tie-break handed every rung-less mode a permanent handicap
+
+Found while testing the memory change, and independent of it.
+
+`chooseConfig` treats candidates within `TOLERANCE = 0.5` levels as tied, then
+prefers **more rungs**, then **fewer premises**. The second preference exists to
+stop length standing in for structure. But it is only reached when the rung
+counts are *equal* — and between two candidates with the same rungs there is no
+structure to prefer. One is simply easier.
+
+For a mode with an empty or exhausted ladder, length is the only axis, so the
+rule fired on every choice it ever made and always took the easier option.
+
+Measured on Infer the Relation, which has no ladder at all, with a player of
+true ability 16:
+
+| | premises | item level | P(correct) |
+|---|---|---|---|
+| before | 6 of 8 | 13.20 | **0.951** |
+| after | 7 of 8 | 15.40 | **0.804** |
+
+The target is 0.8. It was serving items the player got right 95% of the time and
+could not be stretched, with two premises of headroom unused. Worth up to half a
+level of permanent handicap on every mode with no rungs.
+
+Fixed: with equal rungs, take the candidate closer to target.
+
+## What changed
+
+- **Memory: 200 → 100 answers**, and it is now a dial in Advanced Options
+  ("Recent answers weighed"), floored at 40 because below that the estimate
+  breaks down rather than sharpening.
+- **Tie-break: equal rungs now take the closer item**, not the shorter one.
+- **Withdrawn:** the caution recommendation, measured and shown not to matter.
+
+Not done, and still open: Findings 1 and 3. Finding 1's compounding loop is
+softened by the shorter memory but not removed — a model that only ever asks
+questions it expects you to get right still cannot learn much, and occasionally
+aiming *at* the estimate rather than below it remains the principled fix.
+Finding 3 — that gains below half a level are invisible — argues for showing the
+level itself.
 
 ## What I would measure next
 

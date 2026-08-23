@@ -92,9 +92,12 @@ build. This matters enormously and is covered in [§6](#6-what-moves-the-estimat
 logPost[i] = logPost[i] * forgetting + log(likelihood)
 ```
 
-`forgetting = 0.995`. Because the posterior is normalised so its maximum is 0,
-multiplying by 0.995 *flattens* it a little on every answer. Effective memory is
-roughly **1/(1 − 0.995) = 200 answers**.
+`forgetting = 0.99`. Because the posterior is normalised so its maximum is 0,
+multiplying by it *flattens* the posterior a little on every answer. Effective
+memory is roughly **1/(1 − forgetting) = 100 answers**, and it is exposed in
+Advanced Options as "Recent answers weighed". It was 200; see
+[diagnosis.md](diagnosis.md#finding-1b--memory-length-is-the-lever-and-recent-only-breaks-it)
+for why 100, and why shorter is not better.
 
 **The point estimate** — `abilityEstimate` — is the posterior **mean** and
 **sd**, plus a 90% credible interval.
@@ -128,7 +131,8 @@ the remaining gap, and keeps the best. "Best" is:
 ```
 closest to target        (ties within TOLERANCE = 0.5 levels)
   └─ then more rungs
-       └─ then fewer premises
+       └─ then closer to target again
+            └─ then fewer premises
 ```
 
 Two structural rules:
@@ -206,7 +210,7 @@ Worth stating, because the names survive and mislead.
 | `targetAccuracy` | 0.80 | how far below your estimate items sit |
 | `caution` | 0.9 sd | how much uncertainty lowers the aim |
 | `slope` | 1.6 | how sharply difficulty changes success odds |
-| `forgetting` | 0.995 | ~200-answer memory |
+| `memoryAnswers` | 100 | how much recent play outweighs history |
 | `lapseRate` | 0.03 | errors independent of difficulty |
 | `crossModeSd` | 2.5 | how much one mode says about another |
 | `decayPerDay` | 0.2 | posterior widening per idle day |
@@ -214,5 +218,6 @@ Worth stating, because the names survive and mislead.
 | `TOLERANCE` | 0.5 | level difference treated as a tie |
 | `perTimeHalving` | 1.1 | levels per halving of the clock |
 
-`caution`, `slope`, `forgetting`, `lapseRate` and `TOLERANCE` are **not
-user-tunable** — they are constants in the source.
+`caution`, `slope`, `lapseRate` and `TOLERANCE` are **not user-tunable** — they
+are constants in the source. `memoryAnswers` is, and is the one worth reaching
+for if progression feels slow.

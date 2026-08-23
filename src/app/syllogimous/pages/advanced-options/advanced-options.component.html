@@ -302,6 +302,23 @@
             </div>
 
             <div class="mode">
+                <label>Recent answers weighed
+                    <small class="text-muted d-block">
+                        How much recent play counts against your history. Lower reacts
+                        faster when you improve; below about 40 the estimate stops
+                        measuring anything and starts serving <em>easier</em> items,
+                        because it reads its own uncertainty as a reason to back off.
+                    </small>
+                </label>
+                <span class="mode__premises">
+                    <input type="number" class="form-control form-control-sm" min="40" max="1000" step="10"
+                           [disabled]="!prog.enabled" [value]="prog.memoryAnswers"
+                           (change)="setProg('memoryAnswers', $any($event.target).value)">
+                    <small class="text-muted">answers</small>
+                </span>
+            </div>
+
+            <div class="mode">
                 <label>Decay while idle
                     <small class="text-muted d-block">
                         Uncertainty added per day away. Nothing is taken back — the

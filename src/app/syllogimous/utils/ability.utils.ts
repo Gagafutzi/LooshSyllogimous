@@ -251,7 +251,27 @@ export interface AbilityConfig {
     slope: number;
     /** Errors that happen regardless of how easy the item was. */
     lapseRate: number;
-    /** Geometric discount on accumulated evidence, since ability moves. */
+    /**
+     * Geometric discount on accumulated evidence, since ability moves.
+     *
+     * Effective memory is about `1 / (1 - forgetting)` answers, and that is the
+     * dial that decides how long a genuine improvement takes to be believed.
+     * Measured against a simulated player who really does improve by four
+     * levels (see `progression/`):
+     *
+     *   memory   settled estimate   answers to track the jump   drift when steady
+     *      200        8.30 / 0.36                        168                 0.38
+     *      100        8.38 / 0.47                         67                 0.69
+     *       50       10.18 / 4.40                          6                 5.09
+     *       20       11.06 / 5.34                          1                 8.05
+     *
+     * True ability was 8. Below about a hundred the estimate stops being an
+     * estimate — it settles two levels high with an sd of four, which is worse
+     * than useless because the caution term then reads that width as a reason
+     * to serve easier items. A hundred is the shortest memory that still
+     * measures anything, and it is two and a half times more responsive than
+     * two hundred.
+     */
     forgetting: number;
 
     /**
@@ -307,7 +327,9 @@ export const DEFAULT_ABILITY: AbilityConfig = {
     bins: 80,
     slope: 1.6,
     lapseRate: 0.03,
-    forgetting: 0.995,
+    /* ~100 answers. See the note on the field: 200 took 168 answers to notice a
+     * four-level improvement, which is most of a month of play. */
+    forgetting: 0.99,
 
     referenceSeconds: 60,
     perTimeHalving: 1.1,
@@ -722,6 +744,23 @@ function better(a: ConfigChoice, b: ConfigChoice, target: number) {
      */
     if (Math.abs(da - db) > TOLERANCE) return da < db;
     if (a.rungs !== b.rungs) return a.rungs > b.rungs;
+    /*
+     * Equal rungs: take the closer to target, not the shorter.
+     *
+     * "Fewer premises" is here to stop length standing in for structure, and
+     * between candidates with the *same* rungs there is no structure to prefer
+     * — one is simply easier. A mode with an empty or exhausted ladder has
+     * length as its only axis, so the rule fired on every choice it ever made
+     * and always picked the easier of two options inside the tolerance band.
+     *
+     * Infer the Relation is the case that showed it: a player measured at 15.5
+     * was served six premises where seven was nearer the target, answered 95%
+     * of them correctly, and could not be stretched further because the
+     * selection preferred the shorter item every time. The band is half a
+     * level, so this was worth up to half a level of permanent handicap on
+     * every mode with no rungs.
+     */
+    if (da !== db) return da < db;
     return a.premises < b.premises;
 }
 
