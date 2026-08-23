@@ -48,6 +48,7 @@ import { TutorialGenericComponent } from './pages/tutorial/tutorial-generic/tuto
 import { ModeModifiersComponent } from './components/mode-modifiers/mode-modifiers.component';
 import { QuestionMapComponent } from './components/question-map/question-map.component';
 import { RelationalWebComponent } from './components/relational-web/relational-web.component';
+import { VennComponent } from './components/venn/venn.component';
 import { KeybindChooseComponent } from './pages/settings/keybind-choose/keybind-choose.component';
 import { TutorialGraphMatchingComponent } from './pages/tutorial/graph-matching/graph-matching.component';
 
@@ -141,6 +142,7 @@ const routes: Routes = [
         ModeModifiersComponent,
         QuestionMapComponent,
         RelationalWebComponent,
+        VennComponent,
         KeybindChooseComponent,
     ],
     imports: [

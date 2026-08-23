@@ -194,7 +194,37 @@ This is also the defect behind [shot 14](shots/14-syllogism-two-negatives.png)
 and [1.2](1-correctness.md#12-the-two-negative-premise-syllogism), so the fix
 below serves both.
 
-### The diagram is the fix
+### The diagram is the fix — **BUILT**
+
+`vennFor` in [`utils/venn.utils.ts`](../src/app/syllogimous/utils/venn.utils.ts)
+turns the load-bearing premises into shaded regions and existential marks;
+`app-venn` draws them beside the derivation on the review screen. It is the
+standard Venn test, which is a *decision procedure* rather than an
+illustration — the conclusion follows exactly when the picture already shows it.
+
+Three things worth recording:
+
+- **The load-bearing premises, not all of them.** Drawing premises that greedy
+  removal showed do not matter would shade regions the answer does not turn on.
+- **A mark straddles when the premises do not pin it.** "Some S is M" with
+  nothing said about P leaves two places the thing could be, and a dot inside
+  either one asserts something the premises never did. This is the whole reason
+  to draw rather than describe.
+- **It declines rather than guessing.** `rolesFor` returns null unless the
+  support resolves to exactly one middle term, and `undrawn` reports any premise
+  it could not place. A decision procedure that quietly drops a premise draws a
+  picture saying less than the item does, which is the one failure it must not
+  have.
+
+Shot 14 is the case this serves best: two negative premises leave the S/P
+overlap **open** — neither shaded nor marked — which is "the premises do not
+settle this", visibly distinct from "ruled out". That is the same distinction
+[1.2](1-correctness.md#12-the-two-negative-premise-syllogism) wants in words.
+
+**Still to do:** the three smaller fixes below, and pointing Set Hierarchy at
+the same component — it has the same content and the same chain-shaped display.
+
+### The original diagnosis
 
 **A stacked list of relations is a chain, and a syllogism is not one.** The
 layout above is the same one the scale modes use to state *A is above B, B is

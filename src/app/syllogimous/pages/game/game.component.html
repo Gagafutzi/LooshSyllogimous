@@ -19,6 +19,13 @@
          other says where everything was. -->
     <app-question-map [question]="game.question"></app-question-map>
     <!--
+      For the class-membership modes the picture *is* the reasoning. Shading is
+      what the universal premises rule out, a dot is what a particular one says
+      exists, and the conclusion follows exactly when the drawing already shows
+      it — which is a thing to look at rather than a sentence to be told.
+    -->
+    <app-venn *ngIf="game.question?.venn" [diagram]="game.question!.venn"></app-venn>
+    <!--
       The key is named on the button, because a keyboard shortcut nobody is
       told about is a shortcut for the person who wrote it.
     -->

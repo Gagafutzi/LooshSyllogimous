@@ -1,0 +1,24 @@
+.venn { width: 100%; max-width: 18rem; height: auto; display: block; margin: 0 auto; }
+
+/* The outline carries the structure, so it reads before anything inside it. */
+.venn__circle {
+    fill: none;
+    stroke: var(--th-text, #d7e3f4);
+    stroke-width: 1.1;
+    opacity: 0.75;
+}
+
+/* Hatching rather than a flat fill: two shaded regions that meet stay
+   distinguishable, and a flat wash over three overlapping circles reads as a
+   fourth shape. */
+.venn__hatch { stroke: var(--th-accent, #ff2d55); stroke-width: 1.1; opacity: 0.55; }
+
+.venn__mark { fill: var(--th-accent, #ff2d55); }
+
+.venn__label {
+    fill: var(--th-text, #d7e3f4);
+    font-size: 7px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: middle;
+}

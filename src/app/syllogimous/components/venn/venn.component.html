@@ -1,0 +1,54 @@
+<svg class="venn" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-label="Three overlapping circles, with the empty regions shaded">
+    <defs>
+        <!-- Shading, not filling: two shaded regions that meet stay apart. -->
+        <pattern [attr.id]="hatchId()" width="4" height="4" patternUnits="userSpaceOnUse"
+                 patternTransform="rotate(45)">
+            <line class="venn__hatch" x1="0" y1="0" x2="0" y2="4"/>
+        </pattern>
+
+        <!-- One clip per circle. Nested groups intersect them. -->
+        <clipPath *ngFor="let role of roleOrder" [attr.id]="clipId(role)">
+            <circle [attr.cx]="cx(role)" [attr.cy]="cy(role)" [attr.r]="r"/>
+        </clipPath>
+
+        <!-- There is no "clip to the outside of", so exclusion is a mask. -->
+        <mask *ngFor="let out of maskSets" [attr.id]="maskId(out)">
+            <rect x="0" y="0" width="100" height="100" fill="white"/>
+            <circle *ngFor="let role of out" fill="black"
+                    [attr.cx]="cx(role)" [attr.cy]="cy(role)" [attr.r]="r"/>
+        </mask>
+    </defs>
+
+    <!--
+      Each shaded region: clipped to every circle it is inside, masked out of
+      every circle it is outside. Written as a fold over `inside` so a region in
+      one, two or three circles is the same code.
+    -->
+    <g *ngFor="let region of shaded">
+        <ng-container *ngTemplateOutlet="clipped; context: { $implicit: region, depth: 0 }"></ng-container>
+    </g>
+
+    <ng-template #clipped let-region let-depth="depth">
+        <g *ngIf="depth < region.inside.length; else painted"
+           [attr.clip-path]="'url(#' + clipId(region.inside[depth]) + ')'">
+            <ng-container *ngTemplateOutlet="clipped; context: { $implicit: region, depth: depth + 1 }"></ng-container>
+        </g>
+        <ng-template #painted>
+            <rect x="0" y="0" width="100" height="100"
+                  [attr.fill]="'url(#' + hatchId() + ')'"
+                  [attr.mask]="region.outside.length ? 'url(#' + maskId(region.outside) + ')' : null"/>
+        </ng-template>
+    </ng-template>
+
+    <circle *ngFor="let role of roleOrder" class="venn__circle"
+            [attr.cx]="cx(role)" [attr.cy]="cy(role)" [attr.r]="r"/>
+
+    <!-- Something the premises say exists. On a boundary when they do not say
+         which side of it. -->
+    <circle *ngFor="let mark of marks" class="venn__mark"
+            [attr.cx]="mark.x" [attr.cy]="mark.y" r="2.6"/>
+
+    <text *ngFor="let label of labels" class="venn__label"
+          [attr.x]="label.x" [attr.y]="label.y">{{ label.text }}</text>
+</svg>

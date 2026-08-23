@@ -1,4 +1,5 @@
 import { EnumArrangements, EnumQuestionType } from "../constants/question.constants";
+import { VennDiagram } from "../utils/venn.utils";
 
 export interface IArrangementRelationship {
     description: EnumArrangements;
@@ -249,6 +250,16 @@ export class Question {
     gridBounds?: Array<[number, number]>;
     /** Axis names for those grids. */
     gridAxes?: string[];
+
+    /**
+     * The three circles, for the modes whose premises are about class membership.
+     *
+     * Carried as data and drawn by a component, the same way `webs` is: a
+     * syllogism's content is overlap, exclusion and the existential dot, and a
+     * list of sentences is the one shape that cannot show them. Absent
+     * everywhere else, where there are no classes to draw.
+     */
+    venn?: VennDiagram;
 
     wordCoordMap?: Record<string, number[]>;
     /** Axis names for the map, in the same order as the coordinates. */

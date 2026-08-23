@@ -8,6 +8,7 @@
 import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, pickUniqueItems, shuffle } from "../utils/question.utils";
+import { rolesFor, vennFor } from "../utils/venn.utils";
 import { generatePolysyllogism, formatSylPremise, getRandomRuleValid, getRandomRuleInvalid, getSyllogism, sylEntails, sylIsConsistent, sylNegate } from "../utils/syllogism.utils";
 import { SylKind, SylPremise } from "../models/syllogism.models";
 import { subj } from "../utils/phrasing";
@@ -299,6 +300,27 @@ function buildSetHierarchy(ctx: GeneratorContext, numOfPremises: number): Questi
             + " than forming a single line, so some pairs are related only through"
             + " a group they are both in \u2014 and some are not related at all.",
         ];
+        /*
+         * The picture, when the item is a syllogism shaped like one.
+         *
+         * Built from the load-bearing premises rather than all of them: the
+         * diagram is a decision procedure, and drawing the premises that were
+         * shown not to matter would shade regions the answer does not turn on.
+         * `rolesFor` returns null when the support does not resolve to exactly
+         * one middle term — a longer chain, or a pair the premises never
+         * relate — and then there is no three-circle picture to draw and the
+         * words stand alone.
+         */
+        {
+            const shown = support.length ? support : premises;
+            const target = wantTrue || !ruledOut ? claim : sylNegate(claim);
+            const roles = rolesFor(shown, target);
+            if (roles) {
+                const diagram = vennFor(shown, roles);
+                if (!diagram.undrawn.length) question.venn = diagram;
+            }
+        }
+
         /*
          * Worded exactly as the item words it. A negated rendering says the same
          * thing in the opposite form — "some X is not Y" becomes "Some X is Y"

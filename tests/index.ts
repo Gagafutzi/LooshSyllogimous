@@ -29,6 +29,7 @@ import "./nested.test";
 import "./graphdist.test";
 import "./depth.test";
 import "./construct.test";
+import "./venn.test";
 import "./combinations.test";
 import "./width.test";
 import "./display.test";
