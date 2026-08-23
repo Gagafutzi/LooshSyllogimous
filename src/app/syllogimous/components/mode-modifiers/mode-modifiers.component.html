@@ -1,5 +1,4 @@
-    <div class="card p-3 mb-3" [class.is-idle]="!enabled">
-        <h5 class="mb-1">Scale modes</h5>
+    <app-collapsible heading="Scale modes" [class.is-idle]="!enabled">
         <p class="text-muted small mb-3">
             The five scale modes. Normally earned rung by rung — <em>Ladder</em>
             leaves that alone.
@@ -99,10 +98,8 @@
                 <small class="text-muted">0–4</small>
             </span>
         </div>
-    </div>
-
-    <div class="card p-3 mb-3" [class.is-idle]="!enabled">
-        <h5 class="mb-1">Composed spaces</h5>
+    </app-collapsible>
+    <app-collapsible heading="Composed spaces" [class.is-idle]="!enabled">
         <p class="text-muted small mb-3">
             One generator, different axis lists. Each premise states every axis at
             once: <em>east, same latitude, above, later</em>.
@@ -174,8 +171,7 @@
                 {{ loopableCount(dims) }} of these can be looped.
             </small>
         </div>
-    </div>
-
+    </app-collapsible>
 <!--
   Per-mode modifiers.
 
@@ -184,8 +180,7 @@
   earned — the item they produce existed and no amount of configuring reached
   it.
 -->
-<div class="card p-3 mb-3" [class.is-idle]="!enabled">
-    <h5 class="mb-1">Per-mode modifiers</h5>
+<app-collapsible heading="Per-mode modifiers" [class.is-idle]="!enabled">
     <p class="text-muted small mb-3">
         Earned on each mode's own ladder. <em>Ladder</em> leaves that alone.
     </p>
@@ -208,4 +203,4 @@
             </span>
         </div>
     </div>
-</div>
+</app-collapsible>

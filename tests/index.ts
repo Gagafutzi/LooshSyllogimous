@@ -39,6 +39,7 @@ import "./timer.test";
 import "./ungated.test";
 import "./unlock.test";
 import "./axis-map.test";
+import "./collapsible.test";
 import "./hierarchy-syllogism.test";
 import "./testimony.test";
 

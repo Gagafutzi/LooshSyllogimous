@@ -13,20 +13,13 @@
             </p>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header py-2 small">How premises are shown</div>
-            <div class="card-body">
+        <app-collapsible heading="How premises are shown">
                 <app-game-mode-choose></app-game-mode-choose>
-            </div>
-        </div>
+        </app-collapsible>
 
-        <div class="card shadow-sm">
-            <div class="card-header py-2 small">Timer mode</div>
-            <div class="card-body">
+        <app-collapsible heading="Timer mode">
                 <app-timer-choose></app-timer-choose>
-            </div>
-        </div>
-
+        </app-collapsible>
         <!--
           Wording, not difficulty. These two used to sit on Customise beside the
           modifiers that change what has to be worked out; they only change how
@@ -37,9 +30,9 @@
           it changes what you are looking at rather than how hard the reasoning
           is, and it should not have needed an override layer switched on.
         -->
-        <div class="card shadow-sm">
-            <div class="card-header py-2 small">What the stimuli are</div>
-            <div class="card-body d-grid" style="gap: 0.5rem;">
+        <app-collapsible heading="What the stimuli are">
+            <div class="d-grid" style="gap: 0.5rem;">
+
                 <label class="flag">
                     <input type="checkbox" class="form-check-input"
                            [checked]="stimulusFlags.meaningfulWords" (change)="setStimulus('meaningfulWords', $any($event.target).checked)">
@@ -80,11 +73,11 @@
                     </span>
                 </label>
             </div>
-        </div>
+        </app-collapsible>
 
-        <div class="card shadow-sm">
-            <div class="card-header py-2 small">How premises are worded</div>
-            <div class="card-body d-grid" style="gap: 0.75rem;">
+        <app-collapsible heading="How premises are worded">
+            <div class="d-grid" style="gap: 0.75rem;">
+
                 <div class="phr" *ngFor="let row of phrasingRows">
                     <span class="phr__name">
                         {{ row.label }}
@@ -107,11 +100,10 @@
                     needs <strong>Customise</strong> switched on.
                 </small>
             </div>
-        </div>
+        </app-collapsible>
 
-        <div class="card shadow-sm">
-            <div class="card-header py-2 small">Dimension colours</div>
-            <div class="card-body">
+        <app-collapsible heading="Dimension colours">
+
                 <p class="text-muted small mb-2">
                     In the spatial modes a premise states every dimension at once.
                     Colouring each one makes them separable at a glance. 0 turns it off.
@@ -134,19 +126,15 @@
                            (input)="setDimStrength($any($event.target).value)">
                     <output class="text-muted small" style="min-width: 3rem;">{{ dimStrength }}%</output>
                 </div>
-            </div>
-        </div>
+        </app-collapsible>
 
-        <div class="card shadow-sm">
-            <div class="card-header py-2 small">Keyboard</div>
-            <div class="card-body">
+        <app-collapsible heading="Keyboard">
+
                 <app-keybind-choose></app-keybind-choose>
-            </div>
-        </div>
+        </app-collapsible>
 
-        <div class="card shadow-sm">
-            <div class="card-header py-2 small">Accessibility</div>
-            <div class="card-body">
+        <app-collapsible heading="Accessibility">
+
                 <div class="d-grid" style="gap: 0.75rem;">
                     <app-input
                         type="select"
@@ -158,12 +146,10 @@
                     />
                     <p class="text-muted small">This changes the color of the <span class="is-negated">inversion cue</span></p>
                 </div>
-            </div>
-        </div>
+        </app-collapsible>
 
-        <div class="card shadow-sm">
-            <div class="card-header py-2 small">Playtime settings</div>
-            <div class="card-body">
+        <app-collapsible heading="Playtime settings">
+
                 <div class="d-grid" style="gap: 0.75rem;">
                     <app-input
                         type="range"
@@ -187,9 +173,7 @@
                         [noParenthesisValue]="true"
                     ></app-input>
                 </div>
-            </div>
-        </div>
-
+        </app-collapsible>
     </div>
 
     <div footer class="playcard-toolbar">

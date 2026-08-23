@@ -7,12 +7,7 @@
     </p>
 
     <!-- Profiles: what Free Play became, made durable. -->
-    <div class="card p-3 mb-3">
-        <div class="d-flex justify-content-between align-items-baseline mb-2">
-            <h5 class="m-0">Profiles</h5>
-            <small class="text-muted" *ngIf="!profiles.length">none saved yet</small>
-        </div>
-
+    <app-collapsible heading="Profiles" [note]="profiles.length ? '' : 'none saved yet'">
         <p class="text-muted small mb-3">
             Everything on this page, under a name. Edits go into the loaded profile —
             nothing to press. <strong>Practice</strong> profiles do not count towards
@@ -58,7 +53,7 @@
             <button type="button" class="btn btn-sm" *ngIf="activeProfileId"
                     (click)="stopUsing()">Stop using</button>
         </div>
-    </div>
+    </app-collapsible>
 
     <div class="card p-3 mb-3">
         <label class="master">
@@ -72,12 +67,7 @@
         </label>
     </div>
 
-    <div class="card p-3 mb-3" [class.is-idle]="!active">
-        <div class="d-flex justify-content-between align-items-baseline mb-3">
-            <h5 class="m-0">Question types</h5>
-            <small class="text-muted">{{ enabledCount() }} of {{ rows.length }} on</small>
-        </div>
-
+    <app-collapsible heading="Question types" [note]="enabledCount() + ' of ' + rows.length + ' on'" [class.is-idle]="!active">
         <div class="mode" *ngFor="let row of rows">
             <label class="mode__name">
                 <input type="checkbox"
@@ -131,11 +121,9 @@
                 </ng-container>
             </span>
         </div>
-    </div>
+    </app-collapsible>
 
-    <div class="card p-3 mb-3" [class.is-idle]="!active">
-        <h5 class="mb-3">Transformations &amp; stimuli</h5>
-
+    <app-collapsible heading="Transformations &amp; stimuli" [class.is-idle]="!active">
         <label class="flag">
             <input type="checkbox" class="form-check-input" [disabled]="!active"
                    [checked]="flags.meta" (change)="setFlag('meta', $any($event.target).checked)">
@@ -158,12 +146,11 @@
             at rather than how hard the reasoning is, so it does not wait for
             this switch.
         </p>
-    </div>
+    </app-collapsible>
 
     <app-mode-modifiers [enabled]="active"></app-mode-modifiers>
 
-    <div class="card p-3 mb-3">
-        <h5 class="mb-2">Fluid progression</h5>
+    <app-collapsible heading="Fluid progression" [startClosed]="true">
         <p class="text-muted small mb-2">
             One ability estimate per mode; each item is built to sit just below it.
             Premises, modifiers and the clock all trade against each other.
@@ -365,7 +352,7 @@
             <button class="btn btn-sm btn-danger mt-3" [disabled]="!prog.enabled"
                     (click)="resetLadders()">Reset all estimates</button>
         </div>
-    </div>
+    </app-collapsible>
 
     <!--
       The other adaptive system. It moves premises on its own thresholds and is
@@ -373,8 +360,7 @@
       same number. Anyone who turns progression off inherits it, and until now
       could not see or tune it.
     -->
-    <div class="card p-3 mb-3" [class.is-idle]="prog.enabled || !unitsOn">
-        <h5 class="mb-1">Training units</h5>
+    <app-collapsible heading="Training units" [startClosed]="true" [class.is-idle]="prog.enabled || !unitsOn">
         <p class="text-muted small mb-3">
             Used only when fluid progression is off. After this many answers in a
             mode, the premise count moves if accuracy passed a threshold.
@@ -437,10 +423,9 @@
                 <small class="text-muted">0.1–0.9</small>
             </span>
         </div>
-    </div>
+    </app-collapsible>
 
-    <div class="card p-3 mb-3">
-        <h5 class="mb-2">Tutorials</h5>
+    <app-collapsible heading="Tutorials">
         <label class="master">
             <input type="checkbox" class="form-check-input"
                    [checked]="game.skipAllTutorials"
@@ -453,10 +438,9 @@
                 </small>
             </span>
         </label>
-    </div>
+    </app-collapsible>
 
-    <div class="card p-3 mb-3">
-        <h5 class="mb-2">Tier cheat</h5>
+    <app-collapsible heading="Tier cheat">
         <p class="text-muted small mb-2">
             For testing. Jumps the score so tier-gated modes can be reached without
             playing to them. Currently <strong>{{ currentTier }}</strong>,
@@ -471,12 +455,11 @@
             <button class="btn btn-sm" (click)="nudgeScore(250)">+250 pts</button>
             <button class="btn btn-sm" (click)="nudgeScore(-250)">−250 pts</button>
         </div>
-    </div>
+    </app-collapsible>
 
-    <div class="card p-3">
-        <h5 class="mb-2">Reset</h5>
+    <app-collapsible heading="Reset">
         <p class="text-muted mb-2">Clears every override and returns to tier-driven settings.</p>
         <button class="btn btn-sm btn-danger" (click)="reset()">Reset advanced options</button>
-    </div>
+    </app-collapsible>
 
 </div>

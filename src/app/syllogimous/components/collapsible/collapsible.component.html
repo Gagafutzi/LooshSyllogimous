@@ -1,0 +1,18 @@
+<div class="card shadow-sm">
+    <button type="button" class="card-header py-2 small collapsible__head"
+            [attr.aria-expanded]="open" (click)="toggle()">
+        <span>{{ heading }}</span>
+        <span class="collapsible__note">
+            <small class="text-muted" *ngIf="note">{{ note }}</small>
+            <i class="bi" [class.bi-chevron-down]="!open" [class.bi-chevron-up]="open"></i>
+        </span>
+    </button>
+    <!--
+      Removed from the DOM rather than hidden, so a folded section costs nothing
+      to render. Customise holds several hundred controls across its cards and
+      most of them are shut most of the time.
+    -->
+    <div class="card-body" *ngIf="open">
+        <ng-content></ng-content>
+    </div>
+</div>

@@ -32,6 +32,8 @@ export const LS_PREMISES_DOWN_THRESHOLD = "SYL_PREMISES_DOWN_THRESHOLD";
 export const LS_SCORE = "SYL_SCORE";
 export const LS_COLOR_BLINDNESS_MODE = "SYL_COLOR_BLINDNESS_MODE";
 export const LS_SYLLOGISM_GENERATOR = "SYL_SYLLOGISM_GENERATOR";
+/** Which settings sections the reader has folded away. */
+export const LS_PANEL_OPEN = "SYL_PANEL_OPEN";
 
 /**
  * Every prefix this app writes under.

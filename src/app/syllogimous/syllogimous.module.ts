@@ -46,6 +46,7 @@ import { DiagnosticsComponent } from './pages/diagnostics/diagnostics.component'
 import { CalibrationComponent } from './pages/calibration/calibration.component';
 import { TutorialGenericComponent } from './pages/tutorial/tutorial-generic/tutorial-generic.component';
 import { ModeModifiersComponent } from './components/mode-modifiers/mode-modifiers.component';
+import { CollapsibleComponent } from './components/collapsible/collapsible.component';
 import { QuestionMapComponent } from './components/question-map/question-map.component';
 import { RelationalWebComponent } from './components/relational-web/relational-web.component';
 import { VennComponent } from './components/venn/venn.component';
@@ -140,6 +141,7 @@ const routes: Routes = [
         CalibrationComponent,
         TutorialGenericComponent,
         ModeModifiersComponent,
+        CollapsibleComponent,
         QuestionMapComponent,
         RelationalWebComponent,
         VennComponent,
