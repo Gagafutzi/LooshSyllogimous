@@ -40,6 +40,7 @@ import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { getRandomSymbols, shuffle } from "../utils/question.utils";
 import { hi, subj, dimClass, dimSlot } from "../utils/phrasing";
 import { axesForDimensions } from "../utils/ndspace.utils";
+import { ANCHORS } from "../utils/anchor.utils";
 import { GeneratorContext } from "./context";
 
 const pick = <T>(xs: T[]): T => xs[Math.floor(Math.random() * xs.length)];
@@ -127,7 +128,7 @@ function features(ctx: GeneratorContext, type: EnumQuestionType) {
  * Classes rather than inline styles, because Angular's sanitizer strips styles
  * from `[innerHTML]` and keeps classes.
  */
-function tableFor(g: Built, axes: Array<{ name: string }>, label: string): string {
+function tableFor(g: Built, axes: Array<{ name: string }>, label: string, anchor: string): string {
     const head = axes
         .map((a, d) => `<th class="${dimClass(dimSlot(d))}">${a.name}</th>`)
         .join("");
@@ -137,8 +138,16 @@ function tableFor(g: Built, axes: Array<{ name: string }>, label: string): strin
         + m.coord.map(v => `<td>${v > 0 ? "+" + v : v}</td>`).join("")
         + `</tr>`).join("");
 
+    /*
+     * The top-left cell names the marker everything is measured from.
+     *
+     * It is the one place a reader looks before reading a row, and a column of
+     * signed numbers with nothing to be signed *against* is a column of
+     * abstractions — "+2" means something once it means two east of ●.
+     */
     return `<div class="group"><div class="group__name">${hi(label)}</div>`
-        + `<table class="group__table"><thead><tr><th></th>${head}</tr></thead>`
+        + `<table class="group__table"><thead><tr>`
+        + `<th class="group__from">from ${anchor}</th>${head}</tr></thead>`
         + `<tbody>${rows}</tbody></table></div>`;
 }
 
@@ -213,16 +222,30 @@ export function createWidestGroup(ctx: GeneratorContext, numOfPremises: number):
         const winner = measured.indexOf(best);
         const order = shuffle(built.map((_, i) => i));
 
+        /*
+         * One marker for the whole item, not one per group.
+         *
+         * Every group is measured from the same point, which is what makes the
+         * tables comparable at all — a group read from its own marker would put
+         * the same arrangement at different numbers, and the reader would be
+         * comparing frames rather than spreads. It changes no answer, spreads
+         * being differences within a group, and that is the point: the frame is
+         * there to give the numbers a meaning, not to be part of the question.
+         */
+        const anchor = pick(ANCHORS).token;
+
         const question = new Question(type);
         question.bucket = names;
         question.buckets = order.map(i => built[i].members.map(m => m.name));
         question.setup = [
-            `Each group is placed on the same directions. A group's <b>spread</b>`
-            + ` on a direction is the distance between its two outermost members`
-            + ` on it.`,
-            `Score a group by its <b>widest</b> direction — its largest spread.`,
+            `Everything is placed against ${anchor}, which never moves. Each group`
+            + ` is placed on the same directions.`,
+            `A group's <b>spread</b> on a direction is the distance between its two`
+            + ` outermost members on it. Score a group by its <b>widest</b>`
+            + ` direction — its largest spread.`,
         ];
-        question.premises = order.map((i, k) => tableFor(built[i], axes, `Group ${k + 1}`));
+        question.premises = order.map((i, k) =>
+            tableFor(built[i], axes, `Group ${k + 1}`, anchor));
 
         /*
          * Naming the top group needs only the top group's score. Ordering them

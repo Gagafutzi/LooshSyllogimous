@@ -36,6 +36,8 @@
     .group__table td { padding: 0.1rem 0.5rem; text-align: right; white-space: nowrap; }
     .group__table tbody th { text-align: left; font-weight: 700; }
     .group__table thead th { font-weight: 700; }
+    /* The marker, not a column of data: left-aligned and quiet. */
+    .group__from { text-align: left; font-weight: 400; opacity: 0.75; }
 
     .is-negated {
         color: var(--negated-color);

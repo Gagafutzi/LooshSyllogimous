@@ -121,6 +121,17 @@ ability history, and it can now be turned down to *Rarely* with the per-mode
 frequency setting rather than being switched off, which would also stop it being
 measured.
 
+**Anchored, like everything else spatial here.** One marker for the whole item,
+named in the top-left cell of every group's table, so a column of signed numbers
+has something to be signed *against* — "+2" means something once it means two
+east of ●. One rather than one per group, because groups read from different
+markers would put the same arrangement at different numbers and the reader would
+be comparing frames rather than spreads. It changes no answer, spreads being
+differences within a group, and that is the point: the frame gives the numbers a
+meaning without becoming part of the question. It is not a row, either — a
+member of the group would enter its minimum and maximum, and a frame that is
+also a participant is not a frame.
+
 **Groups as tables.** Five members across six directions is thirty facts, and as
 prose that is six clauses per line for five lines — the display problem the
 composed spaces already hit. The answer is found by reading *down* a column, so

@@ -168,3 +168,52 @@ test("the derivation accounts for every group", () => {
         }
     });
 });
+
+/**
+ * One marker for the whole item, not one per group.
+ *
+ * Every group is measured from the same point, which is what makes the tables
+ * comparable at all: a group read from its own marker would put the same
+ * arrangement at different numbers, and the reader would be comparing frames
+ * rather than spreads.
+ */
+test("every group is measured from the same marker", () => {
+    seeded(606, () => {
+        const ctx = context(FULL);
+        for (let rep = 0; rep < 25; rep++) {
+            const q = createWidestGroup(ctx, 4);
+
+            const from = q.premises.map(p => /class="group__from">from (.*?)<\/th>/.exec(p)?.[1]);
+            assert(from.every(Boolean), "a group's table does not say what it is measured from");
+            equal(new Set(from).size, 1,
+                `groups are measured from different markers: ${from.join(", ")}`);
+
+            const marker = from[0]!;
+            assert(q.setup.join(" ").includes(marker),
+                "the marker is used in the tables but never introduced");
+            assert(/never moves/.test(q.setup.join(" ")),
+                "the item does not say the marker is fixed");
+        }
+    });
+});
+
+/**
+ * The marker frames the numbers; it is not a member of any group.
+ *
+ * If it were, it would enter its group's minimum and maximum and change the
+ * answer -- and a frame that is also a participant is not a frame.
+ */
+test("the marker is not one of the members", () => {
+    seeded(707, () => {
+        const ctx = context(FULL);
+        for (let rep = 0; rep < 20; rep++) {
+            const q = createWidestGroup(ctx, 4);
+            const marker = /class="group__from">from (.*?)<\/th>/.exec(q.premises[0])![1];
+            for (const p of q.premises) {
+                const body = p.slice(p.indexOf("<tbody>"));
+                assert(!body.includes(marker),
+                    "the marker appears as a row, so it counts towards a spread");
+            }
+        }
+    });
+});
