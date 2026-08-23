@@ -1,0 +1,195 @@
+# 4 — Legibility
+
+Four places where the information is correct and cannot be read. The favicon is
+in here rather than in a section of its own because it is the same failure: the
+right asset exists and the wrong one is what reaches the eye.
+
+---
+
+## 4.1 Relational Web
+
+> The web's arrows can hardly be distinguished. The black of the A is also bad.
+>
+> A good example of this exercise is here: [shot 07]
+
+| current | the reference |
+|---|---|
+| ![](shots/06-relational-web-bad.png) | ![](shots/07-relational-web-good.png) |
+
+The black node is a variable-name bug and is fixed in
+[1.3](1-correctness.md#13-the-black-node-in-relational-web). The rest is design,
+and the reference image is unusually useful because it is the same exercise
+solved well — it is worth reading off what it does differently rather than
+inventing improvements.
+
+**What the reference does that the current drawing does not:**
+
+- **Arrows are the brightest thing on the canvas.** Bright blue on deep navy.
+  The current stroke is `var(--th-text-dim)` at 1.7
+  ([`relational-web.component.css:10`](../src/app/syllogimous/components/relational-web/relational-web.component.css)) —
+  the *dim* text colour, which is the colour chosen for things that should
+  recede. The arrows are the premises here; nothing should be brighter.
+- **Arrows are straight.** The current ones bow to avoid overlapping
+  neighbours — `layoutArrows` in
+  [`web.utils.ts:495`](../src/app/syllogimous/utils/web.utils.ts), and its
+  comment explains at length why a fixed bow does not work. It is careful code
+  solving the wrong problem: the crossings come from the circular node layout
+  (`web.utils.ts:296`, every node on one circle at equal radius), and curving
+  the edges is compensation for a layout that puts them in each other's way.
+- **Nodes are opaque and light on dark.** The current node is
+  `color-mix(--th-panel 85%, transparent)` — a translucent panel colour, so an
+  arrow passing behind a node shows through it and reads as passing *into* it.
+- **Nodes are labelled by their degree signature**, `out/in`, not by an
+  arbitrary letter. This is the largest difference and it is not cosmetic: it
+  turns "compare two pictures" into "match the 2/0 to the 2/0", which is what
+  makes the reference readable at a glance. It also changes the exercise, so it
+  is a choice rather than a fix — see below.
+- **A legend states the task**, in the picture, every time.
+
+**Recommended, in order:**
+
+1. Arrow stroke to a bright, high-contrast colour with a theme variable of its
+   own. Weight up. This alone recovers most of the difference.
+2. Opaque node fill.
+3. Replace the circular layout with a layered one — sources at the top, sinks at
+   the bottom — and drop the bowing entirely once edges stop crossing. This is
+   the largest change and `layoutArrows` mostly *deletes* under it.
+4. Keep the letter labels, and add the `out/in` counts as a **rung**, not as the
+   default. The reference's labelling makes the exercise easier by design, and
+   the roadmap already treats "no counting arrows" as a rung
+   (`structural` in [`mode-modifiers.component.ts`](../src/app/syllogimous/components/mode-modifiers/mode-modifiers.component.ts)),
+   so degree labels belong at the bottom of that same ladder rather than
+   replacing it.
+
+**Verification.** This is appearance, so it is checked by eye and not by test —
+with two exceptions worth automating: no two nodes may be drawn closer than the
+node diameter, and no arrow may pass within a node radius of a node that is not
+one of its endpoints. Both are properties of the layout, both are computable from
+`layout` and `arrows`, and both are the actual causes of the mess.
+
+---
+
+## 4.2 The composed-space explanation diagram
+
+![](shots/11-ndspace-6d-diagram.png)
+
+> This is an explanation for 6D I think, yeah you can barely distinguish
+> anything.
+
+At six dimensions the diagram renders as a vertical stack of small 2-D grids,
+one per combination of the remaining four axes, each captioned
+`Time -1 · Containment 1 · Quantity 0 · Distinction 1`. The axis label "Up-down"
+is drawn four times per panel, overlapping itself. The object names are the same
+colour as the grid lines. There are thirty-odd panels.
+
+The approach does not fail at 6-D because of a rendering bug. It fails because
+**small multiples over four free axes is sixteen panels minimum and grows by a
+factor of two or three per axis**, and the reader has to find the one panel that
+matters before reading anything. Fixing the label collisions would produce a
+legible version of a diagram that should not be drawn.
+
+**What to draw instead.** Above three axes, the honest picture is a table, not a
+space:
+
+```
+             E-W    N-S    U-D    Time   Size   Amount
+  Cup         -2     +1      0      -1     +1      0
+  Chalk        0      0      0       0      0      0     ← origin
+  Needle       0      0     -1      -1     +2      0
+  Museum      +1     -1     -1       0     +2     +1
+                                    ▲
+                    the axis the conclusion is about
+```
+
+One row per object, one column per axis, coordinates relative to whichever
+object the premises pin the frame to — Transformation's derivation already
+states coordinates relative to the first object for exactly this reason, and
+records why it is safe to do so. Columns painted with the same per-axis colours
+the premises use, so the table and the sentences agree. The axis the conclusion
+asks about is marked.
+
+This is readable at any dimensionality, which the grid is not, and it is what a
+person reconstructs on paper when they get one of these wrong.
+`wordCoordMap` and `axisNames` are already on the `Question` and hold precisely
+this data — the comment on `wordCoordMap` says it is kept *"so the item can be
+drawn afterwards"*.
+
+**Keep the grid for two and three axes**, where it is genuinely better than a
+table and where it currently works. The switch is on axis count.
+
+**Fix the label repetition regardless.** Whatever is drawing "Up-down" once per
+grid row rather than once per grid is a bug in its own right and will show up in
+the 3-D case too.
+
+---
+
+## 4.3 Negation is the least legible thing on the card
+
+Not in the source list — an observation from reading the stylesheet, visible in
+[shot 14](shots/14-syllogism-two-negatives.png) and
+[shot 13](shots/13-unreferenced-object.png). It is *not* what those screenshots
+were reported for; that is
+[3.3](3-explanations.md#33-the-syllogism-derivation-reads-as-a-chain).
+
+```css
+/* card.component.scss:27 */
+.is-negated { color: var(--negated-color); font-style: italic; }
+```
+
+```css
+/* styles.css:5 */
+--negated-color: rgb(128, 0, 0);
+```
+
+Dark maroon, italic. On the dark red-black panel these themes use, the `No` in
+*"**No** Swimmer is Fisherman"* and the `is not` in *"Some Zipper **is not**
+Swimmer"* are the dimmest glyphs in the sentence — and they are the glyphs that
+invert its meaning. Every other word is bright.
+
+The cause is that `--negated-color` is the one premise colour that never went
+through ThemeService. Everything else is resolved per theme against the measured
+panel luminance
+([`theme.service.ts:337`](../src/app/syllogimous/services/theme.service.ts));
+this is a hard-coded constant in `styles.css` that happens to work on a light
+background.
+
+**Fix.** Move it into the theme's resolved variables with the others, derived
+from the panel luminance like the dimension palette is. Keep the italic — the
+shape cue is good and works independently of colour — and make the colour
+prominent rather than recessive. A reversal cue is not a footnote.
+
+This is also worth a check in `tests/display.test.ts`, which already exercises
+theme resolution: every colour the card assigns to premise text must clear a
+contrast ratio against the resolved panel colour.
+
+---
+
+## 4.4 The icon
+
+> Another issue is that the website icon sometimes resembles the old SYL instead
+> of the new triangle.
+
+Confirmed, and it is not intermittent — it is which icon the browser happens to
+pick.
+
+`src/assets/favicon.svg` was updated to the new triangle. Every other icon in
+`src/` is the old **SYL** wordmark, untouched since the initial import:
+
+```
+src/favicon.ico              src/favicon-16x16.png     src/favicon-32x32.png
+src/apple-touch-icon.png     src/android-chrome-192x192.png
+src/android-chrome-512x512.png
+```
+
+All six are declared in `src/index.html:38-44` alongside the SVG. Which one is
+used depends on the browser, the surface (tab, bookmark, home screen, PWA
+install), and the cache — hence "sometimes".
+
+**Fix.** Regenerate all six from `assets/favicon.svg` at their declared sizes.
+Nothing else changes: `index.html` and `angular.json`'s asset list are already
+correct and complete.
+
+**Then check `docs/`.** The published build carries its own copies
+(`docs/favicon.ico`, `docs/android-chrome-*.png`, …) which are the ones actually
+served from Pages, and a rebuild is what replaces them. A stale icon in `docs/`
+would keep the old mark live regardless of what `src/` holds.

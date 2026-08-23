@@ -1,0 +1,190 @@
+# 6 — Ladder and settings
+
+> Another thing is that wide premises only work inconsistently, compact
+> relations are also somewhat broke. Both shouldn't be part of the ladder.
+>
+> Meta and negation should have an on off ladder option as well.
+
+Two sentences, four changes, all small. This section is second in the work order
+despite being sixth in the file: the ladder hands out `wide-premises` and
+`compact` to every player who climbs far enough, so leaving them in place while
+the rest of the plan is built means continuing to serve items the author has
+already said are broken.
+
+---
+
+## 6.1 Take `wide-premises` off the linear ladder
+
+[`progression.utils.ts:219`](../src/app/syllogimous/utils/progression.utils.ts):
+
+```ts
+const LINEAR_LADDER = [
+    "negation", "branching", "meta", "overlap", "wide-premises",
+    "transform-1", "transform-2", "multi-conclusion", "choose-conclusion",
+    "construct-conclusion", "construct-distance",
+];
+```
+
+### Why it is inconsistent
+
+The merge is in `renderPremises` at
+[`linear.utils.ts:611`](../src/app/syllogimous/utils/linear.utils.ts):
+
+```ts
+for (let i = 0; i < edges.length; i++) {
+    const [a, b] = edges[i];
+    const next = edges[i + 1];
+    const shared = next && (next[0] === b || next[1] === b);
+    if (!shared) { premises.push(one(a, b, i)); continue; }
+    ...
+}
+```
+
+Two premises merge only when edge `i+1` shares edge `i`'s **second** endpoint,
+**in stored order**. On a plain chain that holds for every consecutive pair and
+the rung does what it says. On a branching layout — and `branching` sits two
+rungs *earlier*, so by the time `wide-premises` is earned every item has it —
+consecutive stored edges rarely share an endpoint at all, so most items merge
+nothing and render identically to an item without the rung. The player has
+claimed a rung that the item does not honour, which is precisely the thing the
+ladder's own comment promises cannot happen: *"Only rungs a mode actually
+supports appear, so a promotion never claims something the generator ignores."*
+
+There is a second, narrower fault in the same block:
+
+```ts
+const tail = second.text.replace(/^<span class="subject">[^<]*<\/span>\s*/, "");
+```
+
+`[^<]*` cannot match a subject whose content contains markup. `subj()` wraps a
+plain string today, so this holds — but visual-noise and emoji stimuli are
+assembled elsewhere, and any of them nesting a span inside the subject makes the
+strip silently fail and produces *"A is above B, which B is above C"*. It is a
+latent bug rather than the reported one, and it is worth fixing while the file
+is open: match the span structurally rather than by regex, or have
+`renderRelation` return its parts so the tail never has to be recovered from
+rendered HTML.
+
+### The change
+
+1. Delete `"wide-premises"` from `LINEAR_LADDER`.
+2. Remove it from `ModeModifiersComponent.COVERED` so it appears as an ordinary
+   tri-state row — it stays available to anyone who wants it, and stops being
+   handed out.
+3. Leave `LinearFeatureFlags.widePremises` and the `wide` option in place.
+   Nothing needs deleting; the rung is what was wrong, not the feature.
+
+**Ordering caution.** The ladder is positional — a player's earned rungs are
+stored as a count, and `rungs.push(ladder[rungs.length])` reads by index. The
+comment above `LINEAR_LADDER` records that `negation` was appended mid-ladder
+rather than at the front for exactly this reason. **Removing** an entry shifts
+every rung after it down by one, which silently re-labels the earned rungs of
+every existing profile. Either migrate stored state, or replace the entry with a
+no-op placeholder rather than deleting it. Whichever is chosen,
+`tests/progression.test.ts` should assert that a profile saved under the old
+ladder resolves to the same set of rung names under the new one.
+
+### Then decide what to do with it
+
+Removing it from the ladder is what was asked for and is the whole of the fix.
+Whether to repair the merge afterwards is a separate call, and it should be
+informed by a measurement rather than by the screenshot: add a check that counts
+what fraction of `wide` items actually merge anything, at each premise count,
+with and without `branching`. If the answer is "eight percent when branching is
+on", the repair is worth doing — merge across the whole edge list rather than
+consecutive stored pairs — and the rung can go back afterwards.
+
+---
+
+## 6.2 Take `compact` off the ND ladder
+
+[`progression.utils.ts:258`](../src/app/syllogimous/utils/progression.utils.ts):
+
+```ts
+const ND_LADDER = [
+    "branching", "compact", "circular", "indeterminate", ...
+];
+```
+
+`compact` sits second, so almost every composed-space item a progressing player
+sees has it. What it does is drop the clauses where two objects do not differ
+([`ndspace.utils.ts:850`](../src/app/syllogimous/utils/ndspace.utils.ts)), so an
+unmentioned axis has to be read as "same" rather than ticked off.
+
+Same change: remove from `ND_LADDER`, remove from `COVERED` so the tri-state row
+appears, keep `LinearFeatureFlags.compact` and the `feat.compact` path.
+
+Same ordering caution — the ND ladder is seventeen entries long and `compact` is
+at index 1, so removing it shifts sixteen.
+
+The author's report is *"somewhat broke"* without a symptom, so this section
+cannot say what is wrong. Two things are worth checking while it is out of the
+ladder, because both would present as "somewhat broke":
+
+- **The convention has to be stated for the item to be derivable.**
+  `ndspace.ts:717` says so and pushes `COMPACT_NOTE` at line 721. Confirm that
+  note survives every path that can render a compact item — including the ones
+  that build the setup line elsewhere, and including History, where the setup
+  line is re-rendered from stored state.
+- **Compact interacts with under-specification.** `ndspace.utils.ts:678`
+  records that withholding a clause is *"indistinguishable from compact, which
+  states levelness by omission"*, and `ndspace.ts:397` guards against them
+  running together. Confirm that guard covers the override path as well as the
+  ladder path — a forced `compact` from Customise reaches the flag at line 342
+  by a different route from an earned one, and that is exactly where a guard
+  written against the ladder gets bypassed.
+
+---
+
+## 6.3 Per-mode on/off for meta and negation
+
+Both already have a tri-state, and it is **global**:
+
+```ts
+// settings-override.service.ts:188
+meta: boolean | null;
+negation: boolean | null;
+```
+
+applied across every mode at once
+([`settings-override.service.ts:360`](../src/app/syllogimous/services/settings-override.service.ts)).
+The comment at line 184 records why it is tri-state rather than boolean — the
+old version *"forced negation and meta onto every mode at once, whatever any of
+them wanted"* — which is the right diagnosis and only half the fix. It is still
+one switch for twenty modes; what it stopped doing is forcing them *on*.
+
+Everything needed for the per-mode version exists. `setRung(type, rung, value)`
+writes a per-mode tri-state and `rungOf` reads it. The only reason `negation`
+and `meta` do not appear as rows is that they are listed in
+
+```ts
+// mode-modifiers.component.ts:44
+private static readonly COVERED = new Set([
+    "negation", "meta", "branching", ...
+]);
+```
+
+with the stated rationale that *"listing every rung would put two controls on
+one setting for the scale modes"*. That was true when the family flag was the
+only control. It is worth accepting the second control now, because the two
+controls do different things — one is "everywhere", one is "here" — and the
+alternative is the current state, where per-mode is impossible.
+
+### The change
+
+1. Remove `"negation"` and `"meta"` from `COVERED`, so they appear as tri-state
+   rows on every mode whose ladder contains them.
+2. Give them labels in `rungLabel` — the fallback prints the bare rung id, which
+   is fine for `min-span-3` and not for a control this prominent.
+3. Resolve global against per-mode explicitly, with the per-mode setting
+   winning: **per-mode override → global override → ladder.** Write it once in
+   the resolver rather than at each of the four call sites that currently read
+   these flags, and say in a comment that per-mode wins, because "which of my
+   two switches is in charge" is the question this change creates.
+4. Make the precedence visible in the UI: when a global override is set, a
+   per-mode row still reading "ladder" should say what it is deferring to.
+   A control that appears to do nothing is worse than no control.
+
+**Test.** `tests/customise.test.ts` covers the override service already. Add the
+precedence table directly — nine cases, three states each for global and
+per-mode — because precedence bugs are invisible in play and obvious in a table.
