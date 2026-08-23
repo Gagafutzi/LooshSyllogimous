@@ -64,6 +64,27 @@
                 </div>
     
                 <!--
+                  How it followed.
+
+                  The review overlay shows this once, only after a wrong answer,
+                  and only until it is dismissed. That is the right rule for the
+                  overlay -- it interrupts, so it should interrupt rarely -- and
+                  the wrong rule for the only other place an item can be looked
+                  at. History held the derivation on every stored question and
+                  rendered none of them.
+
+                  Shown for right answers too: "why was that right" is a fair
+                  question, and the item is already open.
+                -->
+                <div *ngIf="q.explanation?.length" class="mb-2">
+                    <div class="small text-muted mb-1">How it follows</div>
+                    <ol class="ps-3 mb-1">
+                        <li *ngFor="let step of q.explanation" [innerHTML]="step"></li>
+                    </ol>
+                    <app-venn *ngIf="q.venn" [diagram]="q.venn"></app-venn>
+                </div>
+
+                <!--
                   A built conclusion, dimension by dimension.
                   `true` against `false` is one bit about a seven-part answer,
                   and which part went wrong is the only thing worth knowing.

@@ -221,6 +221,26 @@ overlap **open** — neither shaded nor marked — which is "the premises do not
 settle this", visibly distinct from "ruled out". That is the same distinction
 [1.2](1-correctness.md#12-the-two-negative-premise-syllogism) wants in words.
 
+**All three generators explain themselves, too — and one never did.** Fredo
+set no `explanation` at all, and `createSyllogism` picks between it and Canyon
+on a coin flip by default, so **half of every player's syllogisms answered a
+wrong answer with a verdict and nothing else**. Not intermittently broken:
+never present, half the time. The existing coverage test could not see it,
+because the mode *did* explain itself on the runs where the coin came up the
+other way — a per-mode check cannot catch a per-generator gap.
+
+Its derivation is built from the premises **as rendered**, not re-worded from
+the structure: `getSyllogism` picks a form set internally and may state a
+premise in its negated rendering, and a derivation that re-worded it plainly
+would read as a flat contradiction of the line above it.
+
+**And history now shows derivations.** It never has. The review overlay shows
+one once, only after a wrong answer, and only until it is dismissed — the right
+rule for something that interrupts, and the wrong rule for the only other place
+an item can be looked at. Every stored question already carried its derivation
+and its diagram; nothing rendered them. Shown for correct answers as well, since
+"why was that right" is a fair question and the item is already open.
+
 **All three generators draw it.** It first went into `buildSetHierarchy` alone
 — which is the *rung* — so the two generators that produce the plain mode, and
 both reported items, got nothing. Fredo's premises are rendered strings, so

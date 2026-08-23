@@ -255,3 +255,54 @@ test("each premise's effect on the picture is stated", () => {
     assert(/Some S is M/.test(lines[1]) && /puts something/.test(lines[1]),
         "a particular premise does not say what it places");
 });
+
+/**
+ * Every syllogism explains itself, whichever generator built it.
+ *
+ * `createSyllogism` picks between Fredo and Canyon on a coin flip by default,
+ * and only Canyon had a derivation -- so half of every player's syllogisms
+ * answered a wrong answer with a verdict and nothing else. That is not
+ * "sometimes broken", it is never present, half the time, and a coverage test
+ * over the mode could not see it because the mode did explain itself, on the
+ * runs where the coin came up the other way.
+ */
+test("every syllogism generator explains itself", () => {
+    const ctx = ndContext();
+    for (const gen of ["fredo", "canyon", "all"] as const) {
+        const g = { ...ctx, syllogismGenerator: gen } as GeneratorContext;
+        let built = 0, explained = 0;
+        seeded(1919, () => {
+            for (let n = 2; n <= 5; n++) {
+                for (let rep = 0; rep < 15; rep++) {
+                    let q;
+                    try { q = createSyllogism(g, n); } catch { continue; }
+                    built++;
+                    if (q.explanation.length) explained++;
+                }
+            }
+        });
+        assert(built > 40, `${gen} built only ${built} items`);
+        equal(explained, built, `${gen}: ${built - explained} of ${built} items had no derivation`);
+    }
+});
+
+/**
+ * A derivation has to say something the item did not already say.
+ *
+ * The floor from fixes/3: a derivation made entirely of restated premises has
+ * done no work. Fredo's names its two load-bearing premises and then has to
+ * add the middle term and the move.
+ */
+test("a syllogism derivation adds something to the premises", () => {
+    const ctx = { ...ndContext(), syllogismGenerator: "fredo" } as GeneratorContext;
+    seeded(2828, () => {
+        for (let rep = 0; rep < 20; rep++) {
+            let q;
+            try { q = createSyllogism(ctx, 3); } catch { continue; }
+            const stated = new Set([...q.premises, String(q.conclusion)]);
+            const novel = q.explanation.filter(line => !stated.has(line));
+            assert(novel.length >= 2,
+                `a derivation of ${q.explanation.length} lines restated all but ${novel.length}`);
+        }
+    });
+});

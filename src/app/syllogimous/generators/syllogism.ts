@@ -79,7 +79,45 @@ export function createSyllogismFredo(ctx: GeneratorContext, numOfPremises: numbe
     {
         const parts = sylPremisesFromRule(
             question.bucket[0], question.bucket[1], question.bucket[2], question.rule);
-        if (parts) question.venn = vennDiagramFor(parts.premises, parts.conclusion);
+        if (parts) {
+            question.venn = vennDiagramFor(parts.premises, parts.conclusion);
+
+            /*
+             * A derivation, which this generator has never had.
+             *
+             * `createSyllogism` picks between this and Canyon on a coin flip by
+             * default, and only Canyon explained itself — so half of every
+             * player's syllogisms answered a wrong answer with a verdict and
+             * nothing else. Not "sometimes broken": never present, half the
+             * time.
+             *
+             * Built from the premises *as rendered* rather than re-worded from
+             * the structure. `getSyllogism` chooses a form set internally and
+             * may state a premise in its negated rendering — "No X is Y" with
+             * the word struck through, meaning all — and a derivation that
+             * re-worded it plainly would read as a flat contradiction of the
+             * line above it.
+             *
+             * The first two premises are the syllogism and everything after is
+             * a distractor built from an invalid rule, so the derivation names
+             * those two and no others. They arrive major-first already, which
+             * is the order a syllogism is read in.
+             */
+            const move = question.venn
+                ? nameTheInference(parts.premises, question.venn, t => hi(t))
+                : [];
+            question.explanation = [
+                question.premises[0],
+                question.premises[1],
+                `The two share ${hi(question.bucket[2])}, and the claim never`
+                + ` mentions it — that is the term the argument runs through.`,
+                ...move,
+                `so ${question.conclusion}`,
+                // Distractors are appended below, so count them from `length`
+                // rather than from a premise list that has none yet.
+                ...(length > 3 ? [`The other premises relate nothing to the claim.`] : []),
+            ];
+        }
     }
 
     for (let i = 3; i < length; i++) {
