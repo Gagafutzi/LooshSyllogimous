@@ -110,6 +110,19 @@
                     </span>
                 </small>
 
+                <!--
+                  How often, as distinct from whether. A mode you find tedious
+                  but do not want gone had no setting between "on" and "off",
+                  and switching it off to avoid it also stops it being measured.
+                -->
+                <select class="form-select form-select-sm mt-1"
+                        [disabled]="!active || !shownEnabled(row)"
+                        [value]="weightOf(row)"
+                        (change)="setWeight(row, $any($event.target).value)">
+                    <option *ngFor="let w of weights" [value]="w.value">{{ w.label }}</option>
+                </select>
+                <small class="text-muted">how often</small>
+
                 <ng-container *ngIf="hasDepth(row)">
                     <input type="number"
                            class="form-control form-control-sm mt-1"

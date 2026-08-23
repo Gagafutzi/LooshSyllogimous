@@ -328,6 +328,26 @@ export class GameService implements GeneratorContext {
         };
     }
 
+    /**
+     * How many tickets a mode gets in the draw.
+     *
+     * Selection is a uniform pick over one entry per mode, so frequency is
+     * expressed by how many entries a mode puts in. A weight of two is two
+     * entries and comes up about twice as often; a weight of a half is one
+     * entry *half the time*, which is what the fractional part is for — a mode
+     * cannot be entered half a time, but it can be entered every other time.
+     *
+     * Distinct from switching a mode off. A mode you find tedious but do not
+     * want gone has no other setting, and turning it off to avoid it also stops
+     * it being measured — so the estimate goes stale and the mode comes back
+     * harder than you left it.
+     */
+    private copiesFor(type: EnumQuestionType): number {
+        const weight = this.settingsOverrideService.weightFor(type);
+        const whole = Math.floor(weight);
+        return whole + (Math.random() < weight - whole ? 1 : 0);
+    }
+
     /** GeneratorContext: an explicit setting wins, else the ladder decides. */
     hasRung(type: string, rung: string) {
         return this.settingsOverrideService.rungOverride(type, rung)
@@ -371,7 +391,8 @@ export class GameService implements GeneratorContext {
             for (const [qt, qs] of grouped) {
                 const shouldIncludeQuestion = (basic == undefined) ? true : qs.basic === basic;
                 if (qs.enabled && shouldIncludeQuestion) {
-                    groupChoices.push(this.getCreateFn(qt, qs.clampNumOfPremises(numOfPremises || qs.getNumOfPremises())));
+                    const make = this.getCreateFn(qt, qs.clampNumOfPremises(numOfPremises || qs.getNumOfPremises()));
+                    for (let i = 0; i < this.copiesFor(qt); i++) groupChoices.push(make);
                 }
             }
             if (!isUndefinedGroup && groupChoices.length) {

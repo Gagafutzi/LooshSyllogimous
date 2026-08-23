@@ -42,6 +42,17 @@ export interface ModeOverride {
     numOfPremises?: number;
     /** Extra transformations, for the modes that have any. Premise-neutral. */
     transformDepth?: number;
+    /**
+     * How often this mode comes up, relative to the others.
+     *
+     * One is normal and the default; a half means it appears about half as
+     * often, two about twice. Distinct from `enabled`, which is whether it can
+     * appear at all — a mode you find tedious but do not want gone has no other
+     * setting, and turning it off to avoid it also stops it being measured.
+     *
+     * Undefined means one. Stored only when changed, like everything else here.
+     */
+    weight?: number;
 }
 
 /**
@@ -603,6 +614,27 @@ export class SettingsOverrideService {
         if (!this.live) return null;
         const forced = this.state.rungs?.[type]?.[rung];
         return forced === undefined ? null : forced;
+    }
+
+    /** How often a mode should come up, relative to the others. */
+    weightFor(type: EnumQuestionType): number {
+        if (!this.live) return 1;
+        const w = this.state.modes?.[type]?.weight;
+        return typeof w === "number" && w > 0 ? w : 1;
+    }
+
+    setWeight(type: EnumQuestionType, weight: number) {
+        const modes = { ...(this.state.modes ?? {}) };
+        const mode = { ...(modes[type] ?? {}) };
+        /*
+         * One is stored as *absent*, not as the number one. The whole layer
+         * says what was changed and stays silent about the rest, and a stored
+         * default is indistinguishable from a choice that happens to match it.
+         */
+        if (weight === 1) delete mode.weight; else mode.weight = weight;
+        modes[type] = mode;
+        this.state.modes = modes;
+        this.save();
     }
 
     setRung(type: string, rung: string, value: boolean | null) {

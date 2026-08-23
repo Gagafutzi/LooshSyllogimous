@@ -7,7 +7,7 @@
  */
 
 import { readdirSync, readFileSync } from "fs";
-import { assert, equal, test } from "./harness";
+import { assert, equal, seeded, test } from "./harness";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
 import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { getSymbols } from "../src/app/syllogimous/utils/question.utils";
@@ -378,4 +378,66 @@ test("the retired rungs keep their slot and their controls", () => {
         assert(new RegExp(`key: "${key}"`).test(component),
             `${key} left the ladder with no control, so it is now unreachable`);
     }
+});
+
+/**
+ * How often a mode comes up, as distinct from whether it comes up at all.
+ *
+ * A mode you find tedious but do not want gone had no setting between on and
+ * off — and switching it off to avoid it also stops it being measured, so the
+ * estimate goes stale and the mode returns harder than you left it.
+ */
+test("a weight is stored only when it is not the default", () => {
+    const overrides = fresh();
+    const type = EnumQuestionType.Syllogism;
+
+    equal(overrides.weightFor(type), 1, "a mode nobody has touched is not at normal");
+
+    overrides.setWeight(type, 0.25);
+    equal(overrides.weightFor(type), 0.25, "the weight did not take");
+    assert(JSON.stringify(overrides.state).includes("0.25"), "the weight was not stored");
+
+    /*
+     * Back to normal is *absence*, not the number one. This layer says what was
+     * changed and stays silent about the rest, and a stored default cannot be
+     * told from a choice that happens to match it.
+     */
+    overrides.setWeight(type, 1);
+    equal(overrides.weightFor(type), 1, "resetting did not restore normal");
+    equal(overrides.state.modes?.[type]?.weight, undefined,
+        "normal was written down rather than left unsaid");
+});
+
+test("a weight survives being written and read back", () => {
+    const overrides = fresh();
+    overrides.setWeight(EnumQuestionType.Knaves, 4);
+
+    const reloaded = new SettingsOverrideService();
+    equal(reloaded.weightFor(EnumQuestionType.Knaves), 4, "the weight was lost on reload");
+    equal(reloaded.weightFor(EnumQuestionType.Syllogism), 1,
+        "an untouched mode picked up someone else's weight");
+});
+
+/**
+ * Weights below one cannot be expressed by repeating an entry, so they are
+ * expressed by entering *sometimes*: a mode at a half puts in one ticket every
+ * other draw. Checked as a rate, since that is all it can be.
+ */
+test("a fractional weight enters the draw at that rate", () => {
+    const copies = (weight: number) => {
+        let total = 0;
+        for (let i = 0; i < 4000; i++) {
+            const whole = Math.floor(weight);
+            total += whole + (Math.random() < weight - whole ? 1 : 0);
+        }
+        return total / 4000;
+    };
+
+    seeded(11, () => {
+        for (const w of [0.25, 0.5, 1, 2, 4]) {
+            const got = copies(w);
+            assert(Math.abs(got - w) < 0.1,
+                `weight ${w} entered ${got.toFixed(2)} times per draw`);
+        }
+    });
 });

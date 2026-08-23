@@ -92,6 +92,30 @@ export class AdvancedOptionsComponent {
         return `${points > 0 ? "+" : ""}${points}`;
     }
 
+    /**
+     * How often a mode comes up, relative to the others.
+     *
+     * Named rather than numbered: "×0.5" invites the question "half of what?",
+     * where the answer is "half as often as a mode set to normal" and nobody
+     * reads that off a multiplier. Rarely is a quarter rather than a half so
+     * that it is worth choosing — half is barely a change over a session.
+     */
+    weights = [
+        { value: 0.25, label: "Rarely" },
+        { value: 0.5, label: "Less often" },
+        { value: 1, label: "Normal" },
+        { value: 2, label: "More often" },
+        { value: 4, label: "A lot" },
+    ];
+
+    weightOf(row: Row): number {
+        return this.overrides.weightFor(row.type);
+    }
+
+    setWeight(row: Row, raw: string) {
+        this.overrides.setWeight(row.type, Number(raw) || 1);
+    }
+
     setProg(key: string, raw: string | boolean) {
         const value = typeof raw === "boolean" ? raw : Number(raw);
         this.progression.set(key as any, value as any);
