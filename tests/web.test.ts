@@ -106,17 +106,29 @@ test("a near miss keeps every degree and changes the shape", () => {
     }
 });
 
+/**
+ * Reflexivity and symmetry are gone, being answered by looking rather than by
+ * reasoning: "does every node have a loop" and "is every arrow paired" are
+ * counted off the picture in a glance.
+ */
+test("the glanceable properties are not offered", () => {
+    for (const gone of ["reflexive", "symmetric"]) {
+        assert(!WEB_PROPERTIES.some(p => p.id === gone),
+            `${gone} is still in the pool`);
+    }
+    assert(WEB_PROPERTIES.some(p => p.id === "transitive"),
+        "the one property that needs composing is missing");
+});
+
 test("the properties agree with worked examples", () => {
     const prop = (id: string) => WEB_PROPERTIES.find(p => p.id === id)!;
 
     const loops = emptyWeb(3);
     for (let i = 0; i < 3; i++) loops.adj[i][i] = true;
-    assert(prop("reflexive").holds(loops), "all self-arrows is not reflexive");
     assert(!prop("irreflexive").holds(loops), "all self-arrows counted as irreflexive");
 
     const mutual = emptyWeb(2);
     mutual.adj[0][1] = true; mutual.adj[1][0] = true;
-    assert(prop("symmetric").holds(mutual), "a mutual pair is not symmetric");
     assert(!prop("antisymmetric").holds(mutual), "a mutual pair counted as antisymmetric");
     assert(!prop("asymmetric").holds(mutual), "a mutual pair counted as asymmetric");
 
@@ -730,4 +742,37 @@ test("arrows are drawn in the foreground colour", () => {
     }
     assert(!/transparent/.test(rule("web__node")),
         "a node is translucent, so an arrow behind it reads as running into it");
+});
+
+/**
+ * The mode's weight sits where its demand is.
+ *
+ * Property items ask a yes-or-no about a definition; assignment and comparison
+ * ask which node is which and whether two shapes are the same at all, and both
+ * need the picture read rather than scanned. Measured over two hundred items so
+ * a reweighting that drifts shows up rather than being argued about.
+ */
+test("property items are a small minority of the mode", () => {
+    for (const rungs of [[], ["structural", "structure-match"]]) {
+        const seen: Record<string, number> = {};
+        seeded(31, () => {
+            const ctx = context(rungs);
+            for (let i = 0; i < 200; i++) {
+                let q;
+                try { q = createRelationalWeb(ctx, 5); } catch { continue; }
+                const kind = q.answerMode === "map" ? "assignment"
+                    : String(q.conclusion).includes("agree about") ? "properties"
+                    : "comparison";
+                seen[kind] = (seen[kind] ?? 0) + 1;
+            }
+        });
+        const total = Object.values(seen).reduce((a, b) => a + b, 0);
+        assert(total > 100, `only ${total} items built`);
+
+        const share = (seen["properties"] ?? 0) / total;
+        assert(share < 0.18, `properties are ${(share * 100).toFixed(0)}% of the mode`);
+
+        const good = ((seen["assignment"] ?? 0) + (seen["comparison"] ?? 0)) / total;
+        assert(good > 0.8, `assignment and comparison are only ${(good * 100).toFixed(0)}%`);
+    }
 });

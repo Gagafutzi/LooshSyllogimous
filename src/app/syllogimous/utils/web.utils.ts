@@ -258,18 +258,26 @@ const pairs = (w: Web) => {
     return out;
 };
 
+/**
+ * The properties worth asking about.
+ *
+ * **Reflexivity and symmetry are gone.** Both are answered by looking rather
+ * than by reasoning — "does every node have a loop on it" and "is every arrow
+ * paired" are counted off the picture in a glance, and a question answered by
+ * glancing is not what a mode built on seeing structure should spend a fifth of
+ * its items on. Node assignment and shape comparison are the demands here.
+ *
+ * Their negations stay, and it is worth being straight about why that is not
+ * quite consistent: irreflexivity is the same glance as reflexivity. What keeps
+ * it is that a *false* item needs a property that fails interestingly, and the
+ * negations fail on one node where the positives fail on all of them — so they
+ * survive as the easy end of a pool that has to have one, while transitivity
+ * carries the other end.
+ */
 export const WEB_PROPERTIES: WebProperty[] = [
-    {
-        id: "reflexive", name: "Reflexivity", gloss: "every node points at itself",
-        holds: w => w.adj.every((row, i) => row[i]),
-    },
     {
         id: "irreflexive", name: "Irreflexivity", gloss: "no node points at itself",
         holds: w => w.adj.every((row, i) => !row[i]),
-    },
-    {
-        id: "symmetric", name: "Symmetry", gloss: "every arrow has one coming back",
-        holds: w => pairs(w).every(([i, j]) => w.adj[i][j] === w.adj[j][i]),
     },
     {
         id: "antisymmetric", name: "Antisymmetry", gloss: "no two nodes point at each other",

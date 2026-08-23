@@ -58,13 +58,25 @@ function nodeCount(numOfPremises: number): number {
  */
 function pickTrial(structure: boolean): WebTrial {
     const roll = Math.random();
+    /*
+     * Properties are down to one item in ten, from better than one in five.
+     *
+     * They ask a yes-or-no about a definition, and the two easiest of them have
+     * been removed outright — what is left is a check rather than a piece of
+     * seeing. Assignment and comparison are what the mode is *for*: one asks
+     * which node is which, the other whether two shapes are the same at all,
+     * and both need the picture read rather than scanned.
+     *
+     * Kept at all because they stop "look for the one node with three arrows
+     * out" being a strategy that survives a whole session.
+     */
     if (structure) {
         // Structure takes over from mapping as the centre once it is earned:
         // it is the same question asked properly, so running both would mean
         // asking the easier version half the time for no reason.
-        return roll < 0.5 ? "structure" : roll < 0.78 ? "comparison" : "properties";
+        return roll < 0.6 ? "structure" : roll < 0.9 ? "comparison" : "properties";
     }
-    return roll < 0.5 ? "mapping" : roll < 0.78 ? "comparison" : "properties";
+    return roll < 0.6 ? "mapping" : roll < 0.9 ? "comparison" : "properties";
 }
 
 export function createRelationalWeb(ctx: GeneratorContext, numOfPremises: number): Question {
