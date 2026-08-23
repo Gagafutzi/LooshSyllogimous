@@ -24,6 +24,19 @@
         font-weight: 700;
     }
 
+    /*
+     * Widest Group states its premises as tables, one per group. The answer is
+     * found by reading *down* a column, so the columns have to line up — which
+     * is the whole reason it is a table and not five sentences.
+     */
+    .group { margin-bottom: 0.6rem; }
+    .group__name { font-weight: 700; margin-bottom: 0.15rem; }
+    .group__table { border-collapse: collapse; font-size: 0.92em; }
+    .group__table th,
+    .group__table td { padding: 0.1rem 0.5rem; text-align: right; white-space: nowrap; }
+    .group__table tbody th { text-align: left; font-weight: 700; }
+    .group__table thead th { font-weight: 700; }
+
     .is-negated {
         color: var(--negated-color);
         font-style: italic;

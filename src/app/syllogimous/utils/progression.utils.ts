@@ -335,6 +335,25 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * Interleaved rather than stacked, so a player is never climbing one axis
      * for long.
      */
+    /*
+     * Widest Group. Three things open, and the margin is deliberately last.
+     *
+     *   dim-N     more directions to check before a group's widest is known
+     *   groups-N  more groups to compare, three then four
+     *   margin-1  the winner leads by one rather than two — a glance becomes a
+     *             measurement
+     *   rank      order every group rather than naming the top one. Naming the
+     *             top needs only the top group's score; ordering needs every
+     *             one of them, so a reader who spots the winner early cannot
+     *             stop there
+     *
+     * The margin is last because a narrow lead hidden among six directions is
+     * the hardest this mode gets, and tightening it before the directions exist
+     * to hide it in makes an item fiddly rather than demanding.
+     */
+    "Widest Group":              [
+        "dim-3", "groups-3", "dim-4", "margin-1", "dim-5", "groups-4", "dim-6", "rank",
+    ],
     "Axis Maps":                 [
         "compose-2", "dim-4", "offset", "groups-2", "compose-3",
         "dim-5", "compose-4", "groups-3", "dim-6", "compose-5", "dim-7",

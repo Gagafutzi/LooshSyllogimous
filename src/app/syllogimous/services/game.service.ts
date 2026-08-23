@@ -64,6 +64,7 @@ import { createShapeRotation } from "../generators/shape-rotation";
 import { createRelationalWeb } from "../generators/relational-web";
 import { createStimulusFunction } from "../generators/stimulus-function";
 import { createAxisMap } from "../generators/axis-map";
+import { createWidestGroup } from "../generators/widest-group";
 import { createTransformMatch } from "../generators/transform-match";
 import { createKnaves } from "../generators/knaves";
 import { createNested } from "../generators/nested";
@@ -305,6 +306,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.RelationalWeb]: () => createRelationalWeb(this, numOfPremises),
             [EnumQuestionType.StimulusFunction]: () => createStimulusFunction(this, numOfPremises),
             [EnumQuestionType.AxisMap]: () => createAxisMap(this, numOfPremises),
+            [EnumQuestionType.WidestGroup]: () => createWidestGroup(this, numOfPremises),
             [EnumQuestionType.TransformMatching]: () => createTransformMatch(this, numOfPremises),
             [EnumQuestionType.Knaves]: () => createKnaves(this, numOfPremises),
             [EnumQuestionType.NestedSpaces]: () => createNested(this, numOfPremises),

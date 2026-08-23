@@ -316,6 +316,18 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         basic: false
     },
     /*
+     * Premises buy members per group. Three is the floor — two members have a
+     * spread and no ordering, so nothing has to be arranged before it is read
+     * — and six is the ceiling, past which the item is a longer sort rather
+     * than a harder comparison.
+     */
+    [EnumQuestionType.WidestGroup]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 6,
+        basic: false
+    },
+    /*
      * One statement per speaker, so premises are speakers. Six is the ceiling:
      * the solver is fine past it, but a reader holding seven interlocking
      * biconditionals is being tested on working memory rather than on

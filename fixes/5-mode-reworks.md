@@ -113,7 +113,43 @@ Two properties, both of which this item fails:
 
 ---
 
-## 5.2 Oddest Relation
+## 5.2 Oddest Relation — **BUILT**, as Widest Group
+
+`generators/widest-group.ts`. The reading the author confirmed, built as a new
+mode rather than a rewrite: the old generator keeps working and keeps its
+ability history, and it can now be turned down to *Rarely* with the per-mode
+frequency setting rather than being switched off, which would also stop it being
+measured.
+
+**Groups as tables.** Five members across six directions is thirty facts, and as
+prose that is six clauses per line for five lines — the display problem the
+composed spaces already hit. The answer is found by reading *down* a column, so
+the columns line up.
+
+**Built backwards from the answer.** Placing members at random and measuring
+afterwards gives no control over the margin between groups, and the margin is
+the difficulty: left to chance the winner is usually obvious and occasionally
+tied, and tied is worse than obvious. Scores are drawn first — winner, then
+runner-up a stated margin below, then the rest below that so no third group can
+be mistaken for the answer.
+
+**And then measured back off the finished coordinates.** Placing the two edges
+and scattering the rest between them *should* give the spread that was asked
+for, and "should" is not a thing to ship: an item whose stated answer disagrees
+with its own numbers is the one failure a trainer must not have. The test goes
+further and re-derives every spread from the rendered HTML, which is a second
+implementation of the whole question.
+
+**Two things had to be unique, not one.** The winner, obviously. But also each
+group's *own* widest direction — otherwise "which direction is this group widest
+on" has two answers and a reader who checks the other is right and marked wrong.
+
+The ladder opens directions two to six, groups two to four, the margin from two
+to one, and finally `rank`: order every group rather than naming the top. Naming
+the top needs only the top group's score; ordering needs all of them, so a
+reader who spots the winner early cannot stop there.
+
+### The original diagnosis
 
 ![](shots/09-oddest-relation.png)
 

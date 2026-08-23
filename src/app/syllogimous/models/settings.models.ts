@@ -44,6 +44,7 @@ const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
     EnumQuestionType.StimulusFunction,
     EnumQuestionType.TransformMatching,
     EnumQuestionType.AxisMap,
+    EnumQuestionType.WidestGroup,
     EnumQuestionType.Knaves,
     EnumQuestionType.NestedSpaces,
 ]);
@@ -188,6 +189,7 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.StimulusFunction);
         this.initQuestionSettings(EnumQuestionType.TransformMatching);
         this.initQuestionSettings(EnumQuestionType.AxisMap);
+        this.initQuestionSettings(EnumQuestionType.WidestGroup);
         this.initQuestionSettings(EnumQuestionType.Knaves);
         this.initQuestionSettings(EnumQuestionType.NestedSpaces);
     }

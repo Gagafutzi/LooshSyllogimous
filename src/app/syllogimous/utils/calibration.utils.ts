@@ -204,6 +204,12 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      */
     [EnumQuestionType.AxisMap]: { weight: 1.4, ceiling: 5 },
     /*
+     * A member is a row to order, and ordering is most of the work — but the
+     * rows are read rather than composed, so a member is worth less than a
+     * premise that has to be held against the ones before it.
+     */
+    [EnumQuestionType.WidestGroup]: { weight: 1.2, ceiling: 6 },
+    /*
      * Each speaker is a biconditional that interacts with every other, so the
      * work grows faster than the count: a fourth statement can invalidate a
      * reading the first three allowed. Not as steep as it sounds in practice,

@@ -99,7 +99,7 @@ export const RUNG_COST: Record<string, number> = {
      * each extra axis is one more entry to induce and carry, and it gets a
      * little cheaper as the reader learns what the examples are for.
      */
-    "dim-4": 0.6, "dim-5": 0.6, "dim-6": 0.5, "dim-7": 0.5,
+    "dim-3": 0.6, "dim-4": 0.6, "dim-5": 0.6, "dim-6": 0.5, "dim-7": 0.5,
     // A shift needs the frame to be visible at all, and says nothing about any
     // one axis, so it adds least of the four.
     offset: 0.6,
@@ -114,7 +114,13 @@ export const RUNG_COST: Record<string, number> = {
      * separated from compose at all -- two changes is a longer rule, two groups
      * is two rules and the question of which is which.
      */
-    "groups-2": 1.6, "groups-3": 1.2,
+    "groups-2": 1.6, "groups-3": 1.2, "groups-4": 1.0,
+    /*
+     * A one-point lead instead of two. The comparison stops being a glance and
+     * has to be measured, which is the whole difficulty of the mode in a single
+     * rung.
+     */
+    "margin-1": 1.3,
     "circular-2": 0.8,
 
     "transform-1": 1.5,
