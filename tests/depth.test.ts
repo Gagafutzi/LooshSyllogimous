@@ -21,6 +21,7 @@ import {
 } from "../src/app/syllogimous/utils/linear.utils";
 import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
+import { createGraphMatching } from "../src/app/syllogimous/generators/graph-matching";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -226,4 +227,67 @@ test("a rotation conclusion is not a premise read back", () => {
     });
 
     assert(checked > 15, `only ${checked} relative-form items were produced`);
+});
+
+const subjectsOf = (html: string) =>
+    [...html.matchAll(/<span class="subject">([^<]*)<\/span>/g)].map(m => m[1]);
+
+/** Every rung on, so the relational form is reachable. */
+function webCtx(): GeneratorContext {
+    const ctx = ndContext();
+    return { ...ctx, hasRung: () => true,
+        progressionService: { hasRung: () => true, depthBonusFor: () => 0 } as unknown as ProgressionService };
+}
+
+/**
+ * The relational form must show the pairing, not assert that one exists.
+ *
+ * Its derivation used to read *"every one of the first set's links can be
+ * matched onto the second's, name for name"* -- true, and the conclusion in
+ * different words. The pairing is the entire content of the mode and was the
+ * one thing never stated, so someone who could already see it did not need the
+ * line and someone who could not was told the answer twice.
+ */
+test("a structure match shows which name goes with which", () => {
+    const ctx = webCtx();
+    let sameItems = 0, diffItems = 0;
+
+    seeded(8181, () => {
+        for (let i = 0; i < 60; i++) {
+            let q;
+            try { q = createGraphMatching(ctx, 5); } catch { continue; }
+            if (!String(q.conclusion).includes("same structure")) continue;
+
+            const text = q.explanation.join(" ");
+            const pairing = q.explanation.find(l => l.startsWith("Pair them off:"));
+            assert(!!pairing, "the derivation never states the pairing");
+
+            /*
+             * Every object on both sides appears in the pairing line. A partial
+             * correspondence is the failure this replaces -- it reads as an
+             * explanation while leaving the reader to find the rest.
+             */
+            const paired = new Set(subjectsOf(pairing!));
+            for (const word of q.bucket) {
+                assert(paired.has(word), `${word} is in the item but not in the pairing`);
+            }
+
+            if (q.isValid) {
+                // One correspondence line per link, and no sampling: four to six
+                // is a short list, and "and so on" asks to be taken on trust
+                // about the step in doubt.
+                const links = q.explanation.filter(l => l.includes("&rarr;")).length;
+                const stated = q.premises.filter(p => !p.endsWith(":")).length;
+                equal(links * 2, stated, "the derivation skipped some links");
+                sameItems++;
+            } else {
+                assert(/does not say that|no counterpart for/.test(text),
+                    "a false item does not name the link that disagrees");
+                diffItems++;
+            }
+        }
+    });
+
+    assert(sameItems > 3 && diffItems > 3,
+        `only saw ${sameItems} matching and ${diffItems} differing items`);
 });

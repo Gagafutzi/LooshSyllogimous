@@ -65,7 +65,37 @@ on the answer record.
 
 ---
 
-## 3.2 Graph Matching has no derivation
+## 3.2 Graph Matching has no derivation — **BUILT for the reported form**
+
+The screenshot is the **relational** form — two sets of statements in different
+vocabularies, "Left-right:" against "Quantity:" — and its derivation asserted
+the answer in different words: *"every one of the first set's links can be
+matched onto the second's, name for name"*. True, and no help. Someone who
+could already see the correspondence did not need the line; someone who could
+not was told the conclusion twice.
+
+It now states the pairing and then shows it working, link by link, in both
+vocabularies:
+
+```
+Pair them off: Drop/Booklet, Bag/Cocktail, Bun/Musician, Stain/Gull, Flat/Sculpture.
+Bun is after Stain, so the second set would need Musician is on top of Gull
+  — and it does not say that.
+No other pairing of the names does better — every one was tried.
+```
+
+The pairing is known exactly rather than searched for: the second set is the
+first relabelled position for position. On a false item that is still the
+closest pairing available — `editDistance` has already established that no
+bijection does better — so the link named as disagreeing is a real
+disagreement rather than an artefact of having guessed the wrong pairing.
+
+**Still to do:** the two labelled-graph forms below, whose `explainGraph` has
+the same shape of problem, and the change to `areGraphsIsomorphic` that the
+general fix needs. The relational form did not need it, which is why it went
+first.
+
+### The original diagnosis
 
 ![](shots/02-graph-matching-explanation.png)
 

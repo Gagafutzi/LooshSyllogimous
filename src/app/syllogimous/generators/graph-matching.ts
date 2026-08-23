@@ -514,11 +514,7 @@ function buildAsRelations(ctx: GeneratorContext, numOfPremises: number): Questio
         question.explanation = [
             `Read as shape, a one-way statement is a link with a direction and a`
             + ` sameness statement is a link with none.`,
-            same
-                ? `Every one of the first set's links can be matched onto the second's,`
-                  + ` name for name, running the same way.`
-                : `No matching of the names lines every link up: at least one runs the`
-                  + ` other way, or is not there at all.`,
+            ...pairingLines(base, other, left, right, first, second, same),
             `so the two ${same ? "do" : "do not"} describe the same structure`,
         ];
         return question;
@@ -559,6 +555,78 @@ function pickScalePair(): [LinearScale, LinearScale] | null {
  * "same amount" — and reading as a sentence needs the full phrase the scale
  * also carries: "is more than", "is at the same time as".
  */
+/**
+ * The correspondence itself, and then it working — or failing on one link.
+ *
+ * The explanation used to assert the answer in different words: *"every one of
+ * the first set's links can be matched onto the second's, name for name"*.
+ * True, and no help. The question is *which* name goes with which — that
+ * pairing is the entire content of the mode, and it was the one thing the
+ * derivation never said. Someone who could already see the correspondence did
+ * not need the line, and someone who could not was told the conclusion twice.
+ *
+ * The pairing is known exactly rather than searched for: the second set is the
+ * first relabelled position for position, so `left[i]` goes with `right[i]`.
+ * On a false item that is still the closest pairing there is — `editDistance`
+ * has already established no bijection does better — so naming the link that
+ * disagrees under it names a real disagreement rather than an artefact of
+ * having guessed the wrong pairing.
+ *
+ * Links are shown in both vocabularies, side by side, because reading one
+ * relation as another is the operation being trained and the derivation should
+ * demonstrate it rather than describe it.
+ */
+function pairingLines(
+    base: GraphEdge[],
+    other: GraphEdge[],
+    left: string[],
+    right: string[],
+    firstScale: LinearScale,
+    secondScale: LinearScale,
+    same: boolean,
+): string[] {
+    const map = new Map(left.map((n, i) => [n, right[i]]));
+    const pairs = left
+        .map((n, i) => `${subj(n)}&hairsp;/&hairsp;${subj(right[i])}`)
+        .join(", ");
+
+    const present = new Set(other.map(edgeKey));
+    const under = (e: GraphEdge): [string, string, string] =>
+        [map.get(e[0])!, e[1], map.get(e[2])!];
+
+    const say = (e: [string, string, string], scale: LinearScale) =>
+        asRelations([e as GraphEdge], scale)[0];
+
+    const lines = [`Pair them off: ${pairs}.`];
+
+    if (same) {
+        /*
+         * Every link, not a sample. Four to six of them is a short list, and a
+         * derivation that shows three and says "and so on" is asking to be
+         * taken on trust about exactly the step in doubt.
+         */
+        for (const e of base) {
+            lines.push(`${say(e, firstScale)} &rarr; ${say(under(e), secondScale)}`);
+        }
+        lines.push(`Every link has a counterpart running the same way.`);
+        return lines;
+    }
+
+    const broken = base.find(e => !present.has(edgeKey(under(e))));
+    if (broken) {
+        lines.push(`${say(broken, firstScale)}, so the second set would need`
+            + ` ${say(under(broken), secondScale)} &mdash; and it does not say that.`);
+    } else {
+        // The disagreement is an extra link rather than a missing one.
+        const mapped = new Set(base.map(e => edgeKey(under(e))));
+        const extra = other.find(e => !mapped.has(edgeKey(e)));
+        if (extra) lines.push(`The second set has ${say(extra, secondScale)},`
+            + ` which the first has no counterpart for.`);
+    }
+    lines.push(`No other pairing of the names does better &mdash; every one was tried.`);
+    return lines;
+}
+
 function asRelations(edges: GraphEdge[], scale: LinearScale): string[] {
     return edges.map(([a, rel, b]) => {
         const phrase = rel === "→" ? scale.above : rel === "←" ? scale.below : scale.same;
