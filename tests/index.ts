@@ -17,6 +17,7 @@ import "./fatigue.test";
 import "./profiles.test";
 import "./keybind.test";
 import "./customise.test";
+import "./save-data.test";
 import "./map.test";
 import "./web.test";
 import "./coldstart.test";

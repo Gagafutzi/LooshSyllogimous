@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
-import { LS_HISTORY, LS_PROPS, allStorageKeys } from "../constants/local-storage.constants";
+import { allStorageKeys } from "../constants/local-storage.constants";
+import { describeImport, isImportError, planImport } from "../utils/save-data.utils";
 import { downloadFile } from "src/app/utils/file";
 
 /**
@@ -76,20 +77,30 @@ export class SystemActionsService {
             return;
         }
 
-        const data = JSON.parse(importJson);
-        for (const [key, value] of Object.entries(data)) {
-            if (key === LS_HISTORY) {
-                // History is capped on read elsewhere; cap on write too so an
-                // oversized import cannot blow past the storage quota.
-                const parsed = JSON.parse(value as string).slice(0, 1000);
-                localStorage.setItem(key, JSON.stringify(parsed));
-            } else {
-                localStorage.setItem(key, value as string);
-            }
+        const plan = planImport(importJson);
+        if (isImportError(plan)) return alert(plan.error);
+
+        /*
+         * Replace, rather than merge on top of what is already here.
+         *
+         * This is what made import look broken, and it is worse the older the
+         * file is. Writing only the keys the file carries leaves every key it
+         * does *not* — so restoring a backup taken before the ability model
+         * existed gave the player their old history and settings sitting on top
+         * of the current install's estimates, profiles and theme. A hybrid
+         * account, silently, while the prompt said "importing will overwrite
+         * all existing settings".
+         *
+         * Cleared first, then written, and only over keys this app owns.
+         */
+        for (const key of allStorageKeys()) localStorage.removeItem(key);
+        for (const [key, value] of plan.entries) {
+            try { localStorage.setItem(key, value); } catch { /* quota */ }
         }
 
+        const notes = describeImport(plan);
         setTimeout(() => {
-            alert("Import completed successfully!");
+            alert(notes ? `Import completed — ${notes}.` : "Import completed successfully!");
             window.location.reload();
         }, 400);
     }
