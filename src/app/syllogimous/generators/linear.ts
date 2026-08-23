@@ -6,7 +6,7 @@
  */
 
 import { coordMapFromPositions } from "../utils/map.utils";
-import { GeneratorContext } from "./context";
+import { GeneratorContext, modifierOn } from "./context";
 import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
@@ -126,7 +126,7 @@ export function createComparison(ctx: GeneratorContext, numOfPremises: number, t
             question.premises.push(`${subj(first)} is ${relation} ${subj(last)}`);
         }
 
-        createMetaRelationships(settings, question, length);
+        createMetaRelationships(settings, question, length, modifierOn(ctx, type, "meta", settings.enabled.meta));
 
         a = Math.floor(Math.random() * question.bucket.length);
         b = Math.floor(Math.random() * question.bucket.length);
@@ -243,7 +243,7 @@ export function createLinear(ctx: GeneratorContext, numOfPremises: number, type:
          * structure the overlap rung exists to hide.
          */
         const rendered = renderPremises(scale, layout, {
-            negate: settings.enabled.negation && !feat.overlap,
+            negate: modifierOn(ctx, type, "negation", settings.enabled.negation) && !feat.overlap,
             allowTies: false,
             wide: feat.wide,
         });
@@ -296,7 +296,8 @@ export function createLinear(ctx: GeneratorContext, numOfPremises: number, type:
         question.bucket = [...words].sort((a, b) => layout.pos[b] - layout.pos[a]);
         question.premises = premises;
         if (!ties) {
-            createMetaRelationships(settings, question, premises.length + 1);
+            createMetaRelationships(settings, question, premises.length + 1,
+                modifierOn(ctx, type, "meta", settings.enabled.meta));
         }
 
         question.premises = transformCount > 0

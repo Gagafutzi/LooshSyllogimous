@@ -167,9 +167,19 @@ export function getRelation(settings: Settings, type: EnumQuestionType, isPositi
     return relation;
 }
 
-export function createMetaRelationships(settings: Settings, question: Question, length: number) {
+/**
+ * `enabled` overrides the global flag, so one mode can carry meta while the
+ * rest do not.
+ *
+ * `settings.enabled.meta` is one switch for twenty modes — it was the only way
+ * to ask for meta relations, so asking for them anywhere asked for them
+ * everywhere. Callers now resolve per-mode first and pass the answer in;
+ * omitting it keeps the old behaviour, which is what the modes with no per-mode
+ * control still want.
+ */
+export function createMetaRelationships(settings: Settings, question: Question, length: number, enabled?: boolean) {
     // Substitute a variable number of premises with meta-relations
-    if (settings.enabled.meta && coinFlip()) {
+    if ((enabled ?? settings.enabled.meta) && coinFlip()) {
         const numOfMetaRelationships = 1 + Math.floor(Math.random() * Math.floor((length - 1) / 2));
         question.metaRelations += numOfMetaRelationships;
 

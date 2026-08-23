@@ -106,3 +106,25 @@ export function extraTransforms(ctx: GeneratorContext, type: EnumQuestionType) {
     return ctx.progressionService.depthBonusFor(type)
          + ctx.settingsOverrideService.depthFor(type);
 }
+
+/**
+ * Whether a mode carries a modifier, per mode.
+ *
+ * Precedence is **per-mode override → global override → ladder**, and the
+ * middle term is why this cannot simply call `ctx.hasRung`: negation and meta
+ * have a global Customise switch that predates the per-mode rung rows, and
+ * `settings.enabled.*` already folds that switch together with what the ladder
+ * granted. So the per-mode answer is asked for first, and everything else falls
+ * through to the flag that already knows.
+ *
+ * Optional-called because a test context stubs the override service with only
+ * the members it needs; absent, the global answer stands.
+ */
+export function modifierOn(
+    ctx: GeneratorContext,
+    type: string,
+    rung: "meta" | "negation",
+    globalFlag: boolean,
+): boolean {
+    return ctx.settingsOverrideService.rungOverride?.(type, rung) ?? globalFlag;
+}

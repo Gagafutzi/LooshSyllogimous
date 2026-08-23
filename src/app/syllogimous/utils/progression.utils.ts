@@ -220,7 +220,13 @@ export function update(
 const LINEAR_LADDER = [
     // Appended mid-ladder rather than at the front: putting a new rung first
     // would shift every rung already earned by one.
-    "negation", "branching", "meta", "overlap", "wide-premises",
+    //
+    // `retired-*` is a tombstone, and deleting one is not the same as leaving
+    // it. A profile stores how many rungs it has earned, and `rungs[i]` is read
+    // by position — so removing an entry renames every rung after it for every
+    // existing player, silently. The tombstone holds the slot, matches no
+    // `hasRung` call, and is filtered out of the settings UI. See fixes/6.
+    "negation", "branching", "meta", "overlap", "retired-wide-premises",
     "transform-1", "transform-2", "multi-conclusion", "choose-conclusion",
     "construct-conclusion", "construct-distance",
 ];
@@ -255,7 +261,8 @@ const LINEAR_LADDER = [
  * answer-mode ones.
  */
 const ND_LADDER = [
-    "branching", "compact", "circular", "indeterminate", "facing", "speakers", "testimony", "transform-1", "edit-1",
+    // "compact" is retired rather than removed; see the note on LINEAR_LADDER.
+    "branching", "retired-compact", "circular", "indeterminate", "facing", "speakers", "testimony", "transform-1", "edit-1",
     "circular-2", "transform-2", "edit-2", "analogy",
     "multi-conclusion", "choose-conclusion", "construct-conclusion", "construct-distance",
 ];

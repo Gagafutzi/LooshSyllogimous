@@ -64,7 +64,6 @@ export const RUNG_COST: Record<string, number> = {
 
     branching: 0.8,
     overlap: 0.7,
-    compact: 0.5,
     /*
      * Dearer than the other premise-shape modifiers because it changes what is
      * being asked, not how it is worded: the claim becomes one of necessity,
@@ -148,9 +147,22 @@ export const RUNG_COST: Record<string, number> = {
      * is for.
      */
 
-    // Two links per sentence. Cheaper than it looks: the same relations, and
-    // the cost is holding one premise entire rather than reading more.
-    "wide-premises": 0.7,
+    /*
+     * Tombstones, priced at zero and priced deliberately.
+     *
+     * These held the ladder slots that `wide-premises` (0.7) and `compact`
+     * (0.5) used to occupy, and the prices went with the names — see fixes/6
+     * for why both features left the ladder. The slots stay filled so existing
+     * profiles keep their earned rungs aligned by position; the price is zero
+     * because the item no longer carries the feature. Falling through to the
+     * 0.8 fallback would charge every player who had climbed past that slot for
+     * a difficulty their items do not contain.
+     *
+     * Both features are still reachable from Customise, and — like every other
+     * forced flag — are not priced when forced.
+     */
+    "retired-wide-premises": 0,
+    "retired-compact": 0,
 
     // A false direction drawn from ones the item used. It removes a shortcut
     // rather than adding work — measured at 79% against 75% when it went in,

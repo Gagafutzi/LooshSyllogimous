@@ -5,7 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { GeneratorContext } from "./context";
+import { GeneratorContext, modifierOn } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
@@ -81,7 +81,7 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
             return createDistinction(ctx, numOfPremises);
         }
 
-        createMetaRelationships(settings, question, length);
+        createMetaRelationships(settings, question, length, modifierOn(ctx, type, "meta", settings.enabled.meta));
 
         const isSameAs = coinFlip();
         const relation = getRelation(settings, type, isSameAs);

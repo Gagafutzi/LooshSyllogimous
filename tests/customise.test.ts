@@ -14,6 +14,7 @@ import { getSymbols } from "../src/app/syllogimous/utils/question.utils";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import { allStorageKeys } from "../src/app/syllogimous/constants/local-storage.constants";
 import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.constants";
+import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { ThemeService } from "../src/app/syllogimous/services/theme.service";
 
 function fresh() {
@@ -313,4 +314,68 @@ test("untouched stimulus settings match the stock ones exactly", () => {
     }
 
     localStorage.clear();
+});
+
+/**
+ * One mode's meta setting is not every mode's.
+ *
+ * `settings.enabled.meta` is a single switch read by twenty generators, so
+ * asking for meta relations on Comparison asked for them on Distinction too.
+ * The per-mode rung rows existed for every other modifier and these two were
+ * excluded from them, on the grounds that the global flag already covered it —
+ * which it did, in the sense that a light switch covers a house.
+ *
+ * Precedence is per-mode → global → ladder, and it is the middle term that
+ * makes this worth a table rather than an assertion: the global switch is
+ * itself tri-state, so "off globally, on here" and "on globally, off here" are
+ * both things a player can now ask for and both used to be unsayable.
+ */
+test("a per-mode modifier override outranks the global one", () => {
+    const overrides = fresh();
+    const type = EnumQuestionType.ComparisonNumerical;
+    const other = EnumQuestionType.Distinction;
+
+    const resolve = (globalFlag: boolean, forType: string) =>
+        overrides.rungOverride(forType, "meta") ?? globalFlag;
+
+    for (const globalFlag of [false, true]) {
+        overrides.setRung(type, "meta", null);
+        equal(resolve(globalFlag, type), globalFlag,
+            `with no per-mode opinion the global flag (${globalFlag}) should stand`);
+
+        for (const forced of [false, true]) {
+            overrides.setRung(type, "meta", forced);
+            equal(resolve(globalFlag, type), forced,
+                `per-mode ${forced} should outrank global ${globalFlag}`);
+            equal(resolve(globalFlag, other), globalFlag,
+                "an opinion about one mode is not an opinion about another");
+        }
+    }
+
+    overrides.setRung(type, "meta", null);
+});
+
+/**
+ * Both features left the ladder, and neither left the app.
+ *
+ * Removing a rung without giving its feature a control would delete the
+ * feature by accident — it was only ever reachable by climbing.
+ */
+test("the retired rungs keep their slot and their controls", () => {
+    for (const ladder of ORDERED_QUESTION_TYPES.map(t => ladderFor(t))) {
+        assert(!ladder.includes("wide-premises"), "wide premises are still handed out");
+        assert(!ladder.includes("compact"), "compact relations are still handed out");
+    }
+
+    const linear = ladderFor(EnumQuestionType.ComparisonNumerical);
+    equal(linear.indexOf("retired-wide-premises"), 4,
+        "the tombstone moved, so every rung after it renamed itself for existing profiles");
+    equal(linear.indexOf("negation"), 0, "the rungs before it moved too");
+
+    const component = readFileSync(
+        "src/app/syllogimous/components/mode-modifiers/mode-modifiers.component.ts", "utf8");
+    for (const key of ["widePremises", "compact"]) {
+        assert(new RegExp(`key: "${key}"`).test(component),
+            `${key} left the ladder with no control, so it is now unreachable`);
+    }
 });

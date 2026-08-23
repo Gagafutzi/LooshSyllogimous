@@ -40,7 +40,12 @@ export class ModeModifiersComponent {
      * ones that had no control at all: earned or nothing.
      */
     private static readonly COVERED = new Set([
-        "negation", "meta", "branching", "overlap", "compact", "indeterminate", "facing", "analogy",
+        // Tombstones. They hold a ladder slot so existing profiles keep their
+        // earned rungs lined up, and no generator asks for them — so showing a
+        // control would be offering a switch wired to nothing. The features
+        // themselves are still reachable, as ordinary rows above.
+        "retired-wide-premises", "retired-compact",
+        "branching", "overlap", "compact", "indeterminate", "facing", "analogy",
         "multi-conclusion", "choose-conclusion", "construct-conclusion",
         "construct-distance", "wide-premises", "incorrect-directions",
         "transform-1", "transform-2", "edit-1", "edit-2", "circular", "circular-2",
@@ -65,6 +70,8 @@ export class ModeModifiersComponent {
     /** Rung names are kebab ids; this is what they are called out loud. */
     rungLabel(rung: string) {
         return ({
+            "negation": "Negated premises — “is not above”, here only",
+            "meta": "Relations about relations, here only",
             "structural": "Structural matching — no counting arrows",
             "rank": "Rank every candidate, not just the furthest",
             "extra-reversal": "A second reversal",
@@ -175,6 +182,25 @@ export class ModeModifiersComponent {
             key: "analogy",
             label: "Analogy conclusions",
             hint: "Does A→B match C→D? Direction only, not distance",
+        },
+        /*
+         * Off the ladder as of fixes/6, and here so they are still reachable.
+         *
+         * Both were being handed out by progression while only sometimes doing
+         * anything — wide premises merge only when two consecutive stored edges
+         * share an endpoint, which branching makes rare, and branching is
+         * earned first. A rung that the item does not visibly honour is worse
+         * than no rung, because the player is told they climbed.
+         */
+        {
+            key: "widePremises",
+            label: "Two relations per premise",
+            hint: "“A is above B, which is above C”. Merges only where the chain allows it, so some items are unaffected",
+        },
+        {
+            key: "compact",
+            label: "Skip the axes that match",
+            hint: "An unmentioned axis means “the same” rather than one less thing to read. Composed spaces only",
         },
     ];
 
