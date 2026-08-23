@@ -108,7 +108,16 @@ about a pair `k` edges apart needs at least `k` premises. Use `span` where it is
 available and greedy removal only where it is not — it is the same number for
 these modes and it is free.
 
-### `minDepth`, a generator constraint
+### `minDepth`, a generator constraint — **BUILT for both pair pickers**
+
+Both `pickDistantPair`s take the diameter now, with `slack` saying how far below
+it a caller may reach and zero the default. What is *not* built is the inversion
+described below — choosing the pair first and building the layout around it. The
+pickers still work with whatever layout they are handed, so a layout with a
+small diameter still yields a shallow conclusion; it is now the layout that is
+at fault rather than the picker, which is the right place for the remaining
+work.
+
 
 Every generator that builds a conclusion gains a floor and rejects candidates
 below it, the way `isPremiseLikeConclusion` is used today: draw, check, redraw.
@@ -227,7 +236,26 @@ group-aware and the fix is which group goes first.
 
 ---
 
-## 2.5 An N-dimensional map deserves an N-dimensional conclusion
+## 2.5 An N-dimensional map deserves an N-dimensional conclusion — **BUILT**
+
+`buildNdWideConclusion` names every axis, worded through the same `axisClause`
+the premises use, with a false claim wrong on exactly one axis. A 7-D item now
+reads *"Amber is west, south, above, later, wider, lower, opposite kind relative
+to Neck"* where it read *"Chalk is west of Museum"*.
+
+Two cases still fall back to the single-axis claim and both are noted in the
+code: a **circular axis**, whose relation is a displacement in steps rather than
+a direction word and so has no clause of this shape; and a pair the premises
+leave **unsettled on some axis**, which the under-specification rungs produce on
+purpose. The first is the one worth finishing — it needs `displacementText`
+split into a clause and a sentence.
+
+The explanation still covers one axis: the one a false claim lies about, which
+is right, or the pair's chosen axis on a true claim, which is thin. That is
+[4.2](4-legibility.md#42-the-composed-space-explanation-diagram)'s job — a
+seven-axis answer wants the coordinate table, not seven walks.
+
+The original diagnosis follows.
 
 Twenty-one stated relations, a conclusion naming one
 ([shot 12](shots/12-ndspace-7d-1d-conclusion.png)). The cause is direct:

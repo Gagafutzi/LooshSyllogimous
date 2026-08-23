@@ -19,6 +19,36 @@ import { assert, equal, seeded, test } from "./harness";
 import {
     buildBranching, buildChain, graphDistance, pickDistantPair,
 } from "../src/app/syllogimous/utils/linear.utils";
+import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
+import { GeneratorContext } from "../src/app/syllogimous/generators/context";
+import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
+import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
+import { Settings } from "../src/app/syllogimous/models/settings.models";
+import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
+import { Logger } from "../src/app/syllogimous/utils/logger";
+import { createDistinction } from "../src/app/syllogimous/generators/distinction";
+
+/** Nothing switched on: no circular axes, no under-specification. */
+function ndContext(): GeneratorContext {
+    const settings = new Settings();
+    for (const type of Object.values(EnumQuestionType)) settings.question[type].enabled = true;
+    const ctx: GeneratorContext = {
+        settings,
+        logger: new Logger("error", false),
+        settingsOverrideService: {
+            linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
+            spread: () => null, depthFor: () => 0, scramble: 100,
+        } as unknown as SettingsOverrideService,
+        progressionService: {
+            hasRung: () => false, depthBonusFor: () => 0,
+        } as unknown as ProgressionService,
+        forceConstruction: "off",
+        syllogismGenerator: "canyon",
+        hasRung: () => false,
+        random: (n?: number) => createDistinction(ctx, n ?? 2),
+    };
+    return ctx;
+}
 
 /** The longest shortest path: what a full-depth conclusion has to span. */
 function diameter(neighbors: Record<string, string[]>): number {
@@ -98,4 +128,54 @@ test("every layout that has a distant pair yields one", () => {
             }
         }
     });
+});
+
+/**
+ * Width: an N-dimensional map deserves an N-dimensional conclusion.
+ *
+ * Seven premises' worth of relations and a conclusion naming one axis was the
+ * other half of the same complaint, and it is a separate failure from depth —
+ * that item was at full depth and one-seventh width. `buildNdConclusion` asked
+ * about a single axis whatever the item was built on, and *which* axis had no
+ * good answer, because any choice makes the rest of every premise decoration.
+ *
+ * Counted by axis colour rather than by parsing relation words: every clause is
+ * painted with its axis's `dim-N` class, in the conclusion exactly as in the
+ * premises, so the two are comparable without knowing any mode's vocabulary.
+ */
+const dims = (html: string) =>
+    new Set([...html.matchAll(/\bdim-(\d+)\b/g)].map(m => m[1]));
+
+test("a composed space asks about every axis it is built on", () => {
+    const ctx = ndContext();
+    let checked = 0;
+
+    seeded(4242, () => {
+        for (const type of [
+            EnumQuestionType.Space3D, EnumQuestionType.Space4D,
+            EnumQuestionType.Space5D, EnumQuestionType.Space6D,
+            EnumQuestionType.Space7D,
+        ]) {
+            for (let rep = 0; rep < 25; rep++) {
+                let q;
+                try { q = createNdSpace(ctx, 3, type); } catch { continue; }
+                const conclusion = String(q.conclusion ?? "");
+                if (!conclusion || q.answerMode !== "boolean") continue;
+
+                const stated = new Set<string>();
+                for (const p of q.premises) for (const d of dims(p)) stated.add(d);
+                if (stated.size < 2) continue;
+
+                const asked = dims(conclusion);
+                // The single-axis fallback is legitimate for the layouts that
+                // cannot carry a wide claim, and there is no circular axis and
+                // no under-specification here, so none of them should be.
+                equal(asked.size, stated.size,
+                    `${type}: premises name ${stated.size} axes, conclusion names ${asked.size}`);
+                checked++;
+            }
+        }
+    });
+
+    assert(checked > 20, `only ${checked} items were wide enough to check`);
 });

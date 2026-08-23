@@ -952,6 +952,75 @@ export function buildNdConclusion(
     };
 }
 
+/**
+ * A claim naming **every** axis the item is built on, true or false.
+ *
+ * `buildNdConclusion` names one. On a seven-axis item that means three premises
+ * stating twenty-one relations and a conclusion about one of them, so
+ * six-sevenths of every premise is there to be read and discarded — and which
+ * axis got picked was arbitrary, because no answer to "which one" is better
+ * than any other. A 2-D map deserves a 2-D conclusion and a 7-D map all seven.
+ *
+ * Worded exactly like a premise, through the same `axisClause`, so the claim
+ * and the statements it has to be checked against read the same way round.
+ *
+ * **A false claim is wrong on exactly one axis.** Wrong on five out of seven is
+ * spotted from whichever axis the reader happens to check first, which turns a
+ * seven-dimensional item back into a one-dimensional one by the back door.
+ *
+ * Returns null when the item cannot carry a wide claim, and the caller falls
+ * back to the single-axis form. Two cases: a circular axis, whose relation is a
+ * displacement in steps rather than a direction word and so has no clause of
+ * this shape; and a pair the premises do not settle on every axis, which the
+ * under-specification rungs produce deliberately — a claim about an axis nobody
+ * stated is unanswerable rather than hard.
+ */
+export function buildNdWideConclusion(
+    layout: NdLayout,
+    a: string,
+    b: string,
+    wantValid: boolean,
+    mustBeDetermined: boolean,
+): NdConclusion | null {
+    if (layout.axes.some(isCircular)) return null;
+    if (mustBeDetermined
+        && layout.axes.some((_, i) => !determinedOn(layout, i, a, b))) return null;
+
+    const colors = ndAxisColors(layout.axes);
+    const truth = layout.axes.map((_, i) => layout.coords[a][i] - layout.coords[b][i]);
+    const claim = [...truth];
+
+    /*
+     * Which axis carries the lie, and what a lie is on it.
+     *
+     * A parity axis has exactly one other thing it could say, so one extra step
+     * flips it. Everything else reads the sign, so any delta of a different
+     * sign — including zero, which reads as "the same" — is a different claim.
+     */
+    let flipped = -1;
+    if (!wantValid) {
+        const candidates = layout.axes.map((_, i) => i);
+        flipped = pick(candidates);
+        const axis = layout.axes[flipped];
+        if (isParity(axis)) {
+            claim[flipped] = truth[flipped] + 1;
+        } else {
+            const kinds = [-1, 0, 1].filter(k => k !== Math.sign(truth[flipped]));
+            claim[flipped] = pick(kinds);
+        }
+    }
+
+    const clauses = layout.axes.map((axis, i) => hi(axisClause(axis, claim[i]), colors[i]));
+    return {
+        text: `${subj(a)} is ${clauses.join(", ")} relative to ${subj(b)}`,
+        isValid: wantValid,
+        // The axis the answer turns on: the lie, or — on a true claim — nothing
+        // in particular, since every axis has to hold.
+        axis: flipped,
+        a, b,
+    };
+}
+
 /** Wrong by a genuine amount — off by one is the interesting near miss. */
 function pickWrongDisplacement(truth: number, m: number): number {
     const options: number[] = [];

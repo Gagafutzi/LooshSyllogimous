@@ -10,7 +10,7 @@ import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
-import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
+import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdWideConclusion, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
@@ -701,9 +701,28 @@ export function fillNdConclusion(ctx: GeneratorContext,
         }
     }
     if (!pair || axisIndex < 0) return false;
-    const c = buildNdConclusion(layout, pair[0], pair[1], axisIndex, coinFlip());
+
+    /*
+     * The whole relation where the item can carry one.
+     *
+     * A conclusion naming a single axis of a seven-axis item asks about
+     * one-seventh of what the premises stated, and which seventh was arbitrary.
+     * The wide claim names every axis, so the answer needs all of them.
+     *
+     * It declines on a circular axis, whose relation is a displacement in steps
+     * rather than a direction word, and on a pair the premises leave unsettled
+     * anywhere — under-specification makes those on purpose, and a claim about
+     * an axis nobody stated is unanswerable rather than hard. Both fall back to
+     * the single-axis claim, which is what those items were already getting.
+     */
+    const strict = feat.indeterminate || feat.speakers || feat.testimony;
+    const c = buildNdWideConclusion(layout, pair[0], pair[1], coinFlip(), strict)
+        ?? buildNdConclusion(layout, pair[0], pair[1], axisIndex, coinFlip());
     asked.a = c.a;
     asked.b = c.b;
+    // A wide claim turns on the axis it lies about; a true one turns on all of
+    // them, and reports the axis the pair was chosen for.
+    if (c.axis >= 0) axisIndex = c.axis;
     asked.axis = axisIndex;
     question.conclusion = feat.indeterminate ? mustBe(c.text) : c.text;
     question.isValid = c.isValid;
