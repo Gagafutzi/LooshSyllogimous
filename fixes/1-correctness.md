@@ -8,7 +8,30 @@ have caught it, which is the part worth keeping.
 
 ---
 
-## 1.1 A conclusion naming an object no premise states
+## 1.1 A conclusion naming an object no premise states — **FIXED**
+
+**Found: wide premises and meta relations, together.** Eight items in a hundred
+with both on. `createMetaRelationships` consumed a premise and replaced it with
+a meta premise naming that premise's two objects — but a *wide* premise states
+two relations over three objects ("A is under B, which is under C") and
+`extractSubjects` returns the first two, so the third lost its only mention. The
+conclusion is chosen before this runs, against the full layout, so it could ask
+about the object that had just been deleted. Meta now only consumes premises
+stating exactly one relation, which is the only kind it can honestly restate.
+
+**Why the sweep did not find it.** The combination sweep runs all rungs on or
+all rungs off; with all on, `constructConclusion` wins and the boolean
+conclusion path never executes. The bug lived in the gap between the two
+settings, where a two-state sweep has no coverage by construction. That is the
+more useful finding of the two and it is not fixed — the sweep still has the
+hole; only this one pair of rungs is now pinned by a case of its own.
+
+The original diagnosis follows, including the hypothesis that turned out to be
+right about the mechanism and wrong about which code path reached it.
+
+---
+
+### The original diagnosis
 
 ![](shots/13-unreferenced-object.png)
 

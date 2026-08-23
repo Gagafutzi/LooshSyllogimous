@@ -123,12 +123,10 @@ current mode has one flat count. And it does not decompose into
 independent-per-axis arithmetic, because the *widest* dimension has to be found
 before groups can be compared.
 
-**This reading needs confirming before it is built.** The sentence admits at
-least one other: that the answer is the group containing the single
-widest-spread *pair*, regardless of dimension. The two agree on many items and
-not on all, and picking the wrong one produces a mode that is subtly wrong in a
-way testing will not catch, because the tests would be written against the same
-misreading. One sentence from the author settles it.
+**Confirmed by the author.** This reading — per-dimension spread between a
+group's edge members, the group scored by its widest dimension — is the one to
+build. The alternative reading, the group containing the single widest-spread
+*pair* regardless of dimension, is not it.
 
 ### If the reading holds
 

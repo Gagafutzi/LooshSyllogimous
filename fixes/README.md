@@ -77,14 +77,13 @@ rather than linked:
 npm run test:utils
 ```
 
-## One open question for the author
+## Questions, settled
 
-Section [5.2](5-mode-reworks.md#52-oddest-relation) turns on which reading of
-"the group that has the dimension with the highest difference between members at
-the edges of it" was meant. The two readings agree on many items and not on all,
-and building the wrong one produces a mode that tests cannot catch, because the
-tests would be written against the same misreading.
-
-*(Settled: shot 14's syllogism is graded correctly — the defect is that a
-syllogism is displayed in the chain layout. See
-[3.3](3-explanations.md#33-the-syllogism-derivation-reads-as-a-chain).)*
+- **Shot 14's syllogism** is graded correctly; the defect is that a syllogism is
+  displayed in the chain layout every other mode uses. See
+  [3.3](3-explanations.md#33-the-syllogism-derivation-reads-as-a-chain).
+- **Oddest Relation** takes the per-dimension reading: a group is scored by its
+  widest dimension, measured between the members at that dimension's edges. See
+  [5.2](5-mode-reworks.md#52-oddest-relation).
+- **The `Grass` item** was wide premises plus meta relations, reproduced at 8%
+  and fixed. See [1.1](1-correctness.md#11-a-conclusion-naming-an-object-no-premise-states--fixed).

@@ -194,7 +194,28 @@ export function createMetaRelationships(settings: Settings, question: Question, 
             subjects = question.bucket.map((c, i, a) => ({ value: (a.length - i), subject: c }), []);
         }
 
-        const { picked: pickedPremises, remaining: remainingPremises } = pickUniqueItems(question.premises, numOfMetaRelationships);
+        /*
+         * Only premises stating exactly one relation can be consumed.
+         *
+         * A meta premise is *about* one relation, so it can only restate one:
+         * it names the two objects of the premise it replaces, plus a pair from
+         * a premise that survives. A wide premise states two relations over
+         * three objects — "A is under B, which is under C" — and
+         * `extractSubjects` returns the first two of them, so replacing it
+         * dropped C from the premise set entirely. The conclusion is chosen
+         * before this runs, against the full layout, so roughly one item in
+         * twelve with both rungs on asked about an object no premise mentioned:
+         * not hard, unanswerable, and graded as though it were fine.
+         *
+         * Skipping them is the honest fix rather than restating only half.
+         * With every premise merged there is nothing meta can take, and it
+         * takes nothing — which is correct: an item cannot carry a relation
+         * about a relation it has stopped stating.
+         */
+        const eligible = question.premises.filter(p => extractSubjects(p).length === 2);
+        const { picked: pickedPremises } = pickUniqueItems(eligible, Math.min(numOfMetaRelationships, eligible.length));
+        const consumed = new Set(pickedPremises);
+        const remainingPremises = question.premises.filter(p => !consumed.has(p));
         const pickedPremisesSubjects = pickedPremises.map(extractSubjects);
         const remainingPremisesSubjects = remainingPremises.map(extractSubjects);
         const bidirectionalRelationshipMap = remainingPremisesSubjects.reduce((acc, [a, b]) => (acc[a] = acc[a] || [], acc[a].push(b), acc[b] = acc[b] || [], acc[b].push(a), acc), {} as { [key: string]: string[] });

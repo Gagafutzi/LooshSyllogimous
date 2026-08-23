@@ -245,3 +245,66 @@ for (const everyRung of [false, true]) {
             `${unique.length} unanswerable items:\n  ${unique.slice(0, 20).join("\n  ")}`);
     });
 }
+
+/**
+ * Wide premises and meta relations, together, on the boolean conclusion.
+ *
+ * This is the configuration that produced the reported item — a Vertical Order
+ * conclusion asking about `Grass` while no premise mentioned it — and the sweep
+ * above could not have found it. The sweep runs all rungs on or all rungs off,
+ * and with all of them on `constructConclusion` wins, so the boolean conclusion
+ * path never executes. The bug lived in the gap between the two settings, which
+ * is where a two-state sweep has no coverage by construction.
+ *
+ * Eight items in a hundred were unanswerable before the fix, so a few hundred
+ * per configuration is ample; the value of the case is that it pins the pair of
+ * rungs rather than the count.
+ */
+test("a wide premise's third object survives a meta rewrite", () => {
+    for (const wide of [false, true]) {
+        for (const meta of [false, true]) {
+            const settings = new Settings();
+            for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;
+            settings.setEnable("meta", meta);
+            settings.setEnable("negation", true);
+
+            const ctx: GeneratorContext = {
+                settings,
+                logger: new Logger("error", false),
+                settingsOverrideService: {
+                    linearOverride: (k: string) => k === "widePremises" ? wide : null,
+                    axesFor: () => null, circularAxes: () => 0, spread: () => null,
+                    depthFor: () => 0, scramble: 100, rungOverride: () => null,
+                } as unknown as SettingsOverrideService,
+                progressionService: {
+                    hasRung: () => false, depthBonusFor: () => 0,
+                } as unknown as ProgressionService,
+                forceConstruction: "off",
+                syllogismGenerator: "canyon",
+                hasRung: () => false,
+                random: (n?: number) => createDistinction(ctx, n ?? 2),
+            };
+
+            const failures: string[] = [];
+            for (let n = 2; n <= 7; n++) {
+                for (let rep = 0; rep < 60; rep++) {
+                    let q: Question;
+                    try {
+                        q = seeded(n * 1000 + rep, () => createLinear(ctx, n, EnumQuestionType.LinearVertical));
+                    } catch { continue; }
+
+                    const stated = new Set(q.premises.flatMap(subjectsIn));
+                    for (const word of subjectsIn(String(q.conclusion ?? ""))) {
+                        if (!stated.has(word)) {
+                            failures.push(`wide=${wide} meta=${meta} n=${n}: asks about "${word}"`);
+                        }
+                    }
+                }
+            }
+
+            const unique = [...new Set(failures)];
+            assert(unique.length === 0,
+                `${unique.length} unanswerable:\n  ${unique.slice(0, 6).join("\n  ")}`);
+        }
+    }
+});
