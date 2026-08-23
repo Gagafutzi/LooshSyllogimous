@@ -60,7 +60,7 @@ runtime in a way `tsc` cannot catch:
 The body of this document is split by section under `roadmap/`,
 so a question about one phase costs one file rather than all of them.
 
-- [Open](roadmap/open.md) — 495 lines
+- [Open](roadmap/open.md) — the record, plus P13 (axis substitution), proposed
 - [Done](roadmap/done.md) — 1315 lines
 - [Reference](roadmap/reference.md) — 27 lines
 - [Superseded](roadmap/superseded.md) — 451 lines

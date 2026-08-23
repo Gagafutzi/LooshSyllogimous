@@ -363,6 +363,99 @@ Eleven are specced below. In rough cost order:
 
 ## Proposed modes
 
+## P13. Axis substitution — **PROPOSED**, not built
+
+Two arrangements of the same objects, stated relationally. Every direction word
+in the second is the first's word run through a **substitution on the axes** —
+and the task is to induce that dictionary from worked examples and then apply it.
+
+Six axes, one direction pair each: north/south, east/west, above/below,
+after/before, more/less, warmer/cooler. Every object chains back to an anchor.
+
+```
+Example 1
+  before:  moon is 3 east of ●        after:  moon is 3 above ●
+           key is 1 east of moon              key is 1 above moon
+
+Example 2
+  before:  bell is 2 above ▲          after:  bell is 2 before ▲
+           coin is 1 north of bell            coin is 1 north of bell
+
+Example 3
+  before:  drum is 4 after ★          after:  drum is 4 east of ★
+
+Now apply it
+  before:  ring is 2 east of ●
+           lamp is 3 above ring
+           owl is 1 after lamp
+
+  answer:  ring is 2 above ●
+           lamp is 3 before ring
+           owl is 1 east of lamp
+```
+
+**Why the relational form is the point.** Stated as coordinates this is a
+permutation matrix and the exercise is bookkeeping. Stated as relations it is a
+substitution on *words* — east→above, above→before, after→east — so what the
+solver induces is a **dictionary**, not a transform. And because the map is
+linear, chains survive intact: "1 east of moon" becomes "1 above moon" with no
+reanchoring. That is the property worth training, and it is invisible in the
+coordinate form.
+
+### The anchors are Anchor Space's, and that changes the shape of it
+
+The proposal came with its own pair — triangle and heart, heart fixed two north
+of triangle — chosen so exactly one axis was pinned and therefore immune to the
+substitution. The frame here is [`utils/anchor.utils.ts`](../src/app/syllogimous/utils/anchor.utils.ts)
+instead: **four** markers in v3's diamond, ★ north, ● east, ▲ west, ◆ south, at
+`[0,1] [1,0] [-1,0] [0,-1]`. Reusing it costs nothing and buys the glyphs, the
+renderer and the "anchors are never moved" invariant that already exists.
+
+It also pins **two** axes rather than one. The frame states ★–◆ on north/south
+and ●–▲ on east/west, so a substitution touching either would contradict the
+anchors, which are fixed by definition. So:
+
+- **north/south and east/west are immune.** The dictionary permutes the other
+  four — above/below, after/before, more/less, warmer/cooler — among themselves.
+- That is **4! = 24** possible dictionaries rather than 6! constrained, which
+  is a smaller search and an easier item. Worth knowing before it is priced.
+- The compensation is that the invariant is *visible*: the anchors are on the
+  card, so "the anchor axes cannot move" is something to notice rather than a
+  rule to be told. The original one-axis version had to state it.
+
+Two ways to get the harder version back, neither obviously right:
+
+1. **Give the anchors coordinates on more axes.** They are 2-D today; extending
+   them to four would pin four and free two, which is worse. Extending to *one*
+   axis — a single anchor pair — is the proposal's own design and means not
+   reusing the frame.
+2. **Let the dictionary touch a pinned axis, and make the anchors move with
+   it.** This breaks the invariant that anchors are fixed, which is load-bearing
+   elsewhere in Anchor Space, so it would have to be a separate frame.
+
+Recommended: build it with the four-anchor frame and two pinned axes, and treat
+the number of free axes as the difficulty dial — three at the bottom, all four
+at the top. The mode's difficulty should come from how many worked examples are
+given and how much of the dictionary they cover, not from the permutation count.
+
+### What has to be got right
+
+- **The examples must determine the dictionary.** Three examples covering three
+  substitutions leave the fourth free, and an item whose answer is not forced is
+  not answerable. Either cover every axis the target uses, or accept a partial
+  dictionary and ask only about the covered ones.
+- **An axis mapping to itself has to be possible**, and has to appear, or the
+  solver learns that no word ever survives.
+- **Chains must be long enough to matter.** The whole claim is that chains
+  survive substitution intact; an item with one link never tests it.
+- **Answer mode.** Construction fits it exactly — state the transformed
+  relation yourself, one slot per link — and gives the low guess rate the
+  ability model wants. Choice among four whole answers is the easier rung.
+- **Verification**, per the ground rules: an independent solver that reads only
+  the rendered examples, induces the dictionary, applies it, and agrees.
+
+The five-registry checklist in [ROADMAP.md](../ROADMAP.md) applies.
+
 
 ## P6. Shape and rotation — **DONE**, `generators/shape-rotation.ts`
 
