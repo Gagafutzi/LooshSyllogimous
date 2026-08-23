@@ -1,7 +1,17 @@
 # Why it feels slow
 
-> **Status:** two fixes shipped, and one of this document's own recommendations
-> was measured and withdrawn. See [What changed](#what-changed) at the bottom.
+> **Status:** two fixes shipped, one of this document's own recommendations
+> measured and withdrawn, and six findings still open. See
+> [What changed](#what-changed) at the bottom.
+
+**The single mechanism behind most of this.** Five of the eight findings are the
+same fault wearing different clothes: the aim is `mean − 0.9 × sd`, so
+**anything that widens the posterior lowers the difficulty served**. A streak
+widens it (1). Time away widens it (6). A cross-mode prior is born wide (7). In
+each case the model responds to *not being sure you are still good* by assuming
+you are worse — and then serves items so easy that it learns nothing, which
+keeps it unsure. Caution was written for a player about whom nothing is known,
+and it fires hardest for players about whom a great deal is known.
 
 
 The complaint, as reported:
@@ -217,6 +227,136 @@ level of permanent handicap on every mode with no rungs.
 
 Fixed: with equal rungs, take the candidate closer to target.
 
+---
+
+## Finding 5 — the aim is computed for a guess rate most items do not have
+
+`configFor` calls `targetLevel(cautious, targetAccuracy, 0.5, cfg)`. The `0.5`
+is hardcoded, and the code says why: the answer mode is not known until the item
+is built, so the target is computed at the **easiest guess rate the mode could
+serve**. The item then arrives with whatever guess rate it actually has.
+
+Player measured at level 10.0, target accuracy 0.80, aim computed at 9.07:
+
+| the item turns out to be | guess rate | actual P(correct) | vs the 0.80 wanted |
+|---|---|---|---|
+| true/false | 0.5 | 0.838 | **+0.038** too easy |
+| choice of 4 | 0.25 | 0.767 | −0.033 |
+| construct, 3 axes | 0.037 | 0.708 | −0.092 |
+| construct, 6 axes | 0.0014 | 0.698 | **−0.102** too hard |
+
+A **14-point spread** across answer modes, and the target is only hit for
+true/false. Construction — the mode the app most wants you to reach, and the
+one whose whole justification is that it removes the guess floor — is served
+ten points harder than asked for. It will feel disproportionately punishing, and
+that is not a difficulty judgement anyone made; it is a placeholder.
+
+**Fix.** The guess rate is knowable before the item is built: `chooseConfig`
+already decides the rung count, and `construct-conclusion` / `choose-conclusion`
+are rungs. Deciding the answer mode first and passing its real guess rate into
+`targetLevel` costs nothing and removes the spread. Failing that, correcting
+after the fact — re-aim once the mode is known — is strictly better than 0.5.
+
+---
+
+## Finding 6 — decay does demote, despite the comment saying it does not
+
+`abilityDecay` widens the posterior and leaves the mean alone. Its comment:
+
+> Nothing is taken away and no rung is un-claimed — the estimate simply becomes
+> less certain… A player returning after a month is re-measured rather than
+> demoted, which is both kinder and more accurate.
+
+The mean really is preserved. But the *aim* is `mean − 0.9 × sd`, and decay is
+an increase in `sd`. Measured, player settled at true ability 10:
+
+| days away | mean | sd | aim | item actually served |
+|---|---|---|---|---|
+| 0 | 9.97 | 0.42 | 9.59 | 4p **6 rungs** 46 s — level 9.02 |
+| 3 | 9.97 | 0.73 | 9.31 | 4p 6 rungs 55 s — level 8.74 |
+| 7 | 9.97 | 1.45 | 8.66 | 4p **5 rungs** 32 s — level 8.10 |
+| 15 | 9.98 | 2.99 | 7.28 | 4p 5 rungs **no clock** — level **7.10** |
+| 30 | 9.98 | 2.99 | 7.28 | 4p 5 rungs no clock — level 7.10 |
+
+Two weeks away costs **a rung, the entire clock, and 1.9 levels** of served
+difficulty. A rung *is* un-claimed in the only sense the player can observe.
+
+The comment is not wrong about `abilityDecay` — it is wrong about the system,
+because it was written about the function rather than about what the function
+feeds. This is the same mechanism as [Finding 1](#finding-1--a-streak-makes-the-model-less-sure-and-the-aim-goes-down):
+caution turns uncertainty into difficulty loss, and everything that widens the
+posterior therefore demotes.
+
+**Fix.** Either say so honestly in the comment and the UI, or cap how much of
+the caution term decay is allowed to feed — the estimate is uncertain about
+*whether you are still this good*, which is a reason to re-measure quickly, not
+a reason to serve two levels below a mean nobody has contradicted.
+
+---
+
+## Finding 7 — a new mode starts four levels too easy for a measured player
+
+Cross-mode transfer is the thing `crossModeSd = 2.5` governs, and the **mean
+transfers well**. A player measured at 14.36 across four modes, opening three
+modes they have never played:
+
+| fresh mode | prior estimate | item served | P(correct) for that player |
+|---|---|---|---|
+| Space 4D | 14.81 / **2.50** | 4p 5r | **0.963** |
+| Syllogism | 14.81 / **2.50** | 7p 3r | **0.951** |
+| Knights and Knaves | 14.81 / **2.50** | 5p 2r | **0.954** |
+
+The prior mean is excellent — 14.81 against a measured 14.36. Then `caution ×
+sd` = `0.9 × 2.50` = **2.25 levels** is subtracted, and the served item lands at
+95% success instead of 80%.
+
+So transfer works and is then thrown away. And it is thrown away into exactly
+the regime of [Finding 1](#finding-1--a-streak-makes-the-model-less-sure-and-the-aim-goes-down):
+items far below ability, correct answers carrying almost no information, so the
+recovery is slow. Every mode a tier unlocks starts here. If progression feels
+slow specifically after new modes appear, this is why.
+
+**Fix.** The prior's width is a statement about *transfer*, not about this
+player's evidence — and it is a width the model chose, not one the data forced.
+Caution exists for a player about whom nothing is known; a player with 600
+logged answers is not that player. Scaling caution by evidence does almost
+nothing for [Finding 1](#finding-1--a-streak-makes-the-model-less-sure-and-the-aim-goes-down)
+(measured above) but it is exactly right here, where the width comes from a
+prior rather than from disagreement in the data.
+
+---
+
+## Finding 8 — the rungs are climbed in an order that is not their difficulty
+
+Rungs must be claimed as a **prefix** of the ladder, and the ladder order is
+deliberate — `meta` sits before `overlap` for a mechanical reason recorded in
+`progression.utils.ts`, not a difficulty one. But `RUNG_COST` prices them
+independently, and the two disagree:
+
+| mode | claimed earlier | claimed later, but cheaper |
+|---|---|---|
+| the scale family | `meta` (1.0) | `overlap` (0.7) |
+| Direction | `meta` (1.0) | `incorrect-directions` (0.4) |
+| composed spaces | `circular` (1.2) | `circular-2` (0.8), `choose-conclusion` (0.8) |
+
+Two consequences.
+
+**The steps are uneven.** A single rung can add anywhere from 0.4 to 1.2 levels.
+The psychometric slope is 1.6, so claiming `circular` moves P(correct) by
+roughly fifteen points in one go, while `incorrect-directions` moves it by five.
+Progression is jerky for a reason that has nothing to do with the player.
+
+**`circular-2` cheaper than `circular` is probably wrong on its face.** A second
+looping axis should not be *easier* than the first. Either the ladder order or
+the cost is a mistake, and they cannot both be right.
+
+**Fix.** These costs are meant to be measured, not argued — `fitRungCosts`
+already exists and reads the trial log. The honest move is to check whether the
+fitted costs agree with the table, and treat any disagreement as the table being
+wrong rather than the fit.
+
+---
+
 ## What changed
 
 - **Memory: 200 → 100 answers**, and it is now a dial in Advanced Options
@@ -225,7 +365,7 @@ Fixed: with equal rungs, take the candidate closer to target.
 - **Tie-break: equal rungs now take the closer item**, not the shorter one.
 - **Withdrawn:** the caution recommendation, measured and shown not to matter.
 
-Not done, and still open: Findings 1 and 3. Finding 1's compounding loop is
+Not done, and still open: Findings 1, 3, and 5 through 8. Finding 1's compounding loop is
 softened by the shorter memory but not removed — a model that only ever asks
 questions it expects you to get right still cannot learn much, and occasionally
 aiming *at* the estimate rather than below it remains the principled fix.
