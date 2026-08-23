@@ -428,16 +428,30 @@ export function graphDistance(a: string, b: string, neighbors: Record<string, st
 }
 
 /**
- * Pick the pair to ask about, biased towards pairs far apart in the graph.
+ * Pick the pair to ask about: the furthest apart in the graph.
  *
  * The whole difficulty of a linear item is how many premises have to be composed
  * to relate the two objects, so picking uniformly would spend most items on
  * adjacent pairs whose answer is a premise read back. Ported from v3's
- * `DirectionPairChooser`: rank candidate pairs by distance, then usually take
- * the furthest band and occasionally a nearer one, so the difficulty varies
- * without collapsing.
+ * `DirectionPairChooser`: rank candidate pairs by distance and take the
+ * furthest band.
+ *
+ * **`slack` used to be 3 in all but name, and that was the bug.** The port kept
+ * v3's "usually the furthest, occasionally nearer" rule — a 40% chance of
+ * dropping one band, 17% of two, 7% of three — on the reasoning that difficulty
+ * should vary. It varies the wrong thing. A conclusion one band short of the
+ * diameter is one that can be reached without composing the whole premise set,
+ * and roughly half of every item served was one. Difficulty is supposed to come
+ * from the layout; taking it out of the conclusion instead means the premises
+ * are there to be read and discarded.
+ *
+ * `slack` is how many bands below the diameter may be drawn from, and zero is
+ * the default: the conclusion is at the layout's maximum distance, so answering
+ * it uses everything. Raising it is for a caller that wants a deliberately
+ * shallower question — the halfway conclusion is the case that will want it —
+ * and never for variety.
  */
-export function pickDistantPair(layout: LinearLayout): [string, string] | null {
+export function pickDistantPair(layout: LinearLayout, slack = 0): [string, string] | null {
     const { neighbors } = layout;
     const words = Object.keys(neighbors);
 
@@ -464,10 +478,8 @@ export function pickDistantPair(layout: LinearLayout): [string, string] | null {
     if (!bands.size) return null;
 
     const ranked = [...bands.entries()].sort((a, b) => b[0] - a[0]).map(e => e[1]);
-    let band = ranked[0];
-    if (ranked.length >= 4 && oneIn(15)) band = ranked[3];
-    else if (ranked.length >= 3 && oneIn(6)) band = ranked[2];
-    else if (ranked.length >= 2 && oneIn(2.5)) band = ranked[1];
+    const reach = Math.min(slack, ranked.length - 1);
+    const band = ranked[reach > 0 ? Math.floor(Math.random() * (reach + 1)) : 0];
 
     return pick(band);
 }
@@ -719,6 +731,15 @@ export function buildConstructClaim(
  * Each is independently true or false; the caller decides what the set means.
  * Pairs are drawn without repetition so the reader is not asked the same
  * question twice in different words.
+ *
+ * **The first is at the layout's diameter and the rest widen as they go.** A
+ * layout usually has only one or two pairs at maximum distance, so demanding
+ * four of them fails to generate at all — which is what happened when the
+ * conclusion floor first went in. Widening is safe *because the first one is
+ * the answer*: Choose-the-conclusion puts the true claim at index 0 and the
+ * distractors after it, and a distractor is meant to be about some other pair.
+ * Multi-conclusion is the one caller where every claim counts, and it asks for
+ * two or three, which a layout of any size can supply within a band or two.
  */
 export function buildConclusionSet(
     scale: LinearScale,
@@ -731,7 +752,7 @@ export function buildConclusionSet(
     const out: LinearConclusion[] = [];
 
     for (let guard = 0; out.length < count && guard < count * 40; guard++) {
-        const pair = pickDistantPair(layout);
+        const pair = pickDistantPair(layout, out.length);
         if (!pair) break;
         const key = [...pair].sort().join("\u0000");
         if (used.has(key)) continue;

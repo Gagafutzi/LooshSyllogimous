@@ -585,8 +585,8 @@ export function fillNdConclusion(ctx: GeneratorContext,
     if (useAnalogy && !lastChance) return false;
 
     if (feat.constructConclusion) {
-        const claims = buildConstructClaims(ctx, () => {
-            const pair = pickDistantPairNd(layout);
+        const claims = buildConstructClaims(ctx, slack => {
+            const pair = pickDistantPairNd(layout, 2, slack);
             if (!pair || !pairBites(pair[0], pair[1])) return null;
             return buildNdConstructClaim(layout, pair[0], pair[1], feat.constructDistance);
         }, numOfPremises);
@@ -666,20 +666,41 @@ export function fillNdConclusion(ctx: GeneratorContext,
         }
     }
 
-    const pair = pickDistantPairNd(layout);
-    if (!pair) return false;
     /*
-     * Draw the axis from the ones the operations actually reached, rather
-     * than drawing at random and hoping. With one axis touched out of six,
-     * hoping is wrong five times in six.
+     * The furthest pair that can actually carry a question, widening only if
+     * the furthest cannot.
+     *
+     * Two conditions have to hold at once and they are not independent: the
+     * pair must be far enough that answering composes the whole premise set,
+     * *and* it must have an axis the operations reached and the premises
+     * settle. Asking for the diameter and giving up when that one pair has no
+     * usable axis threw away perfectly good items — and asking for any pair at
+     * all, which is what a flat 30% wide draw amounted to, throws away the
+     * depth. So: try the diameter, then one band in, then two, and stop at the
+     * first that works.
      */
-    const live = layout.axes.map((_, i) => i).filter(i => axisBites(pair[0], pair[1], i));
-    if (!live.length) return false;
-    const settled = feat.indeterminate || feat.speakers || feat.testimony
-        ? live.filter(i => determinedOn(layout, i, pair[0], pair[1]))
-        : live;
-    if (!settled.length) return false;
-    const axisIndex = settled[Math.floor(Math.random() * settled.length)];
+    let pair: [string, string] | null = null;
+    let axisIndex = -1;
+    for (let slack = 0; slack <= 2 && axisIndex < 0; slack++) {
+        for (let attempt = 0; attempt < 8 && axisIndex < 0; attempt++) {
+            const candidate = pickDistantPairNd(layout, 2, slack);
+            if (!candidate) break;
+            /*
+             * Draw the axis from the ones the operations actually reached,
+             * rather than drawing at random and hoping. With one axis touched
+             * out of six, hoping is wrong five times in six.
+             */
+            const live = layout.axes.map((_, i) => i).filter(i => axisBites(candidate[0], candidate[1], i));
+            if (!live.length) continue;
+            const settled = feat.indeterminate || feat.speakers || feat.testimony
+                ? live.filter(i => determinedOn(layout, i, candidate[0], candidate[1]))
+                : live;
+            if (!settled.length) continue;
+            pair = candidate;
+            axisIndex = settled[Math.floor(Math.random() * settled.length)];
+        }
+    }
+    if (!pair || axisIndex < 0) return false;
     const c = buildNdConclusion(layout, pair[0], pair[1], axisIndex, coinFlip());
     asked.a = c.a;
     asked.b = c.b;

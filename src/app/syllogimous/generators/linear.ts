@@ -350,8 +350,8 @@ export function fillLinearConclusion(ctx: GeneratorContext,
 
     if (feat.constructConclusion) {
         const claims = buildConstructClaims(ctx, 
-            () => {
-                const pair = pickDistantPair(final);
+            slack => {
+                const pair = pickDistantPair(final, slack);
                 return pair && buildConstructClaim(scale, final, pair[0], pair[1], feat.constructDistance);
             },
             numOfPremises);

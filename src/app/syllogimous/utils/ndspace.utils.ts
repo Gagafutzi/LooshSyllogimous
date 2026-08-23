@@ -764,8 +764,17 @@ export function graphDistance(a: string, b: string, neighbors: Record<string, st
     return Infinity;
 }
 
-/** A pair far enough apart that the answer has to be composed, not read off. */
-export function pickDistantPair(layout: NdLayout, minSpan = 2): [string, string] | null {
+/**
+ * The pair furthest apart, so the answer has to compose the whole premise set.
+ *
+ * `slack` is how many steps below the diameter may be drawn from; zero, the
+ * default, means the diameter exactly. It replaces a flat 30% chance of drawing
+ * from *every* pair including span 2 — so on a five-premise item roughly one
+ * conclusion in three could be answered from two premises, which is the
+ * complaint this whole change comes from. See `pickDistantPair` in
+ * `linear.utils` for the longer version of the argument.
+ */
+export function pickDistantPair(layout: NdLayout, minSpan = 2, slack = 0): [string, string] | null {
     const pairs: Array<[string, string, number]> = [];
     for (let i = 0; i < layout.words.length; i++) {
         for (let j = i + 1; j < layout.words.length; j++) {
@@ -775,12 +784,9 @@ export function pickDistantPair(layout: NdLayout, minSpan = 2): [string, string]
     }
     if (!pairs.length) return null;
 
-    // Prefer the furthest, but not exclusively, so difficulty varies.
     const max = Math.max(...pairs.map(p => p[2]));
-    const band = Math.random() < 0.7
-        ? pairs.filter(p => p[2] === max)
-        : pairs;
-    const chosen = pick(band);
+    const floor = Math.max(minSpan, max - Math.max(0, slack));
+    const chosen = pick(pairs.filter(p => p[2] >= floor));
     return [chosen[0], chosen[1]];
 }
 

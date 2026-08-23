@@ -78,13 +78,24 @@ import { EnumQuestionType } from "../constants/question.constants";
  * for two unrelated pairs means the whole structure had to be held, which
  * is the difference between having followed an item and having solved it.
  */
-export function buildConstructClaims(ctx: GeneratorContext, draw: () => ConstructClaim | null | undefined | false, numOfPremises: number) {
+export function buildConstructClaims(ctx: GeneratorContext, draw: (slack: number) => ConstructClaim | null | undefined | false, numOfPremises: number) {
     const wanted = numOfPremises > 8 ? 3 : numOfPremises > 4 ? 2 : 1;
     const claims: ConstructClaim[] = [];
     const used = new Set<string>();
 
     for (let guard = 0; claims.length < wanted && guard < wanted * 40; guard++) {
-        const claim = draw();
+        /*
+         * `slack` widens as claims accumulate, and only then.
+         *
+         * The first claim is at the layout's diameter, which is the point — a
+         * conclusion you can reach without composing the whole premise set is
+         * the defect this floor exists to remove. But a layout usually holds
+         * one or two pairs at maximum distance, so a second claim demanding the
+         * same depth simply fails, and the generator throws rather than serving
+         * a slightly shallower question. Widening by one band per claim already
+         * in hand keeps the first honest and lets the rest exist.
+         */
+        const claim = draw(claims.length);
         if (!claim) continue;
         const key = [claim.a, claim.b].sort().join(" ");
         if (used.has(key)) continue;
