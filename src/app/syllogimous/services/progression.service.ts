@@ -95,6 +95,25 @@ export interface ProgressionSettings {
      * Shorter is not more responsive past that point, it is broken.
      */
     memoryAnswers: number;
+    /**
+     * One item in this many is placed to *measure* rather than to train.
+     *
+     * A model that only ever asks questions it expects you to get right cannot
+     * learn much: an item chosen for 80% success is well below ability, so a
+     * correct answer on it is consistent with any ability above the item and
+     * carries almost no information. That is the root of Finding 1 in
+     * `progression/diagnosis.md`, and its two amplifiers have been removed
+     * while the root has not.
+     *
+     * A probe aims at `probeAccuracy` instead of the training target, and
+     * ignores caution — aiming below on account of uncertainty is exactly what
+     * a measurement should not do.
+     *
+     * Zero turns it off.
+     */
+    probeEvery: number;
+    /** Success rate a probe aims for. Lower measures harder and costs more. */
+    probeAccuracy: number;
     /** Show ability-derived skill points instead of the accumulated score. */
     derivedScore: boolean;
     /** Answers the fatigue signal is averaged over. */
@@ -120,6 +139,8 @@ const DEFAULT_SETTINGS: ProgressionSettings = {
     crossModeSd: DEFAULT_ABILITY.crossModeSd,
     decayPerDay: DEFAULT_ABILITY.decayPerDay,
     memoryAnswers: Math.round(1 / (1 - DEFAULT_ABILITY.forgetting)),
+    probeEvery: 5,
+    probeAccuracy: 0.65,
     derivedScore: true,
     fatigueWindow: 15,
     fatigueThreshold: 0.15,
@@ -485,7 +506,22 @@ export class ProgressionService {
         catch { return true; }
     }
 
-    configFor(type: EnumQuestionType): ConfigChoice {
+    /**
+     * Whether the *next* item of this mode is a measurement rather than training.
+     *
+     * Counted per mode, from that mode's own posterior, so a mode played rarely
+     * still gets probed at the same rate. Deterministic rather than random: the
+     * rhythm is guessable, and that is a fair price for a schedule that can be
+     * tested and reasoned about. Knowing an item is a probe does not help
+     * anyone answer it.
+     */
+    isProbeTurn(type: EnumQuestionType): boolean {
+        const every = this.config.probeEvery;
+        if (!every || every < 2 || !this.config.enabled) return false;
+        return this.abilityFor(type).trials % every === every - 1;
+    }
+
+    configFor(type: EnumQuestionType, probe = this.isProbeTurn(type)): ConfigChoice {
         // Part of the choice, so a change of preference invalidates every
         // cached one. Nothing else observes that key, and the alternative —
         // having the settings screen call in — leaves the cache stale for
@@ -496,7 +532,9 @@ export class ProgressionService {
             this.configCache = {};
         }
 
-        const hit = this.configCache[type];
+        // Only the training configuration is cached. A probe is computed on the
+        // spot, which is once every `probeEvery` answers and costs nothing.
+        const hit = probe ? undefined : this.configCache[type];
         if (hit) return hit;
 
         const params = QUESTION_TYPE_SETTING_PARAMS[type];
@@ -511,7 +549,16 @@ export class ProgressionService {
          * a lower quantile makes "unsure" mean "easier", and the penalty
          * disappears by itself as the posterior narrows.
          */
-        const cautious = { ...est, level: est.level - cautionPenalty(est.sd, cfg, this.trials().length) };
+        /*
+         * A probe aims at the estimate itself, with no caution and no training
+         * discount. Caution turns uncertainty into an easier item, which is the
+         * right instinct while training and precisely wrong while measuring:
+         * the less sure the model is, the more it needs an informative answer.
+         */
+        const cautious = probe
+            ? est
+            : { ...est, level: est.level - cautionPenalty(est.sd, cfg, this.trials().length) };
+        const wantAccuracy = probe ? this.config.probeAccuracy : this.config.targetAccuracy;
 
         const ladder = ladderFor(type);
         const opts = {
@@ -537,16 +584,16 @@ export class ProgressionService {
          */
         const first = chooseConfig(type, {
             ...opts,
-            target: targetLevel(cautious, this.config.targetAccuracy, 0.5, cfg),
+            target: targetLevel(cautious, wantAccuracy, 0.5, cfg),
         }, cfg);
 
         const guess = guessRateForRungs(ladder.slice(0, first.rungs));
         const choice = guess === 0.5 ? first : chooseConfig(type, {
             ...opts,
-            target: targetLevel(cautious, this.config.targetAccuracy, guess, cfg),
+            target: targetLevel(cautious, wantAccuracy, guess, cfg),
         }, cfg);
 
-        this.configCache[type] = choice;
+        if (!probe) this.configCache[type] = choice;
         return choice;
     }
 
@@ -770,7 +817,16 @@ export class ProgressionService {
          * would credit a wide item as though it were typical, which is the
          * mismeasurement the width work exists to remove.
          */
-        const before = this.configFor(type);
+        /*
+         * Pinned across the update, so the announcement compares like with like.
+         *
+         * `before` is the item that was actually served and `after` is what the
+         * next one will be, and the probe flag flips on exactly this answer —
+         * so reading it twice would report a rung-up every fifth item and a
+         * rung-down on the sixth, neither of which happened.
+         */
+        const wasProbe = this.isProbeTurn(type);
+        const before = this.configFor(type, wasProbe);
         const level = levelOf({
             type, premises: before.premises,
             rungs: ladderFor(type).slice(0, before.rungs),
@@ -828,8 +884,9 @@ export class ProgressionService {
             level, guess, correct, this.abilityConfig);
         this.saveAbility(type, next);
 
-        // Announce only a change the player would notice in the next item.
-        const after = this.configFor(type);
+        // Announce only a change the player would notice in the next item, and
+        // judged at the same probe state as `before` — see `wasProbe`.
+        const after = this.configFor(type, wasProbe);
         const events: LadderEvent[] = [];
         if (after.rungs > before.rungs) events.push("rung-up");
         else if (after.rungs < before.rungs) events.push("rung-down");

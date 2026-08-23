@@ -302,6 +302,23 @@
             </div>
 
             <div class="mode">
+                <label>Measurement items
+                    <small class="text-muted d-block">
+                        One item in this many is placed to <em>measure</em> rather than
+                        to train: aimed at your estimate instead of below it, so the
+                        answer actually says something. Harder, and the reason the app
+                        can tell you have improved. 0 turns it off.
+                    </small>
+                </label>
+                <span class="mode__premises">
+                    <input type="number" class="form-control form-control-sm" min="0" max="20" step="1"
+                           [disabled]="!prog.enabled" [value]="prog.probeEvery"
+                           (change)="setProg('probeEvery', $any($event.target).value)">
+                    <small class="text-muted">one in</small>
+                </span>
+            </div>
+
+            <div class="mode">
                 <label>Recent answers weighed
                     <small class="text-muted d-block">
                         How much recent play counts against your history. Lower reacts

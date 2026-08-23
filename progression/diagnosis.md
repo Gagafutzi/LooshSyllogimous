@@ -398,12 +398,36 @@ easier than the model scored it. It only stayed hidden while caution kept the
 chosen configuration rung-free; with the bound in place the estimate ran to the
 top of the grid. Now honours the chosen rungs.
 
-**Still open: Findings 1, 2 (by design), 3, and the measurement half of 8.**
-Finding 1's compounding loop is much softened — the shorter memory and the
-bounded caution remove its two amplifiers — but the root remains: a model that
-only ever asks questions it expects you to get right cannot learn much.
-Occasionally aiming *at* the estimate rather than below it is still the
-principled fix, and it is the next thing worth building.
+**Finding 1's root is now addressed too.** One item in five is a **probe**: it
+aims at 0.65 success instead of 0.80 and skips caution entirely, because aiming
+below on account of uncertainty is the right instinct while training and
+precisely wrong while measuring. Measured through the real service over 300
+answers at a true ability of 10:
+
+| | overall accuracy | probe accuracy | estimate | sd | promotions announced |
+|---|---|---|---|---|---|
+| probes off | 0.860 | — | 9.93 | 0.46 | 20 |
+| **one in five** | **0.823** | 0.704 | 9.97 | 0.44 | 20 |
+
+**The prediction was wrong about why it helps.** I expected faster tracking of a
+genuine improvement; measured, tracking barely moves. What probes actually buy
+is **calibration** — the served accuracy comes down to the 0.80 the system says
+it is aiming for, from a 6-point overshoot, and in the earlier bench the
+estimate's error at steady state nearly halved (0.53 → 0.31). The system was
+missing its own stated target, and probes are what make it hit it.
+
+Frequency matters more than placement. One in three is much worse (steady
+accuracy 0.767, tracking three times slower) — too many hard items destabilise
+the estimate rather than sharpening it. One in eight leaves the overshoot. And
+because the configuration is discrete, aiming a probe at 0.50 and at 0.70
+usually selects the same item, so the exact figure matters less than the rate.
+
+Identical promotion counts with and without probes, which is the check that the
+schedule is not leaking into the announcements: the probe flag flips on the very
+answer whose events are reported, so reading it twice would announce a rung-up
+every fifth item and a rung-down on the sixth.
+
+**Still open: Findings 2 (by design) and 3, and the measurement half of 8.**
 
 ## What I would measure next
 

@@ -347,3 +347,97 @@ test("evidence already earned per mode is carried into the shared ledger", () =>
 
     localStorage.clear();
 });
+
+/**
+ * Measurement items, placed among the training ones.
+ *
+ * An item chosen for 80% success is well below ability, so a correct answer on
+ * it is consistent with any ability above the item and carries almost no
+ * information -- the model only ever asks questions it expects you to get
+ * right, and then cannot learn much from the answers. One item in five aims at
+ * the estimate instead.
+ */
+test("a probe is harder than the item it replaces, and arrives on schedule", () => {
+    seeded(5511, () => {
+        localStorage.clear();
+        const service = new ProgressionService();
+        const type = EnumQuestionType.LinearVertical;
+
+        // Settle first: a probe against an unmeasured estimate proves nothing.
+        for (let i = 0; i < 120; i++) {
+            const c = service.configFor(type);
+            const lvl = levelOf({ type, premises: c.premises,
+                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+            service.record(type, Math.random() < pCorrect(DEFAULT_ABILITY, 10, lvl, 0.5) ? "right" : "wrong", 8);
+        }
+
+        let probes = 0;
+        let trainingLevel = 0, probeLevel = 0;
+        for (let i = 0; i < 40; i++) {
+            const isProbe = service.isProbeTurn(type);
+            const c = service.configFor(type);
+            const lvl = levelOf({ type, premises: c.premises,
+                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+            if (isProbe) { probes++; probeLevel += lvl; } else { trainingLevel += lvl; }
+            service.record(type, Math.random() < pCorrect(DEFAULT_ABILITY, 10, lvl, 0.5) ? "right" : "wrong", 8);
+        }
+
+        // One in five, give or take where the count started.
+        assert(probes >= 7 && probes <= 9, `${probes} probes in forty answers`);
+
+        const avgProbe = probeLevel / probes;
+        const avgTraining = trainingLevel / (40 - probes);
+        assert(avgProbe > avgTraining,
+            `probes averaged ${avgProbe.toFixed(2)}, training items ${avgTraining.toFixed(2)} -- a probe that is not harder measures nothing`);
+    });
+});
+
+/**
+ * The probe flag flips on the very answer whose events are being reported, so
+ * reading it twice would announce a rung-up every fifth item and a rung-down on
+ * the sixth -- neither of which happened.
+ */
+test("a probe is not announced as a promotion", () => {
+    seeded(6622, () => {
+        localStorage.clear();
+        const service = new ProgressionService();
+        const type = EnumQuestionType.LinearVertical;
+        for (let i = 0; i < 120; i++) {
+            const c = service.configFor(type);
+            const lvl = levelOf({ type, premises: c.premises,
+                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+            service.record(type, Math.random() < pCorrect(DEFAULT_ABILITY, 10, lvl, 0.5) ? "right" : "wrong", 8);
+        }
+
+        // Steady ability, steady answers: promotions should be rare, and none
+        // of them should line up with the probe schedule.
+        let onProbeTurn = 0;
+        for (let i = 0; i < 60; i++) {
+            const isProbe = service.isProbeTurn(type);
+            const c = service.configFor(type);
+            const lvl = levelOf({ type, premises: c.premises,
+                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+            const events = service.record(type, Math.random() < pCorrect(DEFAULT_ABILITY, 10, lvl, 0.5) ? "right" : "wrong", 8);
+            if (isProbe && events.length) onProbeTurn++;
+        }
+        assert(onProbeTurn <= 2,
+            `${onProbeTurn} of twelve probe turns announced a change -- the flag is leaking into the comparison`);
+    });
+});
+
+/** Zero turns the whole thing off, and must leave no trace of the schedule. */
+test("probes can be switched off", () => {
+    seeded(7733, () => {
+        localStorage.clear();
+        const service = new ProgressionService();
+        service.set("probeEvery" as never, 0 as never);
+        const type = EnumQuestionType.LinearVertical;
+        for (let i = 0; i < 30; i++) {
+            assert(!service.isProbeTurn(type), "a probe turn came up with probes off");
+            const c = service.configFor(type);
+            const lvl = levelOf({ type, premises: c.premises,
+                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+            service.record(type, "right", 8);
+        }
+    });
+});

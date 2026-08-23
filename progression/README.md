@@ -134,6 +134,13 @@ settle the rung count, then again at the guess rate those rungs imply. Without
 it a six-axis construction was served at 0.698 success against the 0.80 asked
 for, while true/false got 0.838.
 
+**a′. Probes.** One item in `probeEvery` (default 5) is placed to *measure*
+rather than to train: it aims at `probeAccuracy` (0.65) instead of the training
+target, and **skips caution entirely**. Aiming below on account of uncertainty
+is the right instinct while training and precisely wrong while measuring — the
+less sure the model is, the more it needs an informative answer. The schedule is
+per mode and deterministic, off the mode's own answered count.
+
 **c. `chooseConfig`** ([`ability.utils.ts:661`](../src/app/syllogimous/utils/ability.utils.ts))
 enumerates every `(rungs, premises)` pair, computes the clock that would close
 the remaining gap, and keeps the best. "Best" is:
@@ -226,6 +233,8 @@ Worth stating, because the names survive and mislead.
 | `lapseRate` | 0.03 | errors independent of difficulty |
 | `crossModeSd` | 2.5 | how much one mode says about another |
 | `decayPerDay` | 0.2 | posterior widening per idle day |
+| `probeEvery` | 5 | one item in five measures instead of training |
+| `probeAccuracy` | 0.65 | what a probe aims for |
 | `structureBefore` | 5 | premise count past which length needs an exhausted ladder |
 | `TOLERANCE` | 0.5 | level difference treated as a tie |
 | `perTimeHalving` | 1.1 | levels per halving of the clock |
