@@ -121,21 +121,33 @@ ability history, and it can now be turned down to *Rarely* with the per-mode
 frequency setting rather than being switched off, which would also stop it being
 measured.
 
-**Anchored, like everything else spatial here.** One marker for the whole item,
-named in the top-left cell of every group's table, so a column of signed numbers
-has something to be signed *against* — "+2" means something once it means two
-east of ●. One rather than one per group, because groups read from different
-markers would put the same arrangement at different numbers and the reader would
-be comparing frames rather than spreads. It changes no answer, spreads being
-differences within a group, and that is the point: the frame gives the numbers a
-meaning without becoming part of the question. It is not a row, either — a
-member of the group would enter its minimum and maximum, and a frame that is
-also a participant is not a frame.
+**Stated as spatial premises against one marker**, the way every other spatial
+mode states things:
 
-**Groups as tables.** Five members across six directions is thirty facts, and as
-prose that is six clauses per line for five lines — the display problem the
-composed spaces already hit. The answer is found by reading *down* a column, so
-the columns line up.
+```
+Everything is placed against ★, which never moves.
+Group 3
+  Cottage is 1 north, 4 above relative to ★
+  Choker is 2 west, 1 north, 3 below relative to ★
+  Bubble is 1 west, 1 north, 1 below relative to ★
+  Silver is 2 east, 2 above relative to ★
+```
+
+It was a table of coordinates first, on the reasoning that thirty numbers read
+better in columns. That is true and beside the point: a table is easier to
+*scan*, and reading "3 east, 1 above relative to ★" and holding it is part of
+the work — a mode that hands the same facts over as a column of integers has
+removed that part without saying so. Zero components are left out, so a member
+differing on two directions of six reads as two facts rather than six, which is
+what keeps a wide space wide without making every line name every direction.
+
+One marker for the whole item rather than one per group: groups stated against
+different markers would put the same arrangement at different numbers, and the
+reader would be comparing frames rather than spreads. It changes no answer,
+spreads being differences within a group, and that is the point — the frame
+gives the numbers a meaning without becoming part of the question. It is never a
+member either: a marker among them would enter its group's minimum and maximum,
+and a frame that is also a participant is not a frame.
 
 **Built backwards from the answer.** Placing members at random and measuring
 afterwards gives no control over the margin between groups, and the margin is

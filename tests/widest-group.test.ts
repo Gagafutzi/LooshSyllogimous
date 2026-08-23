@@ -19,6 +19,7 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
+import { axesForDimensions } from "../src/app/syllogimous/utils/ndspace.utils";
 
 const FULL = ladderFor(EnumQuestionType.WidestGroup);
 
@@ -42,30 +43,48 @@ function context(rungs: string[]): GeneratorContext {
 }
 
 /**
- * The numbers off one rendered group table, as a solver would read them.
+ * The positions off the rendered premises, as a reader would take them.
  *
- * Rows after the header, cells after the row's name — nothing about how the
- * item was built is used, which is the whole value of reading it back.
+ * Nothing about how the item was built is used: the direction words are decoded
+ * the way the reader decodes them, from the axis vocabulary the premises are
+ * written in, and the axis a clause belongs to comes from the colour class the
+ * premise paints it with. What comes out is the coordinates, re-derived.
  */
-function readGroup(html: string): number[][] {
-    const body = html.slice(html.indexOf("<tbody>"));
-    return [...body.matchAll(/<tr>[\s\S]*?<\/tr>/g)].map(([row]) =>
-        [...row.matchAll(/<td>(-?\+?\d+)<\/td>/g)].map(m => Number(m[1].replace("+", ""))));
-}
-
 const spreads = (rows: number[][]) =>
     rows[0].map((_, d) => {
         const values = rows.map(r => r[d]);
         return Math.max(...values) - Math.min(...values);
     });
 
-test("a solver reading the tables agrees with the answer", () => {
+function readGroups(premises: string[]): number[][][] {
+    const scales = axesForDimensions(7);
+    const groups: number[][][] = [];
+
+    for (const line of premises) {
+        if (!line.includes('class="subject"')) { groups.push([]); continue; }
+
+        const coord = Array(7).fill(0);
+        for (const [, slot, size, word] of line.matchAll(
+            /<span class="relation dim dim-(\d+)">(\d+) ([^<]+)<\/span>/g)) {
+            const axis = Number(slot) - 1;
+            const scale = scales[axis];
+            const sign = word === scale.direction[0] ? 1
+                : word === scale.direction[1] ? -1 : 0;
+            assert(sign !== 0, `"${word}" is not a direction of ${scale.name}`);
+            coord[axis] = sign * Number(size);
+        }
+        groups[groups.length - 1].push(coord);
+    }
+    return groups.filter(g => g.length > 0);
+}
+
+test("a solver reading the premises agrees with the answer", () => {
     for (const rungs of [[], FULL.slice(0, 4), FULL]) {
         seeded(2024, () => {
             const ctx = context(rungs);
             for (let rep = 0; rep < 25; rep++) {
                 const q = createWidestGroup(ctx, 4);
-                const scores = q.premises.map(p => Math.max(...spreads(readGroup(p))));
+                const scores = readGroups(q.premises).map(g => Math.max(...spreads(g)));
 
                 const best = Math.max(...scores);
                 equal(scores.filter(v => v === best).length, 1,
@@ -99,8 +118,8 @@ test("no group is tied with itself for widest", () => {
         const ctx = context(FULL);
         for (let rep = 0; rep < 30; rep++) {
             const q = createWidestGroup(ctx, 5);
-            for (const p of q.premises) {
-                const s = spreads(readGroup(p));
+            for (const g of readGroups(q.premises)) {
+                const s = spreads(g);
                 const top = Math.max(...s);
                 equal(s.filter(v => v === top).length, 1,
                     `a group is equally wide on two directions: ${s.join(", ")}`);
@@ -121,7 +140,7 @@ test("the lead over the runner-up is the one the rung asked for", () => {
             const ctx = context(rungs);
             for (let rep = 0; rep < 30; rep++) {
                 const q = createWidestGroup(ctx, 4);
-                const scores = q.premises.map(p => Math.max(...spreads(readGroup(p)))).sort((a, b) => b - a);
+                const scores = readGroups(q.premises).map(g => Math.max(...spreads(g))).sort((a, b) => b - a);
                 equal(scores[0] - scores[1], want,
                     `lead of ${scores[0] - scores[1]} where the rung asks for ${want}`);
             }
@@ -137,8 +156,10 @@ test("the rungs add directions and groups", () => {
             const ctx = context(rungs);
             for (let rep = 0; rep < 15; rep++) {
                 const q = createWidestGroup(ctx, 4);
-                groups = Math.max(groups, q.premises.length);
-                dims = Math.max(dims, spreads(readGroup(q.premises[0])).length);
+                const read = readGroups(q.premises);
+                groups = Math.max(groups, read.length);
+                dims = Math.max(dims, spreads(read[0]).filter((_, d) =>
+                    read.some(g => g.some(m => m[d] !== 0))).length);
             }
         });
         return { dims, groups };
@@ -163,7 +184,7 @@ test("the derivation accounts for every group", () => {
         for (let rep = 0; rep < 20; rep++) {
             const q = createWidestGroup(ctx, 4);
             const named = q.explanation.filter(l => /is widest on/.test(l)).length;
-            equal(named, q.premises.length,
+            equal(named, readGroups(q.premises).length,
                 `${named} groups explained of ${q.premises.length}`);
         }
     });
@@ -172,25 +193,34 @@ test("the derivation accounts for every group", () => {
 /**
  * One marker for the whole item, not one per group.
  *
- * Every group is measured from the same point, which is what makes the tables
+ * Every group is stated against the same point, which is what makes them
  * comparable at all: a group read from its own marker would put the same
  * arrangement at different numbers, and the reader would be comparing frames
  * rather than spreads.
  */
-test("every group is measured from the same marker", () => {
+test("every group is stated against the same marker", () => {
     seeded(606, () => {
         const ctx = context(FULL);
         for (let rep = 0; rep < 25; rep++) {
             const q = createWidestGroup(ctx, 4);
 
-            const from = q.premises.map(p => /class="group__from">from (.*?)<\/th>/.exec(p)?.[1]);
-            assert(from.every(Boolean), "a group's table does not say what it is measured from");
-            equal(new Set(from).size, 1,
-                `groups are measured from different markers: ${from.join(", ")}`);
+            /*
+             * Everything after "relative to", markup and all. The marker is a
+             * glyph in a span of its own and `subj` wraps that, so the token is
+             * nested markup rather than a bare word -- which is exactly why the
+             * markers are *visual* in this family of modes.
+             */
+            const markers = new Set(q.premises
+                .filter(p => p.includes("relative to"))
+                .map(p => /relative to (.+)$/.exec(p)?.[1]));
+            equal(markers.size, 1,
+                `groups are stated against ${markers.size} different markers`);
 
-            const marker = from[0]!;
-            assert(q.setup.join(" ").includes(marker),
-                "the marker is used in the tables but never introduced");
+            const marker = [...markers][0];
+            assert(!!marker, "a premise does not say what it is stated against");
+            const bare = marker!.replace(/<[^>]+>/g, "");
+            assert(q.setup.join(" ").includes(bare),
+                "the marker is used in the premises but never introduced");
             assert(/never moves/.test(q.setup.join(" ")),
                 "the item does not say the marker is fixed");
         }
@@ -198,7 +228,7 @@ test("every group is measured from the same marker", () => {
 });
 
 /**
- * The marker frames the numbers; it is not a member of any group.
+ * The marker frames the positions; it is not a member of any group.
  *
  * If it were, it would enter its group's minimum and maximum and change the
  * answer -- and a frame that is also a participant is not a frame.
@@ -208,11 +238,12 @@ test("the marker is not one of the members", () => {
         const ctx = context(FULL);
         for (let rep = 0; rep < 20; rep++) {
             const q = createWidestGroup(ctx, 4);
-            const marker = /class="group__from">from (.*?)<\/th>/.exec(q.premises[0])![1];
+            const marker = /relative to (.+)$/
+                .exec(q.premises.find(p => p.includes("relative to"))!)![1]
+                .replace(/<[^>]+>/g, "");
             for (const p of q.premises) {
-                const body = p.slice(p.indexOf("<tbody>"));
-                assert(!body.includes(marker),
-                    "the marker appears as a row, so it counts towards a spread");
+                const named = /^<span class="subject">([^<]*)<\/span>/.exec(p)?.[1];
+                assert(named !== marker, "the marker is stated as a member of a group");
             }
         }
     });

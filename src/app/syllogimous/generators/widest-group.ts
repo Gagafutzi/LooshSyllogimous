@@ -40,7 +40,7 @@ import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { getRandomSymbols, shuffle } from "../utils/question.utils";
 import { hi, subj, dimClass, dimSlot } from "../utils/phrasing";
 import { axesForDimensions } from "../utils/ndspace.utils";
-import { ANCHORS } from "../utils/anchor.utils";
+import { ANCHORS, statePosition } from "../utils/anchor.utils";
 import { GeneratorContext } from "./context";
 
 const pick = <T>(xs: T[]): T => xs[Math.floor(Math.random() * xs.length)];
@@ -116,41 +116,6 @@ function features(ctx: GeneratorContext, type: EnumQuestionType) {
     return { dims, groups, margin, rank: has("rank") };
 }
 
-/**
- * A group as a table, one row per member and one column per dimension.
- *
- * Not sentences. Five members across six dimensions is thirty facts, and as
- * prose that is six clauses per line for five lines — the display problem the
- * composed spaces already hit, where the reader spends the item parsing rather
- * than comparing. A table is what the question actually is: the answer is found
- * by reading down columns, and a column is a thing you can read down.
- *
- * Classes rather than inline styles, because Angular's sanitizer strips styles
- * from `[innerHTML]` and keeps classes.
- */
-function tableFor(g: Built, axes: Array<{ name: string }>, label: string, anchor: string): string {
-    const head = axes
-        .map((a, d) => `<th class="${dimClass(dimSlot(d))}">${a.name}</th>`)
-        .join("");
-
-    const rows = g.members.map(m =>
-        `<tr><th>${subj(m.name)}</th>`
-        + m.coord.map(v => `<td>${v > 0 ? "+" + v : v}</td>`).join("")
-        + `</tr>`).join("");
-
-    /*
-     * The top-left cell names the marker everything is measured from.
-     *
-     * It is the one place a reader looks before reading a row, and a column of
-     * signed numbers with nothing to be signed *against* is a column of
-     * abstractions — "+2" means something once it means two east of ●.
-     */
-    return `<div class="group"><div class="group__name">${hi(label)}</div>`
-        + `<table class="group__table"><thead><tr>`
-        + `<th class="group__from">from ${anchor}</th>${head}</tr></thead>`
-        + `<tbody>${rows}</tbody></table></div>`;
-}
-
 export function createWidestGroup(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createWidestGroup");
 
@@ -162,8 +127,8 @@ export function createWidestGroup(ctx: GeneratorContext, numOfPremises: number):
     numOfPremises = clampPremises(type, numOfPremises);
 
     const feat = features(ctx, type);
-    const axes = axesForDimensions(feat.dims).slice(0, feat.dims)
-        .map(a => ({ name: a.name || a.axisName }));
+    const scales = axesForDimensions(feat.dims).slice(0, feat.dims);
+    const axes = scales.map(a => ({ name: a.name || a.axisName }));
 
     // Premises buy members per group: more rows is more ordering to do before
     // any group's own widest dimension is known.
@@ -238,14 +203,27 @@ export function createWidestGroup(ctx: GeneratorContext, numOfPremises: number):
         question.bucket = names;
         question.buckets = order.map(i => built[i].members.map(m => m.name));
         question.setup = [
-            `Everything is placed against ${anchor}, which never moves. Each group`
-            + ` is placed on the same directions.`,
+            `Everything is placed against ${anchor}, which never moves.`
+            + ` A direction nobody mentions is one nothing differs on.`,
             `A group's <b>spread</b> on a direction is the distance between its two`
             + ` outermost members on it. Score a group by its <b>widest</b>`
             + ` direction — its largest spread.`,
         ];
-        question.premises = order.map((i, k) =>
-            tableFor(built[i], axes, `Group ${k + 1}`, anchor));
+        /*
+         * Stated as spatial premises, the way every other spatial mode states
+         * things, rather than as a grid of numbers.
+         *
+         * A table of coordinates is easier to *scan* and is not what the app
+         * asks anywhere else — reading "3 east, 1 above relative to ●" and
+         * holding it is part of the work, and a mode that hands the same facts
+         * over as a column of integers has removed that part without saying so.
+         * Members that differ on two axes of six read as two facts, not six,
+         * so a wide space stays wide without every line naming every direction.
+         */
+        question.premises = order.flatMap((i, k) => [
+            hi(`Group ${k + 1}`),
+            ...built[i].members.map(m => statePosition(m.name, anchor, m.coord, scales)),
+        ]);
 
         /*
          * Naming the top group needs only the top group's score. Ordering them
