@@ -61,6 +61,9 @@ export enum EnumTiers {
     Absolute = "Absolute",
 }
 
+/** Tier names in order, and the source the score bands are built from. */
+export const ORDERED_TIER_NAMES = Object.values(EnumTiers);
+
 export const TIER_COLORS: Record<EnumTiers, { bgColor: string, textColor: string }> = {
     [EnumTiers.Peasant]:          { bgColor: "#F0F8FF", textColor: "#045D56" },  // Alice Blue with Teal
     [EnumTiers.TurnipFarmer]:        { bgColor: "#ADD8E6", textColor: "#013220" },  // Light Blue with Deep Green
@@ -133,33 +136,36 @@ export const TIER_SYMBOLS: Record<EnumTiers, string> = {
 
 export const NO_DATA = "--";
 
-export const TIER_SCORE_RANGES: Record<EnumTiers, { minScore: number, maxScore: number }> = {
-    [EnumTiers.Peasant]:          { minScore: -INF, maxScore:  249 },
-    [EnumTiers.TurnipFarmer]:        { minScore:  250, maxScore:  499 },
-    [EnumTiers.HedgeWizard]:         { minScore:  500, maxScore:  749 },
-    [EnumTiers.Apprentice]:         { minScore:  750, maxScore:  999 },
-    [EnumTiers.Squire]:     { minScore: 1000, maxScore: 1249 },
-    [EnumTiers.Adept]:      { minScore: 1250, maxScore: 1499 },
-    [EnumTiers.Scholar]:         { minScore: 1500, maxScore: 1749 },
-    [EnumTiers.Expert]:       { minScore: 1750, maxScore: 1999 },
-    [EnumTiers.Genius]:       { minScore: 2000, maxScore: 2249 },
-    [EnumTiers.Visionary]:        { minScore: 2250, maxScore: 2499 },
-    [EnumTiers.Oracle]:         { minScore: 2500, maxScore: 2749 },
-    [EnumTiers.Sage]:           { minScore: 2750, maxScore: 2999 },
-    [EnumTiers.Philosopher]:    { minScore: 3000, maxScore: 3249 },
-    [EnumTiers.Mystic]:         { minScore: 3250, maxScore: 3499 },
-    [EnumTiers.Transcendent]:    { minScore: 3500, maxScore: 3749 },
-    [EnumTiers.Ascendant]:      { minScore: 3750, maxScore: 3999 },
-    [EnumTiers.Paragon]:        { minScore: 4000, maxScore: 4249 },
-    [EnumTiers.Archon]:         { minScore: 4250, maxScore: 4499 },
-    [EnumTiers.Empyrean]:       { minScore: 4500, maxScore: 4749 },
-    [EnumTiers.Demiurge]:       { minScore: 4750, maxScore: 4999 },
-    [EnumTiers.Aeon]:           { minScore: 5000, maxScore: 5249 },
-    [EnumTiers.Eidolon]:        { minScore: 5250, maxScore: 5499 },
-    [EnumTiers.Numen]:          { minScore: 5500, maxScore: 5749 },
-    [EnumTiers.Ineffable]:      { minScore: 5750, maxScore: 5999 },
-    [EnumTiers.Absolute]:       { minScore: 6000, maxScore:  INF },
-};
+/**
+ * One tier per level of measured ability.
+ *
+ * These were bands of 250 points running to 6000, written when the score was
+ * the *accumulated* one — unbounded, and a measure of how much you had played.
+ * The score is now the ability estimate times a hundred by default, which stops
+ * at 2600, so fourteen of the twenty-five names could never be earned by
+ * anybody and the badge stopped tracking anything the player could see: every
+ * mode unlocked, and still Apprentice.
+ *
+ * Built from the ability grid instead, so a tier *is* a level: Turnip Farmer at
+ * level 2, Absolute at 26. The badge, the points-to-next-tier readout, the
+ * crossing announcement and the Advanced Options picker all read these bands,
+ * so deriving them keeps one source of truth rather than four agreeing by hand.
+ *
+ * A player still on the accumulated score climbs these faster than before —
+ * 2600 points instead of 6000 for the full set. That is the honest trade: the
+ * names are flavour, and a flavour ladder nobody can finish is worse than one
+ * that runs a little quick for a path that is no longer the default.
+ */
+const TIER_BAND = 100;
+
+export const TIER_SCORE_RANGES: Record<EnumTiers, { minScore: number, maxScore: number }> =
+    Object.fromEntries(ORDERED_TIER_NAMES.map((tier, i) => {
+        // The first tier catches everything below the grid, the last everything
+        // above it: an estimate outside the bands is still somebody's estimate.
+        const min = i === 0 ? -INF : (i + 1) * TIER_BAND;
+        const max = i === ORDERED_TIER_NAMES.length - 1 ? INF : (i + 2) * TIER_BAND - 1;
+        return [tier, { minScore: min, maxScore: max }];
+    })) as Record<EnumTiers, { minScore: number, maxScore: number }>;
 
 export const TIER_SCORE_ADJUSTMENTS: Record<EnumTiers, { increment: number, decrement: number }> = {
     [EnumTiers.Peasant]:          { increment: 10, decrement: 10 },
@@ -189,7 +195,7 @@ export const TIER_SCORE_ADJUSTMENTS: Record<EnumTiers, { increment: number, decr
     [EnumTiers.Absolute]:       { increment: 4, decrement: 10 },
 };
 
-export const ORDERED_TIERS = Object.keys(TIER_SCORE_RANGES) as EnumTiers[];
+export const ORDERED_TIERS = ORDERED_TIER_NAMES;
 
 export const ORDERED_QUESTION_TYPES = [
     EnumQuestionType.Distinction,

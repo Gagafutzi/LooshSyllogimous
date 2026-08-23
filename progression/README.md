@@ -218,8 +218,13 @@ Two rules carry the weight:
   premise ceiling reached means there is nothing left to serve there, and a
   pacing system that responds to that with nothing new is not pacing anything.
 
-The **tier badge still comes from the score**. A name is flavour; withholding
-content is not.
+**The tier badge is one level per tier.** It used to be bands of 250 points
+running to 6000, written for the accumulated score — so under the derived score,
+which stops at 2600, fourteen of the twenty-five names could never be earned and
+the badge stopped tracking anything the player could see: every mode unlocked,
+and still Apprentice. The bands are built from the ability grid now, so a tier
+*is* a level — Turnip Farmer at 2, Absolute at 26 — and unlocking and the badge
+finally agree in front of the player.
 
 ## 5. Fatigue
 

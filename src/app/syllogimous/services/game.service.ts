@@ -445,8 +445,14 @@ export class GameService implements GeneratorContext {
      */
     private announcedTier?: EnumTiers;
 
-    /** Points a score must be inside a band before the crossing is announced. */
-    private static readonly TIER_MARGIN = 60;
+    /**
+     * Points a score must be inside a band before the crossing is announced.
+     *
+     * Scaled with the bands: they were 250 wide and are 100 now, so a margin of
+     * 60 would have silenced every announcement outside the middle fifth of a
+     * tier.
+     */
+    private static readonly TIER_MARGIN = 20;
 
     private announceTier(previous: EnumTiers) {
         const next = this.tier;

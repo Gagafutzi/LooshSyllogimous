@@ -13,7 +13,10 @@
 
 import { assert, equal, test } from "./harness";
 import { TIER_UNLOCK_LEVELS, unlockRow } from "../src/app/syllogimous/utils/tier.utils";
-import { ORDERED_QUESTION_TYPES, TIERS_MATRIX } from "../src/app/syllogimous/constants/game.constants";
+import {
+    ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIERS_MATRIX, TIER_SCORE_RANGES,
+} from "../src/app/syllogimous/constants/game.constants";
+import { DEFAULT_ABILITY } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 
 const modesAt = (row: number) => TIERS_MATRIX[row].filter(v => v).length;
@@ -74,4 +77,55 @@ test("everything is open to a competent player", () => {
     const at7 = unlockRow({ aggregateLevel: 7, bestLevel: 7, anyExhausted: false });
     assert(TIERS_MATRIX[at7][idx] === 1,
         "a level-7 player still cannot see Space 3D");
+});
+
+/**
+ * The badge has to track something the player can see.
+ *
+ * The bands were 250 points wide running to 6000, written when the score was
+ * the accumulated one -- unbounded, and a measure of how much you had played.
+ * The score is the ability estimate times a hundred by default, which stops at
+ * 2600, so fourteen of the twenty-five names could never be earned by anybody:
+ * every mode unlocked, and still Apprentice.
+ */
+test("every tier can actually be earned", () => {
+    const ceiling = DEFAULT_ABILITY.maxLevel * 100;
+    const unreachable = ORDERED_TIERS.filter(t => TIER_SCORE_RANGES[t].minScore > ceiling);
+    equal(unreachable.length, 0,
+        `${unreachable.length} tiers are past the ${ceiling}-point ceiling: ${unreachable.slice(0, 3).join(", ")}`);
+
+    // And the top one is actually held at the top, not merely reachable.
+    const top = ORDERED_TIERS[ORDERED_TIERS.length - 1];
+    assert(ceiling >= TIER_SCORE_RANGES[top].minScore,
+        "the highest tier begins above the highest possible score");
+});
+
+test("the tier bands cover every score, with no gaps or overlaps", () => {
+    let previousMax = -Infinity;
+    for (const tier of ORDERED_TIERS) {
+        const { minScore, maxScore } = TIER_SCORE_RANGES[tier];
+        assert(minScore <= maxScore, `${tier} has an empty band`);
+        if (Number.isFinite(previousMax)) {
+            equal(minScore, previousMax + 1, `${tier} does not start where the last one ended`);
+        }
+        previousMax = maxScore;
+    }
+    assert(!Number.isFinite(previousMax), "the last tier does not run to the top");
+});
+
+/**
+ * A tier is a level, which is what makes the badge mean something: unlocking is
+ * decided by ability, so the name beside it has to be too or they disagree in
+ * front of the player.
+ */
+test("a tier is one level of measured ability", () => {
+    const at = (points: number) =>
+        ORDERED_TIERS.findIndex(t =>
+            points >= TIER_SCORE_RANGES[t].minScore && points <= TIER_SCORE_RANGES[t].maxScore);
+
+    // One band per level, so a level apart is a tier apart.
+    for (let level = 3; level <= 20; level++) {
+        equal(at(level * 100) - at((level - 1) * 100), 1,
+            `level ${level - 1} to ${level} did not move exactly one tier`);
+    }
 });
