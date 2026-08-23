@@ -113,13 +113,31 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
         const named = words.slice(0, anchors);
         const derived = words.slice(anchors);
 
+        /*
+         * Which objects a premise puts within reach of each other.
+         *
+         * Needed because a conclusion is only worth asking if getting to it
+         * takes more than reading one premise back. A named object is linked to
+         * a shared frame node rather than to the other named ones: two absolute
+         * placements do relate their objects, but only through two premises,
+         * and that is exactly what the distance should say.
+         */
+        const neighbors: Record<string, string[]> = {};
+        const link = (x: string, y: string) => {
+            (neighbors[x] ??= []).push(y);
+            (neighbors[y] ??= []).push(x);
+        };
+        const FRAME = "\u0000frame";
+        for (const w of words) neighbors[w] ??= [];
+
         const premises: string[] = [
-            ...named.map(w => `${subj(w)} is on the ${hi(shape.corners[start[w]])} corner`),
+            ...named.map(w => { link(w, FRAME); return `${subj(w)} is on the ${hi(shape.corners[start[w]])} corner`; }),
             ...derived.map(w => {
                 // Stated against an already-placed object, so the chain always
                 // resolves; the reader may have to walk several links to get
                 // there, which is the derivation being asked for.
                 const anchor = words[Math.floor(Math.random() * words.indexOf(w))];
+                link(w, anchor);
                 const steps = mod(start[w] - start[anchor], order);
                 const cw = steps <= order / 2;
                 const n = cw ? steps : order - steps;
@@ -160,7 +178,7 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
 
         // Asking where something ended up, or what a turn left alone.
         if (words.length >= 2 && Math.random() < 0.4) {
-            fillInvarianceQuestion(question, words, start, final, order, shape);
+            if (!fillInvarianceQuestion(question, words, neighbors, start, final, order, shape)) continue;
         } else {
             fillPositionQuestion(question, words, final, shape);
         }
@@ -212,12 +230,42 @@ function fillPositionQuestion(
 function fillInvarianceQuestion(
     question: Question,
     words: string[],
+    neighbors: Record<string, string[]>,
     start: Record<string, number>,
     final: Record<string, number>,
     order: number,
     shape: { name: string; corners: string[] },
-) {
-    const [a, b] = shuffle([...words]).slice(0, 2);
+): boolean {
+    /*
+     * The pair furthest apart in the premises, and never one a premise states.
+     *
+     * Picking two objects at random meant asking about a pair whose separation
+     * a premise had already given — and on an even-sided shape it was worse
+     * than a restatement, because a separation of exactly half the corners is
+     * its own reverse: "2 clockwise" and "2 anticlockwise" of a square are the
+     * same claim, so a conclusion at that separation is true whichever
+     * direction it names and could be answered without reading the premise it
+     * came from, let alone the turns.
+     *
+     * The invariance being taught here is genuine — a turn cannot change how
+     * two objects sit relative to each other, and knowing that saves computing
+     * both final positions. But it has to be applied to a relation that takes
+     * work to establish in the first place, or the item asks nothing at all.
+     */
+    const pairs: Array<[string, string, number]> = [];
+    for (let i = 0; i < words.length; i++) {
+        for (let j = i + 1; j < words.length; j++) {
+            const a = words[i], b = words[j];
+            if (mod(final[a] - final[b], order) === order / 2) continue;
+            const d = hops(a, b, neighbors);
+            if (Number.isFinite(d) && d >= 2) pairs.push([a, b, d]);
+        }
+    }
+    if (!pairs.length) return false;
+
+    const far = Math.max(...pairs.map(p => p[2]));
+    const [a, b] = shuffle(pairs.filter(p => p[2] === far))[0];
+
     const truth = mod(final[a] - final[b], order);
     const claim = Math.random() < 0.5 ? truth : mod(truth + 1 + Math.floor(Math.random() * (order - 1)), order);
 
@@ -237,4 +285,25 @@ function fillInvarianceQuestion(
         `${subj(a)} started ${hi(String(mod(start[a] - start[b], order)))} corner(s) `
         + `clockwise of ${subj(b)}, and still is — the turns did not need computing.`,
     ];
+    return true;
+}
+
+/** Premises between two objects, counted. `Infinity` if they are unconnected. */
+function hops(a: string, b: string, neighbors: Record<string, string[]>): number {
+    if (a === b) return 0;
+    const seen = new Set([a]);
+    let layer = [a];
+    for (let d = 1; layer.length; d++) {
+        const next: string[] = [];
+        for (const node of layer) {
+            for (const n of neighbors[node] ?? []) {
+                if (seen.has(n)) continue;
+                if (n === b) return d;
+                seen.add(n);
+                next.push(n);
+            }
+        }
+        layer = next;
+    }
+    return Infinity;
 }

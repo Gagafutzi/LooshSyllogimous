@@ -10,7 +10,7 @@ import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { DeicticSpec, POLES, allCoords, answerFor, buildDeicticSpec, coordKey, reversalTextFor, statementFor, verifyAnswer } from "../utils/deictic.utils";
-import { scrambleByFactor } from "../utils/premise-order.utils";
+import { scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 
@@ -49,15 +49,34 @@ export function createDeictic(ctx: GeneratorContext, numOfPremises: number) {
             statementFor(spec.axes, c, spec.grid[coordKey(c)])
         );
 
-        // Reversals are stated after the grid: they operate on facts already
-        // fixed, so presenting them first would read as nonsense. One premise
-        // per reversed axis, so no two of them say the same thing.
+        /*
+         * Reversals are stated after the grid, and the scramble is not allowed
+         * to move them.
+         *
+         * They operate on facts already fixed, so presenting them first reads
+         * as nonsense — and worse, it turns the mode into a different exercise.
+         * Read last, a reversal is an operation applied to a structure that has
+         * to be held whole. Read first, it is a substitution rule: every
+         * premise after it can be rewritten on sight and forgotten, and the
+         * conclusion then follows from that one premise and whichever cell it
+         * names. That is two premises out of five, which is the shallow
+         * conclusion the depth work exists to remove.
+         *
+         * The order was already built this way and then handed to
+         * `scrambleByFactor`, which shuffles the lot — so the intent was in the
+         * code and undone one line later. `scrambleLeading` scrambles the grid
+         * among itself and leaves the tail alone, which is the same thing
+         * transformation premises already needed.
+         *
+         * One premise per reversed axis, so no two of them say the same thing.
+         */
         const reversalPremises = spec.reversals
             .flatMap((parity, axis) => parity ? [reversalTextFor(spec.axes[axis])] : []);
         shuffle(gridPremises);
         shuffle(reversalPremises);
-        question.premises = scrambleByFactor(
+        question.premises = scrambleLeading(
             [...gridPremises, ...reversalPremises],
+            gridPremises.length,
             ctx.settingsOverrideService.scramble);
 
         const uttered = cells[Math.floor(Math.random() * cells.length)];

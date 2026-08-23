@@ -176,7 +176,22 @@ measurement instead of by screenshot.
 
 ---
 
-## 2.3 The rotation no-op
+## 2.3 The rotation no-op — **PARTLY BUILT**
+
+The conclusion is still relative, and the invariance question stays — a turn
+genuinely cannot change how two objects sit relative to each other, and knowing
+that is worth testing. What changed is the pair it is asked about: the furthest
+apart in the premise graph, never one a premise relates directly, and never at a
+separation of exactly half the corners, which on an even-sided shape is its own
+reverse — so "2 clockwise" and "2 anticlockwise" of a square named the same
+claim and the reversal in the wording changed nothing.
+
+The reported item failed on both counts at once, which is why it read as
+derivable from a single premise: it was.
+
+**Still to do:** the absolute form below, which is the version where the turns
+have to be computed rather than dismissed. Both forms should exist; the mode
+already has the choice-among-corner-names renderer for it.
 
 Shape Rotation needs one thing beyond the depth gate, because the depth gate
 alone would not save it. Its conclusion asks for a **relative** position — *"X
@@ -206,7 +221,18 @@ one.
 
 ---
 
-## 2.4 Transformations that arrive before the thing they transform
+## 2.4 Transformations that arrive before the thing they transform — **BUILT for Deictic**
+
+The intent was already in the code, and undone one line later. Deictic built its
+premises as grid-then-reversals with a comment saying why, then handed the whole
+list to `scrambleByFactor`, which shuffles everything — so the reversal could
+land first, which is what the screenshot caught. It now uses `scrambleLeading`,
+which scrambles the grid among itself and leaves the tail alone, the same helper
+the transformation premises already needed.
+
+**Still to do:** the general version below — an ordering flag on the premise
+rather than a per-generator arrangement, so the next mode with operations does
+not have to rediscover this.
 
 Deictic states its reversal first:
 

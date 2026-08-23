@@ -20,6 +20,7 @@ import {
     buildBranching, buildChain, graphDistance, pickDistantPair,
 } from "../src/app/syllogimous/utils/linear.utils";
 import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
+import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -178,4 +179,51 @@ test("a composed space asks about every axis it is built on", () => {
     });
 
     assert(checked > 20, `only ${checked} items were wide enough to check`);
+});
+
+/**
+ * Shape Rotation must not ask back a separation a premise stated.
+ *
+ * The reported item read: *Cord is 2 corners clockwise from Hostess* ... *the
+ * square is turned 180 degrees* => *after the turns, Hostess is 2 corners
+ * clockwise from Cord*. Two failures at once. The pair was one a premise
+ * related directly, so the conclusion was that premise read back; and on a
+ * square a separation of two is its own reverse, so naming either direction is
+ * the same claim and the reversal in the wording changed nothing.
+ *
+ * The invariance the mode teaches is real -- a turn cannot change how two
+ * objects sit relative to each other -- but it has to be applied to a relation
+ * that took work to establish, or the item asks nothing.
+ */
+test("a rotation conclusion is not a premise read back", () => {
+    const ctx = ndContext();
+    let checked = 0;
+    const subjectsOf = (html: string) =>
+        [...html.matchAll(/<span class="subject">([^<]*)<\/span>/g)].map(m => m[1]);
+
+    seeded(6006, () => {
+        for (let n = 4; n <= 8; n++) {
+            for (let rep = 0; rep < 40; rep++) {
+                let q;
+                try { q = createShapeRotation(ctx, n); } catch { continue; }
+                const conclusion = String(q.conclusion ?? "");
+                // The other form is a choice among corner names, and has none.
+                if (!conclusion.includes("after the turns")) continue;
+
+                const asked = subjectsOf(conclusion);
+                if (asked.length !== 2) continue;
+                const key = [...asked].sort().join(" ");
+
+                for (const premise of q.premises) {
+                    const named = subjectsOf(premise);
+                    if (named.length !== 2) continue;   // an absolute placement
+                    assert([...named].sort().join(" ") !== key,
+                        `asked about ${asked.join(" / ")}, which a premise states outright`);
+                }
+                checked++;
+            }
+        }
+    });
+
+    assert(checked > 15, `only ${checked} relative-form items were produced`);
 });
