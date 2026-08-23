@@ -111,12 +111,29 @@ these modes and it is free.
 ### `minDepth`, a generator constraint — **BUILT for both pair pickers**
 
 Both `pickDistantPair`s take the diameter now, with `slack` saying how far below
-it a caller may reach and zero the default. What is *not* built is the inversion
-described below — choosing the pair first and building the layout around it. The
-pickers still work with whatever layout they are handed, so a layout with a
-small diameter still yields a shallow conclusion; it is now the layout that is
-at fault rather than the picker, which is the right place for the remaining
-work.
+it a caller may reach and zero the default.
+
+**The inversion below was built, measured and reverted.** The reasoning was that
+a branching layout is free to come out as a star — every pair two steps apart,
+however many premises went in — and that the picker would then correctly report
+the deepest available conclusion as a shallow one, which no choice of pair could
+repair. So the pair should be chosen first and the layout built around it.
+
+The premise does not hold. `pickBase` weights the ends of what exists so far, so
+a new object usually *extends* the arrangement rather than hanging off its
+middle, and the mean span over six to twelve premises is already about eight.
+Laying a spine first — half the links end to end before anything branches —
+moved that to 8.1 and cost ten points of branching, which is the rung's own
+purpose.
+
+What remains of it is a test: the property the inversion would have guaranteed,
+asserted of the layout builder as it stands. If it ever stops holding, the
+inversion becomes worth building.
+
+A caution worth recording, because it nearly shipped: the first measurement said
+the spine took the mean span from 3.3 to 4.5, which looked decisive. It was
+measuring a version with a duplicated attach loop — every object added twice —
+so both numbers were of a corrupted layout. The real comparison is 7.9 to 8.1.
 
 
 Every generator that builds a conclusion gains a floor and rejects candidates

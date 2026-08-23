@@ -508,3 +508,74 @@ test("a checkpoint item carries no meta premises", () => {
         }
     });
 });
+
+/**
+ * Branching layouts are already long, which is why nothing was done about them.
+ *
+ * The plan called for one more piece of the depth work: choose the conclusion
+ * pair first and build the layout around it, on the reasoning that a branching
+ * layout is free to come out as a star where every pair is two steps apart
+ * however many premises went in. The picker would then correctly report that
+ * the deepest conclusion available is a shallow one, and no choice of pair
+ * could repair it.
+ *
+ * Measured, the premise does not hold. `pickBase` weights the ends of what
+ * exists so far, so a new object usually *extends* the arrangement rather than
+ * hanging off its middle, and the mean span over six to twelve premises is
+ * about eight. Laying a spine first — half the links end to end before anything
+ * branches — moved that to 8.1 and cost ten points of branching, which is the
+ * rung's own purpose. It was built, measured, and reverted.
+ *
+ * This test is what remains of it: the property the inversion would have
+ * guaranteed, held by the layout builder as it stands. If it ever stops
+ * holding, the inversion is worth building after all.
+ */
+test("a branching layout is long enough to ask across", () => {
+    seeded(6161, () => {
+        for (let n = 6; n <= 12; n++) {
+            const words = Array.from({ length: n + 1 }, (_, i) => `w${i}`);
+            let total = 0, worst = Infinity;
+            for (let rep = 0; rep < 40; rep++) {
+                const d = diameter(buildBranching(words).neighbors);
+                total += d;
+                worst = Math.min(worst, d);
+            }
+            const mean = total / 40;
+            assert(mean >= n * 0.6,
+                `${n} premises branch to a mean span of ${mean.toFixed(1)}`);
+            assert(worst >= 3,
+                `${n} premises produced a span of ${worst}, which is close to a star`);
+        }
+    });
+});
+
+/**
+ * With the spine in place, the conclusion a real item asks about spans most of
+ * what was stated -- which is what the whole of section 2 is for.
+ */
+test("a branching item still asks about a distant pair", () => {
+    const ctx = ndContext();
+    const branching = { ...ctx, hasRung: (_t: string, r: string) => r === "branching" } as GeneratorContext;
+
+    seeded(818, () => {
+        for (const n of [5, 7, 9]) {
+            let shallow = 0, built = 0;
+            for (let rep = 0; rep < 30; rep++) {
+                let q;
+                try { q = createLinear(branching, n, EnumQuestionType.LinearVertical); } catch { continue; }
+                built++;
+                const named = (line: string) =>
+                    [...line.matchAll(/<span class="subject">([^<]*)<\/span>/g)].map(m => m[1]);
+                const asked = named(String(q.conclusion));
+                if (asked.length !== 2) continue;
+                // A pair stated outright in a premise is the shallow case.
+                if (q.premises.some(p => {
+                    const s = named(p);
+                    return s.length === 2 && s.includes(asked[0]) && s.includes(asked[1]);
+                })) shallow++;
+            }
+            assert(built > 10, `only ${built} items at ${n} premises`);
+            equal(shallow, 0, `${shallow} of ${built} branching items asked back a stated pair`);
+        }
+    });
+});
