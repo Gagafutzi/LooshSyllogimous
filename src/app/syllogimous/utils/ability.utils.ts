@@ -121,6 +121,12 @@ export const RUNG_COST: Record<string, number> = {
      * rung.
      */
     "margin-1": 1.3,
+    /*
+     * A second claim, answerable earlier. Priced low: it adds a question rather
+     * than difficulty to the one already there, and its value is diagnostic --
+     * it says *where* a reader lost the thread, which a single verdict cannot.
+     */
+    checkpoint: 0.5,
     "circular-2": 0.8,
 
     "transform-1": 1.5,

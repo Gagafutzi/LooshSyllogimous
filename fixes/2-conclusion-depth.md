@@ -340,7 +340,40 @@ extends to the new claim form for free, since it reads the rendered conclusion.
 
 ---
 
-## 2.6 A halfway conclusion and a final one
+## 2.6 A halfway conclusion and a final one — **BUILT** for the scale family
+
+The `checkpoint` rung, last on the linear ladder. Two claims, answered together
+as a two-slot construction — which needed no new answer flow, the construct
+screen already taking several claims with their own slots, and which brings the
+per-slot result screen from [3.1](3-explanations.md#31-construct-answers-scored-per-dimension)
+with it. The two are reported separately, so a reader who lost the thread late
+is distinguished from one who never had it.
+
+Three things it turned on.
+
+**"Halfway" is halfway through the reading**, so the claim is built from
+`prefixLayout` — the arrangement the first *k* premises determine on their own,
+recomputed from their own edges rather than sliced out of the finished one. A
+pair the prefix does not connect has no relation yet, and taking its finished
+coordinates would invent one.
+
+**Premise order became load-bearing**, where it had been a presentation choice.
+`scrambleBlocks` shuffles within each half and never across: the claim follows
+from the *set* before the boundary, not from an order within it, but a premise
+that crossed the line would be one the reader did not have when the claim became
+answerable.
+
+**Meta and checkpoints do not combine**, and that is structural rather than
+fussy. A meta premise *replaces* premises with a claim about a different pair,
+so once it has run there is no prefix that determines what the checkpoint asks.
+Skipped rather than worked around: a checkpoint the reader cannot answer at the
+checkpoint is not one.
+
+**Still to do:** the same for the composed spaces, which have their own
+conclusion path; and the ability model still receives one bit per item, so the
+second slot is diagnostic on the screen and not yet in the estimate.
+
+### The original diagnosis
 
 The author's proposal, and it is a good one:
 

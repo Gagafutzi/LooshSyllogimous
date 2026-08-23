@@ -834,3 +834,47 @@ export function explainLinear(
     lines.push(`so ${renderRelation(scale, a, b, compare(layout, a, b), { negate: false }).text}`);
     return lines;
 }
+
+/**
+ * The layout the first `count` premises determine, on their own.
+ *
+ * A checkpoint conclusion has to be answerable *at that point in the reading*,
+ * which means from a prefix of the premises as displayed — not from any subset
+ * of that size. "Any five of ten" is not answerable halfway down the page,
+ * because which five is not known until the tenth has been read.
+ *
+ * Positions are recomputed from the prefix's own edges rather than sliced out
+ * of the full layout: a pair the prefix does not connect has no relation yet,
+ * and taking its finished coordinates would invent one.
+ */
+export function prefixLayout(layout: LinearLayout, count: number): LinearLayout {
+    const edges = layout.edges.slice(0, count);
+    const neighbors: Record<string, string[]> = {};
+    for (const [a, b] of edges) {
+        (neighbors[a] ??= []).push(b);
+        (neighbors[b] ??= []).push(a);
+    }
+
+    const pos: Record<string, number> = {};
+    for (const node of Object.keys(neighbors)) {
+        if (node in pos) continue;
+        // Walk the component, keeping the full layout's differences: the
+        // prefix fixes the shape, not where it sits.
+        pos[node] = layout.pos[node];
+        const stack = [node];
+        while (stack.length) {
+            const at = stack.pop()!;
+            for (const next of neighbors[at] ?? []) {
+                if (next in pos) continue;
+                pos[next] = layout.pos[next];
+                stack.push(next);
+            }
+        }
+    }
+
+    return {
+        words: Object.keys(pos),
+        pos, edges, neighbors,
+        branching: layout.branching,
+    };
+}

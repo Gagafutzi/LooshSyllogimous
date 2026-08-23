@@ -88,3 +88,20 @@ export function scrambleLeading<T>(premises: T[], orderedFrom: number, factor: n
     const tail = premises.slice(orderedFrom);
     return [...scrambleByFactor(head, factor), ...tail];
 }
+
+/**
+ * Scramble within each block, never across the boundary between them.
+ *
+ * `scrambleLeading` shuffles a head and pins a tail, which is what a
+ * transformation needs — its steps are a sequence. A checkpoint needs something
+ * else: both halves may be shuffled, but a premise must not cross from one to
+ * the other, because the claim placed at the boundary is answerable from what
+ * comes *before* it and a premise that moved is a premise the reader did not
+ * have.
+ */
+export function scrambleBlocks<T>(premises: T[], boundary: number, factor: number): T[] {
+    return [
+        ...scrambleByFactor(premises.slice(0, boundary), factor),
+        ...scrambleByFactor(premises.slice(boundary), factor),
+    ];
+}

@@ -21,6 +21,8 @@ import {
 } from "../src/app/syllogimous/utils/linear.utils";
 import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
+import { createLinear } from "../src/app/syllogimous/generators/linear";
+import { compareConstruction } from "../src/app/syllogimous/utils/construct.utils";
 import { createGraphMatching } from "../src/app/syllogimous/generators/graph-matching";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
@@ -351,4 +353,158 @@ test("the form where the turns matter is the commoner one", () => {
 
     assert(absolute > relative * 1.5,
         `${absolute} absolute against ${relative} relative`);
+});
+
+/**
+ * A claim answerable halfway through the reading, beside one that is not.
+ *
+ * With the depth floor requiring the whole premise set, a single conclusion can
+ * only ever say "you did not get to the end". A checkpoint says where the
+ * thread was lost, and the per-slot result screen reports the two separately.
+ */
+test("a checkpoint claim follows from the first half of the premises", () => {
+    const ctx = ndContext();
+    const withCheckpoint = { ...ctx, hasRung: (_t: string, r: string) => r === "checkpoint" } as GeneratorContext;
+    let seen = 0;
+
+    seeded(9090, () => {
+        for (let n = 5; n <= 8; n++) {
+            for (let rep = 0; rep < 20; rep++) {
+                let q;
+                try { q = createLinear(withCheckpoint, n, EnumQuestionType.LinearVertical); } catch { continue; }
+                if (q.answerMode !== "construct" || q.construct.length !== 2) continue;
+                seen++;
+
+                const [first, last] = q.construct;
+                assert(/first/i.test(first.slots[0].label),
+                    `the early claim is not labelled by where it is answerable from: ${first.slots[0].label}`);
+                assert(/all/i.test(last.slots[0].label),
+                    `the late claim is not labelled as needing everything: ${last.slots[0].label}`);
+
+                // Two different questions, or the checkpoint is the answer.
+                const same = [first.a, first.b].sort().join() === [last.a, last.b].sort().join();
+                assert(!same, "the checkpoint asks about the same pair as the conclusion");
+            }
+        }
+    });
+
+    assert(seen > 20, `only ${seen} checkpoint items in the sample`);
+});
+
+/**
+ * Below five premises the midpoint is one or two premises deep, which is the
+ * shallow conclusion the depth work exists to prevent. Serving one deliberately
+ * would teach the habit being removed.
+ */
+test("short items get no checkpoint", () => {
+    const ctx = ndContext();
+    const withCheckpoint = { ...ctx, hasRung: (_t: string, r: string) => r === "checkpoint" } as GeneratorContext;
+
+    seeded(4321, () => {
+        for (const n of [2, 3, 4]) {
+            for (let rep = 0; rep < 15; rep++) {
+                let q;
+                try { q = createLinear(withCheckpoint, n, EnumQuestionType.LinearVertical); } catch { continue; }
+                assert(q.construct.length < 2,
+                    `a ${n}-premise item carries a checkpoint, whose halfway is one premise deep`);
+            }
+        }
+    });
+});
+
+/**
+ * The result screen has to report the two apart, or the checkpoint has bought a
+ * second question and no diagnosis.
+ */
+test("a checkpoint answer is reported slot by slot", () => {
+    const ctx = ndContext();
+    const withCheckpoint = { ...ctx, hasRung: (_t: string, r: string) => r === "checkpoint" } as GeneratorContext;
+
+    seeded(555, () => {
+        for (let rep = 0; rep < 40; rep++) {
+            let q;
+            try { q = createLinear(withCheckpoint, 6, EnumQuestionType.LinearVertical); } catch { continue; }
+            if (q.construct.length !== 2) continue;
+
+            // Right on the first, wrong on the second.
+            const picks = q.construct.map((c, i) => c.slots.map(slot => ({
+                direction: i === 0 ? slot.answerDirection : (slot.answerDirection + 1) % 3,
+                magnitude: slot.answerMagnitude,
+            })));
+
+            const rows = compareConstruction(q.construct, picks);
+            equal(rows.length, 2, "the two claims are not reported separately");
+            assert(rows[0][0].ok, "the first claim was marked wrong when it was right");
+            assert(!rows[1][0].ok, "the second claim was marked right when it was wrong");
+            return;
+        }
+        assert(false, "no checkpoint item was built to check");
+    });
+});
+
+/**
+ * The first half has to actually be first on the page.
+ *
+ * The claim is placed at a boundary in the *reading*, so a premise that crossed
+ * it would be one the reader did not have when the claim became answerable.
+ * Both halves may be shuffled — the claim follows from the set before the
+ * boundary, not from an order within it — but never across.
+ */
+test("a checkpoint's premises stay on their own side of the boundary", () => {
+    const ctx = ndContext();
+    const withCheckpoint = { ...ctx, hasRung: (_t: string, r: string) => r === "checkpoint" } as GeneratorContext;
+    let checked = 0;
+
+    seeded(1212, () => {
+        for (let n = 5; n <= 8; n++) {
+            for (let rep = 0; rep < 20; rep++) {
+                let q;
+                try { q = createLinear(withCheckpoint, n, EnumQuestionType.LinearVertical); } catch { continue; }
+                if (q.construct.length !== 2) continue;
+                checked++;
+
+                const half = Math.floor(n / 2);
+                const named = (line: string) =>
+                    [...line.matchAll(/<span class="subject">([^<]*)<\/span>/g)].map(m => m[1]);
+
+                /*
+                 * Everything the first claim asks about has to have been named
+                 * before the boundary. That is weaker than re-deriving the
+                 * relation and is the part a reordering bug would break: a
+                 * premise that drifted past the line takes its objects with it.
+                 */
+                const early = new Set(q.premises.slice(0, half).flatMap(named));
+                const [a, b] = [q.construct[0].a, q.construct[0].b];
+                assert(early.has(a) && early.has(b),
+                    `the first claim asks about ${a}/${b}, not both named in the first ${half}`);
+            }
+        }
+    });
+
+    assert(checked > 20, `only ${checked} checkpoint items in the sample`);
+});
+
+/**
+ * Meta and checkpoints do not combine, structurally rather than fussily.
+ *
+ * A meta premise *replaces* premises with a claim about a different pair, so
+ * after it runs there is no prefix that determines what the checkpoint asks —
+ * and a checkpoint the reader cannot answer at the checkpoint is not one.
+ */
+test("a checkpoint item carries no meta premises", () => {
+    const settings = new Settings();
+    for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;
+    settings.setEnable("meta", true);
+    const ctx = { ...ndContext(), settings,
+        hasRung: (_t: string, r: string) => r === "checkpoint" } as GeneratorContext;
+
+    seeded(313, () => {
+        for (let rep = 0; rep < 40; rep++) {
+            let q;
+            try { q = createLinear(ctx, 6, EnumQuestionType.LinearVertical); } catch { continue; }
+            if (q.construct.length !== 2) continue;
+            assert(!q.premises.some(p => p.includes("relates to")),
+                "a checkpoint item carries a meta premise, so its prefix no longer determines the claim");
+        }
+    });
 });

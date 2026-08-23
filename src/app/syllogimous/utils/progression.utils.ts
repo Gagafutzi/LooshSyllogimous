@@ -228,7 +228,7 @@ const LINEAR_LADDER = [
     // `hasRung` call, and is filtered out of the settings UI. See fixes/6.
     "negation", "branching", "meta", "overlap", "retired-wide-premises",
     "transform-1", "transform-2", "multi-conclusion", "choose-conclusion",
-    "construct-conclusion", "construct-distance",
+    "construct-conclusion", "construct-distance", "checkpoint",
 ];
 
 /**

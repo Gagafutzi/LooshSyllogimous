@@ -11,8 +11,8 @@ import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
 import { CoordMap, Transform, describeTransform, drawTransforms, replay } from "../utils/transformations.utils";
-import { LINEAR_SCALES, LinearLayout, LinearScale, buildBranching, buildChain, buildConclusion, buildConclusionSet, buildConstructClaim, compare, explainLinear, hasTies, pickDistantPair, renderPremises, vocabFor } from "../utils/linear.utils";
-import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
+import { LINEAR_SCALES, LinearLayout, LinearScale, buildBranching, buildChain, buildConclusion, buildConclusionSet, buildConstructClaim, compare, explainLinear, hasTies, pickDistantPair, prefixLayout, renderPremises, vocabFor } from "../utils/linear.utils";
+import { scrambleBlocks, scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
@@ -67,6 +67,11 @@ export function linearFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
         // is only meaningful once premises branch.
         overlap: branching && pick("overlap", "overlap"),
         transforms,
+        /*
+         * A claim answerable halfway through the reading, beside the one that
+         * needs everything. See the branch in `fillLinearConclusion`.
+         */
+        checkpoint: ladder("checkpoint"),
         multiConclusion: pick("multiConclusion", "multi-conclusion"),
         chooseConclusion: pick("chooseConclusion", "choose-conclusion"),
         constructConclusion: ctx.forceConstruction !== "off" || pick("constructConclusion", "construct-conclusion"),
@@ -295,9 +300,49 @@ export function createLinear(ctx: GeneratorContext, numOfPremises: number, type:
          */
         question.bucket = [...words].sort((a, b) => layout.pos[b] - layout.pos[a]);
         question.premises = premises;
-        if (!ties) {
+
+        /*
+         * Where the first half stops, when there is a checkpoint.
+         *
+         * The premises are rendered from `layout.edges` in order, so the first
+         * `half` of them are exactly the edges the checkpoint claim was built
+         * from. That correspondence is the whole mechanism and it is fragile:
+         * anything that reorders or replaces premises breaks it.
+         */
+        const boundary = question.construct.length === 2
+            ? Math.floor(numOfPremises / 2)
+            : 0;
+
+        /*
+         * Meta and checkpoints do not combine, and the reason is structural
+         * rather than fussy. A meta premise *replaces* one or more premises
+         * with a claim about a different pair, so after it runs there is no
+         * longer a prefix of premises that determines what the checkpoint asks.
+         * Skipped rather than worked around: a checkpoint the reader cannot
+         * answer at the checkpoint is not one.
+         */
+        if (!ties && !boundary) {
             createMetaRelationships(settings, question, premises.length + 1,
                 modifierOn(ctx, type, "meta", settings.enabled.meta));
+        }
+
+        if (boundary) {
+            /*
+             * Shuffled within each half and never across. Both halves may be
+             * reordered — the claim follows from the *set* before the boundary,
+             * not from a particular order within it — but a premise that
+             * crossed the line would be one the reader did not have when the
+             * first claim became answerable.
+             */
+            question.premises = scrambleBlocks(
+                question.premises, boundary, ctx.settingsOverrideService.scramble);
+            if (transformCount > 0) {
+                question.premises.push(...transforms.map(t => describeTransform(t, vocab)));
+            }
+            question.wordCoordMap = coordMapFromPositions(finalLayout.pos);
+            question.axisNames = [scale.name];
+            question.setup = linearSetup(ctx, transformCount, feat.constructDistance);
+            return question;
         }
 
         question.premises = transformCount > 0
@@ -347,6 +392,55 @@ export function fillLinearConclusion(ctx: GeneratorContext,
         .map(t => (t.match(/<span class="subject">(.*?)<\/span>/g) ?? [])
             .map(s => s.replace(/<[^>]+>/g, "")))
         .filter(p => p.length === 2) as Array<[string, string]>;
+
+    /*
+     * A checkpoint, and then the whole thing.
+     *
+     * The complaint this answers is that a wrong answer says only "you did not
+     * get to the end". With the depth floor requiring the *whole* premise set,
+     * that is all a single conclusion can say — so one claim is placed at the
+     * halfway mark and one at the end, and the result screen reports them
+     * separately.
+     *
+     * "Halfway" means halfway through the *reading*, not half the depth: the
+     * first claim has to follow from the premises as displayed up to that
+     * point, because a claim needing any half of them is not answerable
+     * halfway down the page. `prefixLayout` is what that costs — the pair is
+     * chosen inside what the first half determines, not inside the finished
+     * arrangement.
+     *
+     * Only above four premises. Below that the midpoint is one or two premises
+     * deep, which is the shallow conclusion the rest of this exists to prevent,
+     * and serving one deliberately would teach the habit being removed.
+     */
+    if (feat.checkpoint && numOfPremises > 4) {
+        const half = Math.floor(numOfPremises / 2);
+        const early = prefixLayout(final, half);
+        const earlyPair = pickDistantPair(early);
+        const latePair = pickDistantPair(final);
+
+        if (earlyPair && latePair && transformsBite([latePair])) {
+            const first = buildConstructClaim(scale, early, earlyPair[0], earlyPair[1], false);
+            const last = buildConstructClaim(scale, final, latePair[0], latePair[1], feat.constructDistance);
+            if (first && last) {
+                /*
+                 * Labelled by where they are answerable from, not numbered.
+                 * "Slot 1" says where it sits; "from the first half" says what
+                 * to do with it, and the per-slot result screen then reports a
+                 * reader who lost the thread late differently from one who
+                 * never had it.
+                 */
+                first.slots[0] = { ...first.slots[0], label: `From the first ${half}` };
+                last.slots[0] = { ...last.slots[0], label: "From all of them" };
+
+                question.construct = [first, last];
+                question.answerMode = "construct";
+                question.isValid = true;
+                question.conclusion = "";
+                return true;
+            }
+        }
+    }
 
     if (feat.constructConclusion) {
         const claims = buildConstructClaims(ctx, 
