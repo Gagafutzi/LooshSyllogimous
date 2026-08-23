@@ -21,6 +21,8 @@ import { SettingsOverrideService } from "../src/app/syllogimous/services/setting
 import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
+import { DIM_SLOTS, dimSlot } from "../src/app/syllogimous/utils/phrasing";
+import { RelationalWebComponent } from "../src/app/syllogimous/components/relational-web/relational-web.component";
 
 /**
  * `true` still means the structural rung alone, so the existing calls read the
@@ -596,4 +598,49 @@ test("every web draws its arrowheads from a marker of its own", () => {
         "src/app/syllogimous/components/relational-web/relational-web.component.ts", "utf8");
     assert(/headId = `web-head-\$\{\+\+webInstance\}`/.test(component),
         "the id is not unique per instance");
+});
+
+/**
+ * The palette is numbered from one, and counters start at zero.
+ *
+ * `--th-dim-0` is not defined by ThemeService, so asking for it produces a
+ * declaration that is invalid at computed-value time. The browser drops it, and
+ * because `fill` inherits in SVG the element falls through to the initial value
+ * and is drawn black — which is what happened to the first marked node, and why
+ * every other marker was one colour along from where it should have been.
+ *
+ * Checked at the source rather than only through `dimSlot`, because the bug was
+ * never in a helper: it was an open-coded `% DIM_SLOTS` at the one call site
+ * that had a zero-based counter, and the next one written that way would fail
+ * in exactly the same silent fashion.
+ */
+test("no drawing asks for a dimension colour outside the defined range", () => {
+    for (let i = 0; i < 40; i++) {
+        const slot = dimSlot(i);
+        assert(slot >= 1 && slot <= DIM_SLOTS,
+            `dimSlot(${i}) gave ${slot}, outside --th-dim-1..${DIM_SLOTS}`);
+    }
+
+    const component = new RelationalWebComponent();
+    for (let i = 0; i < 12; i++) {
+        for (const css of [component.markColor(i), component.markFill(i)]) {
+            for (const [, n] of css.matchAll(/--th-dim-(\d+)/g)) {
+                assert(Number(n) >= 1 && Number(n) <= DIM_SLOTS,
+                    `mark colour for slot ${i} names --th-dim-${n}, which no theme defines`);
+            }
+        }
+    }
+
+    /*
+     * A literal zero can only come from a modulo on a zero-based counter, and
+     * the fix for that is `dimSlot`, not a wider palette.
+     */
+    for (const path of [
+        "src/app/syllogimous/components/relational-web/relational-web.component.ts",
+        "src/app/syllogimous/utils/phrasing.ts",
+    ]) {
+        const source = readFileSync(path, "utf8");
+        assert(!/--th-dim-\$\{[^}]*%[^}]*\}/.test(source),
+            `${path} builds a dimension variable with a raw modulo; use dimSlot`);
+    }
 });

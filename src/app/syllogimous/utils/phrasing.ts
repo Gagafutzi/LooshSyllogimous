@@ -58,5 +58,20 @@ export const neg = (s: string) => `<span class="is-negated">${s}</span>`;
  */
 export const DIM_SLOTS = 8;
 
+/**
+ * A zero-based index into a palette that is numbered from one.
+ *
+ * `--th-dim-0` does not exist, so `slot % DIM_SLOTS` on a counter starting at
+ * zero asks for an undefined custom property. The declaration is then invalid
+ * at computed-value time and dropped — and `fill` inherits in SVG, so the
+ * element falls through an unset ancestor to the initial value and is drawn
+ * **black**. That is what happened to the first marked node in Relational Web,
+ * and it also shifted every other marker one colour along.
+ *
+ * Anything painting from a counter goes through here rather than doing its own
+ * modulo.
+ */
+export const dimSlot = (index: number) => (index % DIM_SLOTS) + 1;
+
 /** The class pair for a slot: the generic hook, then the slot itself. */
 export const dimClass = (slot: number) => `dim dim-${slot}`;

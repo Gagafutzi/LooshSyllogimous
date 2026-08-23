@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
-import { DIM_SLOTS } from "../../utils/phrasing";
+import { dimSlot } from "../../utils/phrasing";
 import { layoutArrows } from "../../utils/web.utils";
 
 export interface DrawnWeb {
@@ -158,11 +158,11 @@ export class RelationalWebComponent {
      * everywhere else in the app. A second palette invented here would compete
      * with it for no gain.
      */
-    markColor(slot: number) { return `var(--th-dim-${slot % DIM_SLOTS})`; }
+    markColor(slot: number) { return `var(--th-dim-${dimSlot(slot)})`; }
 
     /** The same hue, faint, so the label stays readable on top of it. */
     markFill(slot: number) {
-        return `color-mix(in srgb, var(--th-dim-${slot % DIM_SLOTS}) 22%, transparent)`;
+        return `color-mix(in srgb, var(--th-dim-${dimSlot(slot)}) 22%, transparent)`;
     }
 
 }
