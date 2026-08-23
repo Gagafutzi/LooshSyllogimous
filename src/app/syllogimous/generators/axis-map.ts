@@ -357,7 +357,21 @@ function buildGroups(
     const markers = shuffle([...ANCHORS]).slice(0, feat.groups);
     if (markers.length < feat.groups) return null;
 
-    const need = feat.groups * (covered.length + chainLen);
+    /*
+     * One chain, in one group — not a chain per group.
+     *
+     * Every group having its own chain made the item two puzzles printed side
+     * by side: four options, each a run-on of both answers, and nothing gained
+     * that a longer single chain would not have given. The demand the rung was
+     * added for is *which dictionary applies here*, and that is asked by giving
+     * several groups their examples and only one of them something to map.
+     *
+     * The other groups are not decoration. Their maps are what a reader lands
+     * on if they take the wrong marker's dictionary, so they become the
+     * distractors — the characteristic error, offered as an option.
+     */
+    const target = Math.floor(Math.random() * feat.groups);
+    const need = feat.groups * covered.length + chainLen;
     const names = getRandomSymbols(settings, need);
     if (names.length < need) return null;
 
@@ -383,11 +397,11 @@ function buildGroups(
                 !== relationLine(ex.name, anchor, ex.after, axes));
         if (!shown.length) return null;
 
-        const chain = names.slice(cursor, cursor + chainLen);
-        cursor += chainLen;
+        const chain = g === target ? names.slice(cursor, cursor + chainLen) : [];
+        cursor += chain.length;
 
         const coords: number[][] = [];
-        for (let i = 0; i < chainLen; i++) {
+        for (let i = 0; i < chain.length; i++) {
             const step = Array(d).fill(0);
             for (const k of shuffle(axes.map((_, j) => j)).slice(0, Math.min(2, d))) {
                 step[k] = pick([-3, -2, -1, 1, 2, 3]);
@@ -424,6 +438,8 @@ function buildGroups(
             + ` examples leave alone stays as it is.`,
     ];
 
+    const asked = groups[target];
+
     const premises: string[] = [];
     for (const g of groups) {
         premises.push(hi(g.label ? `${g.label} — worked examples:` : "Worked examples:"));
@@ -431,45 +447,49 @@ function buildGroups(
             premises.push(`${relationLine(ex.name, g.anchor, ex.coord, axes)}`
                 + ` ${hi("→")} ${relationLine(ex.name, g.anchor, ex.after, axes)}`);
         }
-        premises.push(hi(g.label ? `${g.label} — now these:` : "Now these:"));
-        premises.push(...g.chain.map((n, i) =>
-            i === 0
-                ? relationLine(n, g.anchor, g.coords[0], axes)
-                : relationLine(n, g.chain[i - 1], minus(g.coords[i], g.coords[i - 1]), axes)));
     }
+    // The chain names its own marker in its first line, which is what says
+    // whose change applies to it.
+    premises.push(hi(feat.groups > 1
+        ? `Now these, against ${asked.anchor}:`
+        : "Now these:"));
+    premises.push(...asked.chain.map((n, i) =>
+        i === 0
+            ? relationLine(n, asked.anchor, asked.coords[0], axes)
+            : relationLine(n, asked.chain[i - 1], minus(asked.coords[i], asked.coords[i - 1]), axes)));
     question.premises = premises;
 
-    /** One group's chain under a given map, rendered. */
-    const renderGroup = (g: Group, m: AxisMap) => {
-        const after = g.coords.map(c => applyAxisMap(c, m));
-        return g.chain.map((n, i) =>
+    /** The asked chain under a given map, rendered. */
+    const render = (m: AxisMap) => {
+        const after = asked.coords.map(c => applyAxisMap(c, m));
+        return asked.chain.map((n, i) =>
             i === 0
-                ? relationLine(n, g.anchor, after[0], axes)
-                : relationLine(n, g.chain[i - 1], minus(after[i], after[i - 1]), axes))
+                ? relationLine(n, asked.anchor, after[0], axes)
+                : relationLine(n, asked.chain[i - 1], minus(after[i], after[i - 1]), axes))
             .join("; ");
     };
 
-    const render = (maps: AxisMap[]) => groups
-        .map((g, i) => (g.label ? `${g.label}: ` : "") + renderGroup(g, maps[i]))
-        .join(" · ");
-
-    const truth = render(groups.map(g => g.map));
+    const truth = render(asked.map);
 
     /*
-     * A distractor changes *one* group's map and keeps the rest.
+     * The other groups' maps come first among the distractors.
      *
-     * Changing them all at once gives an option wrong everywhere, which is
-     * eliminated by checking whichever group the reader looked at first — the
-     * same fault the mode this replaces had with its four options. Wrong in one
-     * place means finding that place.
+     * Taking the wrong marker's dictionary is the characteristic error of a
+     * multi-group item, and the whole reason for having several groups — so the
+     * answer it leads to has to be on offer. A reader who applies Group 2's
+     * change to Group 1's chain should find their answer there and be wrong,
+     * not find nothing and reconsider by elimination.
      */
     const wrong = new Set<string>();
+    for (const g of groups) {
+        if (g === asked) continue;
+        const text = render(g.map);
+        if (text !== truth) wrong.add(text);
+    }
     for (let i = 0; i < 120 && wrong.size < 3; i++) {
-        const swap = Math.floor(Math.random() * groups.length);
         const other = buildMap(axes, covered, feat.kinds, feat.count);
         if (!other) continue;
-        const maps = groups.map((g, k) => k === swap ? other : g.map);
-        const text = render(maps);
+        const text = render(other);
         if (text !== truth) wrong.add(text);
     }
     if (wrong.size < 3) return null;
@@ -500,50 +520,38 @@ function buildGroups(
         return Array.from({ length: d }, (_, i) => found?.coord[i] ?? 0);
     };
 
-    const stageCount = Math.max(...groups.map(g => g.trail.length));
+    const stageCount = asked.trail.length;
     question.axisNames = axes.map(a => a.name || a.axisName);
     question.stages = Array.from({ length: stageCount }, (_, step) => {
         const plot: Record<string, number[]> = {};
         for (const a of ANCHORS) plot[a.token] = anchorAt(a.token);
-        for (const g of groups) {
-            const at = g.trail[Math.min(step, g.trail.length - 1)];
-            const base = anchorAt(g.anchor);
-            g.chain.forEach((name, i) => {
-                plot[name] = applyAxisMap(g.coords[i], at).map((v, k) => v + base[k]);
-            });
-        }
+        const at = asked.trail[step];
+        const base = anchorAt(asked.anchor);
+        asked.chain.forEach((name, i) => {
+            plot[name] = applyAxisMap(asked.coords[i], at).map((v, k) => v + base[k]);
+        });
 
         if (step === 0) return { label: "Before any change", map: plot };
-
-        /*
-         * Captioned with what changed *at this step*, per group. With several
-         * groups more than one may move at once, and naming only the first
-         * leaves the rest of the picture unexplained — which is worse than a
-         * longer caption, because the reader cannot tell it is incomplete.
-         */
-        const said = groups
-            .map(g => {
-                if (step >= g.trail.length) return "";
-                const words = describeMap(diffBetween(g.trail[step - 1], g.trail[step]), axes);
-                if (!words.length) return "";
-                return (g.label ? `${g.label}: ` : "") + words.join(", ");
-            })
-            .filter(Boolean);
-
-        return { label: `Then — ${said.join(" · ") || `step ${step}`}`, map: plot };
+        const words = describeMap(diffBetween(asked.trail[step - 1], at), axes);
+        return { label: `Then — ${words.join(", ") || `step ${step}`}`, map: plot };
     });
 
-    question.explanation = groups.flatMap(g => {
-        const told = describeMap(g.map, axes);
-        const who = g.label ? `${g.label}: ` : "";
-        return told.length === 1
-            ? [`${who}one change — ${told[0]}.`]
-            : [`${who}${told.length} changes together:`, ...told.map(t => `— ${t}.`)];
-    }).concat([
+    question.explanation = [
+        ...(feat.groups > 1
+            ? [`The chain is stated against ${asked.anchor}, so it is`
+                + ` ${hi(asked.label)}'s change that applies.`]
+            : []),
+        ...(() => {
+            const told = describeMap(asked.map, axes);
+            return told.length === 1
+                ? [`That change is one thing: ${told[0]}.`]
+                : [`That change is ${told.length} things together:`,
+                    ...told.map(t => `— ${t}.`)];
+        })(),
         `Nothing else moves.`,
-        `Each link maps on its own, because a group's change is the same`
-        + ` throughout it — so the chains come through as ${hi(truth)}.`,
-    ]);
+        `Each link maps on its own, because the change is the same throughout`
+        + ` — so the chain comes through as ${hi(truth)}.`,
+    ];
 
     return question;
 }

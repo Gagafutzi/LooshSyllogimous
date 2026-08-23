@@ -296,8 +296,14 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
      * before the map is pinned down. Six is the ceiling because past that the
      * item is arithmetic endurance rather than induction.
      */
+    /*
+     * Off by default: superseded by Axis Maps, which asks the same question
+     * relationally and in more than two dimensions. See fixes/5.1. It is kept
+     * rather than deleted -- the ability history is real, and a player who
+     * liked it can switch it back on in Customise.
+     */
     [EnumQuestionType.TransformMatching]: {
-        enabled: true,
+        enabled: false,
         minNumOfPremises: 2,
         maxNumOfPremises: 6,
         basic: false

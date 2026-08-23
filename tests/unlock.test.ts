@@ -21,6 +21,17 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 
 const modesAt = (row: number) => TIERS_MATRIX[row].filter(v => v).length;
 
+/*
+ * Every mode the matrix ever offers, which is not every column.
+ *
+ * A mode can be retired -- Transformation Matching is off at every tier, being
+ * superseded by Axis Maps -- and comparing against the column count would then
+ * assert that the ramp never finishes. What "finished" means is that nothing
+ * further is being withheld.
+ */
+const EVERY_MODE = Math.max(
+    ...Object.values(TIERS_MATRIX).map(row => row.filter(v => v).length));
+
 test("more ability never means fewer modes", () => {
     let last = -1;
     for (let level = 0; level <= 20; level += 0.5) {
@@ -29,7 +40,7 @@ test("more ability never means fewer modes", () => {
         assert(open >= last, `level ${level} opened ${open} modes after ${last}`);
         last = open;
     }
-    equal(last, TIERS_MATRIX[0].length, "the ramp never reaches every mode");
+    equal(last, EVERY_MODE, "the ramp never reaches every mode it offers");
 });
 
 /**
@@ -55,7 +66,7 @@ test("being strong at one mode is enough to unlock", () => {
  */
 test("a mode with nothing left to give unlocks the rest", () => {
     const stuck = unlockRow({ aggregateLevel: 1, bestLevel: 1, anyExhausted: true });
-    equal(modesAt(stuck), TIERS_MATRIX[0].length,
+    equal(modesAt(stuck), EVERY_MODE,
         "a player who has exhausted a mode was still being held back");
 });
 
@@ -70,7 +81,7 @@ test("everything is open to a competent player", () => {
     const top = TIER_UNLOCK_LEVELS[TIER_UNLOCK_LEVELS.length - 1];
     assert(top <= 10, `the last unlock waits for level ${top}, which is an expert`);
     const row = unlockRow({ aggregateLevel: top, bestLevel: top, anyExhausted: false });
-    equal(modesAt(row), TIERS_MATRIX[0].length, "the top threshold does not open everything");
+    equal(modesAt(row), EVERY_MODE, "the top threshold does not open everything");
 
     // The mode the complaint named, specifically.
     const idx = ORDERED_QUESTION_TYPES.indexOf(EnumQuestionType.Space3D);
@@ -128,4 +139,29 @@ test("a tier is one level of measured ability", () => {
         equal(at(level * 100) - at((level - 1) * 100), 1,
             `level ${level - 1} to ${level} did not move exactly one tier`);
     }
+});
+
+/**
+ * A retired mode stays retired.
+ *
+ * Transformation Matching is superseded by Axis Maps, which asks the same
+ * question relationally and in more than two dimensions. It is off at every
+ * tier rather than deleted: the ability history is real, and a player who liked
+ * it can switch it back on in Customise. What must not happen is its coming
+ * back by default because a column was inserted beside it and everything
+ * shifted -- which the positional matrix makes easy and `tsc` cannot see.
+ */
+test("a retired mode is not offered at any tier", () => {
+    const idx = ORDERED_QUESTION_TYPES.indexOf(EnumQuestionType.TransformMatching);
+    assert(idx >= 0, "the retired mode has left the order entirely");
+
+    for (const [row, offered] of Object.entries(TIERS_MATRIX)) {
+        equal(offered[idx], 0, `tier ${row} still offers Transformation Matching`);
+    }
+
+    // And its replacement is offered, or the retirement removed a mode rather
+    // than replacing one.
+    const heir = ORDERED_QUESTION_TYPES.indexOf(EnumQuestionType.AxisMap);
+    assert(Object.values(TIERS_MATRIX).some(row => row[heir] === 1),
+        "Axis Maps is not offered at any tier, so the retirement lost a mode");
 });

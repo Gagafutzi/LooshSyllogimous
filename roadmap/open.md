@@ -476,6 +476,14 @@ replaces it.
   wants. Choice among whole answers is the easier rung.
 - **Difficulty dials**, in order: how many axes the objects use, how many of
   them the examples cover, chain length, and whether offsets are in play.
+- **Several groups, one chain.** Giving every group its own chain makes the item
+  two puzzles printed side by side — four options, each a run-on of both
+  answers, and nothing gained that a longer single chain would not give. The
+  demand is *which dictionary applies here*: several groups state their
+  examples, one of them has something to map, and the chain names the marker
+  that says whose change it is. The other groups' maps become the distractors,
+  since taking the wrong marker's dictionary is the characteristic error and the
+  answer it leads to has to be on offer.
 - **Verification**, per the ground rules: an independent solver that reads only
   the rendered examples, induces the map, applies it, and agrees.
 

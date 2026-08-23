@@ -347,19 +347,95 @@ test("each stage is captioned with the change it shows", () => {
         for (let rep = 0; rep < 25; rep++) {
             const q = createAxisMap(ctx, 3);
             const stages = q.stages ?? [];
-            const groups = new Set(q.explanation.map(strip)
-                .map(l => /^(Group \d+)/.exec(l)?.[1]).filter(Boolean));
-
             for (const s of stages.slice(1)) {
                 const label = strip(s.label);
                 assert(label.startsWith("Then — "), `an unlabelled stage: ${label}`);
                 assert(!/step \d+$/.test(label), `a stage says only where it is: ${label}`);
-                // With several groups, more than one may move at a step, and
-                // naming only the first leaves the rest unexplained.
-                if (groups.size > 1) {
-                    assert(/Group \d+:/.test(label), `a multi-group stage names no group: ${label}`);
-                }
             }
         }
+    });
+});
+
+/**
+ * One chain, in one group.
+ *
+ * Every group having its own chain made the item two puzzles printed side by
+ * side: four options, each a run-on of both answers, and nothing gained that a
+ * longer single chain would not have given. The demand the rung exists for is
+ * *which dictionary applies here*, which is asked by giving several groups
+ * their examples and only one of them something to map.
+ */
+test("several groups, but only one chain to map", () => {
+    seeded(4949, () => {
+        const ctx = context(FULL);
+        let multi = 0;
+        for (let rep = 0; rep < 40; rep++) {
+            const q = createAxisMap(ctx, 3);
+
+            const headers = q.premises.filter(p => strip(p).endsWith(":"));
+            const chainHeaders = headers.filter(p => /Now these/.test(strip(p)));
+            equal(chainHeaders.length, 1,
+                `${chainHeaders.length} chains in one item -- that is that many puzzles`);
+
+            if (headers.length > 2) multi++;
+
+            // An option is one chain, not several joined together.
+            for (const choice of q.choices) {
+                assert(!strip(choice).includes("Group"),
+                    `an option answers for more than one group: ${strip(choice).slice(0, 60)}`);
+            }
+        }
+        assert(multi > 10, `only ${multi} multi-group items in forty`);
+    });
+});
+
+/**
+ * Taking the wrong marker's dictionary is the characteristic error, so the
+ * answer it leads to has to be on offer.
+ *
+ * A reader who applies the other group's change should find their answer among
+ * the options and be wrong, rather than find nothing and reconsider by
+ * elimination -- which would let the item be solved without ever settling which
+ * dictionary applied.
+ */
+test("applying the wrong group's change lands on an option", () => {
+    seeded(5150, () => {
+        const ctx = context(FULL);
+        let checked = 0;
+
+        for (let rep = 0; rep < 40; rep++) {
+            const q = createAxisMap(ctx, 3);
+            const headers = q.premises.filter(p => strip(p).endsWith(":"));
+            if (headers.length <= 2) continue;          // single group
+            checked++;
+
+            /*
+             * The chain names its marker, and every option is that chain under
+             * *some* map -- so the options must number four distinct readings
+             * rather than three plus a near-repeat.
+             */
+            equal(new Set(q.choices).size, 4, "two options describe the same arrangement");
+            assert(q.choices.every(c => strip(c).includes("relative to")),
+                "an option is not a chain");
+        }
+
+        assert(checked > 10, `only ${checked} multi-group items to check`);
+    });
+});
+
+/** The derivation has to say whose change applied, or the item is unexplained. */
+test("a multi-group derivation names the group whose change applied", () => {
+    seeded(6161, () => {
+        const ctx = context(FULL);
+        let checked = 0;
+        for (let rep = 0; rep < 40; rep++) {
+            const q = createAxisMap(ctx, 3);
+            const headers = q.premises.filter(p => strip(p).endsWith(":"));
+            if (headers.length <= 2) continue;
+            checked++;
+            assert(/Group \d+.s change that applies/.test(strip(q.explanation[0])),
+                `the derivation does not say whose change applied: ${strip(q.explanation[0])}`);
+        }
+        assert(checked > 10, `only ${checked} multi-group items to check`);
     });
 });
