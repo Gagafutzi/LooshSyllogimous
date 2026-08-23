@@ -232,27 +232,40 @@ const minus = (a: number[], b: number[]) => a.map((v, i) => v - b[i]);
 function features(ctx: GeneratorContext, type: EnumQuestionType) {
     const has = (r: string) => ctx.hasRung(type, r);
 
-    let dims = 2;
-    for (const d of [3, 4, 5, 6, 7]) if (has(`dim-${d}`)) dims = d;
+    let dims = 3;
+    for (const d of [4, 5, 6, 7]) if (has(`dim-${d}`)) dims = d;
 
     /*
-     * Mirroring *and* stretching from the start.
+     * Substitution is in from the start, and that is the whole shape of the
+     * difficulty here.
      *
-     * Not generosity: with one axis-reversal available on a two-axis space
-     * there are exactly two maps in the world, so an item cannot field four
-     * distinct options and the mode fails to build at its own base state.
-     * Stretching is the other change readable off a single example, and the two
-     * together give six.
+     * Mirroring, stretching and shifting all leave a relation naming the *same*
+     * axis and only change it in place — read one example and you have it. Only
+     * substitution makes a direction word stop meaning what it says, so a
+     * vocabulary without it is a vocabulary of easy changes however many of
+     * them are composed. It was the last rung; it is the base.
+     *
+     * Shifting is the rung instead, being the one change that says nothing
+     * about any particular axis and so adds least on its own.
      */
-    const kinds: MapKind[] = ["mirror", "scale"];
+    const kinds: MapKind[] = ["mirror", "scale", "substitute"];
     if (has("offset")) kinds.push("offset");
-    if (has("substitute")) kinds.push("substitute");
 
-    // Low on purpose: three elementary changes is already a dictionary the
-    // reader has to hold whole, and a fourth adds length rather than demand.
-    const count = has("compose-3") ? 3 : has("compose-2") ? 2 : 1;
+    let count = 1;
+    for (const n of [2, 3, 4, 5]) if (has(`compose-${n}`)) count = n;
 
-    return { dims, kinds, count };
+    /*
+     * Independent groups, each with its own map.
+     *
+     * Not one map applied to more objects — that is the same puzzle longer.
+     * Each group is its own chain against its own marker with its own change,
+     * so the reader has to keep several dictionaries apart and apply each to
+     * the right chain. Three is the ceiling: a fourth adds a dictionary rather
+     * than a kind of demand.
+     */
+    const groups = has("groups-3") ? 3 : has("groups-2") ? 2 : 1;
+
+    return { dims, kinds, count, groups };
 }
 
 export function createAxisMap(ctx: GeneratorContext, numOfPremises: number): Question {
@@ -271,154 +284,185 @@ export function createAxisMap(ctx: GeneratorContext, numOfPremises: number): Que
     /*
      * Four covered axes at most, however wide the space.
      *
-     * One worked example per covered axis is what makes the map readable, and
+     * One worked example per covered axis is what makes a map readable, and
      * seven of them is a wall of text before the question starts. The rest are
      * left unchanged and the item says so, which keeps a wide space wide
      * without making it long.
      */
-    const covered = shuffle(axes.map((_, i) => i)).slice(0, Math.min(feat.dims, 4)).sort((a, b) => a - b);
+    const covered = shuffle(axes.map((_, i) => i))
+        .slice(0, Math.min(feat.dims, 4)).sort((a, b) => a - b);
 
-    for (let attempt = 0; attempt < 200; attempt++) {
-        const map = buildMap(axes, covered, feat.kinds, feat.count);
-        if (!map) continue;
+    const chainLen = Math.max(2, Math.min(7, numOfPremises));
 
-        const chainLen = Math.max(2, Math.min(5, numOfPremises));
-        const names = getRandomSymbols(settings, covered.length + chainLen);
-        const anchor = pick(ANCHORS);
-
-        /*
-         * Each example sits on one axis, which is what makes the map readable
-         * rather than merely stated: an object displaced along two axes leaves
-         * the reader unable to say which component came from where.
-         */
-        const examples = covered.map((axis, k) => {
-            const coord = Array(feat.dims).fill(0);
-            coord[axis] = pick([1, 2, 3]);
-            return { name: names[k], coord };
-        });
-
-        const question = new Question(type);
-        question.bucket = names;
-        question.setup = [
-            `The markers ${ANCHORS.map(a => a.token).join(" ")} never move — everything`
-            + ` else is placed against them.`,
-            `The same change is applied to every object at once, and`
-            + ` <b>every change it makes is shown below</b> — anything the`
-            + ` examples leave alone stays as it is.`,
-        ];
-
-        /*
-         * Only the axes the map actually changes get an example.
-         *
-         * An example whose before and after read identically is a line saying
-         * "this one is the same", which the convention already says of every
-         * direction not shown — so it costs a line, adds nothing, and reads
-         * like a generator that forgot to apply its own map. Dropped after the
-         * map is drawn rather than before, because whether an axis changes
-         * depends on the map: a shift moves objects sitting on other axes too,
-         * so an axis untouched by the permutation is not therefore unchanged.
-         */
-        const shown = examples
-            .map(ex => ({ ...ex, after: applyAxisMap(ex.coord, map) }))
-            .filter(ex => relationLine(ex.name, anchor.token, ex.coord, axes)
-                !== relationLine(ex.name, anchor.token, ex.after, axes));
-
-        /*
-         * One is enough, and has to be: the base state applies a single change,
-         * which touches a single axis, so demanding two examples makes the mode
-         * unbuildable at its own easiest setting.
-         *
-         * It is still determined, because the convention below is that *every*
-         * change is shown. A lone "3 north → 6 north" could otherwise be north
-         * stretching or everything shifting three north — the shift would move
-         * the other example object too, and that line is absent, which under
-         * "every change is shown" rules it out.
-         */
-        if (!shown.length) continue;
-
-        const lines = shown.map(ex =>
-            `${relationLine(ex.name, anchor.token, ex.coord, axes)}`
-            + ` ${hi("→")} ${relationLine(ex.name, anchor.token, ex.after, axes)}`);
-
-        /*
-         * The chain. First link against the anchor so an offset can show at
-         * all; the rest against the previous object, which is what the claim
-         * that chains survive the map intact is actually about.
-         */
-        const chain = names.slice(covered.length);
-        const coords: number[][] = [];
-        for (let i = 0; i < chainLen; i++) {
-            const step = Array(feat.dims).fill(0);
-            const used = shuffle(axes.map((_, k) => k)).slice(0, Math.min(2, feat.dims));
-            for (const k of used) step[k] = pick([-3, -2, -1, 1, 2, 3]);
-            coords.push(i === 0 ? step : coords[i - 1].map((v, k) => v + step[k]));
-        }
-
-        const before = chain.map((n, i) =>
-            i === 0
-                ? relationLine(n, anchor.token, coords[0], axes)
-                : relationLine(n, chain[i - 1], minus(coords[i], coords[i - 1]), axes));
-
-        /*
-         * Labelled halves. The examples and the chain are two different kinds
-         * of statement — one is evidence about the map, the other is the thing
-         * to apply it to — and eight lines of them running together reads as a
-         * single premise list where the reader has to work out where the
-         * evidence stops. The same device the graph modes use for their two
-         * relation sets.
-         */
-        question.premises = [
-            hi("Worked examples:"), ...lines,
-            hi("Now these:"), ...before,
-        ];
-
-        const render = (m: AxisMap) => {
-            const after = coords.map(c => applyAxisMap(c, m));
-            return chain.map((n, i) =>
-                i === 0
-                    ? relationLine(n, anchor.token, after[0], axes)
-                    : relationLine(n, chain[i - 1], minus(after[i], after[i - 1]), axes))
-                .join("; ");
-        };
-
-        const truth = render(map);
-
-        /*
-         * Distractors are the same chain under a *different* map, so every one
-         * of them is a near miss by construction: they agree wherever the two
-         * maps agree, and a reader who has induced the map wrongly on one axis
-         * lands on one of them rather than on nothing.
-         */
-        const wrong = new Set<string>();
-        for (let i = 0; i < 60 && wrong.size < 3; i++) {
-            const other = buildMap(axes, covered, feat.kinds, feat.count);
-            if (!other) continue;
-            const text = render(other);
-            if (text !== truth) wrong.add(text);
-        }
-        if (wrong.size < 3) continue;
-
-        const options = shuffle([truth, ...wrong]);
-        question.answerMode = "choice";
-        question.choicePrompt = "After the same change, which describes them?";
-        question.choices = options;
-        question.correctChoice = options.indexOf(truth);
-        question.conclusion = "";
-        question.isValid = true;
-        const told = describeMap(map, axes);
-        question.explanation = [
-            told.length === 1
-                ? `The examples show one change: ${told[0]}.`
-                : `The examples show ${told.length} changes together:`,
-            ...(told.length === 1 ? [] : told.map(step => `— ${step}.`)),
-            `Nothing else moves.`,
-            `Each link maps on its own, because the change is the same`
-            + ` everywhere — so the chain comes through as`
-            + ` ${hi(truth)}.`,
-        ];
-
-        return question;
+    for (let attempt = 0; attempt < 300; attempt++) {
+        const built = buildGroups(ctx, feat, axes, covered, chainLen);
+        if (built) return built;
     }
 
     throw new Error("Cannot generate.");
+}
+
+/** One group: its own marker, its own objects, its own map. */
+interface Group {
+    label: string;
+    anchor: string;
+    map: AxisMap;
+    /** Worked examples, already filtered to the ones that show a change. */
+    shown: Array<{ name: string; coord: number[]; after: number[] }>;
+    chain: string[];
+    coords: number[][];
+}
+
+function buildGroups(
+    ctx: GeneratorContext,
+    feat: ReturnType<typeof features>,
+    axes: LinearScale[],
+    covered: number[],
+    chainLen: number,
+): Question | null {
+    const settings = ctx.settings;
+    const d = axes.length;
+
+    // Every group needs its own marker, so a reader can tell whose chain is
+    // whose without being told.
+    const markers = shuffle([...ANCHORS]).slice(0, feat.groups);
+    if (markers.length < feat.groups) return null;
+
+    const need = feat.groups * (covered.length + chainLen);
+    const names = getRandomSymbols(settings, need);
+    if (names.length < need) return null;
+
+    const groups: Group[] = [];
+    let cursor = 0;
+
+    for (let g = 0; g < feat.groups; g++) {
+        const map = buildMap(axes, covered, feat.kinds, feat.count);
+        if (!map) return null;
+
+        const anchor = markers[g].token;
+        const exampleNames = names.slice(cursor, cursor + covered.length);
+        cursor += covered.length;
+
+        const shown = covered
+            .map((axis, k) => {
+                const coord = Array(d).fill(0);
+                coord[axis] = pick([1, 2, 3]);
+                return { name: exampleNames[k], coord, after: applyAxisMap(coord, map) };
+            })
+            .filter(ex => relationLine(ex.name, anchor, ex.coord, axes)
+                !== relationLine(ex.name, anchor, ex.after, axes));
+        if (!shown.length) return null;
+
+        const chain = names.slice(cursor, cursor + chainLen);
+        cursor += chainLen;
+
+        const coords: number[][] = [];
+        for (let i = 0; i < chainLen; i++) {
+            const step = Array(d).fill(0);
+            for (const k of shuffle(axes.map((_, j) => j)).slice(0, Math.min(2, d))) {
+                step[k] = pick([-3, -2, -1, 1, 2, 3]);
+            }
+            coords.push(i === 0 ? step : coords[i - 1].map((v, k) => v + step[k]));
+        }
+
+        groups.push({
+            label: feat.groups > 1 ? `Group ${g + 1}` : "",
+            anchor, map, shown, chain, coords,
+        });
+    }
+
+    /*
+     * Two groups given the same map is one group in two halves: the reader
+     * induces once and applies twice, which is the mode without the demand the
+     * rung was added for.
+     */
+    if (feat.groups > 1) {
+        const signatures = groups.map(g => describeMap(g.map, axes).sort().join("|"));
+        if (new Set(signatures).size < groups.length) return null;
+    }
+
+    const question = new Question(EnumQuestionType.AxisMap);
+    question.bucket = names;
+    question.setup = [
+        `The markers ${ANCHORS.map(a => a.token).join(" ")} never move — everything`
+        + ` else is placed against them.`,
+        feat.groups > 1
+            ? `Each group has its own change, and <b>every change it makes is shown</b>`
+            + ` in that group's examples. What the examples leave alone stays as it is.`
+            : `The same change is applied to every object at once, and`
+            + ` <b>every change it makes is shown below</b> — anything the`
+            + ` examples leave alone stays as it is.`,
+    ];
+
+    const premises: string[] = [];
+    for (const g of groups) {
+        premises.push(hi(g.label ? `${g.label} — worked examples:` : "Worked examples:"));
+        for (const ex of g.shown) {
+            premises.push(`${relationLine(ex.name, g.anchor, ex.coord, axes)}`
+                + ` ${hi("→")} ${relationLine(ex.name, g.anchor, ex.after, axes)}`);
+        }
+        premises.push(hi(g.label ? `${g.label} — now these:` : "Now these:"));
+        premises.push(...g.chain.map((n, i) =>
+            i === 0
+                ? relationLine(n, g.anchor, g.coords[0], axes)
+                : relationLine(n, g.chain[i - 1], minus(g.coords[i], g.coords[i - 1]), axes)));
+    }
+    question.premises = premises;
+
+    /** One group's chain under a given map, rendered. */
+    const renderGroup = (g: Group, m: AxisMap) => {
+        const after = g.coords.map(c => applyAxisMap(c, m));
+        return g.chain.map((n, i) =>
+            i === 0
+                ? relationLine(n, g.anchor, after[0], axes)
+                : relationLine(n, g.chain[i - 1], minus(after[i], after[i - 1]), axes))
+            .join("; ");
+    };
+
+    const render = (maps: AxisMap[]) => groups
+        .map((g, i) => (g.label ? `${g.label}: ` : "") + renderGroup(g, maps[i]))
+        .join(" · ");
+
+    const truth = render(groups.map(g => g.map));
+
+    /*
+     * A distractor changes *one* group's map and keeps the rest.
+     *
+     * Changing them all at once gives an option wrong everywhere, which is
+     * eliminated by checking whichever group the reader looked at first — the
+     * same fault the mode this replaces had with its four options. Wrong in one
+     * place means finding that place.
+     */
+    const wrong = new Set<string>();
+    for (let i = 0; i < 120 && wrong.size < 3; i++) {
+        const swap = Math.floor(Math.random() * groups.length);
+        const other = buildMap(axes, covered, feat.kinds, feat.count);
+        if (!other) continue;
+        const maps = groups.map((g, k) => k === swap ? other : g.map);
+        const text = render(maps);
+        if (text !== truth) wrong.add(text);
+    }
+    if (wrong.size < 3) return null;
+
+    const options = shuffle([truth, ...wrong]);
+    question.answerMode = "choice";
+    question.choicePrompt = "After the change, which describes them?";
+    question.choices = options;
+    question.correctChoice = options.indexOf(truth);
+    question.conclusion = "";
+    question.isValid = true;
+
+    question.explanation = groups.flatMap(g => {
+        const told = describeMap(g.map, axes);
+        const who = g.label ? `${g.label}: ` : "";
+        return told.length === 1
+            ? [`${who}one change — ${told[0]}.`]
+            : [`${who}${told.length} changes together:`, ...told.map(t => `— ${t}.`)];
+    }).concat([
+        `Nothing else moves.`,
+        `Each link maps on its own, because a group's change is the same`
+        + ` throughout it — so the chains come through as ${hi(truth)}.`,
+    ]);
+
+    return question;
 }

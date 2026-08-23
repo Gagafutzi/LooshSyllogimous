@@ -305,13 +305,14 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
     /*
      * Premises buy chain length, not statements: the worked examples come from
      * how many axes the map touches, and the chain is what has to be carried
-     * through it. Five links is the ceiling — past that the item measures how
-     * long a list you can hold, which is not what induction is.
+     * through it. Seven links, and each group gets its own chain of that
+     * length — so the longest items are three chains of seven, which is a great
+     * deal of applying and exactly the point past the induction.
      */
     [EnumQuestionType.AxisMap]: {
         enabled: true,
         minNumOfPremises: 2,
-        maxNumOfPremises: 5,
+        maxNumOfPremises: 7,
         basic: false
     },
     /*

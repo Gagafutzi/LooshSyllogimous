@@ -317,33 +317,28 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Transformation Matching":   ["identify", "apply", "compose", "sequence"],
     /*
      * The only inductive mode in the app, and the widest ladder because of it.
-     * Three things open along it and they are deliberately interleaved rather
-     * than stacked, so a player is never climbing one axis for long:
      *
-     *   dim-N       the space widens, two axes to seven
-     *   offset      everything shifts -- only visible against the fixed
-     *               markers, which is what having a frame buys
-     *   substitute  two axes trade places, so a direction word stops meaning
-     *               what it says. Last, because it is the one change that
-     *               cannot be seen without holding the whole dictionary
-     *   compose-N   more than one change at once
+     * Substitution is in the *base*, not at the top. Mirroring, stretching and
+     * shifting all leave a relation naming the same axis and only change it in
+     * place, which is read off one example — so a base made of those was a base
+     * of easy items however they were combined. Only substitution makes a
+     * direction word stop meaning what it says.
      *
-     * Mirroring and stretching are the base rather than rungs. Both are read
-     * off a single example, and there is a harder reason: one change on a
-     * two-axis space is two possible maps in the whole world, so the item
-     * cannot field four distinct options and the mode fails to build at its own
-     * base state. The two together give six.
+     *   offset      everything shifts, which says nothing about any one axis
+     *               and so adds least on its own
+     *   dim-N       the space widens, three axes to seven
+     *   compose-N   more changes at once, up to five
+     *   groups-N    several groups, each with its own change and its own
+     *               marker — the reader keeps two or three dictionaries apart
+     *               and applies each to the right chain
+     *
+     * Interleaved rather than stacked, so a player is never climbing one axis
+     * for long.
      */
     "Axis Maps":                 [
-        "dim-3", "offset", "dim-4", "compose-2", "dim-5",
-        "substitute", "dim-6", "compose-3", "dim-7",
+        "compose-2", "dim-4", "offset", "groups-2", "compose-3",
+        "dim-5", "compose-4", "groups-3", "dim-6", "compose-5", "dim-7",
     ],
-    /*
-     * Compound claims first: "at least one of you two is a knave" cannot be
-     * resolved by looking at one speaker. Ambiguity second, because noticing
-     * that the statements *failed* to settle something is a different act from
-     * working out what they did settle.
-     */
     "Knights and Knaves":        ["compound", "undetermined"],
     /*
      * The vocabulary collision is the novel axis, so it is the whole ladder.

@@ -175,9 +175,36 @@ test("the rungs widen the space and the vocabulary", () => {
 
     const base = axisCount([]);
     const top = axisCount(FULL);
-    equal(base, 2, `the base state uses ${base} axes, not two`);
+    /*
+     * Three at the base, not two. Substitution is in the base vocabulary, and a
+     * two-axis space has exactly one way to permute — so the item could not
+     * field four distinct options at its own easiest setting.
+     */
+    equal(base, 3, `the base state uses ${base} axes, not three`);
     assert(top >= 6, `the full ladder reaches only ${top} axes`);
 });
+
+/**
+ * The changes a derivation lists, grouped as the item groups them.
+ *
+ * A block is a header — "one change — X." or "N changes together:" — followed by
+ * its "— X." lines, prefixed by "Group n: " when the item has several. Each
+ * group is judged on its own: two groups may legitimately share a change while
+ * differing elsewhere, so a fact repeated *across* groups is not a repeat.
+ */
+function changeBlocks(explanation: string[]): string[][] {
+    const blocks: string[][] = [];
+    for (const raw of explanation.map(strip)) {
+        if (raw.startsWith("Nothing else moves") || raw.startsWith("Each link")) continue;
+        if (raw.startsWith("—")) {
+            if (blocks.length) blocks[blocks.length - 1].push(raw.replace(/^—\s*/, ""));
+            continue;
+        }
+        const single = /one change — (.*)$/.exec(raw);
+        blocks.push(single ? [single[1]] : []);
+    }
+    return blocks;
+}
 
 /**
  * The derivation describes the map, not the steps that built it.
@@ -188,43 +215,65 @@ test("the rungs widen the space and the vocabulary", () => {
  * places" — two changes, in an item that contained none on those axes.
  */
 test("a described change is a change the item actually carries", () => {
-    for (const rungs of [FULL.slice(0, 6), FULL]) {
+    for (const rungs of [FULL.slice(0, 5), FULL]) {
         seeded(31415, () => {
             const ctx = context(rungs);
             for (let rep = 0; rep < 40; rep++) {
                 const q = createAxisMap(ctx, 3);
-                const told = q.explanation.filter(l => l.startsWith("—") || l.includes("one change:"));
+                for (const said of changeBlocks(q.explanation)) {
+                    equal(new Set(said).size, said.length,
+                        `a change is described twice: ${said.join(" / ")}`);
 
-                // No fact stated twice: a swap is one fact about a pair.
-                const said = told.map(strip);
-                equal(new Set(said).size, said.length,
-                    `a change is described twice: ${said.join(" / ")}`);
-
-                // And no pair reported as trading places both ways round.
-                for (const line of said) {
-                    const m = /(\w[\w -]*) and (\w[\w -]*) trade places/.exec(line);
-                    if (!m) continue;
-                    const mirrored = `${m[2]} and ${m[1]} trade places`;
-                    assert(!said.some(other => other.includes(mirrored)),
-                        `the same swap is reported both ways round: ${line}`);
+                    for (const line of said) {
+                        const m = /(\w[\w -]*) and (\w[\w -]*) trade places/.exec(line);
+                        if (!m) continue;
+                        const mirrored = `${m[2]} and ${m[1]} trade places`;
+                        assert(!said.some(other => other.includes(mirrored)),
+                            `the same swap is reported both ways round: ${line}`);
+                    }
                 }
             }
         });
     }
 });
 
-/** An item claiming three changes has to carry three. */
+/** A group claiming three changes has to carry three. */
 test("composing changes that cancel does not count as composing", () => {
     seeded(2718, () => {
         const ctx = context(FULL);
         for (let rep = 0; rep < 40; rep++) {
             const q = createAxisMap(ctx, 3);
-            const header = strip(q.explanation[0]);
-            const claimed = /(\d+) changes/.exec(header);
-            if (!claimed) continue;
-            const listed = q.explanation.filter(l => l.startsWith("—")).length;
-            equal(listed, Number(claimed[1]),
-                `the derivation announces ${claimed[1]} changes and lists ${listed}`);
+            const headers = q.explanation.map(strip).filter(l => /\d+ changes together/.test(l));
+            const blocks = changeBlocks(q.explanation);
+            for (let i = 0; i < headers.length; i++) {
+                const claimed = Number(/(\d+) changes/.exec(headers[i])![1]);
+                const listed = blocks.filter(b => b.length > 1)[i]?.length ?? 0;
+                equal(listed, claimed,
+                    `a group announces ${claimed} changes and lists ${listed}`);
+            }
         }
+    });
+});
+
+/**
+ * Two groups given the same change is one group in two halves.
+ *
+ * The reader induces once and applies twice, which is the mode without the
+ * demand the rung was added for.
+ */
+test("groups do not share a map", () => {
+    seeded(1618, () => {
+        const ctx = context(FULL);
+        let sawGroups = 0;
+        for (let rep = 0; rep < 40; rep++) {
+            const q = createAxisMap(ctx, 3);
+            const blocks = changeBlocks(q.explanation);
+            if (blocks.length < 2) continue;
+            sawGroups++;
+            const signatures = blocks.map(b => [...b].sort().join("|"));
+            equal(new Set(signatures).size, signatures.length,
+                `two groups carry the same change: ${signatures.join(" vs ")}`);
+        }
+        assert(sawGroups > 5, `only ${sawGroups} multi-group items in forty`);
     });
 });

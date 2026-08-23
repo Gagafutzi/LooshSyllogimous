@@ -99,13 +99,22 @@ export const RUNG_COST: Record<string, number> = {
      * each extra axis is one more entry to induce and carry, and it gets a
      * little cheaper as the reader learns what the examples are for.
      */
-    "dim-3": 0.7, "dim-4": 0.6, "dim-5": 0.6, "dim-6": 0.5, "dim-7": 0.5,
-    // A shift needs the frame to be visible at all; a swap is the one change
-    // where a direction word stops meaning what it says.
-    offset: 0.9,
-    substitute: 1.4,
-    "compose-2": 1.1,
-    "compose-3": 0.9,
+    "dim-4": 0.6, "dim-5": 0.6, "dim-6": 0.5, "dim-7": 0.5,
+    // A shift needs the frame to be visible at all, and says nothing about any
+    // one axis, so it adds least of the four.
+    offset: 0.6,
+    /*
+     * Composition, marginal over a prefix: the second change is the jump, and
+     * each after it is one more entry in a dictionary already being held.
+     */
+    "compose-2": 1.1, "compose-3": 0.9, "compose-4": 0.8, "compose-5": 0.7,
+    /*
+     * A second dictionary, kept apart from the first and applied to the right
+     * chain. Dearer than another change within one map, which is why it is
+     * separated from compose at all -- two changes is a longer rule, two groups
+     * is two rules and the question of which is which.
+     */
+    "groups-2": 1.6, "groups-3": 1.2,
     "circular-2": 0.8,
 
     "transform-1": 1.5,
