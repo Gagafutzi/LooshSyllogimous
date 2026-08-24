@@ -12,7 +12,7 @@ import { readFileSync } from "fs";
 import { assert, equal, seeded, test } from "./harness";
 import {
     WEB_PROPERTIES, Web, cloneWeb, edgesOf, emptyWeb, isomorphic, mappings, nearMiss, orbitOf,
-    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout, clearestScatter, obstructions, arrowPath, bowFor, layoutArrows, portsFor, samplePath,
+    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout, clearestScatter, obstructions, edgeList, nodeClearance, arrowPath, bowFor, layoutArrows, portsFor, samplePath,
 } from "../src/app/syllogimous/utils/web.utils";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
@@ -700,7 +700,10 @@ test("arrows rarely run through a node they have nothing to do with", () => {
         for (let n = 4; n <= 10; n++) {
             for (let rep = 0; rep < 25; rep++) {
                 const web = randomWeb(n);
-                const drawn = web.adj.flat().filter(Boolean).length;
+                // Once per *drawn* arrow, as `obstructions` counts them: a
+                // mutual pair is one path with a head at each end, and counting
+                // it twice quietly halves the reported rate.
+                const drawn = edgeList(web.adj).length;
                 if (!drawn) continue;
                 edges += drawn;
                 plain += obstructions(scatterLayout(n), web.adj);
@@ -713,12 +716,17 @@ test("arrows rarely run through a node they have nothing to do with", () => {
     assert(chosen < plain,
         `choosing among scatters did not help: ${chosen} against ${plain}`);
     /*
-     * Measured at about 18% before and 3% after, so the bar is set where a
-     * regression shows up rather than where the current number happens to sit.
-     * Zero is not reachable: a dense web on twelve nodes has arrangements only
-     * in which *some* arrow passes near *some* node.
+     * The bar is set where a regression shows rather than where the number sits.
+     *
+     * It has been wrong once, and worth recording how: this measured the
+     * straight segment between two centres, which an arrow has not been for a
+     * long time — it bows, and since ports it leaves and arrives somewhere else
+     * again. So the layout was chosen to clear nodes on a path nobody draws,
+     * the reported figure was about 3%, and the arrows *drawn* were at 10.6%.
+     * A measure that does not measure the thing shipped is worse than none: it
+     * reports success while the fault is visible on screen.
      */
-    assert(rate < 0.06,
+    assert(rate < 0.05,
         `${(rate * 100).toFixed(1)}% of drawn arrows still pass under an unrelated node`);
 });
 
@@ -972,4 +980,51 @@ test("arrows sharing a node rarely read as one line", () => {
     const rate = merged / pairs;
     assert(rate < 0.07,
         `${(rate * 100).toFixed(1)}% of arrows sharing a node read as one line`);
+});
+
+/**
+ * The curvature search avoids nodes, not only other arrows.
+ *
+ * It scored a candidate purely on how near it passed to its neighbours, so an
+ * arrow with no near-parallel rival took the first curvature offered however
+ * squarely it crossed a node. An arrow passing under a node reads as ending
+ * there, which in a mode whose whole content is which way each arrow runs is
+ * not a cosmetic problem.
+ *
+ * Asserted on the paths `layoutArrows` actually returns, because the fault this
+ * replaces was a measure that scored something else.
+ */
+test("a drawn arrow keeps clear of nodes it has nothing to do with", () => {
+    const size = 200;
+    let through = 0, drawn = 0;
+
+    const parse = (d: string) => {
+        const m = /M ([-\d.]+) ([-\d.]+) Q ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+)/.exec(d)!
+            .map(Number);
+        return { d, from: [m[1], m[2]] as [number, number], to: [m[5], m[6]] as [number, number] };
+    };
+
+    seeded(2468, () => {
+        for (let trial = 0; trial < 150; trial++) {
+            const n = 5 + (trial % 6);
+            const web = randomWeb(n, 0.28, false);
+            const pts = clearestScatter(n, web.adj)
+                .map(([x, y]) => [x * size, y * size] as [number, number]);
+            const radius = Math.max(8, Math.min(13, Math.round(52 / Math.sqrt(n))));
+
+            const edges = edgeList(web.adj);
+            if (!edges.length) continue;
+
+            const paths = layoutArrows(edges, pts, radius, radius + 1).map(a => parse(a.d));
+            edges.forEach((e, i) => {
+                drawn++;
+                if (nodeClearance(paths[i], pts, [e.from, e.to]) < radius) through++;
+            });
+        }
+    });
+
+    assert(drawn > 500, `only ${drawn} arrows in the sample`);
+    const rate = through / drawn;
+    assert(rate < 0.05,
+        `${(rate * 100).toFixed(1)}% of drawn arrows pass under an unrelated node`);
 });

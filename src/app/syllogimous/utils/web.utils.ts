@@ -648,7 +648,7 @@ export function layoutArrows(
     minGap = 14,
 ): Array<{ d: string; both: boolean }> {
     /** Candidate curvatures, nearest to the default first. */
-    const CANDIDATES = [0, 0.12, -0.12, 0.2, -0.2, 0.3, -0.3, 0.42, -0.42];
+    const CANDIDATES = [0, 0.12, -0.12, 0.2, -0.2, 0.3, -0.3, 0.42, -0.42, 0.58, -0.58];
 
     const chord = (e: { from: number; to: number }) =>
         [at[e.to][0] - at[e.from][0], at[e.to][1] - at[e.from][1]] as [number, number];
@@ -691,7 +691,18 @@ export function layoutArrows(
             const path = arrowPath(at[edge.from], at[edge.to], radius, headRoom,
                 bowFor(edge.from, edge.to) + extra, ports[i]);
 
-            let gap = Infinity;
+            /*
+             * Nodes count as things to avoid, not only other arrows.
+             *
+             * The search scored a candidate purely on how near it passed to its
+             * neighbours, so an arrow with no near-parallel rival took the
+             * first curvature offered however squarely it crossed a node — and
+             * an arrow passing under a node reads as ending there, which in
+             * this mode is not a cosmetic problem. Scored together, and the
+             * worse of the two decides, since a drawing is only as clear as its
+             * worst crossing.
+             */
+            let gap = nodeClearance(path, at, [edge.from, edge.to]);
             for (const rival of rivals) {
                 /*
                  * Measured end to end, including the parts nearest the nodes.
@@ -763,10 +774,17 @@ export function clearestScatter(
 
     /*
      * Eighty rather than a handful, and it stops the moment nothing is
-     * obstructed. A scatter costs a few dozen random points, so this is
-     * cheap next to generating the item — and the difference is not marginal:
-     * measured over real webs it takes obstructed arrows from about 18% to
-     * under 3%, where a handful of tries left it at 5%.
+     * obstructed. A scatter costs a few dozen random points and the score is a
+     * sampled path per edge, so this is cheap next to generating the item.
+     *
+     * **What it scores is now the curve that is drawn.** It used to score the
+     * straight segment between two centres, which an arrow has not been for a
+     * long time — it bows, and since ports it leaves and arrives somewhere
+     * other than that line. So the layout was being chosen to clear nodes on a
+     * path nobody draws, and the arrows actually drawn passed under a node
+     * 10.6% of the time while the figure reported here said about 3%. Scored
+     * properly, and with the curvature search given the same thing to avoid,
+     * the drawn arrows are at 2.9%.
      */
     for (let i = 1; i < tries && bestScore > 0; i++) {
         const candidate = scatterLayout(n, margin);
@@ -783,29 +801,83 @@ export function clearestScatter(
  * depends on the node count — a separation that is generous for four nodes is
  * an overlap for twelve.
  */
+/**
+ * The edges a drawing would draw, once per mutual pair.
+ *
+ * Shared so that what gets *measured* is what gets drawn. Keeping a second copy
+ * of this rule is how the two came apart in the first place.
+ */
+export function edgeList(adj: boolean[][]): Array<{ from: number; to: number; both: boolean }> {
+    const out: Array<{ from: number; to: number; both: boolean }> = [];
+    for (let i = 0; i < adj.length; i++) {
+        for (let j = 0; j < adj.length; j++) {
+            if (!adj[i]?.[j] || i === j) continue;
+            if (adj[j]?.[i] && j < i) continue;
+            out.push({ from: i, to: j, both: !!adj[j]?.[i] });
+        }
+    }
+    return out;
+}
+
+/**
+ * The paths a drawing would use, at the default bow.
+ *
+ * The curvature search on top of this moves a path by a little; the ports move
+ * it by a lot, and it is the ports that a straight line between centres knows
+ * nothing about. Close enough to score a *layout* by, and cheap enough to do it
+ * eighty times.
+ */
+function draftPaths(
+    edges: Array<{ from: number; to: number }>,
+    at: Array<[number, number]>,
+    radius: number,
+): ArrowPath[] {
+    const ports = portsFor(edges, at, Math.PI / 4);
+    return edges.map((e, i) => arrowPath(
+        at[e.from], at[e.to], radius, radius + 1, bowFor(e.from, e.to), ports[i]));
+}
+
+/** How near a path comes to a node that is neither of its ends. */
+export function nodeClearance(
+    path: ArrowPath,
+    at: Array<[number, number]>,
+    skip: number[],
+): number {
+    let min = Infinity;
+    for (const p of samplePath(path)) {
+        for (let k = 0; k < at.length; k++) {
+            if (skip.includes(k)) continue;
+            min = Math.min(min, Math.hypot(p[0] - at[k][0], p[1] - at[k][1]));
+        }
+    }
+    return min;
+}
+
+/**
+ * Arrows that pass under a node they have nothing to do with.
+ *
+ * **Measured on the curve that is drawn, which it was not before.** This
+ * counted the straight segment between two centres, and an arrow has not been
+ * straight for a long time — it bows, and since ports it also leaves and
+ * arrives somewhere other than the line between centres. So the layout was
+ * being chosen to keep clear of nodes on a path nobody draws: the reported
+ * figure was about 3%, and the arrows actually drawn were at 10.6%.
+ *
+ * An arrow that passes under a node reads as ending there, which in a mode
+ * whose entire content is which way each arrow runs is not a cosmetic problem.
+ */
 export function obstructions(layout: Array<[number, number]>, adj: boolean[][]): number {
     const n = layout.length;
     // Mirrors the component's own sizing; see `radius` there.
-    const radius = Math.max(8, Math.min(13, Math.round(52 / Math.sqrt(n)))) / 200;
+    const radius = Math.max(8, Math.min(13, Math.round(52 / Math.sqrt(n))));
+    const at = layout.map(([x, y]) => [x * 200, y * 200] as [number, number]);
+
+    const edges = edgeList(adj);
+    const paths = draftPaths(edges, at, radius);
+
     let count = 0;
-
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < n; j++) {
-            if (i === j || !adj[i]?.[j]) continue;
-            for (let k = 0; k < n; k++) {
-                if (k === i || k === j) continue;
-                if (pointToSegment(layout[k], layout[i], layout[j]) < radius) { count++; break; }
-            }
-        }
-    }
+    edges.forEach((e, i) => {
+        if (nodeClearance(paths[i], at, [e.from, e.to]) < radius) count++;
+    });
     return count;
-}
-
-/** Perpendicular distance from a point to a segment, clamped to its ends. */
-function pointToSegment(p: [number, number], a: [number, number], b: [number, number]): number {
-    const dx = b[0] - a[0], dy = b[1] - a[1];
-    const len2 = dx * dx + dy * dy;
-    if (!len2) return Math.hypot(p[0] - a[0], p[1] - a[1]);
-    const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2));
-    return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
 }

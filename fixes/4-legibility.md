@@ -94,6 +94,34 @@ which is scatter, not structure. The ordering is therefore driven by the
 drawing and never by the graph, which is the property the mode rests on and now
 has a test of its own.
 
+**6. The obstruction measure was measuring the wrong path — FIXED.** Arrows
+were still crossing nodes after the ports went in, and the reason was that
+nothing had ever measured the arrows that are drawn. `obstructions` took the
+**straight segment between two centres**, and an arrow has not been straight for
+a long time: it bows, and since ports it also leaves and arrives somewhere other
+than that line. So `clearestScatter` was choosing among eighty layouts on a path
+nobody draws. The reported figure was about 3%; the arrows actually drawn passed
+under an unrelated node **10.6%** of the time.
+
+Two changes, and the measured effect is 10.6% → **2.9%**:
+
+- **`obstructions` samples the drawn curve**, built through the same ports and
+  bow the drawing uses. `edgeList` and the path builder are shared with the
+  renderer so the two cannot come apart again — keeping a second copy of the
+  rule is exactly how they came apart the first time.
+- **The curvature search avoids nodes as well as other arrows.** It scored a
+  candidate purely on how near it passed to its *neighbours*, so an arrow with
+  no near-parallel rival took the first curvature offered however squarely it
+  crossed a node. Both are scored now and the worse of the two decides, since a
+  drawing is only as clear as its worst crossing.
+
+**A measure that does not measure the thing shipped is worse than none**: it
+reports success while the fault is on screen, which is precisely what happened
+here across two rounds of work on this mode. The test now asserts the property
+of the paths `layoutArrows` returns, and counts once per drawn arrow rather than
+once per adjacency — a mutual pair is one path with a head at each end, and
+counting it twice was quietly halving the rate as well.
+
 **Item 3 of the original plan was wrong, and is not done.** It said to replace
 the scatter with a layered layout, sources at the top and sinks at the bottom.
 `scatterLayout`'s own comment explains why that undercuts the mode: a ring made
