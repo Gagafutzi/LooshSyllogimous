@@ -21,6 +21,8 @@ import {
 } from "../src/app/syllogimous/utils/linear.utils";
 import { buildNdWideConclusion } from "../src/app/syllogimous/utils/ndspace.utils";
 import { depthReport } from "../src/app/syllogimous/utils/ability.utils";
+import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
+import { createHierarchy } from "../src/app/syllogimous/generators/hierarchy";
 import { createDeictic } from "../src/app/syllogimous/generators/deictic";
 import { reversalTextFor } from "../src/app/syllogimous/utils/deictic.utils";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
@@ -1118,4 +1120,54 @@ test("a mutated or reported composed space carries no checkpoint", () => {
             }
         });
     }
+});
+
+/* ------------------------------------------------------------------ *
+ * The modes that can measure depth for free                           *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Syllogism and Set Hierarchy already know which premises did the work — one
+ * from the load-bearing set its derivation is built from, the other from the
+ * length of the path it claims. Recording it costs nothing and is what makes
+ * the diagnostics report say something about them.
+ *
+ * The case worth asserting is the one that reads backwards. A claim the
+ * premises leave *undecided*, and a hierarchy claim that is false because
+ * nothing joins the two, both have an empty or infinite support — and nought
+ * is the value that means "this mode does not measure depth". Establishing that
+ * nothing settles a pair means having failed to find a derivation, which takes
+ * the whole premise set, so that is what those items record.
+ */
+test("a mode that knows its support records it, undecided items included", () => {
+    const ctx = ndContext();
+    let decided = 0, open = 0;
+
+    seeded(31337, () => {
+        for (let n = 4; n <= 7; n++) {
+            for (let rep = 0; rep < 20; rep++) {
+                for (const make of [
+                    () => createSyllogism(ctx, n),
+                    () => createHierarchy(ctx, n),
+                ]) {
+                    let q;
+                    try { q = make(); } catch { continue; }
+
+                    assert(q.depth > 0,
+                        `an item recorded depth ${q.depth}, which reads as`
+                        + " unmeasured rather than as shallow");
+                    assert(q.depth <= q.premises.length,
+                        `an item claims to need ${q.depth} of ${q.premises.length}`
+                        + " premises");
+
+                    if (q.depth === q.premises.length) open++; else decided++;
+                }
+            }
+        }
+    });
+
+    assert(decided > 20, `only ${decided} items needed less than everything`);
+    assert(open > 0,
+        "nothing recorded the whole premise set, so the not-settled case is"
+        + " either unreachable or recording nought");
 });

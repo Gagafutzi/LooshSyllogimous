@@ -129,6 +129,18 @@ export function createSyllogismFredo(ctx: GeneratorContext, numOfPremises: numbe
 
     shuffle(question.premises);
 
+    /*
+     * Two, always, whatever the premise count.
+     *
+     * The first two premises are the syllogism and every one after them is a
+     * distractor built from an invalid rule — stated a few lines up, and true
+     * of this generator by construction. Recording it rather than leaving it
+     * unmeasured is the point: a six-premise item whose answer needs two of
+     * them is exactly the complaint this section is named for, and it should
+     * appear in the report as such rather than as a blank.
+     */
+    question.depth = 2;
+
     return question;
 }
 
@@ -165,6 +177,14 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
 
     question.bucket = termPool;
     question.isValid = conclusionIsTrue;
+    /*
+     * The chain is the answer and the rest are distractors, so the chain's
+     * length is exactly how much of the item the conclusion needs. Drawn
+     * anywhere from two to the whole premise set, which makes this the one
+     * generator whose depth already varied — and the one where a report of it
+     * says something the premise count does not.
+     */
+    question.depth = chainDepth;
     question.premises = premises.map(p => formatSylPremise(p, negated));
     question.conclusion = formatSylPremise(conclusion, negated);
     question.explanation = explainPolysyllogism(trace, derived, conclusionIsTrue);
@@ -364,6 +384,18 @@ function buildSetHierarchy(ctx: GeneratorContext, numOfPremises: number): Questi
         question.premises = shuffle(premises.map(p => formatSylPremise(p, negated)));
         question.conclusion = formatSylPremise(claim, negated);
         question.isValid = wantTrue;
+        /*
+         * The premises that actually do the work — already found, for the
+         * derivation, by dropping the ones that do not.
+         *
+         * An item the premises leave *undecided* has no support set at all, and
+         * recording nought would say "this mode does not measure depth" when
+         * what happened is the opposite. Establishing that nothing settles a
+         * pair means having failed to find a derivation, which takes the whole
+         * premise set — so that is the number, and it is the reader's cost
+         * rather than the prover's.
+         */
+        question.depth = support.length || premises.length;
         question.setup = [
             "These describe how the groups nest and overlap. They branch rather"
             + " than forming a single line, so some pairs are related only through"

@@ -96,9 +96,21 @@ export function fillHierarchyConclusion(ctx: GeneratorContext,
     layout: HierarchyLayout,
     feat: ReturnType<typeof hierarchyFeatures>,
 ): boolean {
+    /*
+     * Links along the claimed path, or the whole set when there is no path.
+     *
+     * A false hierarchy claim is false because nothing joins the two, and
+     * establishing that means having looked everywhere — so its cost is every
+     * premise, not the nought an infinite span would otherwise record.
+     */
+    const cost = (span: number) => Number.isFinite(span) ? span : layout.edges.length;
+
     if (feat.chooseConclusion) {
         const set = buildHierarchyQuerySet(layout, 4, [true, false, false, false], feat.minSpan);
         if (set.length < 4) return false;
+        // Only the true claim is on the path to the answer; the distractors
+        // are about other pairs by construction.
+        question.depth = cost(set[0].span);
         const order = shuffle(set.map((_, i) => i));
         question.choices = order.map(i => renderHierarchyConclusion(set[i]));
         question.correctChoice = order.indexOf(0);
@@ -116,6 +128,9 @@ export function fillHierarchyConclusion(ctx: GeneratorContext,
 
         const set = buildHierarchyQuerySet(layout, count, wants, feat.minSpan);
         if (set.length < count) return false;
+        // Every claim has to be checked, so the cheapest is what the item can
+        // be answered from when one of them is false.
+        question.depth = Math.min(...set.map(q => cost(q.span)));
         question.conclusion = set.map(renderHierarchyConclusion);
         question.isValid = allTrue;
         return true;
@@ -125,6 +140,7 @@ export function fillHierarchyConclusion(ctx: GeneratorContext,
     if (!q) return false;
     question.conclusion = renderHierarchyConclusion(q);
     question.isValid = q.isValid;
+    question.depth = cost(q.span);
     // Nothing mutates a hierarchy after it is stated, so this is always safe.
     question.explanation = explainHierarchy(layout, q);
     return true;

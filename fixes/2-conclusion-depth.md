@@ -237,9 +237,31 @@ notes was added as *recorded rather than charged*, for the same reason. Log it
 first, charge for it once there are answered items to fit a coefficient
 against.
 
-Recorded by Nested, the scale family, the composed spaces, Shape Rotation and
-Deictic; it rides to the trial log beside `widthDelta` and is read back on the
-diagnostics page as **share** — depth over premise count, per mode.
+Recorded by Nested, the scale family, the composed spaces, Shape Rotation,
+Deictic, both syllogism generators, Set Hierarchy and the Hierarchy mode; it
+rides to the trial log beside `widthDelta` and is read back on the diagnostics
+page as **share** — depth over premise count, per mode.
+
+The last four cost nothing, because each already knew the answer:
+
+| where | what it already had |
+|---|---|
+| Set Hierarchy | the load-bearing set its derivation is built from |
+| Syllogism (Canyon) | `chainDepth` — the chain is the answer, the rest are distractors |
+| Syllogism (Fredo) | **two, always.** The first two premises are the syllogism and everything after is a distractor built from an invalid rule |
+| Hierarchy | `HierarchyQuery.span`, the links along the claimed path |
+
+Fredo is worth recording precisely *because* the number is bad. A six-premise
+item whose answer needs two of them is the complaint this section is named for,
+and it should appear in the report as such rather than as a blank.
+
+**Two of them record the whole premise set for a claim that is false.** A pair
+the premises leave undecided has no support at all, and a hierarchy claim that
+is false because nothing joins the two has an infinite span — and nought is the
+value that already means *not measured*. Establishing that nothing settles a
+pair means having failed to find a derivation, which takes the whole set. That
+is the reader's cost rather than the prover's, and it is the honest one for a
+report about how much of an item its answer needed.
 
 Four decisions, each of which would have made the number mean something else:
 
