@@ -46,6 +46,30 @@ likely as any other. It now draws from the pairs at least `MIN_DEPTH` relations
 apart in the space being asked about — a floor, not a fixed distance, so where
 the answer sits in the chain still varies while a restatement is impossible.
 
+**The conclusion now states both spaces, about one pair.** Asking about one of
+them made the other half of every premise decoration, and *which* half was
+decoration was decided by a coin — so a reader who saw "Inside the brackets"
+could drop the outer arrangement entirely, in a mode whose whole point is
+holding two of them apart while they interfere. It is the same argument
+[2.5](#25-an-n-dimensional-map-deserves-an-n-dimensional-conclusion) makes about
+axes, and it wanted making twice.
+
+Three things it turned on:
+
+- **The floor holds in both.** A pair four relations deep outside and adjacent
+  inside is half a deep item, which reads as a deep item until you notice which
+  half you worked for. `pickShared` requires the distance in each.
+- **A false claim is wrong in exactly one half, drawn.** Wrong in both is
+  spotted from whichever the reader checks first, which turns a
+  two-arrangement item back into a one-arrangement item by the back door — and
+  which half carries the lie has to vary, or "the bracket is always the true
+  one" becomes the strategy.
+- **Depth is the two chains summed, capped at the premise count.** The reader
+  composes one chain in each arrangement and a premise carries one relation of
+  each, so the premises that must be used lie between the longer chain and the
+  sum. The cap keeps the figure expressible in the units the shortfall term
+  charges in.
+
 `MIN_DEPTH` is **2**, not the chain's full length, and that is a deliberate
 first step rather than a compromise. Nested's difficulty is carried by the
 interference between its two spaces as much as by the span within either, so

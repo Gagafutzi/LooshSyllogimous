@@ -101,9 +101,12 @@ export function createNested(ctx: GeneratorContext, numOfPremises: number): Ques
 
     numOfPremises = clampPremises(type, numOfPremises);
 
-    // Off, the conclusion pair is drawn as it always was: any two objects,
-    // including the pair a premise states outright.
-    const floor = deepConclusions(ctx) ? MIN_DEPTH : 1;
+    /*
+     * Off, the conclusion is what it always was: one space chosen by a coin,
+     * and the pair drawn without regard to how far apart it sits.
+     */
+    const deep = deepConclusions(ctx);
+    const floor = deep ? MIN_DEPTH : 1;
 
     const collide = ctx.hasRung(type, "collide");
     const pairs = collide ? COLLIDING_PAIRS : PLAIN_PAIRS;
@@ -150,28 +153,88 @@ export function createNested(ctx: GeneratorContext, numOfPremises: number): Ques
         question.premises = outerText.map((text, i) =>
             innerText[i] ? `${text} ${hi(`(where ${innerText[i]})`)}` : text);
 
-        const layout = askInner ? inner : outer;
-        const scale = askInner ? innerScale : outerScale;
-        const pair = pickPair(layout, floor);
+        /*
+         * Both spaces, about one pair — not one space chosen by a coin.
+         *
+         * An item built on two arrangements deserves a conclusion about both,
+         * for exactly the reason a seven-axis item deserves a seven-axis one:
+         * asking about one of them makes the other half of every premise
+         * decoration, and *which* half was decoration was arbitrary. The whole
+         * point of the mode is holding two arrangements apart while they
+         * interfere with each other, and a conclusion that touches one of them
+         * lets the reader drop the other as soon as they see which was asked.
+         *
+         * The pair has to clear the floor in *both*, or the half that does not
+         * is a restatement sitting beside the half that does.
+         */
+        const pair = deep ? pickShared(outer, inner, floor)
+            : pickPair(askInner ? inner : outer, floor);
         if (!pair) continue;
 
-        const truth = compare(layout, pair[0], pair[1]);
-        if (truth === 0) continue;
+        const truthOuter = compare(outer, pair[0], pair[1]);
+        const truthInner = compare(inner, pair[0], pair[1]);
+        if (truthOuter === 0 || truthInner === 0) continue;
 
-        // Relations of the asked-about space, which is the unit its solver
-        // works in — the other space's half of every premise is there to be
-        // read and set aside, and counting it would flatter the item.
-        question.depth = graphDistance(pair[0], pair[1], layout.neighbors);
+        const spanOuter = graphDistance(pair[0], pair[1], outer.neighbors);
+        const spanInner = graphDistance(pair[0], pair[1], inner.neighbors);
 
         const claimTrue = coinFlip();
-        const stated = claimTrue ? truth : (truth === 1 ? -1 : 1);
-        const claim = renderRelation(scale, pair[0], pair[1], stated, {}).text;
 
-        question.conclusion = askInner
-            ? `${hi("Inside the brackets")}: ${claim}`
-            : `${hi("Outside the brackets")}: ${claim}`;
+        if (!deep) {
+            const layout = askInner ? inner : outer;
+            const scale = askInner ? innerScale : outerScale;
+            const truth = askInner ? truthInner : truthOuter;
+            const stated = claimTrue ? truth : (truth === 1 ? -1 : 1);
+
+            question.depth = askInner ? spanInner : spanOuter;
+            question.conclusion = `${hi(askInner ? "Inside the brackets" : "Outside the brackets")}`
+                + `: ${renderRelation(scale, pair[0], pair[1], stated, {}).text}`;
+            question.isValid = claimTrue;
+            question.explanation = explain(layout, scale, pair[0], pair[1], askInner, truth);
+            return question;
+        }
+
+        /*
+         * A false claim is wrong in exactly one space, drawn.
+         *
+         * Wrong in both is spotted from whichever space the reader checks
+         * first, which turns a two-arrangement item back into a
+         * one-arrangement item by the back door — the same reasoning that makes
+         * a wide composed-space claim lie about exactly one axis. Which space
+         * carries the lie is drawn rather than fixed, or "the bracket is always
+         * the true half" becomes the strategy.
+         */
+        const lieInner = coinFlip();
+        const flip = (c: -1 | 0 | 1) => (c === 1 ? -1 : 1) as -1 | 1;
+        const statedOuter = claimTrue || lieInner ? truthOuter : flip(truthOuter);
+        const statedInner = claimTrue || !lieInner ? truthInner : flip(truthInner);
+
+        /*
+         * Relations from both chains, capped at the premise count.
+         *
+         * The reader composes `spanOuter` relations in one arrangement and
+         * `spanInner` in the other, and a premise carries one of each — so the
+         * premises that have to be used is somewhere between the longer chain
+         * and their sum, and never more than there are premises. The cap is
+         * what keeps the figure expressible in the units the shortfall term
+         * charges in.
+         */
+        question.depth = Math.min(numOfPremises, spanOuter + spanInner);
+
+        question.conclusion =
+            `${hi("Outside the brackets")}: `
+            + renderRelation(outerScale, pair[0], pair[1], statedOuter, {}).text
+            + `, and ${hi("inside")} them: `
+            + renderRelation(innerScale, pair[0], pair[1], statedInner, {}).text;
         question.isValid = claimTrue;
-        question.explanation = explain(layout, scale, pair[0], pair[1], askInner, truth);
+        question.explanation = [
+            ...explain(outer, outerScale, pair[0], pair[1], false, truthOuter),
+            ...explain(inner, innerScale, pair[0], pair[1], true, truthInner),
+            claimTrue
+                ? `Both halves hold, so the claim does.`
+                : `The ${hi(lieInner ? "bracketed" : "outer")} half does not, so the`
+                  + ` claim does not — whatever the other half says.`,
+        ];
         return question;
     }
 
@@ -233,6 +296,38 @@ function shuffled(words: string[]): string[] {
  * can no longer be is a premise handed back. Which way round the claim runs is
  * a separate coin flip, or every conclusion would read along the chain.
  */
+/**
+ * A pair far enough apart in *both* arrangements.
+ *
+ * The floor has to hold in each of them separately. A pair four relations deep
+ * outside and adjacent inside gives a conclusion whose bracketed half is a
+ * premise read back — half a deep item, which reads as a deep item until you
+ * notice which half you actually had to work for.
+ */
+function pickShared(
+    outer: LinearLayout,
+    inner: LinearLayout,
+    floor: number,
+): [string, string] | null {
+    const words = outer.words;
+    const far: Array<[string, string]> = [];
+
+    for (let i = 0; i < words.length; i++) {
+        for (let j = i + 1; j < words.length; j++) {
+            const a = words[i], b = words[j];
+            const out = graphDistance(a, b, outer.neighbors);
+            const inn = graphDistance(a, b, inner.neighbors);
+            if (Number.isFinite(out) && Number.isFinite(inn) && out >= floor && inn >= floor) {
+                far.push([a, b]);
+            }
+        }
+    }
+    if (!far.length) return null;
+
+    const [a, b] = far[Math.floor(Math.random() * far.length)];
+    return coinFlip() ? [a, b] : [b, a];
+}
+
 function pickPair(layout: LinearLayout, floor: number): [string, string] | null {
     const { words, neighbors } = layout;
     const far: Array<[string, string]> = [];
