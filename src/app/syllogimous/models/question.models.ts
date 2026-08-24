@@ -298,6 +298,26 @@ export class Question {
      */
     widthDelta = 0;
 
+    /**
+     * How much of the item the conclusion needs: the number of relations that
+     * have to be composed to reach it.
+     *
+     * Zero means the generator does not measure it yet, not that the item is
+     * shallow — a distinction worth keeping, since the point of recording this
+     * is to settle by measurement whether conclusion depth tracks premise
+     * count, and an unmeasured mode reported as depth 0 would answer that
+     * question by assumption.
+     *
+     * Counted in the units the mode's own solver works in, which is not always
+     * premises: a nested item's premise carries a relation in each of two
+     * spaces, and only the asked-about one is on the path to the answer.
+     *
+     * Recorded rather than charged, for the same reason as `widthDelta` — the
+     * coefficient that would turn depth into difficulty has to be fitted
+     * against answered items, and that needs the items logged first.
+     */
+    depth = 0;
+
     positions: Record<string, number> = {};
 
     coords: [string, number, number][] = [];

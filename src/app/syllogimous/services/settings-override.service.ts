@@ -179,10 +179,34 @@ export interface Profile {
     config: ProfileConfig;
 }
 
-export type ProfileConfig = Omit<OverrideState, "profiles" | "activeProfile">;
+/**
+ * `deepConclusions` is left out for the same reason it is read without the
+ * `live` gate: it is not part of the configuration a profile describes, and a
+ * profile saved last month silently changing which conclusion model the
+ * generators use is the kind of surprise profiles exist to avoid.
+ */
+export type ProfileConfig =
+    Omit<OverrideState, "profiles" | "activeProfile" | "deepConclusions">;
 
 export interface OverrideState {
     active: boolean;
+    /**
+     * Which conclusion model the generators use.
+     *
+     * On, a conclusion has to be reached by composing relations rather than by
+     * finding the premise that already states it — a floor under how much of
+     * the item the answer needs, and, where a mode has several dimensions, a
+     * claim about all of them. Off restores exactly what the generators did
+     * before that work: a pair drawn without regard to how far apart it sits,
+     * and a claim about one axis of however many.
+     *
+     * Deliberately **not** behind `active`. Everything else in this file is a
+     * difficulty override layered on top of what the tier decided, and is
+     * meaningless with Customise switched off; this is a choice between two
+     * versions of the generators themselves, and switching Customise on to hold
+     * an opinion about it would drag a dozen unrelated overrides along.
+     */
+    deepConclusions: boolean;
     /** 0 = premises in chain order, 100 = freely shuffled. */
     scrambleFactor: number;
     modes: Partial<Record<EnumQuestionType, ModeOverride>>;
@@ -275,6 +299,9 @@ function adoptChosenPremises(
 
 const DEFAULT_STATE: OverrideState = {
     active: false,
+    // On by default: it is the model the depth work exists to install, and a
+    // fix nobody is served by default is a fix nobody has.
+    deepConclusions: true,
     scrambleFactor: 100,
     modes: {},
     flags: { meta: null, negation: null, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false, stimulusMix: {} },
@@ -430,7 +457,7 @@ export class SettingsOverrideService {
      * Customise was off carried "off" around with it forever.
      */
     private snapshot(): ProfileConfig {
-        const { profiles, activeProfile, active, ...rest } = this.state;
+        const { profiles, activeProfile, active, deepConclusions, ...rest } = this.state;
         return JSON.parse(JSON.stringify({ ...rest, active: true }));
     }
 
@@ -469,6 +496,8 @@ export class SettingsOverrideService {
             profiles,
             activeProfile: id,
             active: true,
+            // Kept, not restored: the profile never held one.
+            deepConclusions: this.state.deepConclusions,
         };
         this.save();
     }
@@ -535,6 +564,24 @@ export class SettingsOverrideService {
 
     setSpread(next: SpreadSetting | null) {
         this.state.space = { ...this.state.space, spread: next };
+        this.save();
+    }
+
+    /**
+     * Read without the `live` gate, on purpose — see `OverrideState`.
+     *
+     * `suppress` is not consulted either. It exists so a placement measures the
+     * mode rather than the mode plus whatever is switched on, and the
+     * conclusion model is not something switched on: it is what the mode *is*,
+     * so a placement run under the other one would be measuring a mode the
+     * player never plays.
+     */
+    get deepConclusions(): boolean {
+        return this.state.deepConclusions !== false;
+    }
+
+    setDeepConclusions(on: boolean) {
+        this.state.deepConclusions = on;
         this.save();
     }
 
@@ -733,6 +780,10 @@ export class SettingsOverrideService {
                     space: { ...DEFAULT_SPACE, ...(parsed.space ?? {}), axes: parsed.space?.axes ?? {} },
                     rungs: parsed.rungs ?? {},
                     modes: adoptChosenPremises(parsed.modes ?? {}),
+                    // Absent in state saved before the switch existed, and
+                    // those players were already being served the deep model,
+                    // so absent reads as on.
+                    deepConclusions: parsed.deepConclusions !== false,
                     scrambleFactor: parsed.scrambleFactor ?? 100,
                     // Absent in states saved before profiles existed.
                     profiles: Array.isArray(parsed.profiles) ? parsed.profiles : [],

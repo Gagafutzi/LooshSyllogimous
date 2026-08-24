@@ -180,6 +180,35 @@
 
     <app-mode-modifiers [enabled]="active"></app-mode-modifiers>
 
+    <!--
+      Not marked idle when Customise is off, and the checkbox is never
+      disabled. Every other section here layers something on top of what the
+      tier decided; this one picks which version of the generators runs, so it
+      applies whether or not the rest of this page is switched on.
+    -->
+    <app-collapsible heading="Conclusions" [startClosed]="true">
+        <label class="master mb-2">
+            <input type="checkbox" class="form-check-input"
+                   [checked]="deepConclusions"
+                   (change)="setDeepConclusions($any($event.target).checked)">
+            <span>
+                <strong>Conclusions that need the whole item</strong>
+                <small class="d-block text-muted">
+                    The answer has to be composed from several relations rather
+                    than found in one premise, and a question about many
+                    dimensions asks about all of them.
+                </small>
+            </span>
+        </label>
+
+        <p class="text-muted small mb-0">
+            Turn it off to go back to the earlier behaviour: the pair asked
+            about is drawn without regard to how far apart it sits, and a claim
+            names one dimension of however many. Nothing else changes — the
+            premise counts, the modifiers and the clock are all as they were.
+        </p>
+    </app-collapsible>
+
     <app-collapsible heading="Fluid progression" [startClosed]="true">
         <p class="text-muted small mb-2">
             One ability estimate per mode; each item is built to sit just below it.

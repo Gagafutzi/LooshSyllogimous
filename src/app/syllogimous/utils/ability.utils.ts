@@ -950,6 +950,14 @@ export interface Trial {
     answerSeconds?: number;
     /** Bits wider or narrower than typical for the configuration, or 0. */
     widthDelta?: number;
+    /**
+     * Relations the conclusion needed, or 0 where the mode does not measure it.
+     *
+     * Logged only. Nothing reads it for difficulty, and the reason it is here
+     * is that the claim it would settle — that conclusion depth is unrelated to
+     * premise count — cannot be settled from items nobody recorded.
+     */
+    depth?: number;
 }
 
 export interface RungFit {

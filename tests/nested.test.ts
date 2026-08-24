@@ -19,7 +19,7 @@ import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { createNested } from "../src/app/syllogimous/generators/nested";
 
-function context(rung = ""): GeneratorContext {
+function context(rung = "", deep = true): GeneratorContext {
     const settings = new Settings();
     for (const type of Object.values(EnumQuestionType)) settings.question[type].enabled = true;
     const ctx: GeneratorContext = {
@@ -28,7 +28,7 @@ function context(rung = ""): GeneratorContext {
         settingsOverrideService: {
             linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
             spread: () => null,
-            depthFor: () => 0, scramble: 100,
+            depthFor: () => 0, scramble: 100, deepConclusions: deep,
         } as unknown as SettingsOverrideService,
         progressionService: {
             hasRung: () => false, depthBonusFor: () => 0,
@@ -173,4 +173,87 @@ test("colliding vocabularies are still answerable, which is the whole claim", ()
 
     assert(reversed > 20,
         `only ${reversed} premises stated a pair both ways in the same words`);
+});
+
+/**
+ * The reported defect, asserted away: *"Inside the brackets: Lens is after
+ * Doorstep"* against a premise reading *"where Lens is before Doorstep"*.
+ *
+ * Measured from the rendered premises, never from the generator's layout, so
+ * the check is the one the reader could make — walk the asked-about space and
+ * count how many of its relations lie between the two objects the claim names.
+ * On a chain that count is the difference of the reconstructed positions.
+ */
+test("a nested conclusion is never one bracket read back", () => {
+    for (const rung of ["", "collide"]) {
+        const ctx = context(rung);
+        const spans: number[] = [];
+
+        for (let run = 0; run < 120; run++) {
+            const premises = 3 + (run % 5);
+            const q = seeded(run * 3301 + 29, () => createNested(ctx, premises));
+            const { outer, inner } = halves(q.premises);
+
+            const plain = strip(String(q.conclusion));
+            const askInner = plain.startsWith("Inside the brackets");
+            const claim = statement(plain.replace(/^[^:]+:\s*/, ""));
+            assert(!!claim, `could not read the claim: ${plain}`);
+
+            const pos = positions(askInner ? inner : outer, claim!.rel);
+            const span = Math.abs(pos[claim!.a] - pos[claim!.b]);
+
+            assert(span >= 2,
+                `${rung || "plain"}: conclusion spans ${span} relation(s) of the`
+                + ` ${askInner ? "inner" : "outer"} space: ${plain}`);
+
+            // The recorded figure has to be the real one, or the log it exists
+            // to fill would be a record of the generator's intentions.
+            assert(q.depth === span,
+                `item reports depth ${q.depth}, the premises say ${span}: ${plain}`);
+
+            spans.push(span);
+        }
+
+        // A floor, not a fixed distance: pinning every conclusion to the ends
+        // of the chain would make where the answer sits predictable.
+        assert(new Set(spans).size > 1,
+            `${rung || "plain"}: every conclusion spanned ${spans[0]} relations`);
+    }
+});
+
+/**
+ * The switch has to switch something off.
+ *
+ * A toggle whose two positions produce the same items is worse than no toggle:
+ * it invites the player to conclude the setting does nothing, and they would be
+ * right. So the off position is asserted to bring back the thing the floor
+ * removes — a conclusion the asked-about space states outright — rather than
+ * merely being asserted to run without throwing.
+ */
+test("turning the deeper conclusions off brings the old ones back", () => {
+    const ctx = context("", false);
+    let restatements = 0, read = 0;
+
+    for (let run = 0; run < 120; run++) {
+        const q = seeded(run * 3301 + 29, () => createNested(ctx, 3 + (run % 5)));
+        const { outer, inner } = halves(q.premises);
+
+        const plain = strip(String(q.conclusion));
+        const askInner = plain.startsWith("Inside the brackets");
+        const claim = statement(plain.replace(/^[^:]+:\s*/, ""));
+        assert(!!claim, `could not read the claim: ${plain}`);
+
+        const pos = positions(askInner ? inner : outer, claim!.rel);
+        if (Math.abs(pos[claim!.a] - pos[claim!.b]) === 1) restatements++;
+        read++;
+
+        // Old model or new, the item still has to be right.
+        const holds = pos[claim!.a] > pos[claim!.b];
+        assert(holds === q.isValid, `off the floor, the answer stopped following: ${plain}`);
+    }
+
+    assert(read === 120, "some items could not be read back");
+    assert(restatements > 10,
+        `only ${restatements} of 120 conclusions restated a premise; the floor`
+        + " looks to still be in force with the switch off");
 });

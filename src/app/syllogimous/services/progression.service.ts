@@ -835,7 +835,10 @@ export class ProgressionService {
         type: EnumQuestionType,
         outcome: Outcome,
         answerSeconds: number,
-        item?: { answerMode?: string; slots?: number; choices?: number; options?: number; widthDelta?: number },
+        item?: {
+            answerMode?: string; slots?: number; choices?: number; options?: number;
+            widthDelta?: number; depth?: number;
+        },
     ): LadderEvent[] {
         if (!this.config.enabled) { this.lastEvents = []; return []; }
 
@@ -895,6 +898,7 @@ export class ProgressionService {
             guess,
             correct,
             widthDelta: item?.widthDelta ?? 0,
+            depth: item?.depth ?? 0,
             answerSeconds,
         });
 

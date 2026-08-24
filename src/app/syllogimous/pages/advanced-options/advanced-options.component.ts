@@ -42,6 +42,12 @@ export class AdvancedOptionsComponent {
         public progress: ProgressAndPerformanceService,
     ) { }
 
+    /* ---- conclusions ---- */
+
+    get deepConclusions() { return this.overrides.deepConclusions; }
+
+    setDeepConclusions(on: boolean) { this.overrides.setDeepConclusions(on); }
+
     /* ---- tier cheat (testing) ---- */
 
     tiers = ORDERED_TIERS;

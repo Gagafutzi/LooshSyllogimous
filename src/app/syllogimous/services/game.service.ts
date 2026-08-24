@@ -675,6 +675,10 @@ export class GameService implements GeneratorContext {
                     // Logged so the bits-to-levels coefficient can be fitted
                     // rather than guessed; nothing reads it for difficulty yet.
                     widthDelta: this.question.widthDelta,
+                    // Same standing: recorded now so that whether depth
+                    // predicts accuracy can later be answered from answered
+                    // items rather than from a screenshot.
+                    depth: this.question.depth,
                 },
             );
 

@@ -109,6 +109,23 @@ export function buildConstructClaims(ctx: GeneratorContext, draw: (slack: number
 }
 
 /**
+ * Which conclusion model to build under.
+ *
+ * One reader so the modes cannot drift apart on it: a player who switched the
+ * deep model off and still met a full-width composed-space claim would
+ * reasonably conclude the switch was broken, and would be right.
+ *
+ * A generator asking this should have both paths in front of it. "Off" is the
+ * behaviour that shipped before the depth work — not a weakened version of the
+ * new one — because the switch exists to make the two comparable.
+ */
+export function deepConclusions(ctx: GeneratorContext): boolean {
+    // Absent reads as on, the same rule the stored state uses, so the deep
+    // model is what you get unless something says otherwise.
+    return ctx.settingsOverrideService.deepConclusions !== false;
+}
+
+/**
  * Extra transforms from the ladder plus any manual setting. Applied by
  * shifting the split between layout and transform premises, never by adding
  * premises on top.

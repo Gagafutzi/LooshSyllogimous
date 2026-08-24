@@ -29,14 +29,15 @@
  * for it to happen is what makes this more than a presentation change.
  */
 
-import { GeneratorContext } from "./context";
+import { GeneratorContext, deepConclusions } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 import { hi, subj } from "../utils/phrasing";
 import {
-    LINEAR_SCALES, LinearLayout, LinearScale, buildChain, compare, renderRelation,
+    LINEAR_SCALES, LinearLayout, LinearScale, buildChain, compare, graphDistance,
+    renderRelation,
 } from "../utils/linear.utils";
 
 /**
@@ -65,6 +66,23 @@ const COLLIDING_PAIRS: Array<[string, string]> = [
     ["vertical", "quantity"],
 ];
 
+/**
+ * The shallowest conclusion this mode will serve, counted in relations of the
+ * space it asks about.
+ *
+ * A pair that space states outright is depth 1, and asking it back tests
+ * finding a premise rather than composing two — which is exactly what was
+ * reported: five premises carrying ten relations, and a conclusion that was
+ * premise four's bracket with the direction reversed.
+ *
+ * Two rather than the chain's full length, deliberately. Nested's difficulty is
+ * carried by the interference between the two spaces as much as by the span
+ * within either, so pinning the conclusion to the ends of one chain would make
+ * the answer's position predictable while adding little. This is a floor meant
+ * to rise, and raising it is this number.
+ */
+const MIN_DEPTH = 2;
+
 const NESTED_NOTE =
     "Statements <b>outside</b> the brackets describe one arrangement."
     + " Statements <b>inside</b> them describe a completely separate one."
@@ -82,6 +100,10 @@ export function createNested(ctx: GeneratorContext, numOfPremises: number): Ques
     }
 
     numOfPremises = clampPremises(type, numOfPremises);
+
+    // Off, the conclusion pair is drawn as it always was: any two objects,
+    // including the pair a premise states outright.
+    const floor = deepConclusions(ctx) ? MIN_DEPTH : 1;
 
     const collide = ctx.hasRung(type, "collide");
     const pairs = collide ? COLLIDING_PAIRS : PLAIN_PAIRS;
@@ -130,11 +152,16 @@ export function createNested(ctx: GeneratorContext, numOfPremises: number): Ques
 
         const layout = askInner ? inner : outer;
         const scale = askInner ? innerScale : outerScale;
-        const pair = pickPair(words);
+        const pair = pickPair(layout, floor);
         if (!pair) continue;
 
         const truth = compare(layout, pair[0], pair[1]);
         if (truth === 0) continue;
+
+        // Relations of the asked-about space, which is the unit its solver
+        // works in — the other space's half of every premise is there to be
+        // read and set aside, and counting it would flatter the item.
+        question.depth = graphDistance(pair[0], pair[1], layout.neighbors);
 
         const claimTrue = coinFlip();
         const stated = claimTrue ? truth : (truth === 1 ? -1 : 1);
@@ -198,12 +225,28 @@ function shuffled(words: string[]): string[] {
     return out;
 }
 
-function pickPair(words: string[]): [string, string] | null {
-    if (words.length < 2) return null;
-    const a = Math.floor(Math.random() * words.length);
-    let b = Math.floor(Math.random() * words.length);
-    while (b === a) b = Math.floor(Math.random() * words.length);
-    return [words[a], words[b]];
+/**
+ * A pair at least `floor` relations apart in the space being asked about.
+ *
+ * Drawn from every pair that clears the floor rather than only the furthest,
+ * so where the answer sits in the chain still varies from item to item; what it
+ * can no longer be is a premise handed back. Which way round the claim runs is
+ * a separate coin flip, or every conclusion would read along the chain.
+ */
+function pickPair(layout: LinearLayout, floor: number): [string, string] | null {
+    const { words, neighbors } = layout;
+    const far: Array<[string, string]> = [];
+
+    for (let i = 0; i < words.length; i++) {
+        for (let j = i + 1; j < words.length; j++) {
+            const d = graphDistance(words[i], words[j], neighbors);
+            if (Number.isFinite(d) && d >= floor) far.push([words[i], words[j]]);
+        }
+    }
+    if (!far.length) return null;
+
+    const [a, b] = far[Math.floor(Math.random() * far.length)];
+    return coinFlip() ? [a, b] : [b, a];
 }
 
 /**
