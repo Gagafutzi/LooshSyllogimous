@@ -16,7 +16,7 @@ import { scrambleBlocks, scrambleByFactor, scrambleLeading } from "../utils/prem
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
-import { subj } from "../utils/phrasing";
+import { hi, subj } from "../utils/phrasing";
 import { ONE_STEP_NOTE } from "./notes";
 
 /**
@@ -48,9 +48,13 @@ export function linearFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
     const forced = <K extends keyof LinearFeatureFlags>(k: K) =>
         ctx.settingsOverrideService.linearOverride(k);
 
-    const pick = (key: "branching" | "overlap" | "multiConclusion" | "chooseConclusion" | "constructConclusion" | "constructDistance" | "widePremises", rung: string) => {
+    /**
+     * A modifier's state: an explicit setting wins, otherwise the ladder — or,
+     * for the ones that are simply how the mode works now, `byDefault`.
+     */
+    const pick = (key: "branching" | "overlap" | "multiConclusion" | "chooseConclusion" | "constructConclusion" | "constructDistance" | "widePremises", rung: string, byDefault = false) => {
         const f = forced(key);
-        return f === null ? ladder(rung) : !!f;
+        return f === null ? (byDefault || ladder(rung)) : !!f;
     };
 
     const forcedTransforms = forced("transforms");
@@ -72,7 +76,10 @@ export function linearFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
          * needs everything. See the branch in `fillLinearConclusion`.
          */
         checkpoint: ladder("checkpoint"),
-        multiConclusion: pick("multiConclusion", "multi-conclusion"),
+        // On for everybody, not earned. Several claims about different
+        // pairs is what makes a whole arrangement load-bearing rather than one
+        // corner of it, so it is what the mode asks unless it is switched off.
+        multiConclusion: pick("multiConclusion", "retired-multi-conclusion", true),
         chooseConclusion: pick("chooseConclusion", "choose-conclusion"),
         constructConclusion: ctx.forceConstruction !== "off" || pick("constructConclusion", "construct-conclusion"),
         constructDistance: ctx.forceConstruction !== "off"
@@ -534,6 +541,31 @@ export function fillLinearConclusion(ctx: GeneratorContext,
         question.depth = Math.min(...set.map(c => c.span));
         question.conclusion = set.map(c => c.text);
         question.isValid = allTrue;
+        /*
+         * One walk per claim, and the false one says so.
+         *
+         * Silent until now, which mattered little while this was a late rung
+         * and matters a great deal now it is what everybody gets. Only when
+         * nothing moved, for the same reason the single-claim path is silent
+         * after a transformation: `final` no longer decomposes into the stated
+         * steps, so walking the premises derives the *starting* relation and
+         * presents it as the answer.
+         */
+        if (!transformed) {
+            question.explanation = set.flatMap((c, i) => {
+                const pair = pairsOf([c.text])[0];
+                if (!pair) return [];
+                return [
+                    ...explainLinear(scale, final, pair[0], pair[1]),
+                    wants[i] ? `so claim ${i + 1} holds.`
+                        : `so claim ${i + 1} does ${hi("not")} hold.`,
+                ];
+            }).concat([
+                allTrue
+                    ? `Every claim holds, so the set does.`
+                    : `One of them does not, and they were asked together.`,
+            ]);
+        }
         return true;
     }
 

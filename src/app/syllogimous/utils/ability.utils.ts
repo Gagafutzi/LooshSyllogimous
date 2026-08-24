@@ -145,7 +145,6 @@ export const RUNG_COST: Record<string, number> = {
 
     analogy: 2.0,
 
-    "multi-conclusion": 1.0,
     "choose-conclusion": 0.8,
     "construct-conclusion": 1.8,
     "construct-distance": 1.2,
@@ -209,6 +208,7 @@ export const RUNG_COST: Record<string, number> = {
     "retired-groups-3": 0,
     "retired-groups-4": 0,
     "retired-rank": 0,
+    "retired-multi-conclusion": 0,
     "match-3": 0.5,
 
     // A false direction drawn from ones the item used. It removes a shortcut
@@ -256,7 +256,6 @@ export const RUNG_MIN_PREMISES: Record<string, number> = {
     "edit-1": 4,
     "edit-2": 5,
     analogy: 5,
-    "multi-conclusion": 4,
     "choose-conclusion": 5,
     "construct-conclusion": 4,
     // The halfway claim only exists above four premises, so granting the rung

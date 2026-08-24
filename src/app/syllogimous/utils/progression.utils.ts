@@ -217,6 +217,14 @@ export function update(
  * the pair is tied. Claiming it before ties exist means it is always available;
  * after overlap it applies only to the layouts that happen not to tie.
  */
+/*
+ * `retired-multi-conclusion` is a tombstone because the feature is on for
+ * everybody now rather than earned. Several claims about different pairs is
+ * what makes a whole arrangement load-bearing instead of one corner of it, and
+ * that is not a reward for having played a mode for a while — it is what a
+ * conclusion should have been asking all along. The family flag in Customise is
+ * the control, and what it does now is turn it *off*.
+ */
 const LINEAR_LADDER = [
     // Appended mid-ladder rather than at the front: putting a new rung first
     // would shift every rung already earned by one.
@@ -227,7 +235,7 @@ const LINEAR_LADDER = [
     // existing player, silently. The tombstone holds the slot, matches no
     // `hasRung` call, and is filtered out of the settings UI. See fixes/6.
     "negation", "branching", "meta", "overlap", "retired-wide-premises",
-    "transform-1", "transform-2", "multi-conclusion", "choose-conclusion",
+    "transform-1", "transform-2", "retired-multi-conclusion", "choose-conclusion",
     "construct-conclusion", "construct-distance", "checkpoint",
 ];
 
@@ -264,7 +272,7 @@ const ND_LADDER = [
     // "compact" is retired rather than removed; see the note on LINEAR_LADDER.
     "branching", "retired-compact", "circular", "indeterminate", "facing", "speakers", "testimony", "transform-1", "edit-1",
     "circular-2", "transform-2", "edit-2", "analogy",
-    "multi-conclusion", "choose-conclusion", "construct-conclusion", "construct-distance",
+    "retired-multi-conclusion", "choose-conclusion", "construct-conclusion", "construct-distance",
     // Appended, never inserted: a profile stores how many rungs it has earned
     // and reads them by position, so a new rung anywhere but the end renames
     // every rung after it for everyone who already has them.
@@ -441,7 +449,7 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * structural jump: in a hierarchy "reaches" is a partial order you can
      * reason about by level, and one loop destroys that.
      */
-    "Hierarchy":                 ["min-span-3", "cycles", "multi-conclusion", "choose-conclusion"],
+    "Hierarchy":                 ["min-span-3", "cycles", "retired-multi-conclusion", "choose-conclusion"],
     /*
      * Naming the odd one out among several is a comparison; counting the
      * changes needed is a measurement, and strictly harder — you have to find

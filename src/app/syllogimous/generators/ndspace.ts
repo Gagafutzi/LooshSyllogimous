@@ -10,7 +10,7 @@ import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
-import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdWideConclusion, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, graphDistance, ndPrefixLayout, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
+import { AxisSpec, NdConclusion, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdWideConclusion, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, graphDistance, ndPrefixLayout, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
 import { scrambleBlocks, scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
@@ -360,9 +360,13 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
     const forced = <K extends keyof LinearFeatureFlags>(k: K) =>
         ctx.settingsOverrideService.linearOverride(k);
 
-    const pick = (key: "branching" | "multiConclusion" | "chooseConclusion" | "constructConclusion" | "constructDistance" | "analogy", rung: string) => {
+    /**
+     * A modifier's state: an explicit setting wins, otherwise the ladder — or,
+     * for the ones that are simply how the mode works now, `byDefault`.
+     */
+    const pick = (key: "branching" | "multiConclusion" | "chooseConclusion" | "constructConclusion" | "constructDistance" | "analogy", rung: string, byDefault = false) => {
         const f = forced(key);
-        return f === null ? ladder(rung) : !!f;
+        return f === null ? (byDefault || ladder(rung)) : !!f;
     };
 
     const forcedLoops = ctx.settingsOverrideService.circularAxes();
@@ -443,7 +447,10 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
         transforms,
         circular,
         analogy: pick("analogy", "analogy"),
-        multiConclusion: pick("multiConclusion", "multi-conclusion"),
+        // On for everybody, not earned. Several claims about different
+        // pairs is what makes a whole arrangement load-bearing rather than one
+        // corner of it, so it is what the mode asks unless it is switched off.
+        multiConclusion: pick("multiConclusion", "retired-multi-conclusion", true),
         chooseConclusion: pick("chooseConclusion", "choose-conclusion"),
         constructConclusion: ctx.forceConstruction !== "off" || pick("constructConclusion", "construct-conclusion"),
         constructDistance: ctx.forceConstruction !== "off"
@@ -732,21 +739,6 @@ export function fillNdConclusion(ctx: GeneratorContext,
         return true;
     }
 
-    if (feat.multiConclusion) {
-        const count = 2 + Math.floor(Math.random() * 2);
-        const allTrue = coinFlip();
-        const wants = Array(count).fill(true);
-        if (!allTrue) wants[Math.floor(Math.random() * count)] = false;
-
-        const set = buildNdConclusionSet(layout, count, wants, legacy);
-        if (set.length < count) return false;
-        question.depth = Math.min(
-            ...set.map(c => graphDistance(c.a, c.b, layout.neighbors)));
-        if (!set.some(c => axisBites(c.a, c.b, c.axis))) return false;
-        question.conclusion = set.map(c => c.text);
-        question.isValid = allTrue;
-        return true;
-    }
 
     /*
      * Egocentric items re-express the layout from inside it, so they are their
@@ -758,6 +750,98 @@ export function fillNdConclusion(ctx: GeneratorContext,
         // Falling through rather than failing: a layout can simply have no
         // pair the bearing plane separates, and that is not an error.
     }
+
+    /*
+     * Several claims, each of them about every axis.
+     *
+     * Placed here rather than above `facing` and `indeterminate` on purpose.
+     * Those two change *what is asked* — a bearing from inside the layout, a
+     * claim of necessity over a pair nothing settles — and running before them
+     * meant an item that had earned either simply never got it. Several claims
+     * changes *how many* are asked, which composes with the plain form and with
+     * nothing else, so it sits with the plain form.
+     *
+     * And the claims are wide. Built from `buildNdConclusionSet` they were one
+     * axis apiece, so switching this on by default would have quietly undone
+     * the width work — a seven-axis item answered by three one-axis claims is
+     * the reported defect again, wearing three hats instead of one.
+     *
+     * Fewer of them as the axes multiply. Three seven-axis claims is a wall of
+     * clauses, and the second claim is where the whole-arrangement argument is
+     * won: it is the one that cannot be answered from the corner the first one
+     * came from.
+     */
+    if (feat.multiConclusion) {
+        const count = layout.axes.length >= 5 ? 2 : 2 + Math.floor(Math.random() * 2);
+        const allTrue = coinFlip();
+        const wants: boolean[] = Array(count).fill(true);
+        if (!allTrue) wants[Math.floor(Math.random() * count)] = false;
+
+        const strictSet = feat.indeterminate || feat.speakers || feat.testimony;
+        const claims: NdConclusion[] = [];
+        const used = new Set<string>();
+
+        if (legacy) {
+            // Off, this is what it was: one axis per claim, chosen at random.
+            claims.push(...buildNdConclusionSet(layout, count, wants, true));
+        } else {
+            for (let guard = 0; claims.length < count && guard < count * 40; guard++) {
+                const pair = pickDistantPairNd(layout, 2, claims.length, false);
+                if (!pair || !pairBites(pair[0], pair[1])) continue;
+
+                const key = [...pair].sort().join(" ");
+                if (used.has(key)) continue;
+
+                const wide = buildNdWideConclusion(
+                    layout, pair[0], pair[1], wants[claims.length], strictSet);
+                if (!wide) continue;
+
+                used.add(key);
+                claims.push(wide);
+            }
+        }
+
+        /*
+         * Falling through rather than failing when the claims cannot be built.
+         *
+         * A wide claim declines on a pair the premises leave unsettled, which
+         * is precisely what the under-specification and testimony rungs make on
+         * purpose — so on those items every attempt comes back empty. Returning
+         * false there killed the whole item and the modes that live on
+         * unsettled pairs stopped generating outright. This is a form the
+         * conclusion can take, not one it must.
+         */
+        if (claims.length === count) {
+            // Every claim has to be checked, so the cheapest is what the item
+            // can be answered from when one of them is false.
+            question.depth = Math.min(
+                ...claims.map(c => graphDistance(c.a, c.b, layout.neighbors)));
+            question.conclusion = claims.map(c => c.text);
+            question.isValid = allTrue;
+            /*
+             * One walk per claim, and the false one says so.
+             *
+             * Left silent, this form explained nothing — which mattered little
+             * while it was a late rung and matters a great deal now it is what
+             * everybody gets. A mutated layout is the usual exception: the
+             * premises no longer describe where things ended up, so a walk
+             * through them would be confidently wrong.
+             */
+            if (!mutated) {
+                question.explanation = claims.flatMap((c, i) => [
+                    ...explainNdAxis(layout, c.b, c.a, Math.max(0, c.axis)),
+                    wants[i] ? `so claim ${i + 1} holds.`
+                        : `so claim ${i + 1} does ${hi("not")} hold.`,
+                ]).concat([
+                    allTrue
+                        ? `Every claim holds, so the set does.`
+                        : `One of them does not, and they were asked together.`,
+                ]);
+            }
+            return true;
+        }
+    }
+
 
     /*
      * Under-specified items ask a different question, so they are built first.

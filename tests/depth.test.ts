@@ -1247,3 +1247,67 @@ test("a deictic reversal never arrives before the positions it reverses", () => 
 
     assert(seen > 20, `only ${seen} items stated a reversal at all`);
 });
+
+/**
+ * Several claims, and each of them still about every axis.
+ *
+ * Multiple conclusions is on for everybody now rather than earned late, and
+ * built from the single-axis claim it would have quietly undone the width
+ * work — a seven-axis item answered by three one-axis claims is the reported
+ * defect again, wearing three hats instead of one.
+ */
+test("every claim of a multi-conclusion item names every axis", () => {
+    const ctx = ndContext();
+    let checked = 0;
+
+    seeded(5757, () => {
+        for (const type of [
+            EnumQuestionType.Space3D, EnumQuestionType.Space4D,
+            EnumQuestionType.Space5D, EnumQuestionType.Space6D,
+        ]) {
+            for (let rep = 0; rep < 25; rep++) {
+                let q;
+                try { q = createNdSpace(ctx, 4, type); } catch { continue; }
+                if (!Array.isArray(q.conclusion) || q.conclusion.length < 2) continue;
+
+                const stated = new Set<string>();
+                for (const p of q.premises) for (const d of dims(p)) stated.add(d);
+                if (stated.size < 2) continue;
+
+                for (const claim of q.conclusion) {
+                    equal(dims(claim).size, stated.size,
+                        `${type}: premises name ${stated.size} axes, a claim names`
+                        + ` ${dims(claim).size} — ${claim}`);
+                }
+                checked++;
+            }
+        }
+    });
+
+    assert(checked > 15, `only ${checked} multi-conclusion items in the sample`);
+});
+
+/**
+ * A form the conclusion can take, not one it must.
+ *
+ * A wide claim declines on a pair the premises leave unsettled, which is
+ * exactly what the under-specification and testimony rungs make on purpose. If
+ * failing to build the claims killed the item, the modes that live on unsettled
+ * pairs would stop generating outright — which is what happened first time.
+ */
+test("an under-specified item still builds when several claims cannot", () => {
+    const base = ndContext();
+    const ctx = {
+        ...base,
+        hasRung: (_t: string, r: string) => r === "indeterminate",
+    } as GeneratorContext;
+
+    let built = 0;
+    seeded(6868, () => {
+        for (let rep = 0; rep < 40; rep++) {
+            try { createNdSpace(ctx, 4, EnumQuestionType.Space4D); built++; } catch { /* */ }
+        }
+    });
+
+    assert(built > 30, `only ${built} of 40 under-specified items could be built`);
+});

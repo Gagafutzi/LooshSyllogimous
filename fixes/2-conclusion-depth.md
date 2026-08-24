@@ -336,6 +336,47 @@ whether a floor that was raised actually moved anything.
 
 ---
 
+## 2.2c Several claims, for everybody — **BUILT**
+
+`multi-conclusion` was rung eight on the linear ladder and rung fourteen on the
+composed spaces', which meant the form that makes a *whole* arrangement
+load-bearing was the one nobody saw until they had ground for it. It is on by
+default now and the ladder slot is a tombstone; the family flag in Customise is
+the control, and what it does is turn it off.
+
+Three things it turned on, and two of them were faults the change exposed
+rather than caused.
+
+**The claims had to become wide, or this would have undone
+[2.5](#25-an-n-dimensional-map-deserves-an-n-dimensional-conclusion).**
+`buildNdConclusionSet` builds one axis per claim, so switching the form on by
+default would have answered a seven-axis item with three one-axis claims — the
+reported defect again, wearing three hats instead of one. They are built from
+`buildNdWideConclusion` now, and fewer of them as the axes multiply: two above
+four axes, since three seven-axis claims is a wall of clauses and the second
+claim is where the argument is already won.
+
+**It has to be a form the conclusion *can* take, not one it must.** A wide claim
+declines on a pair the premises leave unsettled, which is exactly what the
+under-specification and testimony rungs make on purpose — so on those items
+every attempt came back empty and the branch failed the whole item. Those modes
+stopped generating outright. It falls through to the specialised paths now.
+
+**And it had to be moved after `facing` and `indeterminate`.** Those change
+*what is asked*; running before them meant an item that had earned either never
+got it. Several claims changes *how many* are asked, which composes with the
+plain form and nothing else, so it sits with the plain form.
+
+**It also had to explain itself.** The form was silent in all three families,
+which mattered little while it was a late rung and a great deal now it is what
+everybody gets — seven modes explained nothing on the first run. Each claim now
+gets its own walk and the false one says so, under the same
+mutated-layout guard the single-claim paths use: after a transformation the
+premises no longer describe where things ended up, so walking them derives the
+*starting* relation and states it with confidence.
+
+---
+
 ## 2.2b The switch — **BUILT**
 
 All of the above is behind **Conclusions** in Customise, on by default. Off,

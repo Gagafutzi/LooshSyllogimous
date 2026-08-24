@@ -7,6 +7,7 @@
 
 import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
+import { hi } from "../utils/phrasing";
 import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { HierarchyLayout, buildHierarchy, buildHierarchyQuerySet, explainHierarchy, pickHierarchyQuery, renderHierarchyConclusion, renderHierarchyPremise } from "../utils/hierarchy.utils";
 import { scrambleByFactor } from "../utils/premise-order.utils";
@@ -76,9 +77,13 @@ export function hierarchyFeatures(ctx: GeneratorContext) {
     const forced = <K extends keyof LinearFeatureFlags>(k: K) =>
         ctx.settingsOverrideService.linearOverride(k);
 
-    const pick = (key: "multiConclusion" | "chooseConclusion", rung: string) => {
+    /**
+     * A modifier's state: an explicit setting wins, otherwise the ladder — or,
+     * for the ones that are simply how the mode works now, `byDefault`.
+     */
+    const pick = (key: "multiConclusion" | "chooseConclusion", rung: string, byDefault = false) => {
         const f = forced(key);
-        return f === null ? ladder(rung) : !!f;
+        return f === null ? (byDefault || ladder(rung)) : !!f;
     };
 
     return {
@@ -86,7 +91,10 @@ export function hierarchyFeatures(ctx: GeneratorContext) {
         // have to hold a route rather than a pair.
         minSpan: ladder("min-span-3") ? 3 : 2,
         cycles: ladder("cycles"),
-        multiConclusion: pick("multiConclusion", "multi-conclusion"),
+        // On for everybody, not earned. Several claims about different
+        // pairs is what makes a whole arrangement load-bearing rather than one
+        // corner of it, so it is what the mode asks unless it is switched off.
+        multiConclusion: pick("multiConclusion", "retired-multi-conclusion", true),
         chooseConclusion: pick("chooseConclusion", "choose-conclusion"),
     };
 }
@@ -133,6 +141,20 @@ export function fillHierarchyConclusion(ctx: GeneratorContext,
         question.depth = Math.min(...set.map(q => cost(q.span)));
         question.conclusion = set.map(renderHierarchyConclusion);
         question.isValid = allTrue;
+        /*
+         * One derivation per claim. Nothing mutates a hierarchy after it is
+         * stated, so every one of these is safe to walk — which is why this
+         * needs no guard where the scale family and the composed spaces do.
+         */
+        question.explanation = set.flatMap((q, i) => [
+            ...explainHierarchy(layout, q),
+            q.isValid ? `so claim ${i + 1} holds.`
+                : `so claim ${i + 1} does ${hi("not")} hold.`,
+        ]).concat([
+            allTrue
+                ? `Every claim holds, so the set does.`
+                : `One of them does not, and they were asked together.`,
+        ]);
         return true;
     }
 
