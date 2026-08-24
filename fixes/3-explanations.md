@@ -34,10 +34,34 @@ than the row itself:
   distance would report a correct answer as half wrong — and `slotSatisfied`
   already accepts it, so the two would have disagreed about the same answer.
 
-**Still to do:** the same rows on the game screen's result card, not only in
-History; and recording per-slot correctness so the stats screen can say which
-*dimension* a player loses, which is the most actionable number the app could
-show about the composed spaces.
+**Both remainders are now built.**
+
+**The rows are on the game screen's review panel**, above the map. A player
+reviewing a wrong seven-dimension answer needs to know *which* dimension while
+the item is still in front of them; finding out days later in History is
+finding out about a different item.
+
+**And the stats screen says which dimension you lose** — `dimensionBreakdown`
+over the answered history, shown worst first.
+
+Three decisions, each of which would otherwise have made the number mean
+something else:
+
+- **Derived from the history, not tallied as answers come in.** The questions
+  already carry what was asked and what was entered, and `compareConstruction`
+  is the same judge the review rows and the ability model read — so there is no
+  third place for the three to disagree, and the report covers history recorded
+  before it was written.
+- **An unfilled slot is not a mistake.** A timed-out construction leaves every
+  slot blank, and counting those would fill the report with dimensions the
+  player never reached — which reads as "you are bad at seven axes" when what
+  happened was the clock.
+- **Reading and counting are reported apart**, which is what
+  `SlotComparison.directionOk` was for and had nowhere to go. A wrong direction
+  is a slip in reading the premises; a wrong distance having read them right is
+  a slip in arithmetic. Different problems, different remedies, and one number
+  covering both is the same one-bit summary construction exists to replace, one
+  level up.
 
 ### The original diagnosis
 

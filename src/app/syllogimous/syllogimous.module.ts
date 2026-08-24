@@ -26,6 +26,7 @@ import { TutorialLinearArrangementComponent } from './pages/tutorial/linear-arra
 import { TutorialCircularArrangementComponent } from './pages/tutorial/circular-arrangement/circular-arrangement.component';
 import { AccuracyStatsComponent } from './pages/stats/accuracy-stats/accuracy-stats.component';
 import { ErrorAnalysisComponent } from './pages/stats/error-analysis/error-analysis.component';
+import { DimensionStatsComponent } from './pages/stats/dimension-stats/dimension-stats.component';
 import { TierStatsComponent } from './pages/stats/tier-stats/tier-stats.component';
 import { TimeBasedStatsComponent } from './pages/stats/time-based-stats/time-based-stats.component';
 import { TypeBasedStatsComponent } from './pages/stats/type-based-stats/type-based-stats.component';
@@ -125,6 +126,7 @@ const routes: Routes = [
         StatsComponent,
         AccuracyStatsComponent,
         ErrorAnalysisComponent,
+        DimensionStatsComponent,
         TierStatsComponent,
         TimeBasedStatsComponent,
         TypeBasedStatsComponent,

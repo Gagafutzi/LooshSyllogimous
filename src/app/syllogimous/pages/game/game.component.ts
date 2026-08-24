@@ -9,7 +9,7 @@ import { EnumScreens } from '../../constants/game.constants';
 import { GameTimerService } from '../../services/game-timer.service';
 import { ConstructSlot } from '../../models/question.models';
 import { ProgressionService } from '../../services/progression.service';
-import { SlotAnswer, blankPicks, slotsRemaining } from '../../utils/construct.utils';
+import { SlotAnswer, blankPicks, compareConstruction, slotsRemaining } from '../../utils/construct.utils';
 import { KeybindService, keyLabel } from '../../services/keybind.service';
 import { slideNames, stepSlide } from '../../utils/slides.utils';
 
@@ -20,6 +20,24 @@ import { slideNames, stepSlide } from '../../utils/slides.utils';
 })
 export class GameComponent {
     Array = Array;
+
+    /**
+     * The answer just given, dimension by dimension.
+     *
+     * The same rows History has shown for a while, moved to where they are
+     * actually useful. A player reviewing a wrong seven-dimension answer needs
+     * to know *which* dimension while the item is still in front of them;
+     * finding out days later in History is finding out about a different item.
+     *
+     * `compareConstruction` is the one judge — the same call the result rows,
+     * the ability model and the history page all read, so none of them can
+     * disagree about which slot was right.
+     */
+    breakdown() {
+        const q = this.game.question;
+        if (!q || q.answerMode !== "construct" || !q.construct?.length) return null;
+        return compareConstruction(q.construct, q.userConstruct);
+    }
     
     timerType;
     gameMode;

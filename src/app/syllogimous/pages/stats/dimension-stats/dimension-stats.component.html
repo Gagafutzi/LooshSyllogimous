@@ -1,0 +1,35 @@
+<h2 class="text-center">By dimension</h2>
+
+<p class="text-muted small text-center mb-2">
+    Every dimension you have stated in a built conclusion, worst first.
+    <b>Read</b> is getting the direction wrong; <b>count</b> is getting the
+    direction right and the distance wrong. Slots you never filled in are not
+    counted &mdash; a timed-out item is not seven mistakes.
+</p>
+
+<ul class="list-group" *ngIf="rows.length; else nothingYet">
+    <li class="list-group-item dim__row text-muted small">
+        <b>dimension</b>
+        <span class="dim__num"><b>right</b></span>
+        <span class="dim__num"><b>read</b></span>
+        <span class="dim__num"><b>count</b></span>
+    </li>
+
+    <li class="list-group-item dim__row" *ngFor="let r of rows">
+        <span>
+            {{ r.label }}
+            <small class="text-muted" *ngIf="leans(r)">&mdash; mostly {{ leans(r) }}</small>
+        </span>
+        <span class="dim__num">{{ pct(r.accuracy) }}%</span>
+        <span class="dim__num">{{ r.misread }}</span>
+        <span class="dim__num">{{ r.miscounted }}</span>
+    </li>
+</ul>
+
+<ng-template #nothingYet>
+    <p class="text-muted text-center mb-0">
+        Nothing yet. This fills in once you have built a conclusion &mdash; the
+        answer mode that asks you to state each dimension rather than judge a
+        claim about one.
+    </p>
+</ng-template>

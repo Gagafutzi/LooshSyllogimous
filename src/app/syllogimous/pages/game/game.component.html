@@ -15,6 +15,29 @@
         <li *ngFor="let step of game.review" [innerHTML]="step"></li>
     </ol>
 
+    <!--
+      Which dimension went wrong, before anything else in the panel.
+      A built conclusion scored as one bit cannot tell six-right-one-wrong from
+      seven-wrong, and the player who just gave one needs that answer here,
+      while the item is still in front of them, rather than in History days
+      later about an item they no longer remember.
+    -->
+    <div *ngIf="breakdown() as claims" class="review__dims">
+        <div class="review__title">By dimension</div>
+        <div *ngFor="let slots of claims" class="mb-1">
+            <div *ngFor="let s of slots" class="d-flex small gap-2 align-items-baseline">
+                <span class="fw-bold" [ngClass]="s.colorClass">{{ s.label }}</span>
+                <span [class.is-negated]="!s.ok">
+                    {{ s.entered === null ? "not answered" : s.entered }}
+                </span>
+                <span *ngIf="!s.ok" class="text-muted">
+                    &rarr; {{ s.correct }}<ng-container
+                        *ngIf="s.directionOk"> (right way, wrong distance)</ng-container>
+                </span>
+            </div>
+        </div>
+    </div>
+
     <!-- The state, beside the reasoning: one says how the answer follows, the
          other says where everything was. -->
     <app-question-map [question]="game.question"></app-question-map>

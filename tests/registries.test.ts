@@ -40,6 +40,7 @@ import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/s
 import { ORDERED_QUESTION_TYPES, TIERS_MATRIX } from "../src/app/syllogimous/constants/game.constants";
 import { RUNG_LADDERS, ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import { RUNG_COST, RUNG_MIN_PREMISES } from "../src/app/syllogimous/utils/ability.utils";
+import { TypeBasedStats } from "../src/app/syllogimous/models/stats.models";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 
@@ -89,6 +90,9 @@ const declaredRungs = new Set(Object.values(RUNG_LADDERS).flat());
  */
 test("every question type is in every registry that has to know about it", () => {
     const settings = new Settings();
+    // Hand-written one field per mode, like the Settings init list, so it can
+    // silently miss one the same way.
+    const stats = new TypeBasedStats();
 
     for (const type of Object.values(EnumQuestionType)) {
         assert(ORDERED_QUESTION_TYPES.includes(type),
@@ -100,6 +104,8 @@ test("every question type is in every registry that has to know about it", () =>
             + " this is the one that blanks the whole app");
         assert(!!BUILD[type],
             `${type} has no generator in the test sweep, so nothing ever builds it`);
+        assert(!!(stats as unknown as Record<string, unknown>)[type],
+            `${type} has no field on TypeBasedStats, so nothing counts it`);
     }
 
     equal(ORDERED_QUESTION_TYPES.length, Object.values(EnumQuestionType).length,

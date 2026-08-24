@@ -149,3 +149,81 @@ export function compareConstruction(
         };
     }));
 }
+
+/* ------------------------------------------------------------------ *
+ * Which dimension a player loses                                      *
+ * ------------------------------------------------------------------ */
+
+/**
+ * One dimension's record across every construction answered.
+ *
+ * `misread` and `miscounted` are the split `SlotComparison.directionOk` exists
+ * for, carried up to where it can be acted on: getting the direction wrong is a
+ * slip in *reading* the premises, and getting the distance wrong having read
+ * them correctly is a slip in *arithmetic*. They are different problems with
+ * different remedies, and a report that called both "wrong" would be the same
+ * one-bit summary construction was built to replace, one level up.
+ */
+export interface DimensionRecord {
+    label: string;
+    /** Slots of this dimension the player actually filled in. */
+    attempts: number;
+    wrong: number;
+    /** Wrong about which side of the axis the pair sits on. */
+    misread: number;
+    /** Right about the direction, wrong about how far. */
+    miscounted: number;
+    /** Filled-in slots answered correctly, as a fraction. */
+    accuracy: number;
+}
+
+/**
+ * Per-dimension accuracy over answered construction items.
+ *
+ * Derived from the history rather than tallied as answers come in, deliberately.
+ * The questions already carry what was asked and what was entered, and
+ * `compareConstruction` is the same function the result screen and the ability
+ * model read — so there is no third place for the three to disagree, and the
+ * report covers history recorded before it was written.
+ *
+ * **Unfilled slots are skipped rather than counted wrong.** A timed-out item
+ * leaves every slot blank, and counting those as mistakes would fill the report
+ * with dimensions the player never reached — which reads as "you are bad at
+ * time" wearing the labels of seven axes.
+ */
+export function dimensionBreakdown(
+    questions: Array<{
+        answerMode?: string;
+        construct?: ConstructClaim[];
+        userConstruct?: SlotAnswer[][];
+    }>,
+): DimensionRecord[] {
+    const byLabel = new Map<string, DimensionRecord>();
+
+    for (const q of questions) {
+        if (q.answerMode !== "construct" || !q.construct?.length) continue;
+
+        for (const claim of compareConstruction(q.construct, q.userConstruct)) {
+            for (const slot of claim) {
+                if (slot.entered === null) continue;
+
+                const row = byLabel.get(slot.label) ?? {
+                    label: slot.label, attempts: 0, wrong: 0,
+                    misread: 0, miscounted: 0, accuracy: 0,
+                };
+                row.attempts++;
+                if (!slot.ok) {
+                    row.wrong++;
+                    if (slot.directionOk) row.miscounted++; else row.misread++;
+                }
+                byLabel.set(slot.label, row);
+            }
+        }
+    }
+
+    // Worst first, and a dimension with more attempts behind it breaks a tie:
+    // two wrong out of three is a worse *reading* than two out of two.
+    return [...byLabel.values()]
+        .map(r => ({ ...r, accuracy: r.attempts ? (r.attempts - r.wrong) / r.attempts : 0 }))
+        .sort((a, b) => a.accuracy - b.accuracy || b.attempts - a.attempts);
+}

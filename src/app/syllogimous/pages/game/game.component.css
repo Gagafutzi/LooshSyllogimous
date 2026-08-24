@@ -453,3 +453,11 @@
     opacity: 0.7;
     font-size: 0.72em;
 }
+
+/* The per-dimension rows in the review panel, set apart from the steps above
+   them: one is how the answer follows, the other is what you actually said. */
+.review__dims {
+    margin: .5rem 0 .75rem;
+    padding-top: .5rem;
+    border-top: 1px solid rgba(128, 128, 128, .25);
+}

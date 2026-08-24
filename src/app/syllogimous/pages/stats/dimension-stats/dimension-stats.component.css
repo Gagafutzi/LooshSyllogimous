@@ -1,0 +1,8 @@
+.dim__row {
+    display: grid;
+    grid-template-columns: 1fr 3.5rem 3.5rem 3.5rem;
+    gap: .5rem;
+    align-items: baseline;
+}
+
+.dim__num { text-align: right; font-variant-numeric: tabular-nums; }
