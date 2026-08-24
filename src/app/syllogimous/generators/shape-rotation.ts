@@ -197,7 +197,8 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
         if (words.length >= 2 && Math.random() < invariance) {
             if (!fillInvarianceQuestion(question, words, neighbors, start, final, order, shape, deep)) continue;
         } else {
-            fillPositionQuestion(question, words, neighbors, final, shape, deep);
+            fillPositionQuestion(
+                question, words, neighbors, start, final, total, shape, deep);
         }
 
         return question;
@@ -217,7 +218,9 @@ function fillPositionQuestion(
     question: Question,
     words: string[],
     neighbors: Record<string, string[]>,
+    start: Record<string, number>,
     final: Record<string, number>,
+    total: number,
     shape: { name: string; corners: string[] },
     deep: boolean,
 ) {
@@ -254,8 +257,32 @@ function fillPositionQuestion(
     question.conclusion = "";
     question.choicePrompt = `Which corner is ${plainName(asked)} on after the turns?`;
 
+    /*
+     * Where it started, what the turns came to, where that leaves it.
+     *
+     * This was one line — *"X ends on the north corner"* — which states the
+     * answer and shows none of the work, and it is three items in four. It went
+     * unnoticed for the same reason the syllogism one did: a coverage test asks
+     * whether a derivation exists, and one line is a derivation by that measure.
+     *
+     * The starting corner is the part worth naming. It is not stated for most
+     * objects — the premises place them against each other — so a reader who
+     * got the answer wrong may have lost the chain before the turns were even
+     * reached, and a derivation that opens after that point explains the half
+     * they had right.
+     */
+    const sides = shape.corners.length;
+    const net = mod(total, sides);
+    // Said the short way round, which is how anyone reads a dial.
+    const cw = net <= sides / 2;
+    const steps = cw ? net : sides - net;
+
     question.explanation = [
-        `${subj(asked)} ends on the ${hi(shape.corners[final[asked]])} corner.`,
+        `Following the premises, ${subj(asked)} starts on the`
+        + ` ${hi(shape.corners[start[asked]])} corner.`,
+        `The turns come to ${hi(`${steps} corner${steps === 1 ? "" : "s"} `
+            + (cw ? "clockwise" : "anticlockwise"))} in total.`,
+        `so ${subj(asked)} ends on the ${hi(shape.corners[final[asked]])} corner.`,
     ];
 }
 

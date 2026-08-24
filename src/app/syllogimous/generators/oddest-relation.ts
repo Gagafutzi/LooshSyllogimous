@@ -33,7 +33,7 @@
 import { EnumQuestionType } from "../constants/question.constants";
 import { Question } from "../models/question.models";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
-import { getRandomSymbols, shuffle } from "../utils/question.utils";
+import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { ConstructClaim } from "../models/question.models";
 import { hi, subj } from "../utils/phrasing";
 import {
@@ -211,7 +211,20 @@ export function createOddestRelation(ctx: GeneratorContext, numOfPremises: numbe
             "Distance = <b>how many dimensions</b> a relation departs from it on.",
         ];
 
-        if (naming(ctx)) {
+        /*
+         * Drawn between when both are held, not naming-always.
+         *
+         * `state-rule` is rung one and `rank` is rung two, and this branch
+         * returned — so the moment a player earned the first, every item took
+         * the naming form and the second rung became unreachable for good. They
+         * still paid for it: it is priced in the cost table and counted into
+         * the difficulty of every item served after it was granted.
+         *
+         * Reordering the ladder would be the other fix and is not available:
+         * rungs are read by position out of a stored count, so moving one
+         * renames every rung after it for everyone who already has them.
+         */
+        if (naming(ctx) && !(ranking(ctx) && coinFlip())) {
             /*
              * Distractors differ from the pattern on one or two dimensions, so
              * each is strictly less supported than the consensus rather than
