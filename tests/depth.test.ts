@@ -20,6 +20,9 @@ import {
     LINEAR_SCALES, buildBranching, buildChain, graphDistance, pickDistantPair,
 } from "../src/app/syllogimous/utils/linear.utils";
 import { buildNdWideConclusion } from "../src/app/syllogimous/utils/ndspace.utils";
+import { createDeictic } from "../src/app/syllogimous/generators/deictic";
+import { reversalTextFor } from "../src/app/syllogimous/utils/deictic.utils";
+import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
 import { createLinear } from "../src/app/syllogimous/generators/linear";
@@ -804,4 +807,133 @@ test("a displacement in a wide claim is the short way round", () => {
         }
         assert(lied > 5, `the ring never carried the lie in ${40} draws`);
     });
+});
+
+/* ------------------------------------------------------------------ *
+ * Deictic                                                             *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Four statements about positions, a reversal, and an answer read off exactly
+ * one of the four. That was the fourth of the reported instances, and it is the
+ * one no floor could repair: the grid statements are independent facts, so a
+ * conclusion about a position can only ever need the statement about *that*
+ * position.
+ *
+ * So the grid is stated one short and the missing position is the one asked
+ * about. The solver below is the reader: it takes the list of things from the
+ * setup line, reads each statement as ruling one of them out, applies whichever
+ * reversals were stated, and finds the answer by what is left over. It never
+ * looks at the spec.
+ */
+const POLE_FLIP: Record<string, string> = {
+    I: "you", you: "I", here: "there", there: "here", now: "then", then: "now",
+};
+
+const REVERSALS: Record<string, string[]> = {
+    person: ["I", "you"], place: ["here", "there"], time: ["now", "then"],
+};
+
+function readStatement(text: string): { key: string; symbol: string } | null {
+    const m = /^When (I|you) (?:am|are) (.+?), (?:I|you) hold (.+)$/.exec(text.trim());
+    if (!m) return null;
+    return { key: [m[1], ...m[2].split(/\s+/)].join("|"), symbol: m[3].trim() };
+}
+
+/** Swap the poles of every reversed axis, which is what a reversal states. */
+const flipKey = (key: string, reversed: Set<string>) =>
+    key.split("|")
+        .map(word => [...reversed].some(ax => REVERSALS[ax].includes(word))
+            ? POLE_FLIP[word] : word)
+        .join("|");
+
+test("a deictic answer is what the other positions leave over", () => {
+    const ctx = ndContext();
+    const params = QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.Deictic];
+    let checked = 0, eliminated = 0;
+
+    for (let n = params.minNumOfPremises; n <= params.maxNumOfPremises; n++) {
+        for (let run = 0; run < 12; run++) {
+            const q = seeded(run * 7919 + n * 31, () => createDeictic(ctx, n));
+
+            const things = subjectsOf(q.setup.join(" "));
+            assert(things.length > 0, "the item never listed what there is to hold");
+
+            const reversed = new Set<string>();
+            const stated = new Map<string, string>();
+            for (const raw of q.premises) {
+                const text = strip(raw);
+                for (const axis of Object.keys(REVERSALS)) {
+                    if (text.toLowerCase() === reversalTextFor(axis as never).toLowerCase()) {
+                        reversed.add(axis);
+                    }
+                }
+                const st = readStatement(text);
+                if (st) stated.set(st.key, st.symbol);
+            }
+
+            const asked = readStatement(strip(String(q.conclusion)));
+            assert(!!asked, `could not read the conclusion: ${strip(String(q.conclusion))}`);
+
+            const landed = flipKey(asked!.key, reversed);
+            let correct = stated.get(landed);
+            if (correct === undefined) {
+                // Elimination: every stated position accounts for one thing.
+                const spoken = new Set(stated.values());
+                const left = things.filter(t => !spoken.has(t));
+                equal(left.length, 1,
+                    `${left.length} things unaccounted for, so the unstated`
+                    + ` position holds any of them`);
+                correct = left[0];
+                eliminated++;
+            }
+
+            equal(correct === asked!.symbol, q.isValid,
+                `the premises say ${correct}, the item claims ${asked!.symbol}`
+                + ` and calls it ${q.isValid}`);
+            checked++;
+        }
+    }
+
+    assert(checked > 40, `only ${checked} items were read back`);
+    assert(eliminated === checked,
+        `${checked - eliminated} items stated the position they asked about`);
+});
+
+/** Off, the position asked about is stated outright, as it always was. */
+test("switching it off states every position again", () => {
+    const ctx = ndContext(false);
+    let restated = 0, checked = 0;
+
+    const params = QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.Deictic];
+    for (let n = params.minNumOfPremises; n <= params.maxNumOfPremises; n++) {
+        for (let run = 0; run < 12; run++) {
+            const q = seeded(run * 7919 + n * 31, () => createDeictic(ctx, n));
+
+            const reversed = new Set<string>();
+            const stated = new Map<string, string>();
+            for (const raw of q.premises) {
+                const text = strip(raw);
+                for (const axis of Object.keys(REVERSALS)) {
+                    if (text.toLowerCase() === reversalTextFor(axis as never).toLowerCase()) {
+                        reversed.add(axis);
+                    }
+                }
+                const st = readStatement(text);
+                if (st) stated.set(st.key, st.symbol);
+            }
+
+            const asked = readStatement(strip(String(q.conclusion)));
+            assert(!!asked, "could not read the conclusion");
+            const correct = stated.get(flipKey(asked!.key, reversed));
+            assert(correct !== undefined,
+                "off the deep model, the position asked about should be stated");
+            equal(correct === asked!.symbol, q.isValid,
+                `off the floor, the answer stopped following: ${asked!.symbol}`);
+            restated++;
+            checked++;
+        }
+    }
+
+    equal(restated, checked, "some items withheld a position with the switch off");
 });

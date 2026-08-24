@@ -60,9 +60,44 @@ the turns, Hostess is 2 corners clockwise from Cord"*. On a four-corner square,
 two clockwise is its own inverse, so the conclusion is premise three read
 backwards, and the two positional premises contribute nothing.
 
-**Deictic** ([shot 10](shots/10-deictic-shallow.png)). *"Here is there and there
-is here"* plus *"When I am there, I hold Cloud"* gives *"When I am here, I hold
-Cloud"*. Two premises out of five.
+**Deictic** ([shot 10](shots/10-deictic-shallow.png)) — **FIXED**, in two
+parts. *"Here is there and there is here"* plus *"When I am there, I hold
+Cloud"* gives *"When I am here, I hold Cloud"*. Two premises out of five.
+
+The ordering half is [2.4](#24-transformations-that-arrive-before-the-thing-they-transform).
+The depth half could not be fixed by a floor, and that is the interesting part:
+the grid statements are **independent facts**, so a conclusion about a position
+can only ever need the statement about *that* position, however many positions
+are stated and however many reversals are applied. Depth here is bounded by
+reversals + 1 whatever the premise count, and no choice of pair moves it.
+
+This is the case [2.2](#22-the-mechanism-measure-depth-then-require-it)
+anticipated — *"if a mode turns out to reject most of what it builds, the layout
+generator is what needs changing, not the floor"*. So the grid is stated **one
+short**, and the missing position is the one asked about. Every position holds a
+different one of the listed things, so each statement rules one out and what is
+left over is what the unstated position holds. Every premise becomes
+load-bearing: drop any one and the answer is two things at once.
+
+Three things it turned on.
+
+**The convention has to be stated.** Without the setup line naming the things
+and saying that each position holds a different one, an unstated position holds
+anything at all and the conclusion is not derivable but merely likely. The line
+marks them up as *subjects* rather than merely highlighting them, because the
+guard from [1.1](1-correctness.md#11-a-conclusion-naming-an-object-no-premise-states--fixed)
+reads the setup exactly as it reads a premise — and caught this, correctly, on
+the first run.
+
+**The frame is asked for one more premise than the item wants**, since one is
+about to be withheld. Otherwise a deep item is a premise shorter than the count
+the ability model was told it would get. It also moves the two-to-three axis
+boundary down by one, which is the right way round: a frame that has to give a
+statement up needs the room to give it up in.
+
+**The position the utterance names is still stated.** That is not an oversight:
+it is the answer for anyone who read past the reversal, which makes it the trap
+this mode always should have had.
 
 **Composed space at 7-D** ([shot 12](shots/12-ndspace-7d-1d-conclusion.png)).
 Three premises stating seven axes each — twenty-one relations — and a conclusion
