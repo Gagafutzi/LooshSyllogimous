@@ -253,7 +253,22 @@ The last four cost nothing, because each already knew the answer:
 
 Fredo is worth recording precisely *because* the number is bad. A six-premise
 item whose answer needs two of them is the complaint this section is named for,
-and it should appear in the report as such rather than as a blank.
+and it should appear in the report as such rather than as a blank. It is left
+alone otherwise: Canyon has been the default since the picker was removed, so
+Fredo only runs for an account that chose it before that, and overriding an
+explicit stored choice to fix a depth problem is not the trade.
+
+**Canyon's chain now draws from the top two bands.** `chainDepth` was drawn
+anywhere from two to the premise count and the remainder padded with
+distractors, so a six-premise item could be a two-premise argument with four
+lines of noise — the defect this section is named for, sitting in a variable
+that already had the right name and needing only a narrower draw.
+
+Top *two* bands rather than the top one, deliberately. A syllogism with no
+discardable premise stops asking whether a premise is relevant, and noticing
+that one is not is a real part of the skill — which is exactly the deliberate
+case [2.2](#22-the-mechanism-measure-depth-then-require-it) says `slack` exists
+for, rather than a tolerance drifted into.
 
 **Two of them record the whole premise set for a claim that is false.** A pair
 the premises leave undecided has no support at all, and a hierarchy claim that

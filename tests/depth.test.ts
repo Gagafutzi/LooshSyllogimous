@@ -21,7 +21,7 @@ import {
 } from "../src/app/syllogimous/utils/linear.utils";
 import { buildNdWideConclusion } from "../src/app/syllogimous/utils/ndspace.utils";
 import { depthReport } from "../src/app/syllogimous/utils/ability.utils";
-import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
+import { createSyllogism, createSyllogismCanyon } from "../src/app/syllogimous/generators/syllogism";
 import { createHierarchy } from "../src/app/syllogimous/generators/hierarchy";
 import { createDeictic } from "../src/app/syllogimous/generators/deictic";
 import { reversalTextFor } from "../src/app/syllogimous/utils/deictic.utils";
@@ -1170,4 +1170,38 @@ test("a mode that knows its support records it, undecided items included", () =>
     assert(open > 0,
         "nothing recorded the whole premise set, so the not-settled case is"
         + " either unreachable or recording nought");
+});
+
+/**
+ * The one generator whose depth was already a variable, and was drawn wrong.
+ *
+ * Canyon picks a chain length between two and the premise count and pads the
+ * rest with distractors, so a six-premise item could be a two-premise argument
+ * with four lines of noise. The deep model draws from the top two bands, which
+ * leaves at most one discardable premise — deliberately not none, because
+ * noticing that a premise is irrelevant is part of what a syllogism asks.
+ */
+test("a syllogism composes nearly all of what it states", () => {
+    const deep = ndContext();
+    const old = ndContext(false);
+
+    seeded(24680, () => {
+        let shallowUnderOld = 0;
+
+        for (let n = 3; n <= 6; n++) {
+            for (let rep = 0; rep < 25; rep++) {
+                const q = createSyllogismCanyon(deep, n);
+                assert(q.depth >= q.premises.length - 1,
+                    `a ${q.premises.length}-premise syllogism composes only`
+                    + ` ${q.depth} of them`);
+
+                const o = createSyllogismCanyon(old, n);
+                if (o.depth < o.premises.length - 1) shallowUnderOld++;
+            }
+        }
+
+        assert(shallowUnderOld > 10,
+            `only ${shallowUnderOld} items were shallow with the switch off, so`
+            + " the draw is not actually being narrowed");
+    });
 });

@@ -5,7 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { GeneratorContext } from "./context";
+import { GeneratorContext, deepConclusions } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { inSyllogisticOrder, nameTheInference, vennDiagramFor } from "../utils/venn.utils";
@@ -155,7 +155,26 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
     }
 
     const question = new Question(type);
-    const minDepth = Math.min(2, numOfPremises);
+    /*
+     * How much of the item the conclusion composes.
+     *
+     * Drawn anywhere from two to the whole premise set, which means a
+     * six-premise item could be a two-premise argument with four lines of
+     * padding — reachable without composing the chain, and the padding there to
+     * be read and discarded. That is the defect this section is named for,
+     * sitting in a variable that already had the right name.
+     *
+     * The deep model draws from the top two bands instead. Not the top band
+     * alone: a syllogism with *no* discardable premise stops asking the
+     * question of whether a premise is relevant, and noticing that one is not
+     * is a real part of the skill. That is exactly the deliberate case `slack`
+     * exists for — one premise meant to be discardable — rather than a
+     * tolerance drifted into.
+     */
+    const floor = deepConclusions(ctx)
+        ? Math.max(Math.min(2, numOfPremises), numOfPremises - 1)
+        : Math.min(2, numOfPremises);
+    const minDepth = floor;
     const maxDepth = numOfPremises;
     const chainDepth = Math.floor(Math.random() * (maxDepth - minDepth + 1)) + minDepth;
     const chainTermsNeeded = chainDepth + 1;
