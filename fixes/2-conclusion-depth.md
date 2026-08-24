@@ -230,14 +230,38 @@ Three things to get right:
   pair-matching guard never saw — the nested item's bracket, and a
   self-inverse relation restated backwards.
 
-### Record it
+### Record it — **BUILT**
 
 `Question` gains `depth: number`, alongside `widthDelta` — which the roadmap
 notes was added as *recorded rather than charged*, for the same reason. Log it
 first, charge for it once there are answered items to fit a coefficient
-against. It also gives the diagnostics page something to show, which is how a
-claim like "conclusion depth is unrelated to premise depth" gets settled by
-measurement instead of by screenshot.
+against.
+
+Recorded by Nested, the scale family, the composed spaces, Shape Rotation and
+Deictic; it rides to the trial log beside `widthDelta` and is read back on the
+diagnostics page as **share** — depth over premise count, per mode.
+
+Four decisions, each of which would have made the number mean something else:
+
+- **Zero means *not measured*, not *shallow*.** A mode that does not record
+  depth is absent from the report rather than averaged in at nought, which
+  would report every unmeasured mode as maximally broken and bury the ones that
+  are.
+- **The share is averaged per item, not taken between the two means.** Two
+  items — one of two premises answered from both, one of ten answered from two
+  — are 100% and 20%, so 60%: a mode that serves a shallow item half the time.
+  Between the means it is 4/6, which describes an item nobody was served.
+- **The column that matters is `worst`.** A floor is a promise about the
+  minimum, so a good average with a bad minimum means the floor is not holding,
+  and an average alone would hide exactly the failure this section exists to
+  catch.
+- **Where an item asks several claims, the shallowest is recorded.** The figure
+  is a floor on what the answer costs; reporting the maximum would describe an
+  item by its hardest part and call that its depth.
+
+This is what settles *"conclusion depth is unrelated to premise depth"* by
+measurement rather than by screenshot — and, more usefully from here, says
+whether a floor that was raised actually moved anything.
 
 ---
 

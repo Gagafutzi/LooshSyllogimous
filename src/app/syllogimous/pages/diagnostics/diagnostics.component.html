@@ -162,6 +162,40 @@
 
         <hr class="my-2">
         <div class="small">
+            <strong>Conclusion depth</strong> &mdash; how much of an item its
+            answer needed.
+            <p class="text-muted mb-1">
+                Share is depth over premise count, averaged per item. A hundred
+                means the conclusion took the whole premise set. The column that
+                matters is <em>worst</em>: a floor is a promise about the
+                minimum, so a good average with a bad minimum means the floor is
+                not holding. Modes that do not measure depth yet are absent
+                rather than shown as zero.
+            </p>
+
+            <div class="res__main" style="grid-template-columns: 1fr 4rem 4rem 4rem 4rem;"
+                 *ngIf="depths.length">
+                <span class="nm"><strong>mode</strong></span>
+                <span class="num"><strong>share</strong></span>
+                <span class="num"><strong>worst</strong></span>
+                <span class="num"><strong>depth</strong></span>
+                <span class="num"><strong>n</strong></span>
+            </div>
+            <div class="res__main" style="grid-template-columns: 1fr 4rem 4rem 4rem 4rem;"
+                 *ngFor="let d of depths">
+                <span class="nm">{{ d.type }}</span>
+                <span class="num">{{ pct(d.share) }}%</span>
+                <span class="num">{{ pct(d.worst) }}%</span>
+                <span class="num">{{ d.meanDepth.toFixed(1) }}/{{ d.meanPremises.toFixed(1) }}</span>
+                <span class="num">{{ d.trials }}</span>
+            </div>
+            <div class="text-muted" *ngIf="!depths.length">
+                No answered item has recorded a depth yet.
+            </div>
+        </div>
+
+        <hr class="my-2">
+        <div class="small">
             <strong>Width</strong> &mdash; what a bit of extra spread is worth, in levels.
             <div *ngIf="widthFit; else noWidthFit">
                 {{ widthFit.levelsPerBit.toFixed(2) }} levels per bit,

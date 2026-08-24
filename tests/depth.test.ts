@@ -20,6 +20,7 @@ import {
     LINEAR_SCALES, buildBranching, buildChain, graphDistance, pickDistantPair,
 } from "../src/app/syllogimous/utils/linear.utils";
 import { buildNdWideConclusion } from "../src/app/syllogimous/utils/ndspace.utils";
+import { depthReport } from "../src/app/syllogimous/utils/ability.utils";
 import { createDeictic } from "../src/app/syllogimous/generators/deictic";
 import { reversalTextFor } from "../src/app/syllogimous/utils/deictic.utils";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
@@ -936,4 +937,68 @@ test("switching it off states every position again", () => {
     }
 
     equal(restated, checked, "some items withheld a position with the switch off");
+});
+
+/* ------------------------------------------------------------------ *
+ * Reporting it                                                        *
+ * ------------------------------------------------------------------ */
+
+/**
+ * The reading that settles the original claim.
+ *
+ * *"Conclusion depth is often unrelated to the premise depth of logic"* was
+ * made from screenshots, which is the only evidence available when nothing
+ * measures it — and a screenshot cannot say whether a shallow item was typical
+ * or unlucky. Two decisions in `depthReport` decide whether the answer means
+ * anything, and both are the kind that look like rounding until they are wrong.
+ */
+const trial = (type: EnumQuestionType, premises: number, depth: number) => ({
+    type, premises, rungs: [], seconds: null, estimate: 0, guess: 0.5,
+    correct: true, depth,
+});
+
+test("an unmeasured mode is absent from the depth report, not reported as zero", () => {
+    const report = depthReport([
+        trial(EnumQuestionType.NestedSpaces, 4, 2),
+        // Depth 0 is "this generator does not measure it", and averaging it in
+        // would report every unmeasured mode as maximally broken.
+        trial(EnumQuestionType.Distinction, 4, 0),
+        trial(EnumQuestionType.Distinction, 5, 0),
+    ]);
+
+    equal(report.length, 1, "a mode with no measured depth appeared in the report");
+    equal(report[0].type, EnumQuestionType.NestedSpaces, "the wrong mode survived");
+    equal(report[0].trials, 1, "the unmeasured trials were counted anyway");
+});
+
+test("the share is averaged per item, not taken between the two means", () => {
+    /*
+     * Two items: one of two premises answered from both, one of ten answered
+     * from two. Per item that is 100% and 20%, so 60% — a mode that serves a
+     * shallow item half the time. Between the means it is 4/6, or 67%, which
+     * describes an item nobody was ever served.
+     */
+    const report = depthReport([
+        trial(EnumQuestionType.Direction, 2, 2),
+        trial(EnumQuestionType.Direction, 10, 2),
+    ]);
+
+    equal(report.length, 1, "the two trials did not land in one mode");
+    equal(Math.round(report[0].share * 100), 60,
+        `share came out ${Math.round(report[0].share * 100)}%, so it is a ratio of means`);
+    equal(Math.round(report[0].worst * 100), 20,
+        "worst is not the shallowest item served");
+});
+
+test("the shallowest mode is listed first", () => {
+    const report = depthReport([
+        trial(EnumQuestionType.NestedSpaces, 4, 4),
+        trial(EnumQuestionType.Direction, 4, 1),
+        trial(EnumQuestionType.Deictic, 4, 2),
+    ]);
+
+    equal(report.map(r => r.type).join(","),
+        [EnumQuestionType.Direction, EnumQuestionType.Deictic,
+         EnumQuestionType.NestedSpaces].join(","),
+        "the report is not ordered by how much of an item its answers need");
 });

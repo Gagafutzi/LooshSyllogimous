@@ -11,7 +11,7 @@ import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
     abilityUpdate, aggregate, cautionPenalty, chooseConfig, guessRateFor, guessRateForRungs, initAbility, levelOf,
     pCorrect, priorForNewMode, targetLevel,
-    Trial, fitRungCosts, fitWidthCoefficient, referenceSecondsFrom,
+    DepthReport, Trial, depthReport, fitRungCosts, fitWidthCoefficient, referenceSecondsFrom,
 } from "../utils/ability.utils";
 
 /**
@@ -230,6 +230,17 @@ export class ProgressionService {
     /** What the model is currently charging per bit — zero until fitted. */
     appliedWidthPerBit(): number {
         return this.widthPerBit;
+    }
+
+    /**
+     * How much of an item its conclusion needed, per mode.
+     *
+     * Reported only. Depth is logged rather than charged — the coefficient that
+     * would turn it into difficulty has to be fitted against answered items,
+     * and this is the reading that says whether there is anything to fit.
+     */
+    depthByMode(): DepthReport[] {
+        return depthReport(this.trials());
     }
 
     /* ---------------- config ---------------- */

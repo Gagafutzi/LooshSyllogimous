@@ -960,6 +960,70 @@ export interface Trial {
     depth?: number;
 }
 
+/**
+ * What answered items say about conclusion depth, per mode.
+ *
+ * The claim this exists to settle is the author's own: *"conclusion depth is
+ * often unrelated to the premise depth of logic"*. It was made from
+ * screenshots, which is the only evidence available when nothing measures it,
+ * and screenshots cannot say whether a shallow item was typical or unlucky.
+ *
+ * `share` is the answer in one number — how much of the premise set a
+ * conclusion needed, averaged. One means the whole thing. `worst` is the
+ * shallowest item actually served, and it is the one worth looking at: a floor
+ * is a promise about the minimum, so a good mean with a bad minimum means the
+ * floor is not holding.
+ */
+export interface DepthReport {
+    type: EnumQuestionType;
+    /** Answers with a measured depth. Modes that do not measure it are absent. */
+    trials: number;
+    meanPremises: number;
+    meanDepth: number;
+    /** Mean of depth ÷ premises. Not meanDepth ÷ meanPremises — see below. */
+    share: number;
+    /** The smallest share seen, which is what a floor is a claim about. */
+    worst: number;
+}
+
+/**
+ * Per-mode depth against premise count.
+ *
+ * Depth 0 means *not measured*, not *shallow*, so those trials are dropped
+ * rather than averaged in — counting them would report every unmeasured mode as
+ * maximally broken and bury the ones that are.
+ *
+ * The share is averaged per item rather than taken between the two means. The
+ * two differ whenever premise counts vary within a mode, which they always do,
+ * and only the per-item version answers "what fraction of a typical item does
+ * its conclusion need" — the other answers a question about aggregates that
+ * nobody asked.
+ */
+export function depthReport(trials: Trial[]): DepthReport[] {
+    const byType = new Map<EnumQuestionType, Trial[]>();
+    for (const t of trials) {
+        if (!t.depth || !t.premises) continue;
+        if (!byType.has(t.type)) byType.set(t.type, []);
+        byType.get(t.type)!.push(t);
+    }
+
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+    return [...byType.entries()]
+        .map(([type, ts]) => {
+            const shares = ts.map(t => t.depth! / t.premises);
+            return {
+                type,
+                trials: ts.length,
+                meanPremises: mean(ts.map(t => t.premises)),
+                meanDepth: mean(ts.map(t => t.depth!)),
+                share: mean(shares),
+                worst: Math.min(...shares),
+            };
+        })
+        .sort((a, b) => a.share - b.share);
+}
+
 export interface RungFit {
     rung: string;
     /** What the table says now. */
