@@ -209,6 +209,30 @@
         </p>
     </app-collapsible>
 
+    <app-collapsible heading="What comes up" [startClosed]="true">
+        <label class="master mb-2">
+            <input type="checkbox" class="form-check-input"
+                   [checked]="curateSession"
+                   (change)="setCurateSession($any($event.target).checked)">
+            <span>
+                <strong>Lean towards what needs the work</strong>
+                <small class="d-block text-muted">
+                    A mode well below your average, or one that has gone cold,
+                    comes up about twice as often. The day's summary says which
+                    and why.
+                </small>
+            </span>
+        </label>
+
+        <p class="text-muted small mb-0">
+            A lean, not a takeover: two modes doubled, everything else
+            untouched. Serving only your worst modes would stop the rest being
+            measured, and an unmeasured mode goes stale &mdash; which is half of
+            what this is trying to fix. Off, every enabled mode is drawn as it
+            always was and the findings are reported without being acted on.
+        </p>
+    </app-collapsible>
+
     <app-collapsible heading="Fluid progression" [startClosed]="true">
         <p class="text-muted small mb-2">
             One ability estimate per mode; each item is built to sit just below it.

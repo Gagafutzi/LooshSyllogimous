@@ -2,6 +2,34 @@
     <div body class="d-grid gap-3 py-3 px-md-3" style="min-width: 320px;">
 
         <!--
+          What the app has to say, when it has anything.
+          Thresholds are set so that a finding appearing means something stood
+          out — a feed that speaks after every session is one nobody reads, and
+          a finding drawn from four answers is a horoscope.
+        -->
+        <div *ngIf="findings.length">
+            <h2 class="text-center mb-1">What this says</h2>
+            <p class="text-center text-muted small mb-2" *ngIf="acted.length && curating">
+                The marked ones change what comes up next.
+            </p>
+            <p class="text-center text-muted small mb-2" *ngIf="acted.length && !curating">
+                Reported only &mdash; leaning the draw is switched off in Customise.
+            </p>
+
+            <ul class="list-group">
+                <li class="list-group-item d-flex gap-2 align-items-start"
+                    *ngFor="let f of findings">
+                    <i class="bi {{ icon(f.kind) }} mt-1"></i>
+                    <span>
+                        {{ f.text }}
+                        <span class="badge text-bg-secondary ms-1"
+                              *ngIf="f.nudge && curating">more often</span>
+                    </span>
+                </li>
+            </ul>
+        </div>
+
+        <!--
           Today first. The card exists because reaching the goal should mean
           something, so the thing it opens on is what you did to reach it.
         -->

@@ -6,6 +6,7 @@ import {
     DaySummary, WeekSummary, daySummary, weekSummary,
 } from '../../utils/session.utils';
 import { ProgressAndPerformanceService } from '../../services/progress-and-performance.service';
+import { Finding } from '../../utils/insight.utils';
 
 /**
  * What you did today, and what you did this week.
@@ -24,6 +25,7 @@ export class SummaryComponent {
 
     today!: DaySummary;
     week!: WeekSummary;
+    findings: Finding[] = [];
 
     /** Percentages against the goals already set in Settings, in minutes. */
     dailyPct = 0;
@@ -41,6 +43,9 @@ export class SummaryComponent {
         const history = this.game.questions;
         this.today = daySummary(history);
         this.week = weekSummary(history);
+        // The same call the draw reads, so the page cannot report a lean the
+        // session is not actually taking.
+        this.findings = this.game.currentFindings();
 
         /*
          * The goals were already here — daily and weekly, in minutes, settable
@@ -86,6 +91,22 @@ export class SummaryComponent {
     /** Minutes played on a given day of the strip. */
     minutesOn(key: string) {
         return Math.round((this.progress.getDailyProgress()[key] ?? 0) / 60000);
+    }
+
+    /** Whether the draw is acting on the findings, or merely reporting them. */
+    get curating() { return this.game.settingsOverrideService.curateSession; }
+
+    /** The findings that will change what comes up, as opposed to advice. */
+    get acted() { return this.findings.filter(f => f.nudge); }
+
+    icon(kind: string) {
+        return {
+            "fatigue": "bi-cup-hot",
+            "weak-mode": "bi-arrow-down-right",
+            "stale-mode": "bi-hourglass",
+            "improving-mode": "bi-arrow-up-right",
+            "weak-dimension": "bi-crosshair",
+        }[kind] ?? "bi-dot";
     }
 
     /** The dimension costing the most, if there is enough to name one. */

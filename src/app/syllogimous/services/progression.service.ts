@@ -405,6 +405,9 @@ export class ProgressionService {
         return this.depthPerPremise;
     }
 
+    /** The same cheap probe, for callers outside this service. */
+    trialCountPublic(): number { return this.trialCount(); }
+
     /** Cheap length probe, so the cache check does not parse the whole log. */
     private trialCount(): number {
         try {
@@ -816,6 +819,36 @@ export class ProgressionService {
     get tired(): boolean {
         const f = this.fatigue;
         return this.config.fatigueThreshold > 0 && f !== null && f <= -this.config.fatigueThreshold;
+    }
+
+    /**
+     * Ability at the moment each item was chosen, per mode, oldest first.
+     *
+     * The trial log carries the estimate the item was *served* under, which is
+     * exactly what movement wants — and it carries no timestamps, which is why
+     * this is ordinal rather than dated. Ordinal is enough: "up half a level
+     * over your last few answers" needs an order, not a calendar.
+     */
+    estimateTrail(): Record<string, number[]> {
+        const trail: Record<string, number[]> = {};
+        for (const t of this.trials()) {
+            (trail[t.type] ??= []).push(t.estimate);
+        }
+        return trail;
+    }
+
+    /**
+     * Every mode the model has an opinion about, for the insight layer.
+     *
+     * Read through `estimateFor`, so it is the decayed estimate — the number
+     * that actually decides what gets served, rather than the one before time
+     * away was accounted for.
+     */
+    standings(): Array<{ type: string; level: number; trials: number }> {
+        return Object.values(EnumQuestionType).map(type => {
+            const est = this.estimateFor(type);
+            return { type, level: est.level, trials: est.trials };
+        }).filter(s => s.trials > 0);
     }
 
     /** Cleared when a session is deliberately restarted, and by a reset. */

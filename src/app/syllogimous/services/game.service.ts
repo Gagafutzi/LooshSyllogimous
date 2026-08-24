@@ -22,6 +22,7 @@ import {
 } from "../utils/ndspace.utils";
 import { ANCHORS, anchorCoordMap } from "../utils/anchor.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
+import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
 import { LS_DONT_SHOW, LS_HISTORY, LS_SCORE, LS_SKIP_TUTORIALS, LS_TIMER } from "../constants/local-storage.constants";
@@ -343,9 +344,60 @@ export class GameService implements GeneratorContext {
      * harder than you left it.
      */
     private copiesFor(type: EnumQuestionType): number {
-        const weight = this.settingsOverrideService.weightFor(type);
+        const weight = this.settingsOverrideService.weightFor(type)
+            * this.curationWeightFor(type);
         const whole = Math.floor(weight);
         return whole + (Math.random() < weight - whole ? 1 : 0);
+    }
+
+    /* ---------------- curating the draw ---------------- */
+
+    private curationCache: { at: number; weights: Record<string, number> } | null = null;
+
+    /**
+     * The lean the insight layer asks for, as a multiplier on the ticket count.
+     *
+     * Curation rides the mechanism frequency already uses rather than becoming
+     * a second selection system to argue with the first — so a mode you have
+     * manually turned down and the curator has turned up ends up somewhere
+     * sensible instead of one of them silently winning.
+     *
+     * Recomputed every twenty items. The findings behind it read the whole
+     * history and trial log, which is cheap in absolute terms and pointless to
+     * repeat per item: nothing in them can turn over in one answer.
+     */
+    private curationWeightFor(type: EnumQuestionType): number {
+        if (!this.settingsOverrideService.curateSession) return 1;
+
+        const answered = this.progressionService.trialCountPublic();
+        if (!this.curationCache || answered - this.curationCache.at >= 20) {
+            this.curationCache = { at: answered, weights: this.sessionLean() };
+        }
+        return this.curationCache.weights[type] ?? 1;
+    }
+
+    /** The findings the feed shows, as weights. One analysis, two faces. */
+    sessionLean(): Record<string, number> {
+        return sessionWeights(this.currentFindings());
+    }
+
+    /**
+     * What the app currently has to say about this player.
+     *
+     * Assembled here because this is the one place that can see all of it —
+     * the history, the trial log and the ability model — and computed nowhere
+     * else, so the page that reports a finding and the draw that acts on it
+     * cannot disagree about what was found.
+     */
+    currentFindings(): Finding[] {
+        return findings({
+            history: this.questions,
+            standings: this.progressionService.standings(),
+            estimateTrail: this.progressionService.estimateTrail(),
+            fatigue: this.progressionService.fatigue,
+            fatigueThreshold: this.progressionService.config.fatigueThreshold,
+            now: Date.now(),
+        });
     }
 
     /** GeneratorContext: an explicit setting wins, else the ladder decides. */

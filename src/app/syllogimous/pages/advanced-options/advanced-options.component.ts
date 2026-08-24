@@ -48,6 +48,10 @@ export class AdvancedOptionsComponent {
 
     setDeepConclusions(on: boolean) { this.overrides.setDeepConclusions(on); }
 
+    get curateSession() { return this.overrides.curateSession; }
+
+    setCurateSession(on: boolean) { this.overrides.setCurateSession(on); }
+
     /* ---- tier cheat (testing) ---- */
 
     tiers = ORDERED_TIERS;

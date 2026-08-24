@@ -186,7 +186,7 @@ export interface Profile {
  * generators use is the kind of surprise profiles exist to avoid.
  */
 export type ProfileConfig =
-    Omit<OverrideState, "profiles" | "activeProfile" | "deepConclusions">;
+    Omit<OverrideState, "profiles" | "activeProfile" | "deepConclusions" | "curateSession">;
 
 export interface OverrideState {
     active: boolean;
@@ -207,6 +207,19 @@ export interface OverrideState {
      * an opinion about it would drag a dozen unrelated overrides along.
      */
     deepConclusions: boolean;
+    /**
+     * Whether the draw leans towards what the insight layer found.
+     *
+     * On, a mode that is well below your average or has gone cold comes up
+     * about twice as often. Off, every enabled mode is drawn as it always was
+     * and the findings are reported without being acted on.
+     *
+     * Outside `active` for the same reason as `deepConclusions`: it is a choice
+     * about how the app behaves rather than an override layered on the tier,
+     * and holding an opinion about it should not require switching a dozen
+     * unrelated settings on.
+     */
+    curateSession: boolean;
     /** 0 = premises in chain order, 100 = freely shuffled. */
     scrambleFactor: number;
     modes: Partial<Record<EnumQuestionType, ModeOverride>>;
@@ -302,6 +315,7 @@ const DEFAULT_STATE: OverrideState = {
     // On by default: it is the model the depth work exists to install, and a
     // fix nobody is served by default is a fix nobody has.
     deepConclusions: true,
+    curateSession: true,
     scrambleFactor: 100,
     modes: {},
     flags: { meta: null, negation: null, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false, stimulusMix: {} },
@@ -457,7 +471,7 @@ export class SettingsOverrideService {
      * Customise was off carried "off" around with it forever.
      */
     private snapshot(): ProfileConfig {
-        const { profiles, activeProfile, active, deepConclusions, ...rest } = this.state;
+        const { profiles, activeProfile, active, deepConclusions, curateSession, ...rest } = this.state;
         return JSON.parse(JSON.stringify({ ...rest, active: true }));
     }
 
@@ -496,8 +510,9 @@ export class SettingsOverrideService {
             profiles,
             activeProfile: id,
             active: true,
-            // Kept, not restored: the profile never held one.
+            // Kept, not restored: the profile never held either.
             deepConclusions: this.state.deepConclusions,
+            curateSession: this.state.curateSession,
         };
         this.save();
     }
@@ -582,6 +597,16 @@ export class SettingsOverrideService {
 
     setDeepConclusions(on: boolean) {
         this.state.deepConclusions = on;
+        this.save();
+    }
+
+    /** Read without the `live` gate, on purpose — see `OverrideState`. */
+    get curateSession(): boolean {
+        return this.state.curateSession !== false;
+    }
+
+    setCurateSession(on: boolean) {
+        this.state.curateSession = on;
         this.save();
     }
 
@@ -784,6 +809,8 @@ export class SettingsOverrideService {
                     // those players were already being served the deep model,
                     // so absent reads as on.
                     deepConclusions: parsed.deepConclusions !== false,
+                    // Absent reads as on, the same rule and for the same reason.
+                    curateSession: parsed.curateSession !== false,
                     scrambleFactor: parsed.scrambleFactor ?? 100,
                     // Absent in states saved before profiles existed.
                     profiles: Array.isArray(parsed.profiles) ? parsed.profiles : [],
