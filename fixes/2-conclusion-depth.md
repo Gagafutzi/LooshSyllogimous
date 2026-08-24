@@ -523,8 +523,32 @@ so once it has run there is no prefix that determines what the checkpoint asks.
 Skipped rather than worked around: a checkpoint the reader cannot answer at the
 checkpoint is not one.
 
-**Still to do:** the same for the composed spaces, which have their own
-conclusion path; and the ability model still receives one bit per item, so the
+**The composed spaces have it too, now.** They have their own everything —
+layout, prefix, claim builder — so none of it came for free: `ndPrefixLayout` is
+the twin of `prefixLayout`, and `checkpoint` is appended to `ND_LADDER` rather
+than inserted, because a profile stores how many rungs it has earned and reads
+them by position.
+
+It differs from the scale family's version in effect rather than in shape. A
+composed-space claim is already one slot per axis, so the halfway claim
+distinguishes *losing the thread on one dimension* from *losing it altogether*
+without the second claim being reached at all — which is the diagnostic value
+this section is for, arriving one conclusion earlier.
+
+**Four things rule a checkpoint out**, and the caller decides because the
+conclusion builder never sees them. Edits and transformations **rewrite** the
+arrangement, so a relation stated before one of them need not hold after it —
+the prefix describes a state the reader is later told to abandon. Reports and
+testimony **replace** the premises with claims that may be false, so nothing is
+determined until the liars have been found, which is the whole item rather than
+half of it. Skipped, as meta is skipped in the scale family: a checkpoint the
+reader cannot answer at the checkpoint is not one.
+
+The rung is also gated at five premises in `RUNG_MIN_PREMISES`, which it was
+not before — below that there is no halfway, so the ladder was handing out
+something that silently did nothing.
+
+**Still to do:** the ability model still receives one bit per item, so the
 second slot is diagnostic on the screen and not yet in the estimate.
 
 ### The original diagnosis

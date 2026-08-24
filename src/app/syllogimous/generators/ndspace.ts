@@ -10,8 +10,8 @@ import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
-import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdWideConclusion, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, graphDistance, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
-import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
+import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdWideConclusion, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, graphDistance, ndPrefixLayout, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
+import { scrambleBlocks, scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
@@ -204,9 +204,25 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
         const question = new Question(type);
         const extraPremises: string[] = [];
         const asked: { a?: string; b?: string; axis?: number } = {};
+        /*
+         * A checkpoint needs the displayed premises to have a prefix that
+         * determines what it asks, and four things break that.
+         *
+         * Edits and transformations *rewrite* the arrangement, so a relation
+         * stated before one of them may not hold after it — the prefix
+         * describes a state the reader is later told to abandon. Reports and
+         * testimony *replace* the premises with claims that may be false, so
+         * there is no prefix that determines anything until the liars have been
+         * found, which is the whole of the item rather than half of it.
+         *
+         * Skipped rather than worked around, as the scale family skips it
+         * alongside meta: a checkpoint the reader cannot answer at the
+         * checkpoint is not one.
+         */
+        const canCheckpoint = !editCount && !transformCount && !reported && !told;
         if (!fillNdConclusion(
             ctx, question, layout, final, feat, numOfPremises, attempt >= 250,
-            extraPremises, asked)) continue;
+            extraPremises, asked, canCheckpoint)) continue;
 
         /*
          * The testimony has to be load-bearing.
@@ -233,7 +249,27 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
             ...edits.map(e => renderNdEdit(layout, e)),
             ...transforms.map(t => describeTransform(t, vocab)),
         ];
-        question.premises = mutations.length
+        /*
+         * Where the first half stops, when there is a checkpoint.
+         *
+         * `stated` is `layout.edges` rendered in order, so its first `half`
+         * entries are exactly the edges the checkpoint claim was built from.
+         * That correspondence is the whole mechanism and it is fragile — which
+         * is why `canCheckpoint` above rules out everything that reorders or
+         * replaces premises rather than trying to track them through it.
+         */
+        const boundary = question.construct.length === 2 && canCheckpoint
+            ? Math.floor(numOfPremises / 2)
+            : 0;
+
+        question.premises = boundary
+            // Shuffled within each half and never across. Both halves may be
+            // reordered — the claim follows from the *set* before the boundary,
+            // not from an order within it — but a premise that crossed the line
+            // would be one the reader did not have when the claim became
+            // answerable.
+            ? scrambleBlocks(stated, boundary, ctx.settingsOverrideService.scramble)
+            : mutations.length
             // Mutations are applied in sequence, so their order is semantic
             // and must not be shuffled in among the relations they act on.
             ? scrambleLeading(
@@ -413,6 +449,11 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
         constructDistance: ctx.forceConstruction !== "off"
             ? ctx.forceConstruction === "distance"
             : pick("constructDistance", "construct-distance"),
+        // Straight off the ladder, with no Customise override, exactly as the
+        // scale family reads it: there is no `checkpoint` among the linear
+        // feature flags to force, and inventing one here would make the same
+        // rung forceable in one family and not the other.
+        checkpoint: ladder("checkpoint"),
     };
 }
 
@@ -435,6 +476,17 @@ export function fillNdConclusion(ctx: GeneratorContext,
     extraPremises: string[] = [],
     /** The pair and axis the boolean form settled on, for callers that care. */
     asked: { a?: string; b?: string; axis?: number } = {},
+    /**
+     * Whether a checkpoint is structurally possible for this item.
+     *
+     * Decided by the caller, because the things that rule it out — mutations,
+     * reports, testimony — are premises the caller assembles and this function
+     * never sees. Each of them breaks the same property: a checkpoint needs the
+     * premises as displayed to have a prefix that determines what it asks, and
+     * a premise that rewrites, replaces or may be lying is not part of any such
+     * prefix.
+     */
+    canCheckpoint = false,
 ): boolean {
     /*
      * Mutations have to matter. A conclusion whose truth survives the edits
@@ -590,6 +642,56 @@ export function fillNdConclusion(ctx: GeneratorContext,
      * adjacent pair is neither model.
      */
     const legacy = !deepConclusions(ctx);
+
+    /*
+     * A checkpoint, then the whole thing — the composed-space twin of the one
+     * the scale family already has, and it answers the same complaint. With the
+     * depth floor requiring the whole premise set, a single conclusion can only
+     * ever report "you did not get to the end"; a claim placed at the halfway
+     * mark says *where* the thread was lost, and the per-slot result screen
+     * reports the two separately.
+     *
+     * "Halfway" is halfway through the *reading*, not half the depth. The
+     * premises are rendered from `layout.edges` in order, so the first `half`
+     * of them are exactly the edges `ndPrefixLayout` is given — the claim then
+     * follows from what a reader has actually got at that point. Choosing the
+     * final claim first and hoping some prefix entails something is the same
+     * "pick and hope" the floor exists to remove.
+     *
+     * Only above four premises. Below that the midpoint is one or two premises
+     * deep, which is the shallow conclusion the rest of this exists to prevent.
+     *
+     * A composed space asks for both claims across every axis, which is where
+     * this differs from the scale family's version in effect if not in shape:
+     * the halfway claim is already an N-slot construction, so losing the thread
+     * on one axis and losing it altogether are told apart without the second
+     * claim being reached.
+     */
+    if (feat.checkpoint && canCheckpoint && numOfPremises > 4) {
+        const half = Math.floor(numOfPremises / 2);
+        const early = ndPrefixLayout(layout, half);
+        const earlyPair = pickDistantPairNd(early, 2, 0, legacy);
+        const latePair = pickDistantPairNd(layout, 2, 0, legacy);
+
+        if (earlyPair && latePair && pairBites(latePair[0], latePair[1])) {
+            const first = buildNdConstructClaim(early, earlyPair[0], earlyPair[1], false);
+            const last = buildNdConstructClaim(
+                layout, latePair[0], latePair[1], feat.constructDistance);
+
+            // Labelled by where they are answerable from rather than numbered:
+            // "slot 1" says where it sits, "from the first four" says what to
+            // do with it.
+            first.slots[0] = { ...first.slots[0], label: `From the first ${half}` };
+            last.slots[0] = { ...last.slots[0], label: "From all of them" };
+
+            question.depth = graphDistance(latePair[0], latePair[1], layout.neighbors);
+            question.construct = [first, last];
+            question.answerMode = "construct";
+            question.isValid = true;
+            question.conclusion = "";
+            return true;
+        }
+    }
 
     if (feat.constructConclusion) {
         // The claim that needed least of the item; see the linear generator for

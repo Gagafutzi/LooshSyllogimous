@@ -1002,3 +1002,120 @@ test("the shallowest mode is listed first", () => {
          EnumQuestionType.NestedSpaces].join(","),
         "the report is not ordered by how much of an item its answers need");
 });
+
+/* ------------------------------------------------------------------ *
+ * The composed spaces' checkpoint                                     *
+ * ------------------------------------------------------------------ */
+
+/**
+ * The same mechanism, on the other conclusion path.
+ *
+ * The scale family got a checkpoint first and the composed spaces have their
+ * own everything — layout, prefix, claim builder — so none of it came for free.
+ * What is asserted here is what actually breaks if the prefix is wrong: the
+ * halfway claim must be about a pair both of whose objects have been *named*
+ * before the boundary, and the two claims must be different questions.
+ *
+ * Naming is weaker than re-deriving the relation, and it is deliberately the
+ * weaker check: a premise that drifted across the line takes its objects with
+ * it, which is the failure a reordering bug produces, and it is visible without
+ * a second implementation of the arithmetic.
+ */
+function ndCheckpointCtx(): GeneratorContext {
+    return {
+        ...ndContext(),
+        hasRung: (_t: string, r: string) => r === "checkpoint",
+    } as GeneratorContext;
+}
+
+test("a composed space asks a checkpoint before it asks the whole thing", () => {
+    const ctx = ndCheckpointCtx();
+    let seen = 0;
+
+    seeded(5150, () => {
+        for (let n = 5; n <= 8; n++) {
+            for (const type of [EnumQuestionType.Space3D, EnumQuestionType.Space4D]) {
+                for (let rep = 0; rep < 15; rep++) {
+                    let q;
+                    try { q = createNdSpace(ctx, n, type); } catch { continue; }
+                    if (q.answerMode !== "construct" || q.construct.length !== 2) continue;
+                    seen++;
+
+                    const [first, last] = q.construct;
+                    assert(/first/i.test(first.slots[0].label),
+                        `the early claim is not labelled by where it is answerable`
+                        + ` from: ${first.slots[0].label}`);
+                    assert(/all/i.test(last.slots[0].label),
+                        `the late claim is not labelled as needing everything:`
+                        + ` ${last.slots[0].label}`);
+
+                    assert([first.a, first.b].sort().join() !== [last.a, last.b].sort().join(),
+                        "the checkpoint asks about the same pair as the conclusion");
+
+                    // Every axis, in both claims: a composed space that asked
+                    // the checkpoint about one dimension would be the width
+                    // failure wearing a checkpoint.
+                    equal(first.slots.length, last.slots.length,
+                        "the two claims are not about the same number of axes");
+
+                    const half = Math.floor(n / 2);
+                    const named = new Set(q.premises.slice(0, half).flatMap(subjectsOf));
+                    assert(named.has(first.a) && named.has(first.b),
+                        `the checkpoint asks about ${first.a}/${first.b}, not both`
+                        + ` named in the first ${half} premises`);
+                }
+            }
+        }
+    });
+
+    assert(seen > 20, `only ${seen} checkpoint items in the sample`);
+});
+
+test("a short composed space gets no checkpoint", () => {
+    const ctx = ndCheckpointCtx();
+
+    seeded(6161, () => {
+        for (const n of [3, 4]) {
+            for (let rep = 0; rep < 20; rep++) {
+                let q;
+                try { q = createNdSpace(ctx, n, EnumQuestionType.Space3D); } catch { continue; }
+                assert(q.construct.length < 2,
+                    `a ${n}-premise item carries a checkpoint, whose halfway is`
+                    + " one premise deep");
+            }
+        }
+    });
+});
+
+/**
+ * The four things that make a prefix meaningless.
+ *
+ * Edits and transformations rewrite the arrangement, so a relation stated
+ * before one of them need not hold after it. Reports and testimony replace the
+ * premises with claims that may be false, so nothing is determined until the
+ * liars are found — which is the whole item rather than half of it. Each is
+ * skipped rather than worked around.
+ */
+test("a mutated or reported composed space carries no checkpoint", () => {
+    const base = ndContext();
+
+    for (const rung of ["edit-1", "transform-1", "speakers", "testimony"]) {
+        const ctx = {
+            ...base,
+            hasRung: (_t: string, r: string) => r === "checkpoint" || r === rung,
+        } as GeneratorContext;
+
+        seeded(7171, () => {
+            for (let n = 5; n <= 8; n++) {
+                for (let rep = 0; rep < 15; rep++) {
+                    let q;
+                    try { q = createNdSpace(ctx, n, EnumQuestionType.Space3D); } catch { continue; }
+                    assert(q.construct.length < 2,
+                        `${rung} and a checkpoint came out together, and a`
+                        + " checkpoint the reader cannot answer at the checkpoint"
+                        + " is not one");
+                }
+            }
+        });
+    }
+});

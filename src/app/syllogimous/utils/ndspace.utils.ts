@@ -891,6 +891,38 @@ export function renderNdPremises(layout: NdLayout, options: NdRenderOptions = {}
     return layout.edges.map(e => renderNdPremise(layout, e, Math.random() > 0.5, options));
 }
 
+/**
+ * The arrangement the first `count` premises determine, on their own.
+ *
+ * The composed-space twin of `prefixLayout` in `linear.utils`, and it exists
+ * for the same reason: a checkpoint claim has to be answerable *at that point
+ * in the reading*, so it must follow from a prefix of the premises as
+ * displayed, not from any subset of that size. "Any five of ten" is not
+ * answerable halfway down the page, because which five is not known until the
+ * tenth has been read.
+ *
+ * Coordinates come from the finished layout rather than being re-walked. The
+ * prefix fixes the *shape*; where that shape sits is arbitrary and the same
+ * either way. What the prefix does decide is which pairs are connected at all,
+ * and that is carried by `neighbors` — so a pair the prefix leaves in separate
+ * components is at infinite distance and the pair picker will not ask about it,
+ * which is exactly the pair whose relation the prefix has not yet fixed.
+ */
+export function ndPrefixLayout(layout: NdLayout, count: number): NdLayout {
+    const edges = layout.edges.slice(0, count);
+    const neighbors: Record<string, string[]> = {};
+    for (const e of edges) {
+        (neighbors[e.from] ??= []).push(e.to);
+        (neighbors[e.to] ??= []).push(e.from);
+    }
+
+    const words = Object.keys(neighbors);
+    const coords: Record<string, number[]> = {};
+    for (const w of words) coords[w] = layout.coords[w];
+
+    return { ...layout, words, coords, edges, neighbors };
+}
+
 export interface NdConclusion {
     text: string;
     isValid: boolean;

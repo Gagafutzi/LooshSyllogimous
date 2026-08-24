@@ -252,6 +252,9 @@ export const RUNG_MIN_PREMISES: Record<string, number> = {
     "multi-conclusion": 4,
     "choose-conclusion": 5,
     "construct-conclusion": 4,
+    // The halfway claim only exists above four premises, so granting the rung
+    // below that hands out something that silently does nothing.
+    checkpoint: 5,
     cycles: 4,
     "min-span-3": 4,
 };

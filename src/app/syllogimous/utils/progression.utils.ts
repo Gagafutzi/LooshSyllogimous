@@ -265,6 +265,10 @@ const ND_LADDER = [
     "branching", "retired-compact", "circular", "indeterminate", "facing", "speakers", "testimony", "transform-1", "edit-1",
     "circular-2", "transform-2", "edit-2", "analogy",
     "multi-conclusion", "choose-conclusion", "construct-conclusion", "construct-distance",
+    // Appended, never inserted: a profile stores how many rungs it has earned
+    // and reads them by position, so a new rung anywhere but the end renames
+    // every rung after it for everyone who already has them.
+    "checkpoint",
 ];
 
 /**
