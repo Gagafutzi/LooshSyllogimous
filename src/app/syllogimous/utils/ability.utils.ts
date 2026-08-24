@@ -209,6 +209,7 @@ export const RUNG_COST: Record<string, number> = {
     "retired-groups-3": 0,
     "retired-groups-4": 0,
     "retired-rank": 0,
+    "match-3": 0.5,
 
     // A false direction drawn from ones the item used. It removes a shortcut
     // rather than adding work — measured at 79% against 75% when it went in,
@@ -263,6 +264,9 @@ export const RUNG_MIN_PREMISES: Record<string, number> = {
     checkpoint: 5,
     cycles: 4,
     "min-span-3": 4,
+    // Three badges need three nodes the web holds rigid, which a small web
+    // rarely has.
+    "match-3": 5,
 };
 
 /** Fewest premises at which a prefix of the ladder is all meaningful. */

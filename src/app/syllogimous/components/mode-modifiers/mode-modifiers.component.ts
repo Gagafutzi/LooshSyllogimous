@@ -85,6 +85,7 @@ export class ModeModifiersComponent {
             "transform-depth-2": "Two extra transformations",
             "groups-3": "Three groups to compare, not two",
             "groups-4": "Four groups to compare, not two",
+            "match-3": "Match a third node, not just two",
         } as Record<string, string>)[rung] ?? rung;
     }
 

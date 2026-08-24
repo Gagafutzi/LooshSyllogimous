@@ -151,11 +151,21 @@ function buildStructure(ctx: GeneratorContext, question: Question, left: Web, n:
         .filter(node => orbitOf(left, node).length === 1);
 
     /*
-     * Three where the web allows it, two at a minimum. Beyond three the item
-     * stops being harder and starts being longer — the fourth node is the same
-     * act again, and the picture only has so much room for badges.
+     * Two, unless a third is asked for.
+     *
+     * The reasoning that stopped at three applies just as well to the third:
+     * beyond the second node the item stops being harder and starts being
+     * longer, because each further node is the same act again on the same
+     * picture. Finding one counterpart is the whole of the skill; finding three
+     * is finding one, three times.
+     *
+     * So `match-3` is off the ladder — nothing grants it — and two is what the
+     * trial is. Four was never offered and still is not: the picture only has
+     * so much room for badges.
      */
-    const wanted = Math.min(3, rigid.length);
+    const wanted = Math.min(
+        ctx.hasRung(EnumQuestionType.RelationalWeb, "match-3") ? 3 : 2,
+        rigid.length);
     if (wanted < 2) return false;
 
     // Under the structural rung at least one target must have a degree twin,

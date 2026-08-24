@@ -522,6 +522,12 @@ export const OFF_LADDER_RUNGS: Record<string, string[]> = {
      * the mode harder, and these change its shape.
      */
     "Widest Group": ["groups-3", "groups-4", "rank"],
+    /*
+     * Matching a third node is the second act again on the same picture:
+     * finding one counterpart is the skill, and finding three is finding one
+     * three times. Longer, not harder, so it is asked for rather than earned.
+     */
+    "Relational Web": ["match-3"],
 };
 
 export function offLadderFor(type: string) {

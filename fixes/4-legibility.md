@@ -60,6 +60,40 @@ inventing improvements.
    about **3%**. Zero is not reachable: a dense web on twelve nodes has no
    arrangement in which no arrow passes near any node.
 
+**5. Ports: each arrow gets its own point on the node's rim.** The reported
+picture still had arrows arriving bundled, and bowing structurally cannot fix
+that — a bow bends the *middle* of a curve and leaves both ends exactly where
+they were, so a fan of arrows converging on one node stayed a fan converging on
+one point however hard it was bent. `layoutArrows` even made it worse by
+excusing the crowding from measurement: for edges sharing a node it skipped
+eight of twenty-five samples at each end, on the reasoning that they must meet
+there anyway — so the one region where the crowding showed was the one region
+no candidate was scored on.
+
+They must meet at the node. They need not *approach* along the same line.
+`portsFor` gives every incident arrow its own bearing on the rim, at least 45°
+from its neighbours. Same-node pairs passing within six units of each other:
+**17.7% → 3.3%**, median clearance 13.9 → 23.3. 45° was measured against 60°,
+72° and 90°, and is also the one that leaves an arrow pointing nearest to where
+it is going.
+
+**The first version of the spread handed the answer over, and the test caught
+it.** Walking the sorted bearings and pushing each one to at least the minimum
+past the last separates them perfectly well — and turns a crowded node into a
+comb of exact minimums whose shape depends only on *how many arrows the node
+has*. Isomorphic webs have equal degree at matched nodes, so they grew
+identical fans: 28% of matched nodes were drawn the same, and a reader could
+have paired them off without following a single arrow. In a mode whose entire
+question is whether two webs are the same shape, that is not a legibility bug,
+it is the answer printed on the page.
+
+The slack is now shared out **in proportion to the natural gaps**: each gap gets
+the minimum plus its share of what the circle has left over. It fits exactly,
+clears the minimum everywhere, and leaves a lopsided node looking lopsided —
+which is scatter, not structure. The ordering is therefore driven by the
+drawing and never by the graph, which is the property the mode rests on and now
+has a test of its own.
+
 **Item 3 of the original plan was wrong, and is not done.** It said to replace
 the scatter with a layered layout, sources at the top and sinks at the bottom.
 `scatterLayout`'s own comment explains why that undercuts the mode: a ring made

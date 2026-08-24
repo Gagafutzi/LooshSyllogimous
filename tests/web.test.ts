@@ -12,7 +12,7 @@ import { readFileSync } from "fs";
 import { assert, equal, seeded, test } from "./harness";
 import {
     WEB_PROPERTIES, Web, cloneWeb, edgesOf, emptyWeb, isomorphic, mappings, nearMiss, orbitOf,
-    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout, clearestScatter, obstructions, arrowPath, bowFor, layoutArrows, samplePath,
+    degreeTwins, permuteWeb, randomPermutation, randomWeb, refine, scatterLayout, clearestScatter, obstructions, arrowPath, bowFor, layoutArrows, portsFor, samplePath,
 } from "../src/app/syllogimous/utils/web.utils";
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
@@ -774,4 +774,202 @@ test("property items are a small minority of the mode", () => {
         const good = ((seen["assignment"] ?? 0) + (seen["comparison"] ?? 0)) / total;
         assert(good > 0.8, `assignment and comparison are only ${(good * 100).toFixed(0)}%`);
     }
+});
+
+/* ------------------------------------------------------------------ *
+ * Where an arrow meets a node                                         *
+ * ------------------------------------------------------------------ */
+
+/**
+ * The thing bowing could not fix.
+ *
+ * An arrow used to leave a node along the straight line to the other node's
+ * centre, so two arrows heading roughly the same way left along roughly the
+ * same line — and a bow bends the middle of a curve while leaving both ends
+ * exactly where they were. Three arrows converging on a node arrived as one
+ * thick stroke and which head belonged to which was unrecoverable.
+ */
+test("arrows leaving one node leave at different angles", () => {
+    seeded(4242, () => {
+        for (let trial = 0; trial < 120; trial++) {
+            const n = 5 + (trial % 6);
+            const pts = scatterLayout(n).map(([x, y]) => [x * 200, y * 200] as [number, number]);
+            const w = randomWeb(n, 0.32, false);
+
+            const edges: Array<{ from: number; to: number }> = [];
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    if (!w.adj[i][j] || i === j) continue;
+                    if (w.adj[j][i] && j < i) continue;
+                    edges.push({ from: i, to: j });
+                }
+            }
+            if (edges.length < 2) continue;
+
+            const gap = Math.PI / 4;
+            const ports = portsFor(edges, pts, gap);
+
+            // Every arrow end at each node, as a bearing.
+            const atNode: number[][] = pts.map(() => []);
+            edges.forEach((e, i) => {
+                atNode[e.from].push(ports[i].from);
+                atNode[e.to].push(ports[i].to);
+            });
+
+            for (const [node, bearings] of atNode.entries()) {
+                if (bearings.length < 2) continue;
+                const sorted = [...bearings].sort((a, b) => a - b);
+                for (let i = 1; i < sorted.length; i++) {
+                    const between = sorted[i] - sorted[i - 1];
+                    /*
+                     * The even-spread fallback: a node with nine arrows cannot
+                     * give each of them an eighth of a turn, so the circle is
+                     * shared out rather than the overflow piling onto the last.
+                     */
+                    const floor = Math.min(gap, (2 * Math.PI - gap) / bearings.length);
+                    assert(between >= floor - 1e-9,
+                        `node ${node} has two arrows ${between.toFixed(2)} radians apart`
+                        + ` with ${bearings.length} on it`);
+                }
+            }
+        }
+    });
+});
+
+/**
+ * The fan must come from the drawing, never from the structure.
+ *
+ * This is the property the whole mode rests on. If ports were assigned from
+ * node indices, degrees or colours, two isomorphic webs would grow *identical*
+ * fans and the answer would be readable straight off the picture without a
+ * single arrow being followed. Sorting by bearing ties the arrangement to the
+ * scatter, and the two scatters are drawn independently.
+ */
+test("the same shape laid out twice does not grow the same fans", () => {
+    let compared = 0, alike = 0;
+
+    seeded(31337, () => {
+        for (let trial = 0; trial < 60; trial++) {
+            const n = 6 + (trial % 4);
+            const left = randomWeb(n, 0.3, false);
+            const perm = randomPermutation(n);
+            const right = permuteWeb(left, perm);
+
+            const edgesFor = (w: typeof left) => {
+                const out: Array<{ from: number; to: number }> = [];
+                for (let i = 0; i < n; i++) {
+                    for (let j = 0; j < n; j++) {
+                        if (!w.adj[i][j] || i === j) continue;
+                        if (w.adj[j][i] && j < i) continue;
+                        out.push({ from: i, to: j });
+                    }
+                }
+                return out;
+            };
+
+            const le = edgesFor(left), re = edgesFor(right);
+            if (le.length < 3) continue;
+
+            const lp = scatterLayout(n).map(([x, y]) => [x * 200, y * 200] as [number, number]);
+            const rp = scatterLayout(n).map(([x, y]) => [x * 200, y * 200] as [number, number]);
+
+            const lports = portsFor(le, lp, Math.PI / 4);
+            const rports = portsFor(re, rp, Math.PI / 4);
+
+            /*
+             * A node's fan, as the sorted gaps between its arrows — which is
+             * what survives turning the picture, and so what a reader could
+             * match on if the two webs shared it.
+             */
+            const fans = (edges: typeof le, ports: typeof lports) => {
+                const at: number[][] = Array.from({ length: n }, () => []);
+                edges.forEach((e, i) => { at[e.from].push(ports[i].from); at[e.to].push(ports[i].to); });
+                return at.map(bs => {
+                    const s = [...bs].sort((a, b) => a - b);
+                    return s.map((v, i) => (i ? v - s[i - 1] : 0)).slice(1)
+                        .map(g => g.toFixed(2)).join(",");
+                });
+            };
+
+            const lf = fans(le, lports), rf = fans(re, rports);
+
+            // Compared through the isomorphism: node v on the left is perm[v]
+            // on the right, so those are the two a reader would be matching.
+            for (let v = 0; v < n; v++) {
+                if (lf[v].length < 3) continue;   // one arrow has no fan
+                compared++;
+                if (lf[v] === rf[perm[v]]) alike++;
+            }
+        }
+    });
+
+    assert(compared > 100, `only ${compared} fans were comparable`);
+    assert(alike / compared < 0.05,
+        `${alike} of ${compared} matched fans were drawn identically, so the`
+        + " mapping is readable off the picture without following an arrow");
+});
+
+/**
+ * How often two arrows sharing a node still read as one line.
+ *
+ * The bar is set where a regression shows rather than where the number happens
+ * to sit. Measured over three hundred generated webs: straight chords put 17.4%
+ * of same-node pairs within six units of each other, and ports with the
+ * curvature search on top put 3.4%. Zero is not reachable — a node with six
+ * arrows on a small canvas has no arrangement in which none of them crowd.
+ */
+test("arrows sharing a node rarely read as one line", () => {
+    const size = 200;
+    let merged = 0, pairs = 0;
+
+    const parse = (d: string) => {
+        const m = /M ([-\d.]+) ([-\d.]+) Q ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+)/.exec(d)!
+            .map(Number);
+        return { d, from: [m[1], m[2]] as [number, number], to: [m[5], m[6]] as [number, number] };
+    };
+
+    seeded(9001, () => {
+        for (let trial = 0; trial < 150; trial++) {
+            const n = 5 + (trial % 6);
+            const w = randomWeb(n, 0.28, false);
+            const pts = scatterLayout(n).map(([x, y]) => [x * size, y * size] as [number, number]);
+            const radius = Math.max(8, Math.min(13, Math.round(52 / Math.sqrt(n))));
+
+            const edges: Array<{ from: number; to: number; both: boolean }> = [];
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    if (!w.adj[i][j] || i === j) continue;
+                    if (w.adj[j][i] && j < i) continue;
+                    edges.push({ from: i, to: j, both: w.adj[j][i] });
+                }
+            }
+            if (edges.length < 2) continue;
+
+            const drawn = layoutArrows(edges, pts, radius, radius + 1).map(a => parse(a.d));
+
+            for (let i = 0; i < edges.length; i++) {
+                for (let k = i + 1; k < edges.length; k++) {
+                    const a = edges[i], b = edges[k];
+                    const shares = a.from === b.from || a.from === b.to
+                        || a.to === b.from || a.to === b.to;
+                    if (!shares) continue;
+                    pairs++;
+
+                    const pa = samplePath(drawn[i]), pb = samplePath(drawn[k]);
+                    let closest = Infinity;
+                    for (const p of pa) {
+                        for (const q of pb) {
+                            closest = Math.min(closest, Math.hypot(p[0] - q[0], p[1] - q[1]));
+                        }
+                    }
+                    if (closest < 6) merged++;
+                }
+            }
+        }
+    });
+
+    assert(pairs > 2000, `only ${pairs} same-node pairs in the sample`);
+    const rate = merged / pairs;
+    assert(rate < 0.07,
+        `${(rate * 100).toFixed(1)}% of arrows sharing a node read as one line`);
 });
