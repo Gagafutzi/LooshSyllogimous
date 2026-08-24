@@ -47,7 +47,6 @@ function context(rungs: boolean | string[] = false): GeneratorContext {
             depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: has,
         random: () => { throw new Error("not needed"); },
     };

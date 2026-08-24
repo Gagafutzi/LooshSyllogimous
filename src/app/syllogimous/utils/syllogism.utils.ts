@@ -1,79 +1,7 @@
-import { FORMS, SYL_IMMEDIATE_INFERENCES, SYL_KINDS, SYL_TRUE_CONCLUSIONS, SYL_TRUE_CONCLUSIONS_KEYS, VALID_RULES } from "../constants/syllogism.constants";
-import { Settings } from "../models/settings.models";
+import { SYL_IMMEDIATE_INFERENCES, SYL_KINDS, SYL_TRUE_CONCLUSIONS, SYL_TRUE_CONCLUSIONS_KEYS } from "../constants/syllogism.constants";
 import { PolysyllogismResult, SylKind, SylPremise } from "../models/syllogism.models";
-import { pickUniqueItems } from "./question.utils";
 import { subj } from "./phrasing";
 
-//    ____  __    ____     _____________   ____________  ___  __________  ____ 
-//   / __ \/ /   / __ \   / ____/ ____/ | / / ____/ __ \/   |/_  __/ __ \/ __ \
-//  / / / / /   / / / /  / / __/ __/ /  |/ / __/ / /_/ / /| | / / / / / / /_/ /
-// / /_/ / /___/ /_/ /  / /_/ / /___/ /|  / /___/ _, _/ ___ |/ / / /_/ / _, _/ 
-// \____/_____/_____/   \____/_____/_/ |_/_____/_/ |_/_/  |_/_/  \____/_/ |_|  
-export function getRandomRuleValid() {
-    return VALID_RULES[Math.floor(Math.random() * VALID_RULES.length)];
-}
-
-export function getRandomRuleInvalid() {
-    let rule;
-    while (!rule || VALID_RULES.includes(rule)) {
-        rule = "";
-        for (let i = 0; i < 3; i++) {
-            rule += Math.floor(Math.random() * 4); // Form
-        }
-        rule += 1 + Math.floor(Math.random() * 4); // Figure
-    }
-    return rule;
-}
-
-export function getSyllogism(settings: Settings, s: string, p: string, m: string, rule: string) {
-
-    const _forms = (!settings.enabled.negation)
-        ? FORMS[0]
-        : pickUniqueItems(FORMS, 1).picked[0];
-
-    let major = _forms[+rule[0]];
-    let minor = _forms[+rule[1]];
-    let conclusion = _forms[+rule[2]];
-
-    const figure = +rule[3];
-    switch (figure) {
-        case 1:
-            major = major.replace("$", m);
-            major = major.replace("$", p);
-            minor = minor.replace("$", s);
-            minor = minor.replace("$", m);
-            break;
-        case 2:
-            major = major.replace("$", p);
-            major = major.replace("$", m);
-            minor = minor.replace("$", s);
-            minor = minor.replace("$", m);
-            break;
-        case 3:
-            major = major.replace("$", m);
-            major = major.replace("$", p);
-            minor = minor.replace("$", m);
-            minor = minor.replace("$", s);
-            break;
-        case 4:
-            major = major.replace("$", p);
-            major = major.replace("$", m);
-            minor = minor.replace("$", m);
-            minor = minor.replace("$", s);
-            break;
-    }
-
-    conclusion = conclusion.replace("$", s);
-    conclusion = conclusion.replace("$", p);
-
-    return [major, minor, conclusion];
-}
-
-//     _   _________       __   _____________   ____________  ___  __________  ____ 
-//    / | / / ____/ |     / /  / ____/ ____/ | / / ____/ __ \/   |/_  __/ __ \/ __ \
-//   /  |/ / __/  | | /| / /  / / __/ __/ /  |/ / __/ / /_/ / /| | / / / / / / /_/ /
-//  / /|  / /___  | |/ |/ /  / /_/ / /___/ /|  / /___/ _, _/ ___ |/ / / /_/ / _, _/ 
-// /_/ |_/_____/  |__/|__/   \____/_____/_/ |_/_____/_/ |_/_/  |_/_/  \____/_/ |_|  
 export function sylNegate(premise: SylPremise): SylPremise {
     const [a, k, b] = premise;
     const map: Record<SylKind, SylPremise> = {
@@ -478,44 +406,4 @@ export function formatSylPremise([a, k, b]: SylPremise, negated = false): string
             case "some_not": return `Some ${A} <span class="is-negated">is</span> ${B}`;
         }
     }
-}
-/**
- * The same syllogism `getSyllogism` renders, as data.
- *
- * `getSyllogism` returns three finished HTML strings, which is all the card
- * needs and not enough to draw from — a diagram has to know which term is the
- * middle and which quantifier each premise carries, and recovering that by
- * parsing the markup back would make the drawing depend on the phrasing.
- *
- * The rule already says it. Digits 0-2 index `FORMS` — all, no, some, some not
- * — and digit 3 is the figure, which is precisely the convention for where the
- * middle term sits in each premise. So this is the same lookup `getSyllogism`
- * does, stopping before the words.
- */
-export function sylPremisesFromRule(
-    s: string,
-    p: string,
-    m: string,
-    rule: string,
-): { premises: SylPremise[]; conclusion: SylPremise } | null {
-    const kinds: SylKind[] = ["all", "no", "some", "some_not"];
-    const major = kinds[+rule[0]];
-    const minor = kinds[+rule[1]];
-    const concl = kinds[+rule[2]];
-    if (!major || !minor || !concl) return null;
-
-    /*
-     * The four figures, which are exactly the four ways two premises can share
-     * a middle term. The conclusion is always subject-to-predicate.
-     */
-    const shapes: Record<string, [SylPremise, SylPremise]> = {
-        "1": [[m, major, p], [s, minor, m]],
-        "2": [[p, major, m], [s, minor, m]],
-        "3": [[m, major, p], [m, minor, s]],
-        "4": [[p, major, m], [m, minor, s]],
-    };
-    const pair = shapes[rule[3]];
-    if (!pair) return null;
-
-    return { premises: pair, conclusion: [s, concl, p] };
 }

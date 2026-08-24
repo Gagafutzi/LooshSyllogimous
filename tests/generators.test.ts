@@ -71,7 +71,6 @@ function context(settings: Settings): GeneratorContext {
             depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: () => false,
         /*
          * Binary wraps another mode's item and asks which half of it failed, so

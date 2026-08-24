@@ -13,7 +13,6 @@ import { SylPremise } from "../src/app/syllogimous/models/syllogism.models";
 import { nameTheInference, rolesFor, vennFor } from "../src/app/syllogimous/utils/venn.utils";
 import { seeded } from "./harness";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
-import { sylPremisesFromRule } from "../src/app/syllogimous/utils/syllogism.utils";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -34,7 +33,6 @@ function ndContext(): GeneratorContext {
         } as unknown as SettingsOverrideService,
         progressionService: { hasRung: () => false, depthBonusFor: () => 0 } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: () => false,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
@@ -135,67 +133,38 @@ test("the middle term is the one the conclusion never mentions", () => {
 });
 
 /**
- * Every syllogism generator draws its picture, not just one of the three.
+ * The plain mode draws its picture, not only the rung.
  *
- * The diagram first went into `buildSetHierarchy` alone, which is the rung --
- * so the two generators that produce the plain mode, and the reported items,
- * got nothing. Coverage is the property worth testing here: a mode that
- * explains itself in one of its three code paths does not explain itself.
+ * The diagram first went into `buildSetHierarchy` alone -- so the generator
+ * that produces the plain mode, and the reported items, got nothing. Coverage
+ * is the property worth testing here: a mode that explains itself in one of its
+ * code paths does not explain itself.
+ *
+ * This looped over two generators until Fredo was removed. The loop is gone
+ * rather than kept with one entry, because a coverage test that covers
+ * everything there is says so more clearly without the scaffolding.
  */
-test("every syllogism generator produces a diagram", () => {
+test("a plain syllogism produces a diagram", () => {
     const ctx = ndContext();
-    const seen: Record<string, number> = {};
+    let drawn = 0;
 
     seeded(5150, () => {
-        for (const gen of ["fredo", "canyon"] as const) {
-            const g = { ...ctx, syllogismGenerator: gen } as GeneratorContext;
-            for (let rep = 0; rep < 30; rep++) {
-                let q;
-                try { q = createSyllogism(g, 2); } catch { continue; }
-                seen[gen] = (seen[gen] ?? 0) + (q.venn ? 1 : 0);
-
-                if (!q.venn) continue;
-                // Three roles, all named, all different: anything else is not a
-                // syllogism and the picture would be asserting one.
-                const roles = [q.venn.roles.s, q.venn.roles.p, q.venn.roles.m];
-                equal(new Set(roles).size, 3, `${gen}: a term plays two roles`);
-                for (const r of roles) assert(!!r, `${gen}: an unnamed circle`);
-                equal(q.venn.undrawn.length, 0, `${gen}: a premise went undrawn`);
-            }
-        }
-    });
-
-    for (const gen of ["fredo", "canyon"]) {
-        assert((seen[gen] ?? 0) > 10,
-            `${gen} drew ${seen[gen] ?? 0} diagrams out of 30`);
-    }
-});
-
-/**
- * The recorded rule has to describe the item it is on.
- *
- * Fredo drew a rule for `question.rule` and then drew a *second* one for the
- * syllogism it actually built, so the field described a different item. Nothing
- * read it closely enough to notice until the diagram needed to know which term
- * was the middle -- which is what a stale field is for.
- */
-test("the rule on the item is the rule the item was built from", () => {
-    const ctx = { ...ndContext(), syllogismGenerator: "fredo" } as GeneratorContext;
-
-    seeded(272, () => {
         for (let rep = 0; rep < 30; rep++) {
             let q;
             try { q = createSyllogism(ctx, 2); } catch { continue; }
-            if (!q.rule || !q.venn) continue;
+            drawn += q.venn ? 1 : 0;
 
-            const parts = sylPremisesFromRule(q.bucket[0], q.bucket[1], q.bucket[2], q.rule);
-            assert(!!parts, `rule ${q.rule} does not describe a syllogism`);
-
-            // The middle term the rule implies is the one the diagram drew.
-            equal(q.venn.roles.m, q.bucket[2],
-                `rule ${q.rule} and the drawn diagram disagree about the middle term`);
+            if (!q.venn) continue;
+            // Three roles, all named, all different: anything else is not a
+            // syllogism and the picture would be asserting one.
+            const roles = [q.venn.roles.s, q.venn.roles.p, q.venn.roles.m];
+            equal(new Set(roles).size, 3, "a term plays two roles");
+            for (const r of roles) assert(!!r, "an unnamed circle");
+            equal(q.venn.undrawn.length, 0, "a premise went undrawn");
         }
     });
+
+    assert(drawn > 10, `only ${drawn} diagrams out of 30`);
 });
 
 /**
@@ -257,44 +226,52 @@ test("each premise's effect on the picture is stated", () => {
 });
 
 /**
- * Every syllogism explains itself, whichever generator built it.
+ * Every syllogism explains itself, at every length.
  *
- * `createSyllogism` picks between Fredo and Canyon on a coin flip by default,
- * and only Canyon had a derivation -- so half of every player's syllogisms
- * answered a wrong answer with a verdict and nothing else. That is not
- * "sometimes broken", it is never present, half the time, and a coverage test
- * over the mode could not see it because the mode did explain itself, on the
- * runs where the coin came up the other way.
+ * This used to loop over the three generators, and that was the point of it:
+ * `createSyllogism` picked between Fredo and Canyon on a coin flip and only
+ * Canyon had a derivation, so half of every player's syllogisms answered a
+ * wrong answer with a verdict and nothing else. Not "sometimes broken" --
+ * never present, half the time, and invisible to a coverage test over the mode
+ * because the mode did explain itself on the runs where the coin fell the other
+ * way.
+ *
+ * With one generator left the loop is over *lengths* instead, which is where
+ * the same failure now hides: a two-step chain and a five-step one take
+ * different paths through the derivation, and the short one was the thin one.
  */
-test("every syllogism generator explains itself", () => {
+test("every syllogism explains itself, however long its chain", () => {
     const ctx = ndContext();
-    for (const gen of ["fredo", "canyon", "all"] as const) {
-        const g = { ...ctx, syllogismGenerator: gen } as GeneratorContext;
-        let built = 0, explained = 0;
-        seeded(1919, () => {
-            for (let n = 2; n <= 5; n++) {
-                for (let rep = 0; rep < 15; rep++) {
-                    let q;
-                    try { q = createSyllogism(g, n); } catch { continue; }
-                    built++;
-                    if (q.explanation.length) explained++;
-                }
+    let built = 0, explained = 0;
+
+    seeded(1919, () => {
+        for (let n = 2; n <= 5; n++) {
+            for (let rep = 0; rep < 15; rep++) {
+                let q;
+                try { q = createSyllogism(ctx, n); } catch { continue; }
+                built++;
+                if (q.explanation.length) explained++;
             }
-        });
-        assert(built > 40, `${gen} built only ${built} items`);
-        equal(explained, built, `${gen}: ${built - explained} of ${built} items had no derivation`);
-    }
+        }
+    });
+
+    assert(built > 40, `built only ${built} items`);
+    equal(explained, built, `${built - explained} of ${built} items had no derivation`);
 });
 
 /**
  * A derivation has to say something the item did not already say.
  *
  * The floor from fixes/3: a derivation made entirely of restated premises has
- * done no work. Fredo's names its two load-bearing premises and then has to
- * add the middle term and the move.
+ * done no work. This was asserted of Fredo, which named its two load-bearing
+ * premises and then had to add the middle term and the move -- and when Fredo
+ * went, the same assertion pointed at Canyon and failed. A two-step chain has
+ * no intermediate conclusions, so its whole derivation was `so <the answer>`.
+ * The short case is explained as the syllogism it is now, which is what Fredo
+ * had been quietly covering up.
  */
 test("a syllogism derivation adds something to the premises", () => {
-    const ctx = { ...ndContext(), syllogismGenerator: "fredo" } as GeneratorContext;
+    const ctx = ndContext();
     seeded(2828, () => {
         for (let rep = 0; rep < 20; rep++) {
             let q;

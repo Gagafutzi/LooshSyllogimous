@@ -34,7 +34,6 @@ function context(): GeneratorContext {
         } as unknown as SettingsOverrideService,
         progressionService: { hasRung: () => false, depthBonusFor: () => 0 } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: () => false,
         random: () => { throw new Error("not needed"); },
     };

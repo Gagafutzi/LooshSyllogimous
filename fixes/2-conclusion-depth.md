@@ -251,12 +251,22 @@ The last four cost nothing, because each already knew the answer:
 | Syllogism (Fredo) | **two, always.** The first two premises are the syllogism and everything after is a distractor built from an invalid rule |
 | Hierarchy | `HierarchyQuery.span`, the links along the claimed path |
 
-Fredo is worth recording precisely *because* the number is bad. A six-premise
-item whose answer needs two of them is the complaint this section is named for,
-and it should appear in the report as such rather than as a blank. It is left
-alone otherwise: Canyon has been the default since the picker was removed, so
-Fredo only runs for an account that chose it before that, and overriding an
-explicit stored choice to fix a depth problem is not the trade.
+**Fredo has since been removed**, on the author's call: a six-premise item
+whose answer needs two of them is not a variant of the depth complaint, it is
+the complaint, and Canyon draws the same shape when its chain is short while
+controlling how short. `createSyllogismAll`, which flipped a coin between the
+two, went with it, along with the stored generator setting, the rule and form
+tables it was the only reader of, and `sylPremisesFromRule`.
+
+**It was covering something up.** `explainPolysyllogism` walks the intermediate
+conclusions, and a two-step chain has none — so Canyon's whole derivation for
+the shortest and commonest shape was the single line *"so &lt;the answer&gt;"*,
+which restates the conclusion and shows no work. It went unnoticed because
+Fredo owned the short items and named the middle term and the move. The
+existing floor from [3](3-explanations.md) — a derivation made entirely of
+restated premises has done no work — was asserted only of Fredo; pointed at
+Canyon it failed immediately. A one-link chain is now explained as the
+syllogism it is, sharing its wording with the Set Hierarchy derivation.
 
 **Canyon's chain now draws from the top two bands.** `chainDepth` was drawn
 anywhere from two to the premise count and the remainder padded with

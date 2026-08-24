@@ -44,7 +44,6 @@ function context(everyRung: boolean): GeneratorContext {
             hasRung: () => everyRung, depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: () => everyRung,
         random: (n?: number) => BUILD[EnumQuestionType.Distinction](ctx, n ?? 2),
     };

@@ -1,148 +1,27 @@
 /**
- * Syllogisms, from all three generators.
+ * Syllogisms.
  *
  * Split out of GameService, which held all twenty generators in one file.
  * State comes in through {GeneratorContext} rather than `this`.
+ *
+ * There were three generators and there is one. Fredo built a single syllogism
+ * and padded it with distractors drawn from invalid rules, so its conclusion
+ * needed **two** premises whatever the item's length — a six-premise item was a
+ * two-premise argument with four lines of noise. That is not a variant of the
+ * depth complaint, it is the complaint. Canyon draws the same shape when its
+ * chain is short and controls how short, so nothing was lost by dropping it;
+ * `createSyllogismAll`, which flipped a coin between the two, went with it.
  */
 
 import { GeneratorContext, deepConclusions } from "./context";
 import { Question } from "../models/question.models";
-import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, pickUniqueItems, shuffle } from "../utils/question.utils";
+import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { inSyllogisticOrder, nameTheInference, vennDiagramFor } from "../utils/venn.utils";
-import { generatePolysyllogism, formatSylPremise, getRandomRuleValid, getRandomRuleInvalid, getSyllogism, sylEntails, sylIsConsistent, sylNegate, sylPremisesFromRule } from "../utils/syllogism.utils";
+import { generatePolysyllogism, formatSylPremise, sylEntails, sylIsConsistent, sylNegate } from "../utils/syllogism.utils";
 import { SylKind, SylPremise } from "../models/syllogism.models";
 import { hi, subj } from "../utils/phrasing";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
-import { SyllogismGenerator } from "../pages/settings/game-mode-choose/game-mode-choose.component";
-
-export function createSyllogismAll(ctx: GeneratorContext, numOfPremises: number) {
-    ctx.logger.info("createSyllogismAll");
-    if (coinFlip()) {
-        return createSyllogismFredo(ctx, numOfPremises);
-    } else {
-        return createSyllogismCanyon(ctx, numOfPremises);
-    }
-}
-
-export function createSyllogismFredo(ctx: GeneratorContext, numOfPremises: number) {
-    ctx.logger.info("createSyllogismFredo");
-
-    const type = EnumQuestionType.Syllogism;
-    const settings = ctx.settings;
-
-    if (!canGenerateQuestion(type, numOfPremises, settings)) {
-        throw new Error("Cannot generate.");
-    }
-
-    // The mode\'s own ceiling, not the caller\'s idea of it.
-    numOfPremises = clampPremises(type, numOfPremises);
-
-    const length = numOfPremises + 1;
-    const question = new Question(type);
-    question.isValid = coinFlip();
-
-    do {
-        /*
-         * One rule, drawn once and used.
-         *
-         * `question.rule` was assigned a rule and then a *second* one was drawn
-         * for `getSyllogism`, so the rule recorded on the item described a
-         * different syllogism from the one shown. Nothing read it closely
-         * enough to notice until the diagram needed to know which term was the
-         * middle, which is the sort of thing a stale field is for.
-         */
-        question.rule = question.isValid ? getRandomRuleValid() : getRandomRuleInvalid();
-        question.bucket = getRandomSymbols(settings, length);
-        question.premises = [];
-
-        [
-            question.premises[0],
-            question.premises[1],
-            question.conclusion
-        ] = getSyllogism(
-            settings,
-            question.bucket[0],
-            question.bucket[1],
-            question.bucket[2],
-            question.rule,
-        );
-    } while (isPremiseLikeConclusion(question.premises, question.conclusion));
-
-    /*
-     * The picture, from the rule rather than from the rendered text.
-     *
-     * Only the first two premises are a syllogism; everything appended below is
-     * a distractor built from an invalid rule, and drawing those would shade
-     * regions the answer does not turn on.
-     */
-    {
-        const parts = sylPremisesFromRule(
-            question.bucket[0], question.bucket[1], question.bucket[2], question.rule);
-        if (parts) {
-            question.venn = vennDiagramFor(parts.premises, parts.conclusion);
-
-            /*
-             * A derivation, which this generator has never had.
-             *
-             * `createSyllogism` picks between this and Canyon on a coin flip by
-             * default, and only Canyon explained itself — so half of every
-             * player's syllogisms answered a wrong answer with a verdict and
-             * nothing else. Not "sometimes broken": never present, half the
-             * time.
-             *
-             * Built from the premises *as rendered* rather than re-worded from
-             * the structure. `getSyllogism` chooses a form set internally and
-             * may state a premise in its negated rendering — "No X is Y" with
-             * the word struck through, meaning all — and a derivation that
-             * re-worded it plainly would read as a flat contradiction of the
-             * line above it.
-             *
-             * The first two premises are the syllogism and everything after is
-             * a distractor built from an invalid rule, so the derivation names
-             * those two and no others. They arrive major-first already, which
-             * is the order a syllogism is read in.
-             */
-            const move = question.venn
-                ? nameTheInference(parts.premises, question.venn, t => hi(t))
-                : [];
-            question.explanation = [
-                question.premises[0],
-                question.premises[1],
-                `The two share ${hi(question.bucket[2])}, and the claim never`
-                + ` mentions it — that is the term the argument runs through.`,
-                ...move,
-                `so ${question.conclusion}`,
-                // Distractors are appended below, so count them from `length`
-                // rather than from a premise list that has none yet.
-                ...(length > 3 ? [`The other premises relate nothing to the claim.`] : []),
-            ];
-        }
-    }
-
-    for (let i = 3; i < length; i++) {
-        const rnd = Math.floor(Math.random() * (i - 1));
-        const flip = coinFlip();
-        const [p, m] = flip ? [question.bucket[i], question.bucket[rnd]] : [question.bucket[rnd], question.bucket[i]];
-        question.premises.push(getSyllogism(settings, "#####", p, m, getRandomRuleInvalid())[0]);
-    }
-
-    shuffle(question.premises);
-
-    /*
-     * Two, always, whatever the premise count.
-     *
-     * The first two premises are the syllogism and every one after them is a
-     * distractor built from an invalid rule — stated a few lines up, and true
-     * of this generator by construction. Recording it rather than leaving it
-     * unmeasured is the point: a six-premise item whose answer needs two of
-     * them is exactly the complaint this section is named for, and it should
-     * appear in the report as such rather than as a blank.
-     */
-    question.depth = 2;
-
-    return question;
-}
 
 export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: number) {
     ctx.logger.info("createSyllogismCanyon");
@@ -206,7 +85,6 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
     question.depth = chainDepth;
     question.premises = premises.map(p => formatSylPremise(p, negated));
     question.conclusion = formatSylPremise(conclusion, negated);
-    question.explanation = explainPolysyllogism(trace, derived, conclusionIsTrue);
     /*
      * A polysyllogism is a chain, and three circles hold one link. Drawn when
      * the load-bearing premises come to a single syllogism — which is every
@@ -217,7 +95,52 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
     const support = minimalSupport(premises, derived);
     if (support.length === 2) question.venn = vennDiagramFor(support, derived);
 
+    /*
+     * A chain of one link is a syllogism, so it is explained as one.
+     *
+     * `explainPolysyllogism` walks the intermediate conclusions, and a two-step
+     * chain has none — so its whole derivation was the single line `so <the
+     * answer>`, which restates the conclusion and shows no work. That was
+     * invisible while Fredo existed, because Fredo owned the short items and
+     * named the middle term and the move; removing it left the shortest and
+     * commonest shape with the thinnest explanation in the mode.
+     *
+     * So the short case now reads as a syllogism — the two premises in
+     * syllogistic order, the shared term, the move — and the long case keeps
+     * the chain walk, which is the right account of it.
+     */
+    question.explanation = question.venn
+        ? syllogismLines(question.venn, support, derived, negated, conclusionIsTrue)
+        : explainPolysyllogism(trace, derived, conclusionIsTrue);
+
     return question;
+}
+
+/**
+ * One link, read the way a syllogism is read.
+ *
+ * Shares its wording with the Set Hierarchy derivation deliberately: they are
+ * the same argument in the same mode, and a reader who met one form should not
+ * have to learn the other.
+ */
+function syllogismLines(
+    venn: NonNullable<Question["venn"]>,
+    support: SylPremise[],
+    derived: SylPremise,
+    negated: boolean,
+    isTrue: boolean,
+): string[] {
+    const ordered = inSyllogisticOrder(support, venn.roles);
+    return [
+        ...ordered.map(p => formatSylPremise(p, negated)),
+        `The two share ${hi(venn.roles.m)}, and the claim never mentions it`
+        + ` — that is the term the argument runs through.`,
+        ...nameTheInference(ordered, venn, t => hi(t)),
+        isTrue
+            ? `so ${formatSylPremise(derived, negated)}`
+            : `the premises give ${formatSylPremise(derived, negated)}, which the`
+              + ` claim contradicts`,
+    ];
 }
 
 /**
@@ -268,16 +191,7 @@ export function createSyllogism(ctx: GeneratorContext, numOfPremises: number) {
         if (built) return built;
     }
 
-    switch (ctx.syllogismGenerator) {
-        case SyllogismGenerator.All:
-            return createSyllogismAll(ctx, numOfPremises);
-        case SyllogismGenerator.Fredo:
-            return createSyllogismFredo(ctx, numOfPremises);
-        case SyllogismGenerator.Canyon:
-            return createSyllogismCanyon(ctx, numOfPremises);
-        default:
-            return createSyllogismAll(ctx, numOfPremises);
-    }
+    return createSyllogismCanyon(ctx, numOfPremises);
 }
 
 

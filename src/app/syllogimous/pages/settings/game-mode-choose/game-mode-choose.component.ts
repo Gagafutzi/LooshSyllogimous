@@ -1,20 +1,15 @@
 import { Component } from '@angular/core';
-import { LS_CAROUSEL_ADVANCE, LS_CAROUSEL_SECONDS, LS_GAME_MODE, LS_SYLLOGISM_GENERATOR } from '../../../constants/local-storage.constants';
+import { LS_CAROUSEL_ADVANCE, LS_CAROUSEL_SECONDS, LS_GAME_MODE } from '../../../constants/local-storage.constants';
 
-export enum SyllogismGenerator {
-    All = 'all',
-    Fredo = 'fredo',
-    Canyon = 'canyon'
-}
-
-/**
- * Which syllogism generator to use. No longer a user-facing choice — it was a
- * detail of how one mode is built rather than a way to play, and the stored
- * value is still honoured if it was set before the picker was removed.
+/*
+ * The syllogism generator choice lived here and is gone.
+ *
+ * The picker had already been removed as a detail of how one mode is built
+ * rather than a way to play, leaving a stored value that was still honoured.
+ * There is now one generator, so there is nothing for a stored value to select
+ * — an account that still holds one is simply ignored, which is what it would
+ * have got anyway since Canyon was the default.
  */
-export const getSyllogismGeneratorValue = () => {
-    return (localStorage.getItem(LS_SYLLOGISM_GENERATOR) || SyllogismGenerator.Canyon) as SyllogismGenerator;
-}
 
 @Component({
     selector: 'app-game-mode-choose',

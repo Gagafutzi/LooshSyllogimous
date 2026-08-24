@@ -35,7 +35,6 @@ function context(rungs: string[]): GeneratorContext {
         } as unknown as SettingsOverrideService,
         progressionService: { hasRung: () => false, depthBonusFor: () => 0 } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: (_t: string, r: string) => rungs.includes(r),
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };

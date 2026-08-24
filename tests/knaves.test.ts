@@ -38,7 +38,6 @@ function context(rungs: string[] = []): GeneratorContext {
             hasRung: () => false, depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: (_t: EnumQuestionType, r: string) => rungs.includes(r),
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
@@ -223,7 +222,6 @@ function spaceContext(): GeneratorContext {
             hasRung: () => false, depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: (_t: EnumQuestionType, r: string) => r === "speakers",
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };

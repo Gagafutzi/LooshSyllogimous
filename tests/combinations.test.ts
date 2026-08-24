@@ -106,7 +106,6 @@ function context(everyRung: boolean): GeneratorContext {
             hasRung: () => everyRung, depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: () => everyRung,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
@@ -284,7 +283,6 @@ test("a wide premise's third object survives a meta rewrite", () => {
                     hasRung: () => false, depthBonusFor: () => 0,
                 } as unknown as ProgressionService,
                 forceConstruction: "off",
-                syllogismGenerator: "canyon",
                 hasRung: () => false,
                 random: (n?: number) => createDistinction(ctx, n ?? 2),
             };

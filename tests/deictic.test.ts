@@ -57,7 +57,6 @@ function context(granted: boolean, deep = true): GeneratorContext {
             hasRung: () => granted, depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
-        syllogismGenerator: "canyon",
         hasRung: () => granted,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };

@@ -1,7 +1,6 @@
 import { Injectable } from "@angular/core";
 import { ConstructClaim, IArrangementPremise, IDirection3DProposition, IDirectionProposition, Question } from "../models/question.models";
 import { coinFlip, getCircularWays, getLinearWays, getRandomSymbols, getRelation, getSymbols, isPremiseLikeConclusion, createMetaRelationships, metarelateArrangement, pickUniqueItems, horizontalShuffleArrangement, shuffle, interpolateArrangementRelationship, fixBinaryInstructions, areGraphsIsomorphic } from "../utils/question.utils";
-import { generatePolysyllogism, formatSylPremise, getRandomRuleValid, getRandomRuleInvalid, getSyllogism } from "../utils/syllogism.utils";
 import { allCoords, answerFor, buildDeicticSpec, coordKey, reversalTextFor, statementFor, verifyAnswer } from "../utils/deictic.utils";
 import { CoordMap, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, drawTransforms, replay } from "../utils/transformations.utils";
 import {
@@ -43,7 +42,6 @@ import { EnumQuestionGroup, QUESTION_TYPE_SETTING_PARAMS } from "../constants/se
 import { Logger } from "../utils/logger";
 import { GameTimerService } from "./game-timer.service";
 import { settingsForTier, unlockRow } from "../utils/tier.utils";
-import { getSyllogismGeneratorValue, SyllogismGenerator } from "../pages/settings/game-mode-choose/game-mode-choose.component";
 import { neg, subj } from "../utils/phrasing";
 import { createAnalogy } from "../generators/analogy";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
@@ -357,7 +355,6 @@ export class GameService implements GeneratorContext {
     }
 
     /** The GeneratorContext setting; read here so no generator touches storage. */
-    get syllogismGenerator() { return getSyllogismGeneratorValue(); }
 
     /**
      * The GeneratorContext capability. Binary composes two other questions and
