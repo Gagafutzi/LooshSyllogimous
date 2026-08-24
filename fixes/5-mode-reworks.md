@@ -117,9 +117,19 @@ Two properties, both of which this item fails:
 
 `generators/widest-group.ts`. The reading the author confirmed, built as a new
 mode rather than a rewrite: the old generator keeps working and keeps its
-ability history, and it can now be turned down to *Rarely* with the per-mode
-frequency setting rather than being switched off, which would also stop it being
-measured.
+ability history.
+
+**Oddest Relation is now off by default**, on the author's call, the same
+retirement Transformation Matching got in [5.1](#51-transformation-matching):
+`enabled: false` in the settings params and zeroed in every row of
+`TIERS_MATRIX`. Kept rather than deleted — the ability history is real, and a
+player who liked it can switch it back on in Customise.
+
+**Retirement is two edits, and doing one is worse than doing neither.** Turning
+it off in the params alone leaves a fresh install without it and every existing
+account with it, because the tier matrix is what each tier offers — twenty rows
+still had it. `tsc` cannot see this: the matrix is a positional tuple and only
+its width is checked. The test now asserts both halves for both retired modes.
 
 **Stated as spatial premises against one marker**, the way every other spatial
 mode states things:

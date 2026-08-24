@@ -271,8 +271,16 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 8,
         basic: false
     },
+    /*
+     * Off by default: superseded by Widest Group, which asks the same question
+     * per dimension and measures the spread between the members at that
+     * dimension's edges, rather than deciding every dimension by majority vote
+     * and counting departures. See fixes/5.2. Kept rather than deleted, for the
+     * same reasons as Transformation Matching above -- the ability history is
+     * real, and a player who liked it can switch it back on in Customise.
+     */
     [EnumQuestionType.OddestRelation]: {
-        enabled: true,
+        enabled: false,
         minNumOfPremises: 6,
         maxNumOfPremises: 8,
         basic: false

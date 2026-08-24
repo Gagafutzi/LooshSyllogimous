@@ -18,6 +18,7 @@ import {
 } from "../src/app/syllogimous/constants/game.constants";
 import { DEFAULT_ABILITY } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
+import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 
 const modesAt = (row: number) => TIERS_MATRIX[row].filter(v => v).length;
 
@@ -144,24 +145,44 @@ test("a tier is one level of measured ability", () => {
 /**
  * A retired mode stays retired.
  *
- * Transformation Matching is superseded by Axis Maps, which asks the same
- * question relationally and in more than two dimensions. It is off at every
- * tier rather than deleted: the ability history is real, and a player who liked
- * it can switch it back on in Customise. What must not happen is its coming
- * back by default because a column was inserted beside it and everything
- * shifted -- which the positional matrix makes easy and `tsc` cannot see.
+ * Two modes are superseded rather than deleted -- Transformation Matching by
+ * Axis Maps, which asks the same question relationally and in more than two
+ * dimensions, and Oddest Relation by Widest Group, which measures each
+ * dimension's spread between the members at its edges instead of deciding every
+ * dimension by majority vote. Both are kept because the ability history is real
+ * and a player who liked one can switch it back on in Customise.
+ *
+ * What must not happen is either coming back by default because a column was
+ * inserted beside it and everything shifted -- which the positional matrix
+ * makes easy and `tsc` cannot see.
+ *
+ * Retirement is **two** edits, and this asserts both. `enabled: false` in the
+ * settings params is what a fresh install reads; the tier matrix is what every
+ * tier offers, and a mode zeroed in one and not the other comes back the moment
+ * the tier is reached. Oddest Relation was turned off in the params first and
+ * still offered at twenty tiers.
  */
+const RETIRED: Array<[EnumQuestionType, EnumQuestionType]> = [
+    [EnumQuestionType.TransformMatching, EnumQuestionType.AxisMap],
+    [EnumQuestionType.OddestRelation, EnumQuestionType.WidestGroup],
+];
+
 test("a retired mode is not offered at any tier", () => {
-    const idx = ORDERED_QUESTION_TYPES.indexOf(EnumQuestionType.TransformMatching);
-    assert(idx >= 0, "the retired mode has left the order entirely");
+    for (const [retired, heir] of RETIRED) {
+        const idx = ORDERED_QUESTION_TYPES.indexOf(retired);
+        assert(idx >= 0, `${retired} has left the order entirely`);
 
-    for (const [row, offered] of Object.entries(TIERS_MATRIX)) {
-        equal(offered[idx], 0, `tier ${row} still offers Transformation Matching`);
+        for (const [row, offered] of Object.entries(TIERS_MATRIX)) {
+            equal(offered[idx], 0, `tier ${row} still offers ${retired}`);
+        }
+
+        equal(QUESTION_TYPE_SETTING_PARAMS[retired].enabled, false,
+            `${retired} is off at every tier but still on for a fresh install`);
+
+        // And its replacement is offered, or the retirement removed a mode
+        // rather than replacing one.
+        const heirIdx = ORDERED_QUESTION_TYPES.indexOf(heir);
+        assert(Object.values(TIERS_MATRIX).some(row => row[heirIdx] === 1),
+            `${heir} is not offered at any tier, so retiring ${retired} lost a mode`);
     }
-
-    // And its replacement is offered, or the retirement removed a mode rather
-    // than replacing one.
-    const heir = ORDERED_QUESTION_TYPES.indexOf(EnumQuestionType.AxisMap);
-    assert(Object.values(TIERS_MATRIX).some(row => row[heir] === 1),
-        "Axis Maps is not offered at any tier, so the retirement lost a mode");
 });
