@@ -26,6 +26,16 @@ from reading it:
   reach a `hasRung` call, a `depthBonusFor` prefix, or a `settings.enabled.*`
   flag the generator reads.
 
+Finding one leaves two repairs, and which applies turns on whether the rung's
+name has a referent the premise count does not already fix. Anchor Space is the
+first kind: it declared `negation`, `RUNG_COST` priced it at 0.6, Customise
+labelled it "Negated premises", and `createAnchorSpace` read none of it — but
+that mode's premise count is an object count, and how an offset is *worded* is
+not something a count decides. The quantity was there; only the wiring was
+missing, so the wiring is the fix. Deictic Relations is the second kind, below.
+Reach for deletion only once wiring has been shown to be impossible: a rung
+taken off a mode that could have carried it is difficulty the mode no longer has.
+
 An empty ladder is not one thing, and the two kinds want opposite fixes.
 
 *Nothing left to add* — Infer the Relation, Shape and Rotation. Difficulty comes
