@@ -5,12 +5,12 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { GeneratorContext, modifierOn } from "./context";
+import { GeneratorContext, applySeries, buildSeries, modifierOn, seriesWanted } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
-import { rel, subj } from "../utils/phrasing";
+import { hi, rel, subj } from "../utils/phrasing";
 
 export function createDistinction(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createDistinction");
@@ -94,9 +94,67 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
 
     question.explanation = explainDistinction(start, walk);
 
+    /*
+     * A second and third pair, asked one at a time.
+     *
+     * The buckets are the whole answer to any pair at once — two objects are on
+     * the same side or they are not — so a further claim costs nothing to
+     * decide and asks about a different part of the chain. Which is the point:
+     * the first claim can be settled by following one thread from `first`, and
+     * the second usually cannot be settled from that same thread.
+     */
+    if (seriesWanted(ctx)) {
+        const side = (w: string) => question.buckets[0].includes(w) ? 0 : 1;
+        const placed = [...question.buckets[0], ...question.buckets[1]];
+
+        const claims = buildSeries(want => {
+            if (placed.length < 2) return null;
+            const a = placed[Math.floor(Math.random() * placed.length)];
+            const b = placed[Math.floor(Math.random() * placed.length)];
+            if (a === b) return null;
+
+            const same = side(a) === side(b);
+            // The claim is what we want it to be; whether it holds is what the
+            // buckets say about the words it names.
+            const says = want ? same : !same;
+            return {
+                text: `${subj(a)} is ${getRelation(settings, type, says)} ${subj(b)}`,
+                isValid: says === same,
+                key: [a, b].sort().join("\u0000"),
+            };
+        });
+        if (applySeries(question, claims)) {
+            /*
+             * The walk establishes the sides; each claim is then read off them.
+             *
+             * The single-claim derivation closes on the pair the item asked
+             * about, and with a series that pair is no longer the one on the
+             * card — a closing line naming objects the question never mentions
+             * is the one dangerous shape a derivation has, and the invariant
+             * test caught it on the first run.
+             */
+            question.explanation = [
+                ...explainDistinction(start, walk).slice(0, -1),
+                ...claims.map((c, i) => {
+                    const [a, b] = extractPair(c.text);
+                    const same = side(a) === side(b);
+                    return `${subj(a)} and ${subj(b)} are on `
+                        + `${hi(same ? "the same side" : "opposite sides")}, so claim`
+                        + ` ${i + 1} ${c.isValid ? "holds" : "does not"}.`;
+                }),
+            ];
+        }
+    }
+
     shuffle(question.premises);
 
     return question;
+}
+
+/** The two objects a rendered claim names, in order. */
+function extractPair(text: string): [string, string] {
+    const found = [...text.matchAll(/<span class="subject">([^<]*)<\/span>/g)].map(m => m[1]);
+    return [found[0] ?? "", found[1] ?? ""];
 }
 
 /**

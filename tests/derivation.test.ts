@@ -102,7 +102,13 @@ const MODES: Array<[EnumQuestionType, (c: GeneratorContext, n: number) => Questi
 
 /** Everything the item actually asks about. */
 function asked(q: Question): string {
-    const conclusion = Array.isArray(q.conclusion) ? q.conclusion.join(" ") : q.conclusion;
+    const conclusion = [
+        Array.isArray(q.conclusion) ? q.conclusion.join(" ") : q.conclusion,
+        // A series asks every one of its claims, one after another, and the
+        // derivation is shown once at the end — so all of them are fair game
+        // for the closing line, not only the one the card opened on.
+        ...q.series.map(c => c.text),
+    ].join(" ");
     if (q.answerMode === "boolean") return conclusion;
     return [
         conclusion,

@@ -55,7 +55,7 @@ export interface GeneratorContext {
     random(numOfPremises?: number, basic?: boolean): Question;
 }
 
-import { ConstructClaim } from "../models/question.models";
+import { ConstructClaim, SeriesClaim } from "../models/question.models";
 import { EnumQuestionType } from "../constants/question.constants";
 
 /* ---- helpers shared by more than one family ---- */
@@ -113,6 +113,73 @@ export function deepConclusions(ctx: GeneratorContext): boolean {
     // Absent reads as on, the same rule the stored state uses, so the deep
     // model is what you get unless something says otherwise.
     return ctx.settingsOverrideService.deepConclusions !== false;
+}
+
+/**
+ * Whether an item should ask several conclusions rather than one.
+ *
+ * On for every mode unless the player switches it off, which is why this reads
+ * the global flag directly rather than a ladder: asking a second question of an
+ * arrangement already built is not a difficulty a mode should have to earn, and
+ * a form that only some modes offered would be a setting that means different
+ * things depending on what came up.
+ */
+export function seriesWanted(ctx: GeneratorContext): boolean {
+    const forced = ctx.settingsOverrideService.linearOverride("multiConclusion");
+    return forced === null ? true : !!forced;
+}
+
+/**
+ * Draw the claims an item asks one after another.
+ *
+ * The shared half of the series form: how many, each on its own coin, all of
+ * them distinct, and the whole thing abandoned rather than shortened if the
+ * layout cannot supply them. What it cannot do is *make* a claim — only the
+ * mode knows what a claim about its own arrangement is — so that comes in as
+ * `draw`, the same shape `buildConstructClaims` uses for construction.
+ *
+ * **Each claim on its own coin.** The set this replaced was all-true or
+ * exactly-one-false, because it was answered as an AND and several false claims
+ * would let it be settled from whichever you checked first. Asked one at a time
+ * that reasoning inverts: each claim is its own question, so each wants its own
+ * even chance.
+ *
+ * **All or nothing.** A three-claim item that quietly became one claim would be
+ * scored on the same scale as a genuine one, and would hand back time for a
+ * claim that never came.
+ */
+export function buildSeries(
+    draw: (wantValid: boolean) => { text: string; isValid: boolean; key: string } | null,
+    count = 2 + Math.floor(Math.random() * 2),
+): SeriesClaim[] {
+    const out: SeriesClaim[] = [];
+    const used = new Set<string>();
+
+    for (let guard = 0; out.length < count && guard < count * 40; guard++) {
+        const claim = draw(Math.random() < 0.5);
+        if (!claim || used.has(claim.key)) continue;
+        used.add(claim.key);
+        out.push({ text: claim.text, isValid: claim.isValid });
+    }
+
+    return out.length === count ? out : [];
+}
+
+/**
+ * Put a drawn series on the question, or leave it alone if there is none.
+ *
+ * The card reads `conclusion` and `isValid`, so a series has to present its
+ * first claim through them — every renderer, every scorer and every derivation
+ * check then works unchanged, and the series is a thing the answer flow steps
+ * through rather than a second kind of question.
+ */
+export function applySeries(question: Question, claims: SeriesClaim[]): boolean {
+    if (claims.length < 2) return false;
+    question.series = claims;
+    question.seriesAt = 0;
+    question.conclusion = claims[0].text;
+    question.isValid = claims[0].isValid;
+    return true;
 }
 
 /**
