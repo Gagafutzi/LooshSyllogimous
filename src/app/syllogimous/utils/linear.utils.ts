@@ -102,6 +102,16 @@ export interface LinearScale {
         link: string;
         same: string;
         opposite: string;
+        /**
+         * `opposite` with the verb and the link taken off.
+         *
+         * A conclusion that names every axis lists clauses — "west, later, 2
+         * steps clockwise, opposite kind" — so a relation shaped like "is
+         * diametrically opposite to" cannot appear in it. The whole-relation
+         * form is still what a single-axis claim uses, so both are kept rather
+         * than one being derived from the other by cutting words off it.
+         */
+        oppositeClause: string;
     };
 }
 
@@ -122,7 +132,7 @@ export const LINEAR_SCALES: Record<string, LinearScale> = {
         cyclic: {
             direction: ["later in the cycle", "earlier in the cycle"], step: "step", link: "than",
             same: "is at the same point of the cycle as",
-            opposite: "is half a cycle from",
+            opposite: "is half a cycle from", oppositeClause: "half a cycle away",
         },
     },
     contains: {
@@ -184,7 +194,7 @@ export const LINEAR_SCALES: Record<string, LinearScale> = {
         cyclic: {
             direction: ["clockwise", "anticlockwise"], step: "step", link: "from",
             same: "is at the same position as",
-            opposite: "is diametrically opposite to",
+            opposite: "is diametrically opposite to", oppositeClause: "diametrically opposite",
         },
     },
 };
@@ -205,7 +215,7 @@ export const SPATIAL_SCALES: Record<string, LinearScale> = {
         cyclic: {
             direction: ["clockwise", "anticlockwise"], step: "step", link: "from",
             same: "is at the same bearing as",
-            opposite: "is diametrically opposite to",
+            opposite: "is diametrically opposite to", oppositeClause: "diametrically opposite",
         },
     },
     north: {

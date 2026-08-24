@@ -17,8 +17,9 @@
 
 import { assert, equal, seeded, test } from "./harness";
 import {
-    buildBranching, buildChain, graphDistance, pickDistantPair,
+    LINEAR_SCALES, buildBranching, buildChain, graphDistance, pickDistantPair,
 } from "../src/app/syllogimous/utils/linear.utils";
+import { buildNdWideConclusion } from "../src/app/syllogimous/utils/ndspace.utils";
 import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
 import { createLinear } from "../src/app/syllogimous/generators/linear";
@@ -32,15 +33,17 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 
+const strip = (t: string) => t.replace(/<[^>]+>/g, "");
+
 /** Nothing switched on: no circular axes, no under-specification. */
-function ndContext(deep = true): GeneratorContext {
+function ndContext(deep = true, loops = 0): GeneratorContext {
     const settings = new Settings();
     for (const type of Object.values(EnumQuestionType)) settings.question[type].enabled = true;
     const ctx: GeneratorContext = {
         settings,
         logger: new Logger("error", false),
         settingsOverrideService: {
-            linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
+            linearOverride: () => null, axesFor: () => null, circularAxes: () => loops,
             spread: () => null, depthFor: () => 0, scramble: 100,
             // Absent would read as on, so the off case has to say so outright.
             deepConclusions: deep,
@@ -690,4 +693,115 @@ test("switching it off asks a rotation about whoever it likes", () => {
         `only ${relative} relative items; off, they are meant to be the commoner form`);
     assert(restated > 0,
         "no conclusion restated a premise, so the rotation guard is still on");
+});
+
+/**
+ * A ring is an axis too.
+ *
+ * The wide claim declined on any item carrying a circular axis, because a
+ * displacement has no clause of the shape the claim is a list of. So the modes
+ * that make a ring the interesting dimension were exactly the ones that never
+ * got a wide conclusion — the fallback was silent, and an item with a loop in
+ * it looked like an item the width work had simply missed.
+ *
+ * Checked by axis colour like the straight case. The arithmetic behind the new
+ * clause is checked separately, below, against a layout whose coordinates are
+ * written down rather than generated — a clause naming a number of steps is a
+ * stronger claim than a direction word, and one wrong in the generator rather
+ * than in the wording would be graded confidently against a claim nobody could
+ * derive.
+ */
+test("a ring gets named in the conclusion like any other axis", () => {
+    const ctx = ndContext(true, 1);
+    let wide = 0, ringed = 0;
+
+    seeded(90210, () => {
+        for (const type of [
+            EnumQuestionType.Space3D, EnumQuestionType.Space4D,
+            EnumQuestionType.Space5D, EnumQuestionType.Space6D,
+        ]) {
+            for (let rep = 0; rep < 30; rep++) {
+                let q;
+                try { q = createNdSpace(ctx, 3, type); } catch { continue; }
+                const conclusion = String(q.conclusion ?? "");
+                if (!conclusion || q.answerMode !== "boolean") continue;
+
+                const stated = new Set<string>();
+                for (const p of q.premises) for (const d of dims(p)) stated.add(d);
+                if (stated.size < 2) continue;
+
+                // A loop shows up as a step count or as one of the two phrases
+                // that stand in for one; a straight axis never says either.
+                if (/\d+ steps? (clockwise|anticlockwise|later|earlier)|half a cycle away|diametrically opposite/
+                    .test(conclusion)) ringed++;
+
+                equal(dims(conclusion).size, stated.size,
+                    `${type}: premises name ${stated.size} axes, conclusion names`
+                    + ` ${dims(conclusion).size} — ${conclusion}`);
+                wide++;
+            }
+        }
+    });
+
+    assert(wide > 20, `only ${wide} items were wide enough to check`);
+    assert(ringed > 0,
+        "no conclusion stated a displacement, so the circular clause is unused");
+});
+
+/**
+ * The ring arithmetic, against coordinates nobody generated.
+ *
+ * A loop of six with the two objects four apart: read as a coordinate
+ * difference that is "four", and read as a ring it is **two steps the other
+ * way**, because nobody says the long way round about a dial. That is the one
+ * mistake this clause can make and the one an item would never reveal — both
+ * readings produce a confident, well-formed sentence, and only one of them is
+ * what the premises say.
+ *
+ * Written out by hand for exactly that reason: a generated layout would be
+ * checked against the same code that built it.
+ */
+test("a displacement in a wide claim is the short way round", () => {
+    const ring = { scale: LINEAR_SCALES["horizontal"], modulus: 6 };
+    const straight = { scale: LINEAR_SCALES["vertical"] };
+
+    const layout = {
+        words: ["Ash", "Bee"],
+        axes: [ring, straight],
+        // Four *forward* on the ring is two back, and Ash is plainly above Bee.
+        coords: { Ash: [4, 1], Bee: [0, 0] },
+        edges: [{ from: "Bee", to: "Ash", deltas: [4, 1] }],
+        neighbors: { Ash: ["Bee"], Bee: ["Ash"] },
+        branching: false,
+    } as unknown as Parameters<typeof buildNdWideConclusion>[0];
+
+    seeded(11, () => {
+        const c = buildNdWideConclusion(layout, "Ash", "Bee", true, false);
+        assert(!!c, "a two-axis layout with a ring could not carry a wide claim");
+
+        const text = strip(String(c!.text));
+        assert(/\b2 steps anticlockwise\b/.test(text),
+            `four round a loop of six is two anticlockwise, not: ${text}`);
+        assert(!/\b4 steps\b/.test(text), `the long way round was stated: ${text}`);
+        // The straight axis is still there and still says what it always said.
+        assert(text.includes(LINEAR_SCALES["vertical"].direction[0]),
+            `the straight axis went missing: ${text}`);
+    });
+
+    // A false claim has to be false *on the ring* when the ring is what it
+    // lies about — a wrong displacement, not a wrong direction word.
+    seeded(12, () => {
+        let lied = 0;
+        for (let rep = 0; rep < 40; rep++) {
+            const c = buildNdWideConclusion(layout, "Ash", "Bee", false, false);
+            if (!c) continue;
+            const text = strip(String(c!.text));
+            if (c!.axis === 0) {
+                assert(!/\b2 steps anticlockwise\b/.test(text),
+                    `a false claim restated the true displacement: ${text}`);
+                lied++;
+            }
+        }
+        assert(lied > 5, `the ring never carried the lie in ${40} draws`);
+    });
 });

@@ -355,12 +355,30 @@ the premises use, with a false claim wrong on exactly one axis. A 7-D item now
 reads *"Amber is west, south, above, later, wider, lower, opposite kind relative
 to Neck"* where it read *"Chalk is west of Museum"*.
 
-Two cases still fall back to the single-axis claim and both are noted in the
-code: a **circular axis**, whose relation is a displacement in steps rather than
-a direction word and so has no clause of this shape; and a pair the premises
-leave **unsettled on some axis**, which the under-specification rungs produce on
-purpose. The first is the one worth finishing — it needs `displacementText`
-split into a clause and a sentence.
+**The circular case is now built.** `displacementClause` is the missing shape:
+the same three cases and the same short-way-round rule as `displacementText`,
+said as a phrase rather than as a claim, so it can sit in the comma-joined list
+a wide conclusion is. `oppositeClause` was added beside `opposite` on each of
+the three cyclic scales rather than derived from it by cutting words off, since
+"is diametrically opposite to" and "diametrically opposite" are both wanted and
+neither is a substring transformation of the other worth relying on.
+
+This mattered more than the count of affected items suggests: the fallback was
+silent, so the modes that make a ring the interesting dimension were exactly the
+ones that never got a wide conclusion, and an item with a loop in it looked like
+one the width work had simply missed.
+
+The arithmetic is tested against a layout written down by hand rather than
+generated, because the mistake available here — reading the coordinate
+difference instead of the ring displacement, so four round a loop of six is
+stated as four rather than as two the other way — produces a confident,
+well-formed sentence either way, and a generated layout would only check the
+code against itself.
+
+One case still falls back: a pair the premises leave **unsettled on some axis**,
+which the under-specification rungs produce on purpose. A claim about an axis
+nobody stated is unanswerable rather than hard, so that one is correct as it
+stands.
 
 The explanation still covers one axis: the one a false claim lies about, which
 is right, or the pair's chosen axis on a true claim, which is thin. That is

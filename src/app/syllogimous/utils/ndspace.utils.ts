@@ -978,11 +978,17 @@ export function buildNdConclusion(
  * seven-dimensional item back into a one-dimensional one by the back door.
  *
  * Returns null when the item cannot carry a wide claim, and the caller falls
- * back to the single-axis form. Two cases: a circular axis, whose relation is a
- * displacement in steps rather than a direction word and so has no clause of
- * this shape; and a pair the premises do not settle on every axis, which the
- * under-specification rungs produce deliberately — a claim about an axis nobody
- * stated is unanswerable rather than hard.
+ * back to the single-axis form. One case is left: a pair the premises do not
+ * settle on every axis, which the under-specification rungs produce
+ * deliberately — a claim about an axis nobody stated is unanswerable rather
+ * than hard.
+ *
+ * **A circular axis used to be the other case, and is not any more.** Its
+ * relation is a displacement in steps rather than a direction word, so it had
+ * no clause of this shape and any item carrying one fell back to a claim about
+ * a single axis — which meant the modes that make a ring the interesting
+ * dimension were exactly the modes that never got a wide conclusion.
+ * `displacementClause` is that missing shape.
  */
 export function buildNdWideConclusion(
     layout: NdLayout,
@@ -991,12 +997,20 @@ export function buildNdWideConclusion(
     wantValid: boolean,
     mustBeDetermined: boolean,
 ): NdConclusion | null {
-    if (layout.axes.some(isCircular)) return null;
     if (mustBeDetermined
         && layout.axes.some((_, i) => !determinedOn(layout, i, a, b))) return null;
 
     const colors = ndAxisColors(layout.axes);
-    const truth = layout.axes.map((_, i) => layout.coords[a][i] - layout.coords[b][i]);
+    /*
+     * A ring's fact about a pair is how far round, so its entry here is the
+     * displacement rather than a coordinate difference. The two are different
+     * numbers — on a loop of five, coordinates 0 and 4 differ by -4 and sit one
+     * step apart — and mixing them up would state the long way round as though
+     * it were the short one.
+     */
+    const truth = layout.axes.map((axis, i) => isCircular(axis)
+        ? displacementOn(layout, i, a, b)
+        : layout.coords[a][i] - layout.coords[b][i]);
     const claim = [...truth];
 
     /*
@@ -1011,7 +1025,11 @@ export function buildNdWideConclusion(
         const candidates = layout.axes.map((_, i) => i);
         flipped = pick(candidates);
         const axis = layout.axes[flipped];
-        if (isParity(axis)) {
+        if (isCircular(axis)) {
+            // Off by one where it can be: a near miss on a ring is the claim
+            // worth having to check, and a wild one is dismissed on sight.
+            claim[flipped] = pickWrongDisplacement(truth[flipped], axis.modulus!);
+        } else if (isParity(axis)) {
             claim[flipped] = truth[flipped] + 1;
         } else {
             const kinds = [-1, 0, 1].filter(k => k !== Math.sign(truth[flipped]));
@@ -1019,7 +1037,11 @@ export function buildNdWideConclusion(
         }
     }
 
-    const clauses = layout.axes.map((axis, i) => hi(axisClause(axis, claim[i]), colors[i]));
+    const clauses = layout.axes.map((axis, i) => hi(
+        isCircular(axis)
+            ? displacementClause(claim[i], axis.modulus!, axis.scale.cyclic!, axis.scale.tie)
+            : axisClause(axis, claim[i]),
+        colors[i]));
     return {
         text: `${subj(a)} is ${clauses.join(", ")} relative to ${subj(b)}`,
         isValid: wantValid,
@@ -1037,6 +1059,29 @@ function pickWrongDisplacement(truth: number, m: number): number {
     if (!options.length) return truth;
     const near = options.filter(d => mod(d - truth, m) === 1 || mod(truth - d, m) === 1);
     return near.length && Math.random() < 0.6 ? pick(near) : pick(options);
+}
+
+/**
+ * A displacement as a clause: no subjects, no verb, no link word.
+ *
+ * The sentence form below states one axis and so can be a whole relation —
+ * *"Amber is 2 steps clockwise from Neck"*. A conclusion naming every axis
+ * cannot: it is a comma-joined list sitting between one subject and the other,
+ * so each entry has to be a phrase rather than a claim. Same three cases and
+ * the same short-way-round rule, said the other way.
+ */
+function displacementClause(
+    steps: number,
+    m: number,
+    c: NonNullable<LinearScale["cyclic"]>,
+    tie: string,
+): string {
+    if (steps === 0) return tie;
+    if (m % 2 === 0 && steps === m / 2) return c.oppositeClause;
+    const forward = steps <= m / 2;
+    const n = forward ? steps : m - steps;
+    const dir = forward ? c.direction[0] : c.direction[1];
+    return `${n} ${n === 1 ? c.step : c.step + "s"} ${dir}`;
 }
 
 function displacementText(
