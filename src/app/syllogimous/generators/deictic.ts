@@ -6,7 +6,7 @@
  */
 
 import { hi, subj } from "../utils/phrasing";
-import { GeneratorContext, deepConclusions } from "./context";
+import { GeneratorContext, deepConclusions, buildSeries, extendWithSeries, seriesWanted } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { DeicticSpec, POLES, allCoords, answerFor, buildDeicticSpec, coordKey, resolve, reversalTextFor, statementFor, verifyAnswer } from "../utils/deictic.utils";
@@ -145,6 +145,37 @@ export function createDeictic(ctx: GeneratorContext, numOfPremises: number) {
         question.depth = gridPremises.length
             + spec.reversals.filter(r => r % 2 === 1).length;
         question.explanation = explainDeictic(spec, uttered, correct, claimed, deep);
+
+        /*
+         * More utterances against the same grid and the same reversals.
+         *
+         * The reversals are the expensive part and they are read once; a second
+         * utterance asks the reader to apply them again to a different cell,
+         * which is the thing the mode is for. Under elimination the withheld
+         * position is a further trap: most cells are stated, so a claim about
+         * one of those is answered by reading, and a claim about the gap is not.
+         */
+        if (seriesWanted(ctx)) {
+            extendWithSeries(question, buildSeries(want => {
+                const cell = cells[Math.floor(Math.random() * cells.length)];
+                const right = answerFor(spec, cell);
+                if (!right) return null;
+
+                const said = want
+                    ? right
+                    : pickUniqueItems(question.bucket.filter(s => s !== right), 1).picked[0];
+                if (!said) return null;
+
+                const text = statementFor(spec.axes, cell, said);
+                if (question.premises.includes(text)) return null;
+
+                return {
+                    text,
+                    isValid: verifyAnswer(spec, cell, said),
+                    key: coordKey(cell) + "|" + said,
+                };
+            }));
+        }
         return question;
     }
 

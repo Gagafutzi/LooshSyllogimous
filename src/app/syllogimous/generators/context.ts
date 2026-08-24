@@ -144,13 +144,14 @@ export function seriesWanted(ctx: GeneratorContext): boolean {
  * that reasoning inverts: each claim is its own question, so each wants its own
  * even chance.
  *
- * **All or nothing.** A three-claim item that quietly became one claim would be
+ * **All or nothing.** A two-claim addition that quietly became one would be
  * scored on the same scale as a genuine one, and would hand back time for a
- * claim that never came.
+ * claim that never came. `count` is how many to add *after* the mode's own
+ * conclusion, so one or two.
  */
 export function buildSeries(
     draw: (wantValid: boolean) => { text: string; isValid: boolean; key: string } | null,
-    count = 2 + Math.floor(Math.random() * 2),
+    count = 1 + Math.floor(Math.random() * 2),
 ): SeriesClaim[] {
     const out: SeriesClaim[] = [];
     const used = new Set<string>();
@@ -166,19 +167,30 @@ export function buildSeries(
 }
 
 /**
- * Put a drawn series on the question, or leave it alone if there is none.
+ * Add drawn claims after the one the mode already built.
  *
- * The card reads `conclusion` and `isValid`, so a series has to present its
- * first claim through them — every renderer, every scorer and every derivation
- * check then works unchanged, and the series is a thing the answer flow steps
- * through rather than a second kind of question.
+ * **The item keeps its own conclusion, and the extra claims come after it.**
+ * That is the whole trick, and the first version missed it: replacing the
+ * conclusion meant every mode also had to rewrite its derivation, because the
+ * old one closed on a pair the card no longer asked about. Appending instead
+ * leaves the conclusion, the derivation and every renderer exactly as they
+ * were, and a mode joins the form by supplying one thing — a way to draw
+ * another claim about the arrangement it has already built.
+ *
+ * The derivation then covers claim one, which is the claim most worth
+ * explaining: it is the one a reader who lost the thread lost it on.
  */
-export function applySeries(question: Question, claims: SeriesClaim[]): boolean {
-    if (claims.length < 2) return false;
-    question.series = claims;
+export function extendWithSeries(question: Question, extra: SeriesClaim[]): boolean {
+    if (!extra.length) return false;
+
+    const first = {
+        text: Array.isArray(question.conclusion) ? question.conclusion[0] : question.conclusion,
+        isValid: question.isValid,
+    };
+    if (!first.text) return false;
+
+    question.series = [first, ...extra];
     question.seriesAt = 0;
-    question.conclusion = claims[0].text;
-    question.isValid = claims[0].isValid;
     return true;
 }
 

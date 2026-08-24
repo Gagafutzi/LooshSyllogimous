@@ -66,6 +66,11 @@ export function createBinary(ctx: GeneratorContext, numOfPremises: number) {
         operandTemplates.push('$a <div class="is-connector">is equal to</div> $b');
     }
 
+    /*
+     * Binary composes two other questions into one claim, so neither inner
+     * item's series survives: the operands are read for their conclusions, and
+     * the compound is a single true-or-false about both.
+     */
     const question = new Question(topType);
     const flip = coinFlip();
     const operandIndex = Math.floor(Math.random() * operands.length);

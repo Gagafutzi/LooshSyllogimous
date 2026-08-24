@@ -5,7 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { GeneratorContext, applySeries, buildSeries, modifierOn, seriesWanted } from "./context";
+import { GeneratorContext, buildSeries, extendWithSeries, modifierOn, seriesWanted } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
@@ -123,38 +123,12 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
                 key: [a, b].sort().join("\u0000"),
             };
         });
-        if (applySeries(question, claims)) {
-            /*
-             * The walk establishes the sides; each claim is then read off them.
-             *
-             * The single-claim derivation closes on the pair the item asked
-             * about, and with a series that pair is no longer the one on the
-             * card — a closing line naming objects the question never mentions
-             * is the one dangerous shape a derivation has, and the invariant
-             * test caught it on the first run.
-             */
-            question.explanation = [
-                ...explainDistinction(start, walk).slice(0, -1),
-                ...claims.map((c, i) => {
-                    const [a, b] = extractPair(c.text);
-                    const same = side(a) === side(b);
-                    return `${subj(a)} and ${subj(b)} are on `
-                        + `${hi(same ? "the same side" : "opposite sides")}, so claim`
-                        + ` ${i + 1} ${c.isValid ? "holds" : "does not"}.`;
-                }),
-            ];
-        }
+        extendWithSeries(question, claims);
     }
 
     shuffle(question.premises);
 
     return question;
-}
-
-/** The two objects a rendered claim names, in order. */
-function extractPair(text: string): [string, string] {
-    const found = [...text.matchAll(/<span class="subject">([^<]*)<\/span>/g)].map(m => m[1]);
-    return [found[0] ?? "", found[1] ?? ""];
 }
 
 /**

@@ -29,7 +29,9 @@
  * for it to happen is what makes this more than a presentation change.
  */
 
-import { GeneratorContext, deepConclusions } from "./context";
+import {
+    GeneratorContext, buildSeries, extendWithSeries, deepConclusions, seriesWanted,
+} from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
@@ -204,10 +206,6 @@ export function createNested(ctx: GeneratorContext, numOfPremises: number): Ques
          * carries the lie is drawn rather than fixed, or "the bracket is always
          * the true half" becomes the strategy.
          */
-        const lieInner = coinFlip();
-        const flip = (c: -1 | 0 | 1) => (c === 1 ? -1 : 1) as -1 | 1;
-        const statedOuter = claimTrue || lieInner ? truthOuter : flip(truthOuter);
-        const statedInner = claimTrue || !lieInner ? truthInner : flip(truthInner);
 
         /*
          * Relations from both chains, capped at the premise count.
@@ -221,20 +219,62 @@ export function createNested(ctx: GeneratorContext, numOfPremises: number): Ques
          */
         question.depth = Math.min(numOfPremises, spanOuter + spanInner);
 
-        question.conclusion =
-            `${hi("Outside the brackets")}: `
-            + renderRelation(outerScale, pair[0], pair[1], statedOuter, {}).text
-            + `, and ${hi("inside")} them: `
-            + renderRelation(innerScale, pair[0], pair[1], statedInner, {}).text;
+        /** One claim about one pair, stated in both spaces. */
+        const claimFor = (a: string, b: string, want: boolean) => {
+            const to = compare(outer, a, b), ti = compare(inner, a, b);
+            if (to === 0 || ti === 0) return null;
+
+            // A false claim is wrong in exactly one half, drawn. Wrong in both
+            // is spotted from whichever half the reader checks first.
+            const lie = coinFlip();
+            const so = want || lie ? to : flip(to);
+            const si = want || !lie ? ti : flip(ti);
+
+            return {
+                text: `${hi("Outside the brackets")}: `
+                    + renderRelation(outerScale, a, b, so, {}).text
+                    + `, and ${hi("inside")} them: `
+                    + renderRelation(innerScale, a, b, si, {}).text,
+                isValid: want,
+                key: [a, b].sort().join("\u0000"),
+            };
+        };
+
+        /*
+         * Several pairs, each asked in both spaces.
+         *
+         * The pair the item opens on is the deepest thing it has; the rest are
+         * drawn the same way, and each one asks the reader to hold both
+         * arrangements again rather than to re-read one answer. That is the
+         * form this mode wanted most of any: the interference is the exercise,
+         * and it is paid for once and asked about several times.
+         */
+        const single = claimFor(pair[0], pair[1], claimTrue);
+        if (!single) continue;
+
+        question.conclusion = single.text;
         question.isValid = claimTrue;
         question.explanation = [
             ...explain(outer, outerScale, pair[0], pair[1], false, truthOuter),
             ...explain(inner, innerScale, pair[0], pair[1], true, truthInner),
             claimTrue
                 ? `Both halves hold, so the claim does.`
-                : `The ${hi(lieInner ? "bracketed" : "outer")} half does not, so the`
-                  + ` claim does not — whatever the other half says.`,
+                : `One half does not, so the claim does not — whatever the other says.`,
         ];
+
+        /*
+         * More pairs, each asked in both spaces.
+         *
+         * The form this mode wanted most of any: the interference between the
+         * two arrangements is the exercise, and it is paid for once and asked
+         * about several times rather than once.
+         */
+        if (seriesWanted(ctx)) {
+            extendWithSeries(question, buildSeries(want => {
+                const p2 = pickShared(outer, inner, floor);
+                return p2 && claimFor(p2[0], p2[1], want);
+            }));
+        }
         return question;
     }
 
@@ -277,6 +317,9 @@ function alignCollision(
         return;
     }
 }
+
+/** The other way round on a scale, for a claim that is meant to be wrong. */
+const flip = (c: -1 | 0 | 1) => (c === 1 ? -1 : 1) as -1 | 1;
 
 /** A second ordering of the same objects, so the two spaces disagree freely. */
 function shuffled(words: string[]): string[] {

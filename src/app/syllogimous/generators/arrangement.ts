@@ -5,7 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { GeneratorContext } from "./context";
+import { GeneratorContext, buildSeries, extendWithSeries, seriesWanted } from "./context";
 import { IArrangementPremise, Question } from "../models/question.models";
 import { coinFlip, getCircularWays, getLinearWays, getSymbols, metarelateArrangement, pickUniqueItems, horizontalShuffleArrangement, shuffle, interpolateArrangementRelationship } from "../utils/question.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
@@ -115,6 +115,32 @@ export function createArrangement(ctx: GeneratorContext, numOfPremises: number, 
     // Next to relationship with 3 elements are useless, in that case regenerate
     if (!isLinear && numOfEls === 3 && interpolated === EnumArrangements.Next) {
         return createArrangement(ctx, numOfPremises, type);
+    }
+
+    /*
+     * More pairs of the same arrangement.
+     *
+     * The order is settled once and answers any pair, so a further claim costs
+     * a lookup — and it is a different part of the ring or the line, which is
+     * the whole reason to ask twice rather than to ask longer.
+     */
+    if (seriesWanted(ctx)) {
+        extendWithSeries(question, buildSeries(want => {
+            const x = Math.floor(Math.random() * numOfEls);
+            const y = Math.floor(Math.random() * numOfEls);
+            if (x === y) return null;
+
+            const options = Object.entries(getWays(x, y, numOfEls, true))
+                .filter(([, data]) => data.possible === want);
+            if (!options.length) return null;
+
+            const [desc, data] = options[Math.floor(Math.random() * options.length)];
+            const text = `${subj(words[x])} `
+                + interpolateArrangementRelationship(
+                    { description: desc as EnumArrangements, steps: data.steps }, settings)
+                + ` ${subj(words[y])}`;
+            return { text, isValid: want, key: `${x}:${y}:${desc}` };
+        }));
     }
 
     question.rule = words.join(", ");

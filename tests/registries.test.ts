@@ -430,3 +430,69 @@ test("a mode that offers negation actually negates", () => {
     assert(silent.length === 0,
         `${silent.length} modes offer negation and never negate:\n  ` + silent.join("\n  "));
 });
+
+/* ------------------------------------------------------------------ *
+ * Series                                                              *
+ * ------------------------------------------------------------------ */
+
+/**
+ * A series belongs to the question it is on.
+ *
+ * Analogy takes a finished item from another mode and *reuses the object*,
+ * overwriting the conclusion with one of its own — so the inner mode's claims
+ * rode along, about a question the item no longer asks, and the answer flow
+ * would have stepped the player through them while the card said analogy.
+ *
+ * The check is cheap and general: whatever else a series contains, its first
+ * claim is the conclusion on the card. A series inherited from somewhere else
+ * fails that immediately, and so would a mode that replaced its conclusion and
+ * forgot to say so.
+ */
+test("a series starts with the conclusion the card is showing", () => {
+    const settings = new Settings();
+    for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;
+
+    const ctx: GeneratorContext = {
+        settings,
+        logger: new Logger("error", false),
+        settingsOverrideService: {
+            linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
+            spread: () => null, depthFor: () => 0, scramble: 100, rungOverride: () => null,
+        } as unknown as SettingsOverrideService,
+        progressionService: {
+            hasRung: () => false, depthBonusFor: () => 0,
+        } as unknown as ProgressionService,
+        forceConstruction: "off",
+        hasRung: () => false,
+        random: (n?: number) => createDistinction(ctx, n ?? 2),
+    };
+
+    let withSeries = 0;
+
+    seeded(4004, () => {
+        for (const type of ORDERED_QUESTION_TYPES) {
+            if (!BUILD[type]) continue;
+            const params = QUESTION_TYPE_SETTING_PARAMS[type];
+
+            for (let n = params.minNumOfPremises; n <= params.maxNumOfPremises; n++) {
+                for (let rep = 0; rep < 6; rep++) {
+                    let q;
+                    try { q = BUILD[type](ctx, n); } catch { continue; }
+                    if (!q.series.length) continue;
+                    withSeries++;
+
+                    assert(q.series.length > 1,
+                        `${type} carries a series of one, which is not a series`);
+                    equal(q.series[0].text,
+                        Array.isArray(q.conclusion) ? q.conclusion[0] : q.conclusion,
+                        `${type} shows a conclusion that is not the first of its series`);
+                    equal(q.series[0].isValid, q.isValid,
+                        `${type} is judged against something other than the claim it shows`);
+                    equal(q.seriesAt, 0, `${type} starts partway through its series`);
+                }
+            }
+        }
+    });
+
+    assert(withSeries > 20, `only ${withSeries} items carried a series at all`);
+});

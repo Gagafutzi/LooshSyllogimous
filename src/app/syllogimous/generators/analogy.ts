@@ -72,6 +72,23 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
 
     const choiceIndex = pickUniqueItems(choiceIndices, 1).picked[0];
 
+    /*
+     * Whatever this borrows, it does not borrow the other mode's questions.
+     *
+     * Analogy takes a finished item from one of five other modes and *reuses
+     * the object*, overwriting the conclusion with one of its own. Any series
+     * the inner mode drew is still on it — claims about a question this item no
+     * longer asks — and the answer flow would step the player through them
+     * while the card says analogy. Cleared where the takeover happens rather
+     * than in five branches.
+     */
+    const takeOver = (q: Question) => {
+        q.series = [];
+        q.seriesAt = 0;
+        q.seriesAnswers = [];
+        return q;
+    };
+
     let question = new Question(topType);
     let isValidSame;
     // Definite: every branch of the switch below assigns all four, and the
@@ -94,7 +111,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
 
     switch (choiceIndex) {
         case 0:
-            question = createDistinction(ctx, length);
+            question = takeOver(createDistinction(ctx, length));
             question.type = topType;
             question.conclusion = "";
 
@@ -123,7 +140,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
             const type = (choiceIndex === 1)
                 ? EnumQuestionType.ComparisonNumerical
                 : EnumQuestionType.ComparisonChronological;
-            question = createComparison(ctx, length, type);
+            question = takeOver(createComparison(ctx, length, type));
             question.type = topType;
             question.conclusion = "";
 
@@ -149,7 +166,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
             break;
         case 3:
             while (flip !== isValidSame) {
-                question = createDirection(ctx, length);
+                question = takeOver(createDirection(ctx, length));
                 question.type = topType;
                 question.conclusion = "";
 
@@ -177,7 +194,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
                 ? EnumQuestionType.Direction3DSpatial
                 : EnumQuestionType.Direction3DTemporal;
             while (flip !== isValidSame) {
-                question = createDirection3D(ctx, length, type);
+                question = takeOver(createDirection3D(ctx, length, type));
                 question.type = topType;
                 question.conclusion = "";
 
@@ -215,7 +232,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
                 ? EnumQuestionType.LinearArrangement
                 : EnumQuestionType.CircularArrangement;
             const isLinear = type === EnumQuestionType.LinearArrangement;
-            question = createArrangement(ctx, length, type);
+            question = takeOver(createArrangement(ctx, length, type));
             question.type = topType;
             question.conclusion = "";
             question.notes = [];

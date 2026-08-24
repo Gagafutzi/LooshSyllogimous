@@ -5,7 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { GeneratorContext } from "./context";
+import { GeneratorContext, buildSeries, extendWithSeries, seriesWanted } from "./context";
 import { IDirection3DProposition, IDirectionProposition, Question } from "../models/question.models";
 import { coinFlip, getSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
@@ -354,6 +354,40 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
     question.isValid = isValid;
     question.premises = premises.map(stringifyProposition);
     question.conclusion = stringifyProposition(conclusion);
+
+    /*
+     * More pairs, against the same map.
+     *
+     * The premises fix every object's position, so any pair has an answer the
+     * moment the map is built — and a second pair is usually reached by a
+     * different route through it, which is the reason to ask twice rather than
+     * to state one more premise.
+     */
+    if (seriesWanted(ctx)) {
+        const named = Object.keys(at);
+        extendWithSeries(question, buildSeries(want => {
+            if (named.length < 2) return null;
+            const x = named[Math.floor(Math.random() * named.length)];
+            const y = named[Math.floor(Math.random() * named.length)];
+            if (x === y) return null;
+
+            const truth = cardinalsFor(at[x][0] - at[y][0], at[x][1] - at[y][1]);
+            if (!truth.length) return null;
+
+            // A false claim moves a cardinal rather than inventing a direction:
+            // off by one is the miss worth making the reader check.
+            const said: [string, number][] = want
+                ? truth
+                : truth.map(([w, n], i) =>
+                    [w, i === 0 ? (n > 1 && coinFlip() ? n - 1 : n + 1) : n] as [string, number]);
+
+            return {
+                text: `${subj(x)} is ${getRelationship(said)} of ${subj(y)}`,
+                isValid: want,
+                key: `${x}:${y}`,
+            };
+        }));
+    }
     question.notes = [
         "Cardinal directions are strict and direct (e.g., \"north\" means exactly north, not \"north-east\" or \"north-west\")"
     ];
@@ -704,6 +738,30 @@ export function createDirection3D(ctx: GeneratorContext, numOfPremises: number, 
     question.isValid = isValid;
     question.premises = premises.map(stringifyProposition);
     question.conclusion = stringifyProposition(conclusion);
+
+    /*
+     * More pairs, against the same map. See the two-dimensional case; the only
+     * difference is that a wrong claim here has three axes to be wrong on, and
+     * it is wrong on exactly one — so it is not spotted from whichever axis the
+     * reader checks first.
+     */
+    if (seriesWanted(ctx)) {
+        const named = Object.keys(at3);
+        extendWithSeries(question, buildSeries(want => {
+            if (named.length < 2) return null;
+            const x = named[Math.floor(Math.random() * named.length)];
+            const y = named[Math.floor(Math.random() * named.length)];
+            if (x === y) return null;
+
+            const [dx, dy, dz] = [
+                at3[x][0] - at3[y][0], at3[x][1] - at3[y][1], at3[x][2] - at3[y][2],
+            ];
+            if (!dx && !dy && !dz) return null;
+
+            const text = `${subj(x)} is ${phrase3(dx + (want ? 0 : 1), dy, dz)} of ${subj(y)}`;
+            return { text, isValid: want, key: `${x}:${y}` };
+        }));
+    }
     question.notes = [
         "Cardinal directions are strict and direct (e.g., \"north\" means exactly north, not \"north-east\" or \"north-west\")"
     ];
