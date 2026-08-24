@@ -1205,3 +1205,46 @@ test("a syllogism composes nearly all of what it states", () => {
             + " the draw is not actually being narrowed");
     });
 });
+
+/**
+ * An operation has to arrive after the thing it operates on.
+ *
+ * Read last, a reversal is an operation applied to a structure that must
+ * already be held whole. Read first, it is a substitution rule: every statement
+ * after it can be rewritten on sight and forgotten, and the answer then follows
+ * from that one premise and whichever position it names. Same information,
+ * different exercise, and the second is not the one the mode is for.
+ *
+ * Untested until now, which is the part worth fixing. The intent was already in
+ * the generator — grid first, reversals after — and undone one line later by a
+ * scramble that shuffled the lot. A property that was written down, silently
+ * broken, and then written down again is one that needs an assertion rather
+ * than another comment.
+ */
+test("a deictic reversal never arrives before the positions it reverses", () => {
+    const ctx = ndContext();
+    const params = QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.Deictic];
+    let seen = 0;
+
+    for (let n = params.minNumOfPremises; n <= params.maxNumOfPremises; n++) {
+        for (let run = 0; run < 15; run++) {
+            const q = seeded(run * 6151 + n * 17, () => createDeictic(ctx, n));
+
+            const isReversal = (line: string) => Object.keys(REVERSALS).some(
+                ax => strip(line).toLowerCase() === reversalTextFor(ax as never).toLowerCase());
+
+            const first = q.premises.findIndex(isReversal);
+            if (first < 0) continue;   // an item with none is not a counterexample
+            seen++;
+
+            // Everything from the first reversal on must be a reversal: a
+            // position statement after one is a position the reader was told to
+            // rewrite before being told what it holds.
+            const tail = q.premises.slice(first);
+            assert(tail.every(isReversal),
+                `a position is stated after a reversal:\n${q.premises.map(strip).join("\n")}`);
+        }
+    }
+
+    assert(seen > 20, `only ${seen} items stated a reversal at all`);
+});

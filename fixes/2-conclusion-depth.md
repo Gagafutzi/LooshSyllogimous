@@ -412,9 +412,28 @@ land first, which is what the screenshot caught. It now uses `scrambleLeading`,
 which scrambles the grid among itself and leaves the tail alone, the same helper
 the transformation premises already needed.
 
-**Still to do:** the general version below — an ordering flag on the premise
-rather than a per-generator arrangement, so the next mode with operations does
-not have to rediscover this.
+**The general version is settled as unnecessary, and the assertion is built
+instead.** The idea was a flag on the premise — `operation: true` — with the
+orderer respecting it, so the next mode with operations would not have to
+rediscover the rule. It is not worth building, and the reason is worth
+recording rather than leaving as an open item somebody re-proposes:
+
+- **Every mode that has operations already gets it right.** Five callers use
+  `scrambleLeading`, and each computes its boundary from a list it has just
+  built. A tag would replace a correct one-line call with a tagged list at each
+  of them: more code, same behaviour, and a migration's worth of risk for it.
+- **The tag is only cheaper where the two kinds are *interleaved* at the point
+  of construction**, so the caller cannot simply concatenate. No mode is built
+  that way, and the one that eventually is can add the helper then, with a real
+  caller to shape it.
+- **What was actually missing was the assertion.** The property was written
+  down in the generator, silently broken by a scramble one line later, and then
+  written down again — and nothing would have caught it recurring. A property
+  with that history needs a test, not a third comment.
+
+So: *a deictic reversal never arrives before the positions it reverses*, in
+`tests/depth.test.ts`. Everything from the first reversal on must be a
+reversal, checked on the rendered premises across every premise count.
 
 Deictic states its reversal first:
 
