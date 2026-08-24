@@ -18,10 +18,11 @@ import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
-import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
+import { ladderFor, settableRungsFor } from "../src/app/syllogimous/utils/progression.utils";
 import { axesForDimensions } from "../src/app/syllogimous/utils/ndspace.utils";
 
 const FULL = ladderFor(EnumQuestionType.WidestGroup);
+const SETTABLE = settableRungsFor(EnumQuestionType.WidestGroup);
 
 function context(rungs: string[]): GeneratorContext {
     const settings = new Settings();
@@ -168,7 +169,18 @@ test("the rungs add directions and groups", () => {
     const top = shape(FULL);
     equal(base.groups, 2, `the base state shows ${base.groups} groups, not two`);
     equal(base.dims, 2, `the base state uses ${base.dims} directions, not two`);
-    assert(top.groups >= 4, `the full ladder reaches only ${top.groups} groups`);
+
+    /*
+     * The ladder climbs directions and leaves the group count alone.
+     *
+     * Two groups is what this mode *is*. More of them is not a harder version
+     * of the same reading so much as a longer one, so it is not something to be
+     * handed out for playing well — both group rungs are off the ladder and
+     * reachable only by asking for them.
+     */
+    equal(top.groups, 2,
+        `the ladder alone reaches ${top.groups} groups; it should climb`
+        + " directions and leave the group count where it started");
     assert(top.dims >= 6, `the full ladder reaches only ${top.dims} directions`);
 });
 
@@ -246,4 +258,54 @@ test("the marker is not one of the members", () => {
             }
         }
     });
+});
+
+/**
+ * More groups is reachable, just not earnable.
+ *
+ * The other half of taking them off the ladder: a rung nothing grants and
+ * nothing can switch on is a deleted rung wearing a name, so the settable set
+ * has to actually reach four groups.
+ */
+test("the group rungs still reach four groups when asked for", () => {
+    const count = (rungs: string[]) => {
+        let groups = 0;
+        seeded(77, () => {
+            const ctx = context(rungs);
+            for (let rep = 0; rep < 15; rep++) {
+                groups = Math.max(groups, readGroups(createWidestGroup(ctx, 4).premises).length);
+            }
+        });
+        return groups;
+    };
+
+    equal(count(["groups-3"]), 3, "asking for three groups did not give three");
+    equal(count(["groups-4"]), 4, "asking for four groups did not give four");
+    equal(count(SETTABLE), 4, "everything switched on does not reach four groups");
+});
+
+/**
+ * Ranking two things is not ranking.
+ *
+ * Two groups have two possible orderings, so an item cannot put three wrong
+ * ones beside the right one — the generator spends its whole attempt budget
+ * looking for distractors and throws. It worked only because `groups-3` sat
+ * before `rank` on the ladder, and taking the groups off made every ranked item
+ * stop building. So `rank` forces three groups on its own.
+ */
+test("ranking forces enough groups to be worth ranking", () => {
+    let built = 0, groups = 0;
+    seeded(88, () => {
+        const ctx = context(["rank"]);
+        for (let rep = 0; rep < 15; rep++) {
+            const q = createWidestGroup(ctx, 4);
+            built++;
+            groups = Math.max(groups, readGroups(q.premises).length);
+            // Four options or the guess floor is not what the rung claims.
+            equal(q.choices.length, 4, "a ranked item offered fewer than four orders");
+        }
+    });
+
+    equal(built, 15, "ranked items could not be built");
+    assert(groups >= 3, `ranking was offered over ${groups} groups`);
 });

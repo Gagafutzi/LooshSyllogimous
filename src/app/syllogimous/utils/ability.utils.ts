@@ -206,6 +206,9 @@ export const RUNG_COST: Record<string, number> = {
      */
     "retired-wide-premises": 0,
     "retired-compact": 0,
+    "retired-groups-3": 0,
+    "retired-groups-4": 0,
+    "retired-rank": 0,
 
     // A false direction drawn from ones the item used. It removes a shortcut
     // rather than adding work — measured at 79% against 75% when it went in,

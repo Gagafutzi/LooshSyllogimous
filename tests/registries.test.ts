@@ -38,7 +38,9 @@ import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { ORDERED_QUESTION_TYPES, TIERS_MATRIX } from "../src/app/syllogimous/constants/game.constants";
-import { RUNG_LADDERS, ladderFor } from "../src/app/syllogimous/utils/progression.utils";
+import {
+    OFF_LADDER_RUNGS, RUNG_LADDERS, ladderFor, offLadderFor, settableRungsFor,
+} from "../src/app/syllogimous/utils/progression.utils";
 import { RUNG_COST, RUNG_MIN_PREMISES } from "../src/app/syllogimous/utils/ability.utils";
 import { TypeBasedStats } from "../src/app/syllogimous/models/stats.models";
 import { Logger } from "../src/app/syllogimous/utils/logger";
@@ -70,8 +72,17 @@ const isTombstone = (rung: string) => rung.startsWith("retired-");
  */
 const GLOBAL_FLAGS = new Set(["negation", "meta"]);
 
-/** Every rung any ladder declares, tombstones included. */
-const declaredRungs = new Set(Object.values(RUNG_LADDERS).flat());
+/**
+ * Every rung a mode has, earnable or not.
+ *
+ * Off-ladder rungs are real rungs — priced, read by the generator, settable in
+ * Customise — and the only thing they lack is a position progression can reach.
+ * A pricing check that ignored them would report the price as stale.
+ */
+const declaredRungs = new Set([
+    ...Object.values(RUNG_LADDERS).flat(),
+    ...Object.values(OFF_LADDER_RUNGS).flat(),
+]);
 
 /* ------------------------------------------------------------------ *
  * The five-registry hazard, asserted                                  *
@@ -196,7 +207,7 @@ test("every rung a ladder offers is one its generator reads", () => {
     const unread: string[] = [];
 
     for (const type of ORDERED_QUESTION_TYPES) {
-        const ladder = ladderFor(type)
+        const ladder = settableRungsFor(type)
             .filter(r => !isTombstone(r) && !GLOBAL_FLAGS.has(r));
         if (!ladder.length || !BUILD[type]) continue;
 
@@ -211,8 +222,15 @@ test("every rung a ladder offers is one its generator reads", () => {
         ])];
 
         const full = ladderFor(type);
-        for (let prefix = 1; prefix <= full.length; prefix++) {
-            const held = new Set(full.slice(0, prefix));
+        const off = offLadderFor(type);
+        // Prefixes of the ladder, and then each off-ladder rung on its own —
+        // which is how one is actually reached, since nothing grants it.
+        const holdings = [
+            ...full.map((_, i) => full.slice(0, i + 1)),
+            ...off.map(r => [r]),
+        ];
+        for (const [prefix, holding] of holdings.entries()) {
+            const held = new Set(holding);
 
             const settings = new Settings();
             for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;

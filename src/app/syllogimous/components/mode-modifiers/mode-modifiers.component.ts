@@ -1,7 +1,7 @@
 import { Component, Input } from "@angular/core";
 import { LinearFeatureFlags, SettingsOverrideService } from "../../services/settings-override.service";
 import { ORDERED_QUESTION_TYPES } from "../../constants/game.constants";
-import { ladderFor } from "../../utils/progression.utils";
+import { settableRungsFor } from "../../utils/progression.utils";
 import {
     AXIS_CHOICES, AXIS_ORDERINGS, AxisOrdering, axesForDimensions, axisWordConflicts,
     ndAxisColors, reorderAxisIds,
@@ -55,7 +55,10 @@ export class ModeModifiersComponent {
     rungRows = ORDERED_QUESTION_TYPES
         .map(type => ({
             type,
-            rungs: ladderFor(type).filter(r => !ModeModifiersComponent.COVERED.has(r)),
+            // Off-ladder rungs included: they cannot be earned, so a row here
+            // is the only way to reach them at all.
+            rungs: settableRungsFor(type)
+                .filter(r => !ModeModifiersComponent.COVERED.has(r)),
         }))
         .filter(row => row.rungs.length > 0);
 
@@ -80,6 +83,8 @@ export class ModeModifiersComponent {
             "reaches": "Reachability, not just direct links",
             "transform-depth-1": "One extra transformation",
             "transform-depth-2": "Two extra transformations",
+            "groups-3": "Three groups to compare, not two",
+            "groups-4": "Four groups to compare, not two",
         } as Record<string, string>)[rung] ?? rung;
     }
 

@@ -101,7 +101,20 @@ function features(ctx: GeneratorContext, type: EnumQuestionType) {
     let dims = 2;
     for (const d of [3, 4, 5, 6]) if (has(`dim-${d}`)) dims = d;
 
-    const groups = has("groups-4") ? 4 : has("groups-3") ? 3 : 2;
+    /*
+     * Two is what the mode is; three or four is a thing you go and ask for.
+     *
+     * More groups is not a harder version of comparing two so much as a longer
+     * one — the reading is identical and there is more of it — so it is not
+     * something to be granted as a reward for playing well. Both group rungs
+     * are off the ladder and settable only in Customise.
+     *
+     * `rank` forces three whatever else is set, because ranking two things is
+     * not ranking: there are two possible orderings, so an item cannot offer
+     * three wrong ones beside the right one, and the generator would spend its
+     * whole attempt budget failing to find distractors.
+     */
+    const groups = has("groups-4") ? 4 : (has("groups-3") || has("rank")) ? 3 : 2;
 
     /*
      * The margin is the difficulty, and it shrinks as it is earned.

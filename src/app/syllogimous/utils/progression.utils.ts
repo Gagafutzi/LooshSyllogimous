@@ -358,8 +358,14 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * the hardest this mode gets, and tightening it before the directions exist
      * to hide it in makes an item fiddly rather than demanding.
      */
+    /*
+     * The ladder climbs what makes the mode *harder* and nothing that changes
+     * what it is. Groups and ranking are off it entirely — see
+     * `OFF_LADDER_RUNGS` — so their slots are tombstones.
+     */
     "Widest Group":              [
-        "dim-3", "groups-3", "dim-4", "margin-1", "dim-5", "groups-4", "dim-6", "rank",
+        "dim-3", "retired-groups-3", "dim-4", "margin-1", "dim-5",
+        "retired-groups-4", "dim-6", "retired-rank",
     ],
     "Axis Maps":                 [
         "compose-2", "dim-4", "offset", "groups-2", "compose-3",
@@ -481,4 +487,48 @@ export const RUNG_LADDERS: Record<string, string[]> = {
 
 export function ladderFor(type: string) {
     return RUNG_LADDERS[type] ?? [];
+}
+
+/**
+ * Rungs a mode has but does not *earn*.
+ *
+ * A ladder is a promise that playing well will bring a thing about. Some things
+ * should not be brought about by playing well — they change what the mode *is*
+ * rather than how hard it is, and a player who liked the mode as it was did not
+ * ask for a different one as a reward.
+ *
+ * Widest Group's extra groups are the case. Comparing three or four groups is
+ * not a harder version of comparing two so much as a longer one: the reading is
+ * the same and there is more of it. So two is what the mode is, and three or
+ * four is a thing you go and ask for.
+ *
+ * Off-ladder rungs are still real rungs. They are priced, they are read by the
+ * generator through the same `hasRung`, and they appear in the per-mode rows in
+ * Customise — the only thing they are missing is a position on the ladder, so
+ * progression can never grant one. Their ladder slots are kept as tombstones,
+ * because rungs are read by position out of a stored count and removing a slot
+ * would rename every rung after it for everyone who already had them.
+ */
+export const OFF_LADDER_RUNGS: Record<string, string[]> = {
+    /*
+     * `rank` is here because it *cannot exist* without more groups: ranking two
+     * things offers two orderings, so an item cannot put three wrong ones
+     * beside the right one and the generator fails outright. It came for free
+     * while `groups-3` sat before it on the ladder, and taking the groups off
+     * made the dependency visible immediately — every ranked item stopped
+     * building.
+     *
+     * So the three go together, and the story is a clean one: the ladder makes
+     * the mode harder, and these change its shape.
+     */
+    "Widest Group": ["groups-3", "groups-4", "rank"],
+};
+
+export function offLadderFor(type: string) {
+    return OFF_LADDER_RUNGS[type] ?? [];
+}
+
+/** Every rung a mode has, earnable or not, for the settings rows. */
+export function settableRungsFor(type: string) {
+    return [...ladderFor(type), ...offLadderFor(type)];
 }

@@ -119,6 +119,27 @@ Two properties, both of which this item fails:
 mode rather than a rewrite: the old generator keeps working and keeps its
 ability history.
 
+**Widest Group is a two-group comparison by default**, also on the author's
+call. More groups is not a harder version of the same reading so much as a
+longer one — the reading is identical and there is more of it — so it is not
+something to hand out for playing well. `groups-3` and `groups-4` are now
+**off-ladder**: priced, read by the generator, settable in the per-mode rows in
+Customise, and reachable by progression never. Their ladder slots are
+tombstones, since rungs are read by position out of a stored count.
+
+`OFF_LADDER_RUNGS` is the general form, and it is worth having as a category:
+a ladder is a promise that playing well brings a thing about, and some things
+change what a mode *is* rather than how hard it is.
+
+**`rank` went with them, because it cannot exist without more groups.** Two
+groups have two possible orderings, so a ranked item cannot put three wrong
+ones beside the right one — the generator spends its whole attempt budget
+hunting distractors and throws. That had been invisible: `groups-3` sat before
+`rank` on the ladder, so the dependency was always satisfied by accident.
+Taking the groups off broke every ranked item immediately, which is how it was
+found. `rank` now forces three groups on its own, so switching it on alone
+produces a working item rather than a failure.
+
 **Oddest Relation is now off by default**, on the author's call, the same
 retirement Transformation Matching got in [5.1](#51-transformation-matching):
 `enabled: false` in the settings params and zeroed in every row of

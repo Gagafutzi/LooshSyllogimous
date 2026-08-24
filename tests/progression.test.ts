@@ -13,7 +13,7 @@ import {
     RUNG_COST, chooseConfig, DEFAULT_ABILITY, levelOf, pCorrect, referenceSecondsFrom, timeCost,
 } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
-import { RUNG_LADDERS, ladderFor } from "../src/app/syllogimous/utils/progression.utils";
+import { RUNG_LADDERS, ladderFor, settableRungsFor } from "../src/app/syllogimous/utils/progression.utils";
 import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
@@ -81,7 +81,9 @@ test("a clock is armed exactly when structure alone cannot reach the target", ()
  */
 test("no rung is priced by accident", () => {
     const priced = new Set(Object.keys(RUNG_COST));
-    const handed = new Set(ORDERED_QUESTION_TYPES.flatMap(t => ladderFor(t)));
+    // Off-ladder rungs count as handed out: nothing grants them, but they are
+    // real rungs a player can switch on, and they are charged when they are.
+    const handed = new Set(ORDERED_QUESTION_TYPES.flatMap(t => settableRungsFor(t)));
 
     const unpriced = [...handed].filter(r => !priced.has(r));
     assert(unpriced.length === 0,
