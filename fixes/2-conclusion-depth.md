@@ -372,6 +372,25 @@ Four things it turned on:
   [2.6](#26-a-halfway-conclusion-and-a-final-one--built-both-families)'s
   per-claim credit was built for, reaching a second form.
 
+**Every true-or-false mode is on it**, and the coverage test names the set
+rather than counting it — a number to beat lets a mode fall out silently while
+the total still looks healthy. Distinction, the scale family, the composed
+spaces, Hierarchy, Nested, Deictic, both Arrangements, both Directions,
+Syllogism, Transformation, both Anchors and Knaves.
+
+Each drawer is a dozen lines, because each mode already knows the answer to any
+pair: the buckets, the two chains, the order, the grid and its reversals, the
+coordinate map, `sylEntails`, the replayed positions, the settled people. The
+shared half — how many, each on its own coin, all distinct, all or nothing —
+is `buildSeries`.
+
+**The absentees are absent for a reason.** The choice, map and construct modes
+are not true-or-false items, so a boolean series has nothing to attach to.
+Binary is already two questions compounded into one claim. And Analogy must
+*clear* a series rather than carry one, which is the fault this class had: it
+takes a finished item from another mode and re-purposes the object, so the
+inner mode's claims rode along, about a question the item no longer asks.
+
 ---
 
 ## 2.2c Several claims, for everybody — **BUILT**

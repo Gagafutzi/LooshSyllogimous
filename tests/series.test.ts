@@ -145,3 +145,85 @@ test("answering a claim adds to the clock without restarting it", () => {
     assert(timer.running, "extending the clock restarted it");
     timer.stop();
 });
+
+/**
+ * Which modes offer a series, as a set rather than a count.
+ *
+ * The floor is the full list, the way the derivation coverage test is written
+ * and for the same reason: a number to beat lets a mode fall out silently while
+ * the total still looks healthy. Every true-or-false mode is on it.
+ *
+ * The absentees are absent for a reason, not by oversight. The choice, map and
+ * construct modes are not true-or-false items at all, so a boolean series has
+ * nothing to attach to. Analogy takes a finished item from another mode and
+ * re-purposes the object, so it must *clear* any series rather than carry one.
+ * And Binary is already two questions compounded into one claim.
+ */
+const MUST_OFFER: Array<[EnumQuestionType, number]> = [
+    [EnumQuestionType.Distinction, 5],
+    [EnumQuestionType.LinearVertical, 5],
+    [EnumQuestionType.LinearHorizontal, 5],
+    [EnumQuestionType.ComparisonNumerical, 5],
+    [EnumQuestionType.Space3D, 4],
+    [EnumQuestionType.Space4D, 4],
+    [EnumQuestionType.Hierarchy, 5],
+    [EnumQuestionType.NestedSpaces, 4],
+    [EnumQuestionType.Deictic, 6],
+    [EnumQuestionType.LinearArrangement, 5],
+    [EnumQuestionType.CircularArrangement, 5],
+    [EnumQuestionType.Direction, 5],
+    [EnumQuestionType.Direction3DSpatial, 5],
+    [EnumQuestionType.Syllogism, 4],
+    [EnumQuestionType.Transformation, 5],
+    [EnumQuestionType.AnchorSpace, 5],
+    [EnumQuestionType.AnchorSpaceV2, 5],
+    [EnumQuestionType.Knaves, 5],
+];
+
+test("every true-or-false mode asks more than one conclusion", () => {
+    const ctx = context();
+    const silent: string[] = [];
+
+    for (const [type, n] of MUST_OFFER) {
+        let built = 0, withSeries = 0;
+
+        seeded(2718, () => {
+            for (let rep = 0; rep < 20; rep++) {
+                let q: Question | undefined;
+                try { q = BUILD[type](ctx, n); } catch { continue; }
+                if (!q) continue;
+                built++;
+                if (q.series.length > 1) withSeries++;
+            }
+        });
+
+        // Most rather than all: a drawer that cannot find a second claim on a
+        // particular layout gives up rather than shortening the series, which
+        // is the honest behaviour and does show up occasionally.
+        if (!built || withSeries / built < 0.6) {
+            silent.push(`${type} (${withSeries} of ${built})`);
+        }
+    }
+
+    assert(silent.length === 0,
+        `${silent.length} modes ask one conclusion where they should ask several:\n  `
+        + silent.join("\n  "));
+});
+
+/** The composers must not carry one, which is the fault this class had. */
+test("a mode that re-purposes another's item carries no series", () => {
+    const ctx = context();
+
+    for (const type of [EnumQuestionType.Analogy, EnumQuestionType.Binary]) {
+        seeded(1618, () => {
+            for (let rep = 0; rep < 20; rep++) {
+                let q: Question | undefined;
+                try { q = BUILD[type](ctx, 5); } catch { continue; }
+                if (!q) continue;
+                equal(q.series.length, 0,
+                    `${type} carries a series it did not build, about a question`
+                    + " it no longer asks");
+            }
+        });
+    }
+});

@@ -6,7 +6,7 @@
  */
 
 import { hi, subj } from "../utils/phrasing";
-import { GeneratorContext, modifierOn } from "./context";
+import { GeneratorContext, modifierOn, buildSeries, extendWithSeries, seriesWanted } from "./context";
 import { extraTransforms } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
@@ -91,6 +91,30 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
         question.negations = inverted.size;
         question.conclusion = conclusion.text;
         question.isValid = conclusion.isValid;
+
+        /*
+         * More pairs of the same frame.
+         *
+         * Every object is placed against its anchor and the anchors against
+         * each other, so the arrangement is settled once and answers any pair.
+         * A second pair is usually reached through a different part of the
+         * frame, which is the reason to ask twice rather than to add an object.
+         */
+        if (seriesWanted(ctx)) {
+            extendWithSeries(question, buildSeries(want => {
+                const a = names[Math.floor(Math.random() * names.length)];
+                const b = names[Math.floor(Math.random() * names.length)];
+                if (a === b) return null;
+
+                const live = [0, 1].filter(ax => coords[b][ax] !== coords[a][ax]);
+                if (!live.length) return null;
+                const axis = live[Math.floor(Math.random() * live.length)];
+
+                const claim = describeConclusion(a, b, coords[a], coords[b], axis, want);
+                return claim && { text: claim.text, isValid: claim.isValid, key: `${a}:${b}:${axis}` };
+            }));
+        }
+
         // Anchors included: the frame is the thing being reasoned through, so a
         // map without it would leave out the half that made the item hard.
         question.wordCoordMap = { ...coords };
@@ -262,6 +286,30 @@ export function createAnchorSpaceV2(ctx: GeneratorContext, numOfPremises: number
         question.isValid = conclusion.isValid;
         question.explanation = explainAnchorV2(
             x, y, anchorOf, initial, transforms, axes[0]);
+
+        /*
+         * More pairs of the result. Each carries the first claim's requirement:
+         * the transforms have to have changed it, or it is answerable from the
+         * placements alone and the operations become reading practice.
+         */
+        if (seriesWanted(ctx)) {
+            extendWithSeries(question, buildSeries(want => {
+                const a = names[Math.floor(Math.random() * names.length)];
+                const b = names[Math.floor(Math.random() * names.length)];
+                if (a === b) return null;
+
+                const live = [0, 1].filter(ax => final[b][ax] !== final[a][ax]);
+                if (!live.length) return null;
+                const axis = live[Math.floor(Math.random() * live.length)];
+
+                const was = describeConclusion(a, b, initial[a], initial[b], axis, true);
+                const now = describeConclusion(a, b, final[a], final[b], axis, true);
+                if (!was || !now || was.isValid === now.isValid) return null;
+
+                const claim = describeConclusion(a, b, final[a], final[b], axis, want);
+                return claim && { text: claim.text, isValid: claim.isValid, key: `${a}:${b}:${axis}` };
+            }));
+        }
         return question;
     }
 

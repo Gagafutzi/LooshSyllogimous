@@ -13,7 +13,7 @@
  * `createSyllogismAll`, which flipped a coin between the two, went with it.
  */
 
-import { GeneratorContext, deepConclusions } from "./context";
+import { GeneratorContext, buildSeries, deepConclusions, extendWithSeries, seriesWanted } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { inSyllogisticOrder, nameTheInference, vennDiagramFor } from "../utils/venn.utils";
@@ -113,6 +113,7 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
         ? syllogismLines(question.venn, support, derived, negated, conclusionIsTrue)
         : explainPolysyllogism(trace, derived, conclusionIsTrue);
 
+    extendSyllogism(ctx, question, premises, negated);
     return question;
 }
 
@@ -171,6 +172,49 @@ function explainPolysyllogism(
         ? `so ${formatSylPremise(derived)}`
         : `the premises give ${formatSylPremise(derived)}, which the claim contradicts`);
     return lines;
+}
+
+/**
+ * More claims about the same premise set.
+ *
+ * `sylEntails` decides any claim over any premises, so a second question costs
+ * a scan rather than a second argument — and it is a different pair, usually
+ * running through a different part of the chain. Which is the point of asking
+ * twice: the first claim can be settled by following one thread, and the second
+ * usually cannot be settled from that same thread.
+ *
+ * **Pairs a premise states outright are skipped**, the same rule the conclusion
+ * picker follows: a directly stated pair is read rather than reasoned about,
+ * and a series is a poor place to hide a free answer because the reader has
+ * already paid the reading cost.
+ */
+function extendSyllogism(
+    ctx: GeneratorContext,
+    question: Question,
+    premises: SylPremise[],
+    negated: boolean,
+) {
+    if (!seriesWanted(ctx)) return;
+
+    const words = [...new Set(premises.flatMap(([a, , b]) => [a, b]))];
+    const kinds: SylKind[] = ["all", "no", "some", "some_not"];
+
+    extendWithSeries(question, buildSeries(want => {
+        const a = words[Math.floor(Math.random() * words.length)];
+        const b = words[Math.floor(Math.random() * words.length)];
+        if (a === b) return null;
+        if (premises.some(([x, , y]) => (x === a && y === b) || (x === b && y === a))) return null;
+
+        const kind = kinds[Math.floor(Math.random() * kinds.length)];
+        const claim: SylPremise = [a, kind, b];
+        if (sylEntails(premises, claim) !== want) return null;
+
+        return {
+            text: formatSylPremise(claim, negated),
+            isValid: want,
+            key: `${a}:${kind}:${b}`,
+        };
+    }));
 }
 
 export function createSyllogism(ctx: GeneratorContext, numOfPremises: number) {

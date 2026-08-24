@@ -5,7 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { GeneratorContext } from "./context";
+import { GeneratorContext, buildSeries, extendWithSeries, seriesWanted } from "./context";
 import { extraTransforms } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
@@ -129,6 +129,35 @@ export function createTransformation(ctx: GeneratorContext, numOfPremises: numbe
         question.conclusion = conclusion.text;
         question.isValid = conclusion.isValid;
         question.explanation = explainTransformation(x, y, names, initial, transforms, axes[0]);
+
+        /*
+         * More pairs of the arrangement the transforms left behind.
+         *
+         * The replay is the expensive part and it is done once; a second pair
+         * asks the reader to read the *result* again somewhere else rather than
+         * to replay a second set of operations. Each extra claim carries the
+         * same requirement as the first — the transforms have to have changed
+         * it — or it is answerable from the layout premises alone and the
+         * operations become reading practice.
+         */
+        if (seriesWanted(ctx)) {
+            extendWithSeries(question, buildSeries(want => {
+                const a = names[Math.floor(Math.random() * names.length)];
+                const b = names[Math.floor(Math.random() * names.length)];
+                if (a === b) return null;
+
+                const live = [0, 1, 2].filter(ax => final[b][ax] !== final[a][ax]);
+                if (!live.length) return null;
+                const axis = live[Math.floor(Math.random() * live.length)];
+
+                const was = describeConclusion(a, b, initial[a], initial[b], axis, true);
+                const now = describeConclusion(a, b, final[a], final[b], axis, true);
+                if (!was || !now || was.isValid === now.isValid) return null;
+
+                const claim = describeConclusion(a, b, final[a], final[b], axis, want);
+                return claim && { text: claim.text, isValid: claim.isValid, key: `${a}:${b}:${axis}` };
+            }));
+        }
         return question;
     }
 

@@ -8,7 +8,7 @@
  * being the definition of the answer rather than a second procedure.
  */
 
-import { GeneratorContext } from "./context";
+import { GeneratorContext, buildSeries, extendWithSeries, seriesWanted } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
@@ -74,7 +74,7 @@ export function createKnaves(ctx: GeneratorContext, numOfPremises: number): Ques
         question.setup = [KNAVES_NOTE];
         question.premises = shuffle(claims.map((c, i) => describeStatement(i, c, names)));
 
-        if (!fillConclusion(question, names, claims, solutions, settled, allowOpen)) continue;
+        if (!fillConclusion(ctx, question, names, claims, solutions, settled, allowOpen)) continue;
         return question;
     }
 
@@ -82,6 +82,7 @@ export function createKnaves(ctx: GeneratorContext, numOfPremises: number): Ques
 }
 
 function fillConclusion(
+    ctx: GeneratorContext,
     question: Question,
     names: string[],
     claims: Claim[],
@@ -124,6 +125,31 @@ function fillConclusion(
     question.conclusion = allowOpen ? mustBe(names[who], claimed) : plainly(names[who], claimed);
     question.isValid = claimTrue;
     question.explanation = explain(names, claims, solutions[0], who, truth);
+
+    /*
+     * More people, against the same testimony.
+     *
+     * Working out who is lying is the whole cost of the item and it is paid
+     * once; asking about a second person reads the answer off a reading already
+     * arrived at. Only people the statements *settle* — an unsettled one is
+     * false whichever type it names, and a series of those would teach that
+     * "no" is the percentage answer rather than that some people cannot be
+     * placed.
+     */
+    if (seriesWanted(ctx)) {
+        const settledOnes = [...settled.keys()];
+        extendWithSeries(question, buildSeries(want => {
+            if (settledOnes.length < 2) return null;
+            const other = settledOnes[Math.floor(Math.random() * settledOnes.length)];
+            const is = settled.get(other)!;
+            const says = want ? is : !is;
+            return {
+                text: allowOpen ? mustBe(names[other], says) : plainly(names[other], says),
+                isValid: says === is,
+                key: String(other),
+            };
+        }));
+    }
     return true;
 }
 
