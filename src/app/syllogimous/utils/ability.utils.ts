@@ -209,6 +209,7 @@ export const RUNG_COST: Record<string, number> = {
     "retired-groups-4": 0,
     "retired-rank": 0,
     "retired-multi-conclusion": 0,
+    "retired-groups-2": 0,
     "match-3": 0.5,
 
     // A false direction drawn from ones the item used. It removes a shortcut

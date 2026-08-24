@@ -543,18 +543,66 @@ function buildGroups(
     const truth = render(asked.map);
 
     /*
-     * The other groups' maps come first among the distractors.
+     * A distractor is this map got slightly wrong — never another marker's map.
      *
-     * Taking the wrong marker's dictionary is the characteristic error of a
-     * multi-group item, and the whole reason for having several groups — so the
-     * answer it leads to has to be on offer. A reader who applies Group 2's
-     * change to Group 1's chain should find their answer there and be wrong,
-     * not find nothing and reconsider by elimination.
+     * The other groups' maps used to come first, on the reasoning that taking
+     * the wrong marker's dictionary is the characteristic error of a
+     * multi-group item. It is not an error anybody makes: **the chain names its
+     * own marker** in its opening line, and the derivation says so outright —
+     * *"the chain is stated from ●, so it is ●'s change that applies"*. There
+     * is nothing to work out about whose change applies, so an option reached
+     * by using somebody else's is not a near miss, it is noise wearing four
+     * clauses. A reader who eliminates it learns nothing about the map.
+     *
+     * What a reader actually gets wrong is *this* change, by one part: the
+     * factor on one axis, or which way one axis runs, or where a swap sends
+     * something. So a distractor is the real map with one of those altered —
+     * which cannot be told from the truth without reading the examples, which
+     * is the whole of what the item is for.
+     *
+     * A random map is the fallback and only that. It is a weak distractor for
+     * the same reason the other groups' were: wrong in several places at once,
+     * so it is dismissed on the first clause.
      */
     const wrong = new Set<string>();
-    for (const g of groups) {
-        if (g === asked) continue;
-        const text = render(g.map);
+
+    const nearMiss = (): AxisMap | null => {
+        const m: AxisMap = {
+            perm: [...asked.map.perm],
+            factor: [...asked.map.factor],
+            offset: [...asked.map.offset],
+            steps: asked.map.steps,
+        };
+        const axis = covered[Math.floor(Math.random() * covered.length)];
+
+        switch (Math.floor(Math.random() * 3)) {
+            case 0:
+                // The other way round on one axis, which is the commonest slip.
+                m.factor[axis] = -m.factor[axis];
+                break;
+            case 1: {
+                // As far again, or half as far: the magnitude misread.
+                const f = Math.abs(m.factor[axis]);
+                const scaled = f === 1 ? 2 : f - 1;
+                m.factor[axis] = Math.sign(m.factor[axis]) * Math.max(1, scaled);
+                break;
+            }
+            default: {
+                // A swap sent somewhere else. Only where there is a swap to get
+                // wrong, or this changes nothing and the draw is wasted.
+                const other = covered[Math.floor(Math.random() * covered.length)];
+                if (other === axis) return null;
+                [m.perm[axis], m.perm[other]] = [m.perm[other], m.perm[axis]];
+                break;
+            }
+        }
+        return m;
+    };
+
+    for (let i = 0; i < 200 && wrong.size < 3; i++) {
+        const near = nearMiss();
+        if (!near) continue;
+        const text = render(near);
         if (text !== truth) wrong.add(text);
     }
     for (let i = 0; i < 120 && wrong.size < 3; i++) {

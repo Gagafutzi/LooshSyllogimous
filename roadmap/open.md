@@ -7,6 +7,33 @@ The rest of this file is kept as the record of what was decided and why,
 including the parts that turned out differently from the plan. Those are the
 entries worth reading.
 
+### Axis Maps: the other markers' maps were not distractors — **FIXED**
+
+A multi-group item offered the chain read under each *other* group's map, on the
+reasoning that taking the wrong marker's dictionary is the characteristic error
+and the answer it leads to should be on offer.
+
+It is not an error anybody makes. **The chain names its own marker** in its
+opening line — *"Now, from ●"* — and the derivation says so outright: *"the
+chain is stated from ●, so it is ●'s change that applies"*. Nothing about whose
+change applies has to be worked out, so an option reached by using somebody
+else's is noise wearing four clauses, and a reader who eliminates it has learned
+nothing about the map.
+
+A distractor is now **this map got slightly wrong**: one axis's factor
+reversed, its magnitude misread, or a swap sent somewhere else. Those cannot be
+told from the answer without reading the examples, which is the whole of what
+the item is for. A random map stays only as a fallback, and is weak for the same
+reason the other groups' were — wrong in several places at once, so it is
+dismissed on the first clause. A test measures that: a wrong option has to share
+part of the answer.
+
+**And the group rungs came off the ladder**, alongside Widest Group's and for a
+sharper version of the same reason. Their justification was the distractors;
+without those, a second group is somewhere to *look* rather than something to
+work out, and its examples are reading volume. One group is what the mode is,
+and more is asked for in Customise.
+
 ### Set Hierarchy — **DONE**, rung `hierarchy` on Syllogism
 
 Listed as a mode that was never built. It is not a mode. Every syllogism the app

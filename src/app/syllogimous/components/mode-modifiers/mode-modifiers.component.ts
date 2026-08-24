@@ -83,6 +83,7 @@ export class ModeModifiersComponent {
             "reaches": "Reachability, not just direct links",
             "transform-depth-1": "One extra transformation",
             "transform-depth-2": "Two extra transformations",
+            "groups-2": "A second group, with its own change",
             "groups-3": "Three groups to compare, not two",
             "groups-4": "Four groups to compare, not two",
             "match-3": "Match a third node, not just two",

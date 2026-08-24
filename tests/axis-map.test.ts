@@ -19,10 +19,20 @@ import { SettingsOverrideService } from "../src/app/syllogimous/services/setting
 import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
+import { settableRungsFor } from "../src/app/syllogimous/utils/progression.utils";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 
 const FULL = ladderFor(EnumQuestionType.AxisMap);
+/**
+ * Everything a player can switch on, ladder or not.
+ *
+ * The group rungs came off the ladder — more groups is a longer read rather
+ * than a harder one, and here the chain names its own marker so which change
+ * applies is stated rather than worked out. The multi-group tests below ask for
+ * them explicitly, which is how a player reaches them now.
+ */
+const SETTABLE = settableRungsFor(EnumQuestionType.AxisMap);
 
 function context(rungs: string[]): GeneratorContext {
     const settings = new Settings();
@@ -262,7 +272,7 @@ test("composing changes that cancel does not count as composing", () => {
  */
 test("groups do not share a map", () => {
     seeded(1618, () => {
-        const ctx = context(FULL);
+        const ctx = context(SETTABLE);
         let sawGroups = 0;
         for (let rep = 0; rep < 40; rep++) {
             const q = createAxisMap(ctx, 3);
@@ -366,7 +376,7 @@ test("each stage is captioned with the change it shows", () => {
  */
 test("several groups, but only one chain to map", () => {
     seeded(4949, () => {
-        const ctx = context(FULL);
+        const ctx = context(SETTABLE);
         let multi = 0;
         for (let rep = 0; rep < 40; rep++) {
             const q = createAxisMap(ctx, 3);
@@ -389,17 +399,23 @@ test("several groups, but only one chain to map", () => {
 });
 
 /**
- * Taking the wrong marker's dictionary is the characteristic error, so the
- * answer it leads to has to be on offer.
+ * A distractor is this map got slightly wrong, never another marker's map.
  *
- * A reader who applies the other group's change should find their answer among
- * the options and be wrong, rather than find nothing and reconsider by
- * elimination -- which would let the item be solved without ever settling which
- * dictionary applied.
+ * The options used to include the chain read under the *other* groups' maps, on
+ * the reasoning that taking the wrong marker's dictionary is the characteristic
+ * error of a multi-group item. It is not an error anybody makes: the chain
+ * names its own marker in its opening line, and the derivation says so outright.
+ * There is nothing to work out about whose change applies, so an option reached
+ * by using somebody else's is noise wearing four clauses — a reader who
+ * eliminates it learns nothing about the map.
+ *
+ * What a reader gets wrong is *this* change, by one part. So every option has
+ * to be indistinguishable from the answer without reading the examples, which
+ * is the whole of what the item is for.
  */
-test("applying the wrong group's change lands on an option", () => {
+test("no option is reached by using another marker's change", () => {
     seeded(5150, () => {
-        const ctx = context(FULL);
+        const ctx = context(SETTABLE);
         let checked = 0;
 
         for (let rep = 0; rep < 40; rep++) {
@@ -409,9 +425,8 @@ test("applying the wrong group's change lands on an option", () => {
             checked++;
 
             /*
-             * The chain names its marker, and every option is that chain under
-             * *some* map -- so the options must number four distinct readings
-             * rather than three plus a near-repeat.
+             * Four distinct readings, not three plus a near-repeat. The chain
+             * names its marker and every option is that chain under *some* map.
              */
             equal(new Set(q.choices).size, 4, "two options describe the same arrangement");
 
@@ -435,10 +450,46 @@ test("applying the wrong group's change lands on an option", () => {
     });
 });
 
+/**
+ * And a distractor has to be a *near* miss.
+ *
+ * A wrong option that differs from the answer everywhere is dismissed on the
+ * first clause, which is the same fault the other groups' maps had — the
+ * examples never have to be read. Measured as clauses in common: a near miss
+ * shares most of the answer and differs in one part.
+ */
+test("a wrong option differs from the answer in part, not throughout", () => {
+    seeded(7272, () => {
+        const ctx = context(FULL);
+        let checked = 0, near = 0, options = 0;
+
+        for (let rep = 0; rep < 60; rep++) {
+            const q = createAxisMap(ctx, 3);
+            const truth = q.choices[q.correctChoice];
+            const parts = (t: string) => strip(t).split(/[·,]/).map(x => x.trim()).filter(Boolean);
+            const right = parts(truth);
+            if (right.length < 2) continue;
+            checked++;
+
+            for (const [i, choice] of q.choices.entries()) {
+                if (i === q.correctChoice) continue;
+                options++;
+                const shared = parts(choice).filter(x => right.includes(x)).length;
+                if (shared > 0) near++;
+            }
+        }
+
+        assert(checked > 20, `only ${checked} items to check`);
+        assert(near / options > 0.5,
+            `only ${near} of ${options} wrong options share anything with the answer,`
+            + " so they are dismissed without reading the examples");
+    });
+});
+
 /** The derivation has to say whose change applied, or the item is unexplained. */
 test("a multi-group derivation names the group whose change applied", () => {
     seeded(6161, () => {
-        const ctx = context(FULL);
+        const ctx = context(SETTABLE);
         let checked = 0;
         for (let rep = 0; rep < 40; rep++) {
             const q = createAxisMap(ctx, 3);

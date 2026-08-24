@@ -375,9 +375,16 @@ export const RUNG_LADDERS: Record<string, string[]> = {
         "dim-3", "retired-groups-3", "dim-4", "margin-1", "dim-5",
         "retired-groups-4", "dim-6", "retired-rank",
     ],
+    /*
+     * The group rungs are off this ladder for the reason they are off Widest
+     * Group's: more groups is a longer read rather than a harder one. Here it
+     * is sharper still — the chain names its own marker, so which change
+     * applies is stated rather than worked out, and the extra groups' examples
+     * were paying for distractors that have since been recognised as noise.
+     */
     "Axis Maps":                 [
-        "compose-2", "dim-4", "offset", "groups-2", "compose-3",
-        "dim-5", "dense-examples", "compose-4", "groups-3", "dim-6",
+        "compose-2", "dim-4", "offset", "retired-groups-2", "compose-3",
+        "dim-5", "dense-examples", "compose-4", "retired-groups-3", "dim-6",
         "compose-5", "dim-7",
     ],
     "Knights and Knaves":        ["compound", "undetermined"],
@@ -536,6 +543,12 @@ export const OFF_LADDER_RUNGS: Record<string, string[]> = {
      * three times. Longer, not harder, so it is asked for rather than earned.
      */
     "Relational Web": ["match-3"],
+    /*
+     * Same as Widest Group's, and for a sharper reason: the chain states which
+     * marker it is from, so a second group is somewhere to look rather than
+     * something to work out.
+     */
+    "Axis Maps": ["groups-2", "groups-3"],
 };
 
 export function offLadderFor(type: string) {
