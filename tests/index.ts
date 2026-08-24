@@ -43,5 +43,6 @@ import "./widest-group.test";
 import "./collapsible.test";
 import "./hierarchy-syllogism.test";
 import "./testimony.test";
+import "./deictic.test";
 
 run();
