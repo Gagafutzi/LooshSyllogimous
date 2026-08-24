@@ -401,6 +401,22 @@ export interface AbilityConfig {
      * evidence for how much that is worth.
      */
     widthPerBit: number;
+    /**
+     * Levels per premise the conclusion did *not* need.
+     *
+     * The depth twin of `widthPerBit`, and zero for the same reason: unpriced,
+     * not free. `weight * premises` already prices an item as though its answer
+     * used all of them, so what is left to price is the *shortfall* — a
+     * six-premise item whose conclusion needs four has two premises there to be
+     * read and dismissed, and whether that makes it easier, harder or neither
+     * is an empirical question rather than one to settle by argument.
+     *
+     * Expected to come out negative: a premise the answer does not need is one
+     * fewer thing to compose. It is fitted rather than assumed because the
+     * opposite is arguable — an irrelevant premise still has to be read, and
+     * deciding it is irrelevant is work.
+     */
+    levelsPerUnneededPremise: number;
 }
 
 export const DEFAULT_ABILITY: AbilityConfig = {
@@ -423,6 +439,7 @@ export const DEFAULT_ABILITY: AbilityConfig = {
     // Twenty answers anywhere. Below that the app genuinely does not know you.
     cautionCapAfter: 20,
     widthPerBit: 0,
+    levelsPerUnneededPremise: 0,
     crossModeSd: 2.5,
     // ~15 days from a settled estimate to knowing very little. The mean is
     // preserved throughout, so a returning player is served items at the same
@@ -449,9 +466,30 @@ export interface ItemSpec {
      * actually turned up.
      */
     widthDelta?: number;
+    /**
+     * Relations the conclusion needed, where the mode measures it.
+     *
+     * Same standing as `widthDelta`: absent when choosing a configuration,
+     * because the layout has not been drawn and the pair not yet picked;
+     * present when scoring one, where the answer should be read against how
+     * much of the item it actually took.
+     */
+    depth?: number;
 }
 
-/** Difficulty of a configuration, in linear-equivalent premises. */
+/**
+ * Premises the conclusion did not need, or zero where nobody measured.
+ *
+ * Depth 0 means *unmeasured*, and treating it as a conclusion that needed
+ * nothing would price every unmeasured mode as the easiest thing in the app.
+ * Absent, zero and "needed everything" all come out the same here, which is the
+ * right way round: the term says nothing until something says something.
+ */
+export function unneededPremises(spec: { premises: number; depth?: number }): number {
+    if (!spec.depth || !spec.premises) return 0;
+    return Math.max(0, spec.premises - spec.depth);
+}
+
 export function levelOf(spec: ItemSpec, config = DEFAULT_ABILITY): number {
     const weight = MODE_SCALE[spec.type]?.weight ?? 1;
     const structural = weight * spec.premises
@@ -462,7 +500,16 @@ export function levelOf(spec: ItemSpec, config = DEFAULT_ABILITY): number {
      * wherever it has nothing to say.
      */
     const width = config.widthPerBit * (spec.widthDelta ?? 0);
-    return structural + width + timeCost(spec.seconds, config);
+    /*
+     * Premises the conclusion did not need, once they have been priced.
+     *
+     * `structural` above charges for every premise, which assumes the answer
+     * uses every premise. Where it does not, this is the correction — and it is
+     * zero until the answered items say what it should be, so an unpriced model
+     * behaves exactly as it did before this term existed.
+     */
+    const shortfall = config.levelsPerUnneededPremise * unneededPremises(spec);
+    return structural + width + shortfall + timeCost(spec.seconds, config);
 }
 
 /**
@@ -1204,6 +1251,79 @@ export function fitWidthCoefficient(
     }
 
     return { levelsPerBit: best, trials: usable.length, sd };
+}
+
+export interface DepthFit {
+    /** Levels per premise the conclusion did not need. Expected negative. */
+    levelsPerPremise: number;
+    trials: number;
+    /** Spread of the shortfall in the sample; the fit is only as good as this. */
+    sd: number;
+}
+
+/**
+ * What a premise the answer did not need is worth, from the answers.
+ *
+ * The same search as `fitWidthCoefficient` against the same likelihood, and it
+ * returns null for the same honest reason: **a sample with no spread cannot
+ * say.** Once the floors are in, most items sit at or near full depth, so the
+ * shortfall is ~0 throughout and every coefficient fits equally well. A number
+ * from that would be noise wearing a decimal point.
+ *
+ * The spread it needs comes from the modes that legitimately cannot reach full
+ * depth — Fredo used to be the extreme case and is gone; Canyon's chain, drawn
+ * from the top two bands, still varies by one. Turning the deep conclusions off
+ * produces a great deal of it, which makes the switch a way to *measure* the
+ * thing it turns off.
+ *
+ * The search runs downward as well as up, because the expected answer is
+ * negative — a premise the conclusion does not need is one fewer thing to
+ * compose — and a range that could only return zero or more would confirm the
+ * expectation by construction.
+ */
+export function fitDepthCoefficient(
+    trials: Trial[],
+    config = DEFAULT_ABILITY,
+    minTrials = 80,
+    minSd = 0.5,
+): DepthFit | null {
+    const usable = trials.filter(t => !!t.depth && !!t.premises);
+    if (usable.length < minTrials) return null;
+
+    const shortfalls = usable.map(t => unneededPremises(t));
+    const mean = shortfalls.reduce((a, b) => a + b, 0) / shortfalls.length;
+    const sd = Math.sqrt(
+        shortfalls.reduce((a, b) => a + (b - mean) ** 2, 0) / shortfalls.length);
+    if (sd < minSd) return null;
+
+    const base = usable.map(t => levelOf(
+        { type: t.type, premises: t.premises, rungs: t.rungs, seconds: t.seconds,
+          widthDelta: t.widthDelta }, config));
+
+    const logLikelihood = (k: number) => {
+        let total = 0;
+        for (let i = 0; i < usable.length; i++) {
+            const t = usable[i];
+            const p = pCorrect(config, t.estimate, base[i] + k * shortfalls[i], t.guess);
+            const q = Math.min(1 - 1e-9, Math.max(1e-9, p));
+            total += t.correct ? Math.log(q) : Math.log(1 - q);
+        }
+        return total;
+    };
+
+    let best = -3, bestScore = -Infinity;
+    for (let k = -3; k <= 3; k += 0.05) {
+        const score = logLikelihood(k);
+        if (score > bestScore) { bestScore = score; best = k; }
+    }
+    for (let step = 0.025; step > 0.001; step /= 2) {
+        for (const k of [best - step, best + step]) {
+            const score = logLikelihood(k);
+            if (score > bestScore) { bestScore = score; best = k; }
+        }
+    }
+
+    return { levelsPerPremise: best, trials: usable.length, sd };
 }
 
 /**

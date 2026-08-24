@@ -192,6 +192,38 @@
             <div class="text-muted" *ngIf="!depths.length">
                 No answered item has recorded a depth yet.
             </div>
+
+            <div class="mt-2">
+                <strong>What an unneeded premise is worth</strong> &mdash; in levels.
+                <div *ngIf="depthFit; else noDepthFit">
+                    {{ depthFit.levelsPerPremise.toFixed(2) }} levels per premise
+                    the answer did not need, from {{ depthFit.trials }} answers
+                    (shortfall sd {{ depthFit.sd.toFixed(2) }} premises).
+                    <div [class.text-muted]="!depthApplied">
+                        <strong>{{ depthApplied ? "Being applied" : "Not applied" }}</strong>
+                        &mdash;
+                        <span *ngIf="depthApplied">
+                            charging {{ depthApplied.toFixed(2) }} levels per unneeded
+                            premise, so a shallow item is scored as the easier item
+                            it was.
+                        </span>
+                        <span *ngIf="!depthApplied">
+                            a fit saying that premises nobody needs make an item
+                            <em>harder</em> is a statement about the sample rather
+                            than about depth, so it is discarded rather than acted on.
+                        </span>
+                    </div>
+                </div>
+                <ng-template #noDepthFit>
+                    <div class="text-muted">
+                        Not enough spread to say. Once the floors are in, most
+                        items sit at or near full depth, so the shortfall barely
+                        varies and every coefficient fits equally well &mdash;
+                        turning the deeper conclusions off in Customise produces
+                        the variation this needs.
+                    </div>
+                </ng-template>
+            </div>
         </div>
 
         <hr class="my-2">

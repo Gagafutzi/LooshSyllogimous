@@ -13,12 +13,13 @@
  * means nothing until you know what 8.5 is wide for.
  */
 
-import { assert, seeded, test } from "./harness";
+import { assert, equal, seeded, test } from "./harness";
 import {
     axesForDimensions, buildNdLayout, medianByWidth, ndAxisWidths, ndWidth, pickByWidth,
 } from "../src/app/syllogimous/utils/ndspace.utils";
 import {
-    DEFAULT_ABILITY, Trial, fitWidthCoefficient, levelOf, pCorrect,
+    DEFAULT_ABILITY, Trial, fitDepthCoefficient, fitWidthCoefficient, levelOf,
+    pCorrect, unneededPremises,
 } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 
@@ -283,4 +284,89 @@ test("a nonsensical fit is discarded rather than applied", () => {
     localStorage.clear();
 
     assert(perBit === 0, `charged ${perBit} per bit from a fit that ran backwards`);
+});
+
+/* ---------------- the depth coefficient ---------------- */
+
+/**
+ * Answers from a world where a premise the conclusion did not need really is
+ * worth `perPremise` levels.
+ *
+ * Negative, in the world being simulated: a premise the answer does not compose
+ * is one fewer thing to hold. The fit is not told the sign, and its search runs
+ * both ways, or it would confirm the expectation by construction.
+ */
+function syntheticDepthTrials(perPremise: number, count: number, ability = 8): Trial[] {
+    const type = EnumQuestionType.Syllogism;
+    const out: Trial[] = [];
+
+    for (let i = 0; i < count; i++) {
+        const premises = 4 + (i % 4);
+        // Anything from a conclusion that needs everything to one that needs
+        // two, which is the spread the old model actually produced.
+        const depth = Math.max(2, premises - (i % 4));
+        const shortfall = premises - depth;
+
+        const truth = levelOf({ type, premises, rungs: [], seconds: null }, DEFAULT_ABILITY)
+            + perPremise * shortfall;
+
+        out.push({
+            type, premises, rungs: [], seconds: null,
+            estimate: ability, guess: 0.5,
+            correct: Math.random() < pCorrect(DEFAULT_ABILITY, ability, truth, 0.5),
+            depth,
+        });
+    }
+    return out;
+}
+
+test("the depth fit recovers a coefficient it was never told", () => {
+    for (const planted of [-0.4, -1.5]) {
+        const fit = seeded(Math.abs(planted) * 6151 + 11, () =>
+            fitDepthCoefficient(syntheticDepthTrials(planted, 6000), DEFAULT_ABILITY));
+
+        assert(!!fit, "no fit was produced from six thousand varied answers");
+        assert(Math.abs(fit!.levelsPerPremise - planted) < 0.6,
+            `planted ${planted}, fitted ${fit!.levelsPerPremise.toFixed(2)}`);
+    }
+});
+
+test("with every conclusion at full depth, the depth fit declines to guess", () => {
+    /*
+     * The common case once the floors are in, and the honest answer to it. If
+     * every conclusion needs the whole premise set the shortfall is nought
+     * throughout, so every coefficient fits equally well — and a number from
+     * that would be noise wearing a decimal point.
+     */
+    const flat: Trial[] = Array.from({ length: 400 }, (_, i) => ({
+        type: EnumQuestionType.Syllogism,
+        premises: 4 + (i % 4), rungs: [], seconds: null,
+        estimate: 8, guess: 0.5, correct: i % 3 !== 0,
+        depth: 4 + (i % 4),
+    }));
+
+    equal(fitDepthCoefficient(flat, DEFAULT_ABILITY), null,
+        "a coefficient was produced from a sample with no shortfall in it");
+});
+
+test("an unmeasured mode contributes nothing to the depth fit", () => {
+    /*
+     * Depth 0 means the generator does not measure it. Read as "the conclusion
+     * needed nothing" it would be the largest shortfall in the sample and would
+     * dominate the fit — from modes that never reported anything.
+     */
+    const unmeasured: Trial[] = Array.from({ length: 400 }, (_, i) => ({
+        type: EnumQuestionType.Distinction,
+        premises: 4 + (i % 4), rungs: [], seconds: null,
+        estimate: 8, guess: 0.5, correct: i % 3 !== 0,
+        depth: 0,
+    }));
+
+    equal(fitDepthCoefficient(unmeasured, DEFAULT_ABILITY), null,
+        "unmeasured items were fitted as maximally shallow ones");
+
+    equal(unneededPremises({ premises: 6, depth: 0 }), 0,
+        "an unmeasured item was priced as needing none of its premises");
+    equal(unneededPremises({ premises: 6, depth: 6 }), 0, "a full-depth item has a shortfall");
+    equal(unneededPremises({ premises: 6, depth: 2 }), 4, "the shortfall is miscounted");
 });

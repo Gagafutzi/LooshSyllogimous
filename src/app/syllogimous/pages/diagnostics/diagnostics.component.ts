@@ -6,7 +6,7 @@ import { Question } from "../../models/question.models";
 import { Settings, canGenerateQuestion } from "../../models/settings.models";
 import { GameService } from "../../services/game.service";
 import { ProgressionService } from "../../services/progression.service";
-import { DepthReport, RungFit, WidthFit } from "../../utils/ability.utils";
+import { DepthFit, DepthReport, RungFit, WidthFit } from "../../utils/ability.utils";
 
 /**
  * Generator diagnostics.
@@ -119,6 +119,8 @@ export class DiagnosticsComponent {
     widthFit: WidthFit | null = null;
     widthApplied = 0;
     depths: DepthReport[] = [];
+    depthFit: DepthFit | null = null;
+    depthApplied = 0;
 
     loadRungFits() {
         this.trialCount = this.progression.trials().length;
@@ -126,6 +128,8 @@ export class DiagnosticsComponent {
         this.widthFit = this.progression.fittedWidthCoefficient();
         this.widthApplied = this.progression.appliedWidthPerBit();
         this.depths = this.progression.depthByMode();
+        this.depthFit = this.progression.fittedDepthCoefficient();
+        this.depthApplied = this.progression.appliedDepthPerPremise();
     }
 
     /** A share reads as a percentage; nobody thinks in thirds of a premise. */

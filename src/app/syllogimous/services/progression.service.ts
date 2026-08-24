@@ -11,7 +11,8 @@ import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
     abilityUpdate, aggregate, cautionPenalty, chooseConfig, guessRateFor, guessRateForRungs, initAbility, levelOf,
     pCorrect, priorForNewMode, targetLevel,
-    DepthReport, Trial, depthReport, fitRungCosts, fitWidthCoefficient, referenceSecondsFrom,
+    DepthFit, DepthReport, Trial, depthReport, fitDepthCoefficient, fitRungCosts,
+    fitWidthCoefficient, referenceSecondsFrom,
 } from "../utils/ability.utils";
 
 /**
@@ -308,6 +309,7 @@ export class ProgressionService {
             decayPerDay: this.config.decayPerDay,
             forgetting: forgettingFor(this.config.memoryAnswers),
             widthPerBit: this.widthPerBit,
+            levelsPerUnneededPremise: this.depthPerPremise,
         };
     }
 
@@ -351,6 +353,56 @@ export class ProgressionService {
         const value = fit ? Math.max(0, Math.min(6, fit.levelsPerBit)) : 0;
         this.widthFitCache = { at: trials, value };
         return value;
+    }
+
+    /* ---------------- what an unneeded premise is worth ---------------- */
+
+    private depthFitCache: { at: number; value: number } | null = null;
+
+    /**
+     * Levels per premise the conclusion did not need, from the answers, or zero.
+     *
+     * Zero means unpriced, not free — the same rule as `widthPerBit`, refit on
+     * the same schedule and for the same reason.
+     *
+     * **Negative fits are kept here, and positive ones discarded**, which is
+     * the mirror image of the width clamp rather than an inconsistency. Width
+     * was expected to make items harder, so a fit saying wide items are easier
+     * was a statement about the sample; depth shortfall is expected to make
+     * items *easier*, so a fit saying that premises nobody needs make an item
+     * harder is the one that fails the same test.
+     */
+    private get depthPerPremise(): number {
+        const trials = this.trialCount();
+        if (this.depthFitCache && trials - this.depthFitCache.at < 50) {
+            return this.depthFitCache.value;
+        }
+
+        const fit = fitDepthCoefficient(this.trials(), {
+            // Fitted against a scale without the term being fitted, or the
+            // estimate chases its own tail.
+            ...DEFAULT_ABILITY,
+            minSeconds: this.config.floorSeconds,
+            maxSeconds: this.config.ceilingSeconds,
+            widthPerBit: 0,
+            levelsPerUnneededPremise: 0,
+        });
+
+        const value = fit ? Math.min(0, Math.max(-3, fit.levelsPerPremise)) : 0;
+        this.depthFitCache = { at: trials, value };
+        return value;
+    }
+
+    /** What the answers say an unneeded premise costs, reported not applied. */
+    fittedDepthCoefficient(): DepthFit | null {
+        return fitDepthCoefficient(this.trials(), {
+            ...this.abilityConfig, levelsPerUnneededPremise: 0,
+        });
+    }
+
+    /** What the model is currently charging, or zero until fitted. */
+    appliedDepthPerPremise(): number {
+        return this.depthPerPremise;
     }
 
     /** Cheap length probe, so the cache check does not parse the whole log. */
@@ -894,6 +946,10 @@ export class ProgressionService {
             rungs: ladderFor(type).slice(0, before.rungs),
             seconds: before.seconds,
             widthDelta: item?.widthDelta ?? 0,
+            // How much of the item the answer needed. Zero, and so no
+            // correction, until a mode measures it and the coefficient has
+            // been fitted from answers.
+            depth: item?.depth ?? 0,
         }, this.configForMode(type));
 
         const guess = guessRateFor(
@@ -983,6 +1039,15 @@ export class ProgressionService {
                         rungs: ladderFor(type).slice(0, before.rungs),
                         seconds: before.seconds,
                         widthDelta: item?.widthDelta ?? 0,
+                        /*
+                         * No depth here, deliberately. `item.depth` belongs to
+                         * the *final* claim, and pairing it with a checkpoint's
+                         * premise count would state a shortfall nobody
+                         * measured. The claim's own premise count is already
+                         * the better-aimed number; a per-claim depth would be
+                         * better still, and is what to record if this term ever
+                         * turns out to be worth much.
+                         */
                     }, this.configForMode(type)),
                     guessRateFor("construct", claim.slots, 0, item?.options ?? 3),
                     claim.correct,

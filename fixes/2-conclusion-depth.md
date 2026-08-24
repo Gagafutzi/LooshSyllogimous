@@ -622,8 +622,33 @@ Behind **Score each claim separately** in Fluid progression, on by default.
 It needed no coefficient. `levelOf` already reads a premise count, and a
 checkpoint claim states the count it follows from — `ConstructClaim.fromPremises`,
 which the slot label was already saying to the reader and now says to the model
-as well. A fitted depth coefficient is a better answer to the same question and
-is a separate piece of work; this is what is honest without one.
+as well.
+
+**The coefficient is built too**, as the better answer to the same question.
+`levelsPerUnneededPremise` is the depth twin of `widthPerBit`, fitted by
+`fitDepthCoefficient` from answered items and applied only once the answers
+support it. What it prices is the **shortfall** — `premises - depth`, the
+premises the conclusion did not need — because `weight * premises` already
+charges as though the answer used all of them, so the shortfall is the only
+part left to price.
+
+Four things it turned on:
+
+- **Zero means unmeasured, not "needed nothing".** Read the other way an
+  unmeasured mode is the largest shortfall in the sample and dominates the fit.
+  `unneededPremises` collapses absent, zero and full-depth to the same nought.
+- **The search runs downward as well as up.** A premise the answer does not
+  compose is expected to make an item *easier*, so a range that could only
+  return zero or more would confirm that by construction rather than measure it.
+- **The clamp is the mirror of width's, not a copy of it.** Width discards
+  negative fits because wide items being easier is a statement about the
+  sample; depth discards *positive* ones, because premises nobody needs making
+  an item harder fails the same test.
+- **It will decline to answer for a while, and that is correct.** Once the
+  floors are in, most items sit at or near full depth, so the shortfall barely
+  varies and every coefficient fits equally well. Turning the deep conclusions
+  off in Customise produces exactly the variation the fit needs, which makes
+  the switch a way to measure the thing it turns off.
 
 Four decisions:
 
