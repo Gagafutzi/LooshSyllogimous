@@ -246,7 +246,23 @@
             </div>
             <ng-template #conclusionIsStringTemplate>
                 <div>
-                    <div class="small text-muted">Conclusion</div>
+                    <!--
+                      One claim at a time when the item has several, with where
+                      you are in them: the premises do not change, so without a
+                      count there is nothing to say the card moved on.
+                    -->
+                    <div class="small text-muted" *ngIf="game.question.series.length > 1; else oneOnly">
+                        Conclusion
+                        <span class="text-muted">
+                            {{ game.question.seriesAt + 1 }} of {{ game.question.series.length }}
+                            <ng-container *ngIf="game.seriesBonusSeconds">
+                                — each one answered buys {{ game.seriesBonusSeconds }}s
+                            </ng-container>
+                        </span>
+                    </div>
+                    <ng-template #oneOnly>
+                        <div class="small text-muted">Conclusion</div>
+                    </ng-template>
                     <div [innerHTML]="game.question.conclusion"></div>
                 </div>
             </ng-template>

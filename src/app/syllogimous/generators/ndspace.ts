@@ -773,9 +773,8 @@ export function fillNdConclusion(ctx: GeneratorContext,
      */
     if (feat.multiConclusion) {
         const count = layout.axes.length >= 5 ? 2 : 2 + Math.floor(Math.random() * 2);
-        const allTrue = coinFlip();
-        const wants: boolean[] = Array(count).fill(true);
-        if (!allTrue) wants[Math.floor(Math.random() * count)] = false;
+        // Each claim on its own coin; see the scale family for why.
+        const wants = Array.from({ length: count }, () => coinFlip());
 
         const strictSet = feat.indeterminate || feat.speakers || feat.testimony;
         const claims: NdConclusion[] = [];
@@ -812,18 +811,16 @@ export function fillNdConclusion(ctx: GeneratorContext,
          * conclusion can take, not one it must.
          */
         if (claims.length === count) {
-            // Every claim has to be checked, so the cheapest is what the item
-            // can be answered from when one of them is false.
+            // Every claim has to be answered, so the cheapest is what the item
+            // can be answered from at its easiest.
             question.depth = Math.min(
                 ...claims.map(c => graphDistance(c.a, c.b, layout.neighbors)));
-            question.conclusion = claims.map(c => c.text);
-            question.isValid = allTrue;
+            question.series = claims.map((c, i) => ({ text: c.text, isValid: wants[i] }));
+            question.conclusion = claims[0].text;
+            question.isValid = wants[0];
+
             /*
-             * One walk per claim, and the false one says so.
-             *
-             * Left silent, this form explained nothing — which mattered little
-             * while it was a late rung and matters a great deal now it is what
-             * everybody gets. A mutated layout is the usual exception: the
+             * One walk per claim. A mutated layout is the usual exception: the
              * premises no longer describe where things ended up, so a walk
              * through them would be confidently wrong.
              */
@@ -832,10 +829,6 @@ export function fillNdConclusion(ctx: GeneratorContext,
                     ...explainNdAxis(layout, c.b, c.a, Math.max(0, c.axis)),
                     wants[i] ? `so claim ${i + 1} holds.`
                         : `so claim ${i + 1} does ${hi("not")} hold.`,
-                ]).concat([
-                    allTrue
-                        ? `Every claim holds, so the set does.`
-                        : `One of them does not, and they were asked together.`,
                 ]);
             }
             return true;

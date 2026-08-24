@@ -129,18 +129,19 @@ export function fillHierarchyConclusion(ctx: GeneratorContext,
     }
 
     if (feat.multiConclusion) {
+        // Each claim on its own coin; see the scale family for why.
         const count = 2 + Math.floor(Math.random() * 2);
-        const allTrue = coinFlip();
-        const wants = Array(count).fill(true);
-        if (!allTrue) wants[Math.floor(Math.random() * count)] = false;
+        const wants = Array.from({ length: count }, () => coinFlip());
 
         const set = buildHierarchyQuerySet(layout, count, wants, feat.minSpan);
         if (set.length < count) return false;
-        // Every claim has to be checked, so the cheapest is what the item can
-        // be answered from when one of them is false.
+
         question.depth = Math.min(...set.map(q => cost(q.span)));
-        question.conclusion = set.map(renderHierarchyConclusion);
-        question.isValid = allTrue;
+        question.series = set.map(q => ({
+            text: renderHierarchyConclusion(q), isValid: q.isValid,
+        }));
+        question.conclusion = question.series[0].text;
+        question.isValid = question.series[0].isValid;
         /*
          * One derivation per claim. Nothing mutates a hierarchy after it is
          * stated, so every one of these is safe to walk — which is why this
@@ -150,10 +151,6 @@ export function fillHierarchyConclusion(ctx: GeneratorContext,
             ...explainHierarchy(layout, q),
             q.isValid ? `so claim ${i + 1} holds.`
                 : `so claim ${i + 1} does ${hi("not")} hold.`,
-        ]).concat([
-            allTrue
-                ? `Every claim holds, so the set does.`
-                : `One of them does not, and they were asked together.`,
         ]);
         return true;
     }

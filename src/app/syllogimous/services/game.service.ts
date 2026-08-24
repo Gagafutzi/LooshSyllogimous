@@ -25,7 +25,7 @@ import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils"
 import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
-import { LS_DONT_SHOW, LS_HISTORY, LS_SCORE, LS_SKIP_TUTORIALS, LS_TIMER } from "../constants/local-storage.constants";
+import { LS_DONT_SHOW, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_TIMER } from "../constants/local-storage.constants";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
 import { Router } from "@angular/router";
@@ -676,6 +676,36 @@ export class GameService implements GeneratorContext {
          * the clock lost the answer they had just given.
          */
         if (this.question.answered) return;
+
+        /*
+         * A series is answered one claim at a time, on one arrangement.
+         *
+         * The premises stay, the countdown keeps running, and answering buys
+         * seconds for the next claim rather than resetting the limit — so the
+         * item remains one timed unit and the extra is visibly what getting
+         * this far bought. Only the last claim ends the item.
+         *
+         * A timeout falls through deliberately. The clock ran out on the item,
+         * and handing back time for a claim nobody answered would make the
+         * deadline cheaper the more claims an item has.
+         */
+        const series = this.question.series;
+        if (series.length > 1 && value != null
+            && this.question.seriesAt < series.length - 1) {
+            this.question.seriesAnswers[this.question.seriesAt] =
+                value === series[this.question.seriesAt].isValid;
+
+            this.question.seriesAt++;
+            const next = series[this.question.seriesAt];
+            this.question.conclusion = next.text;
+            this.question.isValid = next.isValid;
+            this.gameTimerService.extend(this.seriesBonusSeconds);
+
+            this.flashClaim(
+                this.question.seriesAnswers[this.question.seriesAt - 1] === true);
+            return;
+        }
+
         this.question.answered = true;
         this.gameTimerService.stop();
 
@@ -695,7 +725,23 @@ export class GameService implements GeneratorContext {
             !!this.playgroundSettings || this.settingsOverrideService.practice;
 
         const type = this.question.type;
-        const isQuestionValid = this.question.userAnswer === this.question.isValid;
+        /*
+         * The last claim's answer, recorded like the others, and then the item
+         * judged on all of them.
+         *
+         * The verdict and the score are about the set — getting two of three is
+         * not getting the item — while the ability model is handed the claims
+         * separately below, because "answered one of two" and "answered neither"
+         * are different evidence about a player and identical to an AND.
+         */
+        if (series.length) {
+            this.question.seriesAnswers[this.question.seriesAt] =
+                value != null && value === series[this.question.seriesAt].isValid;
+        }
+
+        const isQuestionValid = series.length
+            ? series.every((_, i) => this.question.seriesAnswers[i] === true)
+            : this.question.userAnswer === this.question.isValid;
 
         // Playground doesn't progress tiers
         if (!this.question.playgroundMode) {
@@ -737,7 +783,14 @@ export class GameService implements GeneratorContext {
                      * same function the result screen reports from, so the model
                      * and the screen cannot disagree about which claim was right.
                      */
-                    claims: this.question.answerMode === "construct"
+                    claims: this.question.series.length > 1
+                        // A series is already one claim per question, so each
+                        // is its own piece of evidence at the plain guess rate.
+                        ? this.question.series.map((_, i) => ({
+                            correct: this.question.seriesAnswers[i] === true,
+                            slots: 0,
+                        }))
+                        : this.question.answerMode === "construct"
                             && this.question.construct.length > 1
                         ? compareConstruction(this.question.construct, this.question.userConstruct)
                             .map((slots, i) => ({
@@ -859,6 +912,40 @@ export class GameService implements GeneratorContext {
      * broke the rhythm of a timed drill for no information gain, since the
      * verdict is one word.
      */
+    /**
+     * Seconds handed back for answering a claim of a series.
+     *
+     * Five unless it is set otherwise. Enough to read the next claim against
+     * premises already in your head, not enough to re-read the item.
+     */
+    get seriesBonusSeconds(): number {
+        try {
+            const raw = Number(localStorage.getItem(LS_SERIES_BONUS));
+            return Number.isFinite(raw) && raw >= 0 ? Math.min(60, raw) : 5;
+        } catch { return 5; }
+    }
+
+    setSeriesBonusSeconds(value: number) {
+        try {
+            localStorage.setItem(LS_SERIES_BONUS,
+                String(Math.max(0, Math.min(60, Math.round(value)))));
+        } catch { /* private mode; the default stands */ }
+    }
+
+    /**
+     * The outcome of one claim, without ending the item.
+     *
+     * Short, and it does not stop the clock or offer the derivation: the next
+     * claim is already on screen behind it, and the whole point of the form is
+     * that the arrangement stays in your head between claims. The reckoning
+     * comes once, at the end.
+     */
+    private flashClaim(right: boolean) {
+        this.verdict = right ? "correct" : "wrong";
+        this.playVerdictSound(this.verdict);
+        setTimeout(() => { this.verdict = null; }, 450);
+    }
+
     private showVerdict(kind: "correct" | "wrong" | "timeout") {
         this.verdict = kind;
         this.playVerdictSound(kind);

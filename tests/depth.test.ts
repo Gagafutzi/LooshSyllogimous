@@ -1268,16 +1268,16 @@ test("every claim of a multi-conclusion item names every axis", () => {
             for (let rep = 0; rep < 25; rep++) {
                 let q;
                 try { q = createNdSpace(ctx, 4, type); } catch { continue; }
-                if (!Array.isArray(q.conclusion) || q.conclusion.length < 2) continue;
+                if (q.series.length < 2) continue;
 
                 const stated = new Set<string>();
                 for (const p of q.premises) for (const d of dims(p)) stated.add(d);
                 if (stated.size < 2) continue;
 
-                for (const claim of q.conclusion) {
-                    equal(dims(claim).size, stated.size,
+                for (const claim of q.series) {
+                    equal(dims(claim.text).size, stated.size,
                         `${type}: premises name ${stated.size} axes, a claim names`
-                        + ` ${dims(claim).size} — ${claim}`);
+                        + ` ${dims(claim.text).size} — ${claim.text}`);
                 }
                 checked++;
             }

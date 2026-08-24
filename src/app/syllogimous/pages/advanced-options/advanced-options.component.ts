@@ -48,6 +48,10 @@ export class AdvancedOptionsComponent {
 
     setDeepConclusions(on: boolean) { this.overrides.setDeepConclusions(on); }
 
+    get seriesBonus() { return this.game.seriesBonusSeconds; }
+
+    setSeriesBonus(raw: string) { this.game.setSeriesBonusSeconds(Number(raw)); }
+
     get curateSession() { return this.overrides.curateSession; }
 
     setCurateSession(on: boolean) { this.overrides.setCurateSession(on); }

@@ -53,6 +53,19 @@ export class GameTimerService {
         });
     }
 
+    /**
+     * Hand back some seconds without restarting the clock.
+     *
+     * A series of claims shares one arrangement and one countdown: answering a
+     * claim buys time for the next rather than resetting the limit, so the item
+     * stays one timed unit and the extra is visibly the reward for having got
+     * that far. Silent when nothing is running, which is the untimed case.
+     */
+    extend(seconds: number) {
+        if (!this.running || seconds <= 0) return;
+        this.remainingSeconds += Math.round(seconds);
+    }
+
     pause() {
         if (!this.running) {
             return console.warn("GameTimerService: Not running");

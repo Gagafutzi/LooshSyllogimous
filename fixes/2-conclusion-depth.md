@@ -336,6 +336,44 @@ whether a floor that was raised actually moved anything.
 
 ---
 
+## 2.2d Several claims, asked one at a time — **BUILT**
+
+The first version of 2.2c put every claim on the card at once and scored them as
+an AND — *"Conclusions — all must follow"*. The author's objection, and it is
+right twice over:
+
+- **One bit for two or three questions.** A reader who settles the first claim
+  and guesses the rest scores exactly as one who settled all of them.
+- **An AND is not a coin.** A set of claims that must *all* hold is false far
+  more often than true, so "false" becomes the percentage answer and the
+  reasoning is optional.
+
+They are now asked **one at a time on the same premises**. Answering one does
+not advance to the next item: the conclusion is replaced, the countdown is
+handed a few seconds — five by default, settable — and the next claim is asked
+against an arrangement already in the reader's head. Only the last one ends the
+item.
+
+Four things it turned on:
+
+- **Each claim gets its own coin.** The old set was all-true or
+  exactly-one-false, because an AND answered from several false claims is
+  settled by whichever you check first. One at a time, that reasoning inverts:
+  each claim is its own question, so each wants its own even chance.
+- **The clock is extended, not restarted.** A three-claim item would otherwise
+  be three items long for the price of one. `GameTimerService.extend` adds to
+  what is left, and says nothing when there is no clock running.
+- **A timeout ends the item.** Handing back time for a claim nobody answered
+  would make the deadline cheaper the more claims an item carries.
+- **The ability model gets each claim; the verdict and score get the set.**
+  Two of three is not getting the item — but "answered one of two" and
+  "answered neither" are different evidence about a player, and identical to an
+  AND. This is what
+  [2.6](#26-a-halfway-conclusion-and-a-final-one--built-both-families)'s
+  per-claim credit was built for, reaching a second form.
+
+---
+
 ## 2.2c Several claims, for everybody — **BUILT**
 
 `multi-conclusion` was rung eight on the linear ladder and rung fourteen on the

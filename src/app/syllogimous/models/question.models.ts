@@ -31,6 +31,12 @@ export interface IDirection3DProposition {
 }
 
 /** One relation the player has to state, dimension by dimension. */
+/** One claim of a series, with the answer it is looking for. */
+export interface SeriesClaim {
+    text: string;
+    isValid: boolean;
+}
+
 export interface ConstructClaim {
     a: string;
     b: string;
@@ -327,6 +333,28 @@ export class Question {
      * against answered items, and that needs the items logged first.
      */
     depth = 0;
+
+    /**
+     * Several claims about one arrangement, asked one at a time.
+     *
+     * The form this replaces put every claim on the card at once and scored
+     * them as an AND — true only if all of them followed. Two things were wrong
+     * with that. It is one bit for two or three questions, so the reader who
+     * settles the first claim and guesses the rest is scored the same as the
+     * reader who settled all of them. And an AND is not a coin: a set of claims
+     * that must *all* hold is false far more often than it is true, so "false"
+     * becomes the percentage answer and the reasoning is optional.
+     *
+     * Asked one at a time, each claim is its own true-or-false at even odds,
+     * each is scored on its own, and the premises stay on screen throughout —
+     * which is the whole point, since the second claim is the one that cannot
+     * be answered from the corner of the arrangement the first one came from.
+     */
+    series: SeriesClaim[] = [];
+    /** Which claim is on screen. */
+    seriesAt = 0;
+    /** What was answered for each, in order. Absent means never reached. */
+    seriesAnswers: Array<boolean | undefined> = [];
 
     positions: Record<string, number> = {};
 

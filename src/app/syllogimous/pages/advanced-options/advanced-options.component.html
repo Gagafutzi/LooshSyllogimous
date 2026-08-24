@@ -207,6 +207,23 @@
             names one dimension of however many. Nothing else changes — the
             premise counts, the modifiers and the clock are all as they were.
         </p>
+
+        <hr class="my-2">
+        <div class="mode">
+            <label>Seconds per claim answered
+                <small class="text-muted d-block">
+                    An item with several conclusions asks them one at a time on
+                    the same premises. Answering one hands back this much clock
+                    for the next, rather than resetting the limit.
+                </small>
+            </label>
+            <span class="mode__premises">
+                <input type="number" class="form-control form-control-sm" min="0" max="60" step="1"
+                       [value]="seriesBonus"
+                       (change)="setSeriesBonus($any($event.target).value)">
+                <small class="text-muted">0 – 60</small>
+            </span>
+        </div>
     </app-collapsible>
 
     <app-collapsible heading="What comes up" [startClosed]="true">

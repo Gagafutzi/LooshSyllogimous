@@ -87,3 +87,6 @@ for (const type of Object.values(EnumQuestionType)) {
     LS_PROPS.push(LS_DONT_SHOW + type);
     LS_PROPS.push(LS_TRAINING_UNIT + type);
 }
+
+/** Seconds handed back for each claim of a series answered. */
+export const LS_SERIES_BONUS = "SYL_SERIES_BONUS";

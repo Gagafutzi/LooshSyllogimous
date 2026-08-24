@@ -45,6 +45,7 @@ import "./hierarchy-syllogism.test";
 import "./registries.test";
 import "./session.test";
 import "./insight.test";
+import "./series.test";
 import "./testimony.test";
 import "./deictic.test";
 import "./anchor-negation.test";

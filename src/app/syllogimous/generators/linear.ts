@@ -525,32 +525,30 @@ export function fillLinearConclusion(ctx: GeneratorContext,
     }
 
     if (feat.multiConclusion) {
-        // All must hold, so a false item needs exactly one false claim —
-        // several would let it be spotted from any of them.
+        /*
+         * Each claim drawn on its own coin, not one false among true.
+         *
+         * The set used to be all-true or exactly-one-false, because it was
+         * answered as an AND and several false claims would let it be settled
+         * from whichever you checked first. Asked one at a time that reasoning
+         * goes away and inverts: each claim is its own question, so each wants
+         * its own even chance, and a reader who has learned that "false" is the
+         * percentage answer has learned nothing worth having.
+         */
         const count = 2 + Math.floor(Math.random() * 2);
-        const allTrue = coinFlip();
-        const wants = Array(count).fill(true);
-        if (!allTrue) wants[Math.floor(Math.random() * count)] = false;
+        const wants = Array.from({ length: count }, () => coinFlip());
 
         const set = buildConclusionSet(scale, final, count, wants, options, legacy);
         if (set.length < count) return false;
         if (!transformsBite(pairsOf(set.map(c => c.text)))) return false;
 
-        // Every claim has to be checked, so the cheapest one is what the item
-        // can be answered from when it is false.
+        // Every claim has to be answered, so the cheapest one is what the item
+        // can be answered from at its easiest.
         question.depth = Math.min(...set.map(c => c.span));
-        question.conclusion = set.map(c => c.text);
-        question.isValid = allTrue;
-        /*
-         * One walk per claim, and the false one says so.
-         *
-         * Silent until now, which mattered little while this was a late rung
-         * and matters a great deal now it is what everybody gets. Only when
-         * nothing moved, for the same reason the single-claim path is silent
-         * after a transformation: `final` no longer decomposes into the stated
-         * steps, so walking the premises derives the *starting* relation and
-         * presents it as the answer.
-         */
+        question.series = set.map((c, i) => ({ text: c.text, isValid: wants[i] }));
+        question.conclusion = set[0].text;
+        question.isValid = wants[0];
+
         if (!transformed) {
             question.explanation = set.flatMap((c, i) => {
                 const pair = pairsOf([c.text])[0];
@@ -560,11 +558,7 @@ export function fillLinearConclusion(ctx: GeneratorContext,
                     wants[i] ? `so claim ${i + 1} holds.`
                         : `so claim ${i + 1} does ${hi("not")} hold.`,
                 ];
-            }).concat([
-                allTrue
-                    ? `Every claim holds, so the set does.`
-                    : `One of them does not, and they were asked together.`,
-            ]);
+            });
         }
         return true;
     }
