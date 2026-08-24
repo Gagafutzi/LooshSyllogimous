@@ -479,3 +479,108 @@ test("an unmeasured mode says it is unmeasured", () => {
             "a mode nobody has played reports answers");
     });
 });
+
+/* ------------------------------------------------------------------ *
+ * Per-claim credit                                                    *
+ * ------------------------------------------------------------------ */
+
+/**
+ * A checkpoint item asks two questions, and the model heard one answer.
+ *
+ * "Right only if both were" throws away the distinction the checkpoint exists
+ * to produce — losing the thread late is not the same as never having it — and
+ * it scores the halfway claim, answerable from half the premises, at the whole
+ * item's difficulty. Getting the easy one right then walks the estimate
+ * upwards, which is the failure worth pinning: an over-credited estimate serves
+ * items above ability and reads the resulting misses as a slump.
+ */
+const claim = (correct: boolean, fromPremises?: number) =>
+    ({ correct, slots: 2, fromPremises });
+
+function estimateAfter(
+    perClaimCredit: boolean,
+    claims: Array<{ correct: boolean; slots: number; fromPremises?: number }>,
+): number {
+    localStorage.clear();
+    const service = new ProgressionService();
+    service.config.perClaimCredit = perClaimCredit;
+
+    const type = EnumQuestionType.Distinction;
+    service.record(type, claims.every(c => c.correct) ? "right" : "wrong", 10, {
+        answerMode: "construct",
+        slots: claims.reduce((n, c) => n + c.slots, 0),
+        claims,
+    });
+    return service.estimateFor(type).level;
+}
+
+test("half right is told apart from all wrong", () => {
+    const half = estimateAfter(true, [claim(true, 3), claim(false, 6)]);
+    const none = estimateAfter(true, [claim(false, 3), claim(false, 6)]);
+
+    assert(half > none,
+        `answering the checkpoint correctly left the estimate at ${half.toFixed(3)},`
+        + ` no better than getting both wrong at ${none.toFixed(3)}`);
+});
+
+test("without it, half right and all wrong are the same answer", () => {
+    const half = estimateAfter(false, [claim(true, 3), claim(false, 6)]);
+    const none = estimateAfter(false, [claim(false, 3), claim(false, 6)]);
+
+    equal(half, none,
+        "the switch is off and the two outcomes still differ, so something"
+        + " other than per-claim credit is reading the claims");
+});
+
+/**
+ * The halfway claim is a genuinely easier question, so being right about it is
+ * weaker evidence than being right about the one at the end. If both entered at
+ * the item's level, a player who only ever reached the checkpoint would be
+ * credited as though they had finished.
+ */
+test("the halfway claim counts for less than the final one", () => {
+    /*
+     * Both claims right either way, so the only difference is what the first
+     * one was worth. A checkpoint answerable from three premises has to credit
+     * less than one that needed all six, or a player who only ever reaches the
+     * checkpoint is credited as though they had finished.
+     *
+     * Isolated like this on purpose. The obvious comparison — right about the
+     * checkpoint against right about the conclusion — measures something else
+     * and comes out the other way: being *wrong* about the easy claim is strong
+     * evidence against, and it drags the estimate down further than being right
+     * about the hard one lifts it. That is the model working, not failing, and
+     * it is worth writing down because the reading is counterintuitive enough
+     * to be mistaken for a bug twice.
+     */
+    const shallow = estimateAfter(true, [claim(true, 3), claim(true, 6)]);
+    const deep = estimateAfter(true, [claim(true, 6), claim(true, 6)]);
+
+    assert(deep > shallow,
+        `a claim following from three premises credited the same as one`
+        + ` following from six: ${shallow.toFixed(3)} against ${deep.toFixed(3)}`);
+});
+
+/**
+ * The clock is part of the difficulty, so a claim that was right when the clock
+ * stopped was not answered at the difficulty asked. Crediting it would make the
+ * deadline cheaper the more claims an item has.
+ */
+test("a timeout is not graded claim by claim", () => {
+    localStorage.clear();
+    const service = new ProgressionService();
+    const type = EnumQuestionType.Distinction;
+
+    service.record(type, "timeout", 30, {
+        answerMode: "construct", slots: 4,
+        claims: [claim(true, 3), claim(false, 6)],
+    });
+    const graded = service.estimateFor(type).level;
+
+    localStorage.clear();
+    const plain = new ProgressionService();
+    plain.record(type, "timeout", 30, { answerMode: "construct", slots: 4 });
+
+    equal(graded, plain.estimateFor(type).level,
+        "a timeout was credited for the claims that were entered before it");
+});

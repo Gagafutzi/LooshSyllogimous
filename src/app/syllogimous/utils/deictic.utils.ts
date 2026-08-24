@@ -109,9 +109,12 @@ export function reversalTextFor(axis: DeicticAxis) {
  * it lengthens the item without deepening it, which makes the item easier than
  * its premise count claims and misreports the work to the ability estimate.
  *
- * That bounds an item at 2^k + k premises: six on two axes, eleven on three,
- * which is what the mode's maxNumOfPremises records. Asking for more than the
- * frame can carry yields a shorter item rather than a padded one.
+ * That bounds an item at 2^k + k premises: six on two axes, eleven on three.
+ * The mode's maxNumOfPremises is one below that rather than equal to it,
+ * because a deep conclusion withholds a grid statement and `createDeictic`
+ * adds one to the request to pay for it — so the eleven arrives here from a
+ * request of ten. Asking for more than the frame can carry yields a shorter
+ * item rather than a padded one.
  */
 export function buildDeicticSpec(numOfPremises: number, symbols: string[]): DeicticSpec {
     // Two axes carry six premises at most, so eight is where three axes — nine

@@ -17,7 +17,7 @@
  * `TransformVocab` supplies the words.
  */
 
-import { hi, subj } from "./phrasing";
+import { hi, neg, subj } from "./phrasing";
 
 export type Coord = number[];
 export type CoordMap = Record<string, Coord>;
@@ -408,15 +408,27 @@ const axisColor = (vocab: TransformVocab, axis: number) => vocab.axisClasses?.[a
  *
  * Each part is wrapped on its own so a two-axis move is two colours, matching
  * how the relation premises state the same two axes.
+ *
+ * `invert` states the other pole and marks it, which is the negation cue every
+ * tutorial teaches: a phrase in the negated style means the opposite of what it
+ * says. It is sound here for the reason it is sound on a linear scale — an axis
+ * has exactly two poles and a stated clause never has a zero delta, so "west"
+ * marked leaves east and nothing else. The magnitude stays plain, so a marked
+ * clause asks the reader to flip one word rather than to reconstruct a
+ * coordinate, and a `place` or `translate` premise is never marked at all: they
+ * pass no flag, because no ladder offers negation to the modes that emit them.
  */
-function offsetWords(axes: number[], offset: number[], vocab: TransformVocab): string {
+function offsetWords(axes: number[], offset: number[], vocab: TransformVocab, invert = false): string {
     const parts: string[] = [];
     axes.forEach((ax, i) => {
         const delta = offset[i] ?? 0;
         if (delta === 0) return;
-        const [pos, neg] = vocab.axisWords[ax];
+        const [pos, negWord] = vocab.axisWords[ax];
         const unit = vocab.unit ? ` ${vocab.unit}${Math.abs(delta) === 1 ? "" : "s"}` : "";
-        parts.push(hi(`${Math.abs(delta)}${unit} ${delta > 0 ? pos : neg}`, axisColor(vocab, ax)));
+        const truth = delta > 0 ? pos : negWord;
+        const opposite = delta > 0 ? negWord : pos;
+        const word = invert ? neg(opposite) : truth;
+        parts.push(hi(`${Math.abs(delta)}${unit} ${word}`, axisColor(vocab, ax)));
     });
     return parts.join(" and ");
 }
@@ -506,16 +518,29 @@ function formatFactor(k: number): string {
     return `${k}×`;
 }
 
-/** "B is 2 east and 1 above of A" — fully fixes b relative to a. */
+/**
+ * "B is 2 east and 1 above of A" — fully fixes b relative to a.
+ *
+ * `invert` is a decision rather than a chance, as it is in `renderRelation`:
+ * the caller chooses which premises are marked so it can control how many, and
+ * so it can count them without reading the count back out of the markup.
+ *
+ * Two objects at the same point have no clause to mark, so such a premise
+ * silently ignores the flag. Nothing generates one — Anchor Space seeds every
+ * anchor's coordinate as taken before it places anything, so an object cannot
+ * land on the anchor it is stated against — but a hand-built pair could, and
+ * this is the one input for which the flag does not show up in the text.
+ */
 export function describeOffset(
     a: string,
     b: string,
     pa: Coord,
     pb: Coord,
     vocab: TransformVocab = SPATIAL_VOCAB,
+    invert = false,
 ): string {
     const axes = pa.map((_, i) => i);
-    const words = offsetWords(axes, axes.map(i => pb[i] - pa[i]), vocab);
+    const words = offsetWords(axes, axes.map(i => pb[i] - pa[i]), vocab, invert);
     if (!words) return `${subj(b)} is at the same place as ${subj(a)}`;
     // "relative to" reads correctly whatever mix of compass and vertical terms
     // the list ends with, where a trailing "of" would not.

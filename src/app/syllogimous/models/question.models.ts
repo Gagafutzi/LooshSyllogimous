@@ -35,6 +35,16 @@ export interface ConstructClaim {
     a: string;
     b: string;
     slots: ConstructSlot[];
+    /**
+     * How many premises this claim follows from, when that is fewer than all.
+     *
+     * A checkpoint claim is answerable halfway down the page, so it is a
+     * genuinely easier question than the one at the end — and scoring the two
+     * at the same difficulty credits the easy one as though it were the hard
+     * one, which walks the ability estimate upwards. Absent means "all of
+     * them", which is what every claim outside a checkpoint needs.
+     */
+    fromPremises?: number;
 }
 
 /**

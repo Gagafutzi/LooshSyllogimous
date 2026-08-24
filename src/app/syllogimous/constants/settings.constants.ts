@@ -203,19 +203,34 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
     },
     /*
      * Needs 4 premises to state a 2-axis grid plus at least one reversal, and
-     * tops out at 11: three axes is eight grid statements, and each axis
-     * reverses once or not at all, so there are three reversals to state and no
-     * twelfth thing to say. Asking for twenty used to be answered with the same
+     * tops out at 10. Asking for twenty used to be answered with the same
      * reversal restated five times over.
-     */
-        /*
-     * Eight cells is the whole grid at three axes, so past that the
-     * premises repeat rather than add: length without width.
+     *
+     * The frame itself carries eleven: three axes is eight grid statements, and
+     * each axis reverses once or not at all, so there are three reversals to
+     * state and no twelfth thing to say. The cap sits one below that because a
+     * deep conclusion withholds a grid statement and `createDeictic` asks
+     * `buildDeicticSpec` for one more than it was given to pay for it — so a
+     * request of 10 is what arrives there as the full eleven, three axes with
+     * all three reversed. An eleventh premise is answered with that same item
+     * under a count claiming more work than it holds, and `Trial.premises`
+     * records the request rather than what turned up, so the claim would be
+     * believed.
+     *
+     * It was 8, on the reasoning that eight cells is the whole grid and past
+     * that the premises repeat. They do not: the ninth and tenth are reversals,
+     * and a reversal states something no grid statement states. That cap
+     * stopped the mode one frame short of the double- and triple-reversed
+     * three-axis items, which are its hardest and the classic hard case in
+     * RFT's deictic protocols — and with the ladder emptied (see
+     * `progression.utils`) the premise count is the only thing left that
+     * reaches them. Past level 16 the selection had nothing to add but the
+     * clock, and the clock bottoms out at eight seconds.
      */
     [EnumQuestionType.Deictic]: {
         enabled: true,
         minNumOfPremises: 5,
-        maxNumOfPremises: 8,
+        maxNumOfPremises: 10,
         basic: false
     },
     [EnumQuestionType.Transformation]: {

@@ -964,6 +964,16 @@ the premises repeat rather than add) and Anchor Space at 8 (past it the item is
 longer rather than harder). Analogy and Binary keep their length by the earlier
 explicit decision.
 
+**Deictic was wrong and is now 10.** Premises past the eighth are not repeats,
+they are reversals, and a reversal states what no grid statement states: a
+request of 9 buys a second reversed axis and 10 buys a third. The cap stopped
+the mode one frame short of its hardest items — the double- and triple-reversed
+three-axis frames, which are the classic hard case in RFT's deictic protocols —
+and with the ladder emptied there was nothing else left to reach them with. Past
+level 16 the selection could only tighten the clock, and at eight seconds the
+clock has nothing left either. Not 11: a deep conclusion withholds a statement,
+so 11 is served the same item as 10 while being credited a premise more.
+
 ### Only one generator enforces its own ceiling — **DONE**
 
 `clampPremises` in `settings.models.ts`, applied in all seventeen generators

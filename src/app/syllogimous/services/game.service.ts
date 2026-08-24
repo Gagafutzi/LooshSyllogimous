@@ -34,7 +34,7 @@ import { LinearFeatureFlags, SettingsOverrideService } from "./settings-override
 import { ProgressionService } from "./progression.service";
 import { ToastService } from "src/app/services/toast.service";
 import { Subject } from "rxjs";
-import { SlotAnswer, constructionSatisfied } from "../utils/construct.utils";
+import { SlotAnswer, compareConstruction, constructionSatisfied } from "../utils/construct.utils";
 import { applyResult, itemDifficulty } from "../utils/rating.utils";
 import { guid } from "src/app/utils/uuid";
 import { EnumArrangements, EnumQuestionType } from "../constants/question.constants";
@@ -676,6 +676,24 @@ export class GameService implements GeneratorContext {
                     // predicts accuracy can later be answered from answered
                     // items rather than from a screenshot.
                     depth: this.question.depth,
+                    /*
+                     * How each claim went, for an item that asks more than one.
+                     *
+                     * Computed here rather than carried on the question because
+                     * this is the only place both halves exist — what was asked
+                     * and what was entered — and `compareConstruction` is the
+                     * same function the result screen reports from, so the model
+                     * and the screen cannot disagree about which claim was right.
+                     */
+                    claims: this.question.answerMode === "construct"
+                            && this.question.construct.length > 1
+                        ? compareConstruction(this.question.construct, this.question.userConstruct)
+                            .map((slots, i) => ({
+                                correct: slots.every(sl => sl.ok),
+                                slots: slots.length,
+                                fromPremises: this.question.construct[i].fromPremises,
+                            }))
+                        : undefined,
                 },
             );
 

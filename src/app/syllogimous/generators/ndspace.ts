@@ -683,6 +683,9 @@ export function fillNdConclusion(ctx: GeneratorContext,
             // do with it.
             first.slots[0] = { ...first.slots[0], label: `From the first ${half}` };
             last.slots[0] = { ...last.slots[0], label: "From all of them" };
+            // The label says it to the reader; this says it to the model.
+            first.fromPremises = half;
+            last.fromPremises = numOfPremises;
 
             question.depth = graphDistance(latePair[0], latePair[1], layout.neighbors);
             question.construct = [first, last];

@@ -129,6 +129,18 @@ export interface ProgressionSettings {
     fatigueThreshold: number;
     /** Stop the posterior moving while a slump is detected. */
     pauseWhenTired: boolean;
+    /**
+     * Score a graded item claim by claim rather than as one bit.
+     *
+     * A checkpoint item asks two questions and the model heard one answer:
+     * right only if both were. That threw away the distinction the checkpoint
+     * exists to produce — losing the thread late is not the same as never
+     * having it — and it scored the easy claim at the hard claim's difficulty.
+     *
+     * On, each claim is its own piece of evidence, at its own level and its own
+     * guess rate. Off, the item is one outcome, as it was.
+     */
+    perClaimCredit: boolean;
 }
 
 const DEFAULT_SETTINGS: ProgressionSettings = {
@@ -146,6 +158,7 @@ const DEFAULT_SETTINGS: ProgressionSettings = {
     fatigueWindow: 15,
     fatigueThreshold: 0.15,
     pauseWhenTired: true,
+    perClaimCredit: true,
 };
 
 @Injectable({ providedIn: "root" })
@@ -849,6 +862,11 @@ export class ProgressionService {
         item?: {
             answerMode?: string; slots?: number; choices?: number; options?: number;
             widthDelta?: number; depth?: number;
+            /**
+             * How each claim of a graded item went, when there was more than
+             * one. Read only with `perClaimCredit` on.
+             */
+            claims?: Array<{ correct: boolean; slots: number; fromPremises?: number }>;
         },
     ): LadderEvent[] {
         if (!this.config.enabled) { this.lastEvents = []; return []; }
@@ -924,10 +942,56 @@ export class ProgressionService {
             return [];
         }
 
-        const next = abilityUpdate(
-            abilityDecay(this.abilityFor(type), this.abilityConfig),
-            level, guess, correct, this.abilityConfig);
-        this.saveAbility(type, next);
+        /*
+         * One update, or one per claim.
+         *
+         * A checkpoint item asks two questions, and the model heard "right only
+         * if both were". That is wrong twice over: it discards the distinction
+         * the checkpoint exists to produce, and it scores the halfway claim —
+         * answerable from half the premises — at the whole item's difficulty,
+         * so getting the easy one right walks the estimate upwards.
+         *
+         * Each claim now enters at its own level, taken from the premise count
+         * it actually follows from, and its own guess rate, taken from its own
+         * slots. `levelOf` already reads a premise count, so this needs no
+         * coefficient — a fitted one for depth is a separate and better answer
+         * to the same question, and this is what is honest without it.
+         *
+         * Timeouts stay binary. The clock is part of the difficulty, so a claim
+         * that was right when the clock stopped was not answered at the
+         * difficulty asked — and crediting it would make the deadline cheaper
+         * the more claims an item has.
+         */
+        const graded = this.config.perClaimCredit && outcome !== "timeout"
+            ? (item?.claims ?? [])
+            : [];
+
+        let state = abilityDecay(this.abilityFor(type), this.abilityConfig);
+        if (graded.length > 1) {
+            for (const claim of graded) {
+                /*
+                 * Forgetting and the trial count apply per update, which is the
+                 * right way round: a graded item really is two pieces of
+                 * evidence, so it should age the posterior like two and count
+                 * like two.
+                 */
+                state = abilityUpdate(
+                    state,
+                    levelOf({
+                        type,
+                        premises: claim.fromPremises ?? before.premises,
+                        rungs: ladderFor(type).slice(0, before.rungs),
+                        seconds: before.seconds,
+                        widthDelta: item?.widthDelta ?? 0,
+                    }, this.configForMode(type)),
+                    guessRateFor("construct", claim.slots, 0, item?.options ?? 3),
+                    claim.correct,
+                    this.abilityConfig);
+            }
+        } else {
+            state = abilityUpdate(state, level, guess, correct, this.abilityConfig);
+        }
+        this.saveAbility(type, state);
 
         // Announce only a change the player would notice in the next item, and
         // judged at the same probe state as `before` — see `wasProbe`.

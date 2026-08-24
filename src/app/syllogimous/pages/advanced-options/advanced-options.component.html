@@ -283,6 +283,20 @@
                 </span>
             </label>
 
+            <label class="master mb-2">
+                <input type="checkbox" class="form-check-input"
+                       [checked]="prog.perClaimCredit" [disabled]="!prog.enabled"
+                       (change)="setProg('perClaimCredit', $any($event.target).checked)">
+                <span>
+                    <strong>Score each claim separately</strong>
+                    <small class="d-block text-muted">
+                        An item with a halfway conclusion and a final one counts
+                        as two pieces of evidence, each at its own difficulty.
+                        Off, it counts as one, right only if both were.
+                    </small>
+                </span>
+            </label>
+
             <div class="mode">
                 <label>Fastest clock
                     <small class="text-muted d-block">Floor for the countdown when difficulty is made up with time</small>

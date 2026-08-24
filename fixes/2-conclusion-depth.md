@@ -614,8 +614,35 @@ The rung is also gated at five premises in `RUNG_MIN_PREMISES`, which it was
 not before — below that there is no halfway, so the ladder was handing out
 something that silently did nothing.
 
-**Still to do:** the ability model still receives one bit per item, so the
-second slot is diagnostic on the screen and not yet in the estimate.
+**The second slot now reaches the estimate — BUILT.** Each claim of a graded
+item is its own piece of evidence: its own level, taken from the premise count
+it actually follows from, and its own guess rate, taken from its own slots.
+Behind **Score each claim separately** in Fluid progression, on by default.
+
+It needed no coefficient. `levelOf` already reads a premise count, and a
+checkpoint claim states the count it follows from — `ConstructClaim.fromPremises`,
+which the slot label was already saying to the reader and now says to the model
+as well. A fitted depth coefficient is a better answer to the same question and
+is a separate piece of work; this is what is honest without one.
+
+Four decisions:
+
+- **Forgetting and the trial count apply per update**, so a graded item ages the
+  posterior like two answers and counts like two. It *is* two pieces of
+  evidence.
+- **Timeouts stay binary.** The clock is part of the difficulty, so a claim that
+  was right when the clock stopped was not answered at the difficulty asked —
+  and crediting it would make the deadline cheaper the more claims an item has.
+- **The claims are compared with `compareConstruction`**, the same function the
+  result screen reports from, so the model and the screen cannot disagree about
+  which claim was right.
+- **The obvious test measures the wrong thing.** Right-about-the-checkpoint
+  against right-about-the-conclusion comes out *backwards*, because being wrong
+  about the easy claim is strong evidence against and drags the estimate down
+  further than being right about the hard one lifts it. That is the model
+  working. The property is isolated instead: both claims right either way, and
+  the one following from three premises must credit less than the one following
+  from six.
 
 ### The original diagnosis
 

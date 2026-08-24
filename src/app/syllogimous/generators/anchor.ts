@@ -6,7 +6,7 @@
  */
 
 import { hi, subj } from "../utils/phrasing";
-import { GeneratorContext } from "./context";
+import { GeneratorContext, modifierOn } from "./context";
 import { extraTransforms } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
@@ -31,6 +31,17 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
 
     const question = new Question(type);
     const objectCount = numOfPremises;
+    /*
+     * The mode's one rung, and it had never been read.
+     *
+     * `RUNG_LADDERS` has offered `negation` here since the table was written and
+     * `RUNG_COST` prices it at 0.6, but nothing in this function looked — so
+     * every item was a plain one sold at the negated price, and `chooseConfig`
+     * additionally refused to raise the premise count past `structureBefore`
+     * while the rung sat unclaimed. Per-mode override first, then the global
+     * flag that `applyTo` has already folded the ladder into.
+     */
+    const negate = modifierOn(ctx, type, "negation", settings.enabled.negation);
 
     for (let attempt = 0; attempt < 400; attempt++) {
         const names = getRandomSymbols(settings, objectCount);
@@ -64,10 +75,20 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
         const conclusion = describeConclusion(x, y, coords[x], coords[y], axes[0], coinFlip());
         if (!conclusion) continue;
 
+        const inverted = invertedPremises(negate, objectCount);
+
         question.bucket = names;
         question.premises = scrambleByFactor(
-            names.map(n => describeOffset(anchorOf[n], n, coords[anchorOf[n]], coords[n])),
+            names.map((n, i) => describeOffset(
+                anchorOf[n], n, coords[anchorOf[n]], coords[n], SPATIAL_VOCAB, inverted.has(i))),
             ctx.settingsOverrideService.scramble);
+        /*
+         * Counted from the decision rather than from the rendered text, which is
+         * what `renderRelation` returns its flag for: the rating scale charges
+         * per negation and the answer budget pays three seconds for each, so
+         * this number is spent, not merely displayed.
+         */
+        question.negations = inverted.size;
         question.conclusion = conclusion.text;
         question.isValid = conclusion.isValid;
         // Anchors included: the frame is the thing being reasoned through, so a
@@ -82,6 +103,33 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
 }
 
 /**
+ * Which premises state their offsets in the inverted form.
+ *
+ * The rule is `renderPremises`' in `linear.utils`, and it is here for the same
+ * reasons rather than by imitation. A per-premise coin flip inverts *every*
+ * premise about one item in 2^n, and a uniformly inverted item is a different
+ * and easier exercise — read the whole thing backwards once and the cue never
+ * has to be tracked again. So the count is drawn between one and half the
+ * premises: never all of them, and never none, which is what makes switching
+ * the rung on show up in the item at all.
+ *
+ * Indices are into `names`, before the premises are scrambled. Which object is
+ * inverted is what matters; where its premise lands is the scrambler's business.
+ */
+function invertedPremises(on: boolean, count: number): Set<number> {
+    const chosen = new Set<number>();
+    if (!on || count < 1) return chosen;
+
+    const most = Math.max(1, Math.ceil(count / 2));
+    const k = 1 + Math.floor(Math.random() * most);
+    const pool = Array.from({ length: count }, (_, i) => i);
+    for (let i = 0; i < k && pool.length; i++) {
+        chosen.add(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    }
+    return chosen;
+}
+
+/**
  * Why the two sit that way round, routed through the frame.
  *
  * The pair always hangs off *different* anchors — items where they share one
@@ -89,6 +137,12 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
  * So the derivation has to do what the player has to do: put each object on
  * the frame's own coordinates first, and only then compare. Stating the
  * anchors' positions is the step people leave out.
+ *
+ * Distances come from the coordinates rather than from the premises as
+ * rendered, because negation states an offset by its opposite pole — so under
+ * that rung the text a player reads is not the arithmetic being done, and the
+ * derivation shows the recovered offset, which is the number they should have
+ * arrived at.
  */
 function explainAnchor(
     x: string,
