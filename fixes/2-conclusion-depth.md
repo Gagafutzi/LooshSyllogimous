@@ -403,7 +403,7 @@ one.
 
 ---
 
-## 2.4 Transformations that arrive before the thing they transform — **BUILT for Deictic**
+## 2.4 Transformations that arrive before the thing they transform — **DONE**
 
 The intent was already in the code, and undone one line later. Deictic built its
 premises as grid-then-reversals with a comment saying why, then handed the whole
@@ -550,7 +550,7 @@ extends to the new claim form for free, since it reads the rendered conclusion.
 
 ---
 
-## 2.6 A halfway conclusion and a final one — **BUILT** for the scale family
+## 2.6 A halfway conclusion and a final one — **BUILT**, both families
 
 The `checkpoint` rung, last on the linear ladder. Two claims, answered together
 as a two-slot construction — which needed no new answer flow, the construct

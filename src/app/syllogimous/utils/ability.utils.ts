@@ -174,17 +174,20 @@ export const RUNG_COST: Record<string, number> = {
     "min-span-3": 0.8,
     cycles: 1.5,
 
-    "extra-reversal": 0.8,
-    "third-axis": 1.0,
-
     /*
-     * These four were reaching the 0.8 fallback rather than being priced.
+     * These two were reaching the 0.8 fallback rather than being priced.
      *
      * The fallback exists so a new rung is never a crash, not so it can stand
-     * in for a decision — and four of them silently sharing one number is how a
-     * difficulty model stops meaning anything. Estimates like the rest of this
-     * table, and wrong in the same explicit way, which is what `fitRungCosts`
-     * is for.
+     * in for a decision — and several of them silently sharing one number is
+     * how a difficulty model stops meaning anything. Estimates like the rest of
+     * this table, and wrong in the same explicit way, which is what
+     * `fitRungCosts` is for.
+     *
+     * Deictic Relations' `extra-reversal` (0.8) and `third-axis` (1.0) sat here
+     * too, and are gone rather than tombstoned: the mode's premise count is
+     * already a bijection onto its (axes, reversals) frames, so both rungs
+     * priced a difficulty the item was carrying anyway. See the note on its
+     * now-empty ladder in `progression.utils.ts`.
      */
 
     /*

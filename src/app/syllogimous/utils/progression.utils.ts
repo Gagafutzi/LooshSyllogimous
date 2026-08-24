@@ -444,7 +444,36 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Graph Matching":            ["which-differs", "as-relations", "distance"],
     "Analogy":                   ["negation", "meta"],
     "Binary":                    ["negation", "meta"],
-    "Deictic Relations":         ["extra-reversal", "third-axis"],
+    /*
+     * Empty, and for a different reason from the two above.
+     *
+     * A deictic item is a 2^k grid of statements plus one premise per reversed
+     * axis, so its premise count *is* `2^k + r` — a bijection onto the (axes,
+     * reversals) pairs the frame can take. There is no third quantity left for
+     * a rung to name: adding a reversal adds a premise, and a third axis adds
+     * four of them. So this is not a mode with nothing to offer; it is one
+     * whose structure is already indexed by its length.
+     *
+     * It carried `extra-reversal` and `third-axis` anyway — priced at 0.8 and
+     * 1.0, labelled in Customise, and read by nothing, because `deictic.ts`
+     * never called `hasRung`. Both names describe exactly what `numOfPremises`
+     * already decides in `buildDeicticSpec`, so a player who earned or forced
+     * either paid for it and was served the identical item.
+     *
+     * And the charge was the smaller half. `chooseConfig` will not let premises
+     * past `structureBefore` while any rung is unclaimed — so the two phantoms
+     * pinned this mode at five premises until both were bought, and premises
+     * are the only thing that moves the frame at all. At a target of 12 it now
+     * chooses seven premises and serves three axes, where it used to choose six
+     * with both rungs, serve two axes, and charge 1.8 levels more for it.
+     *
+     * Nothing is tombstoned. A tombstone holds a slot so the rungs *after* it
+     * stay aligned for profiles that count rungs by position; there is no rung
+     * after these, and `configFor` recomputes the count from the ability
+     * estimate rather than reading a stored one, so removing them renames
+     * nothing for anybody.
+     */
+    "Deictic Relations":         [],
     "Transformation":            ["transform-depth-1", "transform-depth-2"],
     "Anchor Space":              ["negation"],
     "Anchor Space v2":           ["transform-depth-1", "transform-depth-2"],

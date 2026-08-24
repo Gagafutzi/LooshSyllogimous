@@ -74,8 +74,6 @@ export class ModeModifiersComponent {
             "meta": "Relations about relations, here only",
             "structural": "Structural matching — no counting arrows",
             "rank": "Rank every candidate, not just the furthest",
-            "extra-reversal": "A second reversal",
-            "third-axis": "A third axis",
             "min-span-3": "Longer routes",
             "cycles": "Cycles in the hierarchy",
             "180": "Backtracking arrangements",
