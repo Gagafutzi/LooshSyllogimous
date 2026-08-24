@@ -204,6 +204,34 @@ the 3-D case too.
 
 ---
 
+## 4.2b One stimulus in four rendered as nothing — **FIXED**
+
+Reported as *"there appear to be symbols the program cant display"*, on an
+Analogy item with a hole where a subject should be — twice, once in a premise
+and once in the conclusion.
+
+Not a font gap on one machine. `getEmojis` built its pool by walking whole
+Unicode **blocks**, and a block is a range of addresses rather than a list of
+emoji. **209 of 848 entries drew nothing**, so roughly one stimulus in four was
+invisible.
+
+Two kinds were getting through. **Unassigned code points**, which no font has a
+glyph for. And **text-presentation emoji** like U+1F321, which are assigned but
+render as an emoji only when followed by U+FE0F — and nothing here appends a
+variation selector.
+
+`\p{Emoji_Presentation}` is exactly the property that separates them: true for
+the code points that draw as an emoji unaided, which is the only kind this pool
+can use. Read from the platform's Unicode data rather than curated by hand, so
+the pool follows the standard instead of drifting behind a list.
+
+This is worse than a merely ugly stimulus, which is why it is here rather than
+in the correctness section by charity: the premise still reads as a *sentence*,
+with a gap in it, and the reader cannot tell whether the gap is the thing they
+are meant to be tracking or a word they failed to see.
+
+---
+
 ## 4.3 Negation is the least legible thing on the card
 
 Not in the source list — an observation from reading the stylesheet, visible in

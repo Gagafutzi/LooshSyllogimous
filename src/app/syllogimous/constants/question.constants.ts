@@ -98,12 +98,42 @@ export const getEmojis = () => {
 
     for (const range of emojiRanges) {
         for (let codePoint = range.start; codePoint <= range.end; codePoint++) {
-            emojis.push(String.fromCodePoint(codePoint));
+            const symbol = String.fromCodePoint(codePoint);
+            if (isPrintableEmoji(symbol)) emojis.push(symbol);
         }
     }
 
     return emojis;
 };
+
+/**
+ * Whether a code point actually draws something.
+ *
+ * The pool was built by walking whole Unicode *blocks*, and a block is not a
+ * list of emoji — it is a range of addresses, most of which are assigned and
+ * some of which are not. **One in four came out blank**: 209 of 848. A stimulus
+ * that renders as nothing is worse than a bad stimulus, because the premise
+ * still reads as a sentence with a hole in it and the reader cannot tell
+ * whether the hole is the thing they are meant to be tracking.
+ *
+ * Two kinds were coming through. Unassigned code points, which no font has a
+ * glyph for. And *text-presentation* emoji like U+1F321 — assigned, but drawn
+ * as emoji only when followed by U+FE0F, and drawn as nothing much without it.
+ *
+ * `Emoji_Presentation` is exactly the property that separates them: it is true
+ * for the code points that render as an emoji on their own, which is the only
+ * kind this pool can use, since nothing here appends a variation selector.
+ * Reading it from the platform rather than curating a list by hand means the
+ * pool follows the Unicode data instead of drifting behind it.
+ */
+function isPrintableEmoji(symbol: string): boolean {
+    try {
+        return /^\p{Emoji_Presentation}$/u.test(symbol);
+    } catch {
+        // No Unicode property escapes: keep the pool rather than empty it.
+        return true;
+    }
+}
 getEmojis();
 
 export const NOUNS = [

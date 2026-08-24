@@ -13,6 +13,7 @@
  */
 
 import { assert, equal, seeded, test } from "./harness";
+import { getEmojis } from "../src/app/syllogimous/constants/question.constants";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -198,4 +199,45 @@ test("stepping copes with a slide name that is no longer in the order", () => {
         "a stale name should step from the start rather than nowhere");
     equal(stepSlide([], "setup", 1), "", "an empty order has no slide to show");
     equal(stepSlide(["webs"], "webs", 1), "webs", "a single slide has nowhere to go");
+});
+
+/* ------------------------------------------------------------------ *
+ * Stimuli that actually draw                                          *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Every emoji stimulus renders as something.
+ *
+ * The pool was built by walking whole Unicode *blocks*, and a block is a range
+ * of addresses rather than a list of emoji — so one in four entries drew
+ * nothing at all: 209 of 848. Two kinds got through. Unassigned code points,
+ * which no font has a glyph for; and text-presentation emoji like U+1F321,
+ * assigned but drawn as an emoji only when followed by a variation selector,
+ * which nothing here appends.
+ *
+ * A stimulus that renders as nothing is worse than a bad one. The premise still
+ * reads as a sentence, with a hole where a subject should be, and the reader
+ * cannot tell whether the hole is the thing they are meant to be tracking or a
+ * word they failed to see.
+ *
+ * Checked against the platform's own Unicode data rather than a list written
+ * here, which would be the same drift one layer down.
+ */
+test("every emoji stimulus is one that draws", () => {
+    const pool = getEmojis();
+    assert(pool.length > 300, `only ${pool.length} emoji left in the pool`);
+
+    const blank = pool.filter(s => !/^\p{Emoji_Presentation}$/u.test(s));
+    assert(blank.length === 0,
+        `${blank.length} stimuli render as nothing, starting with `
+        + blank.slice(0, 8).map(s => "U+" + s.codePointAt(0)!.toString(16)).join(", "));
+
+    // One code point each, so nothing depends on a variation selector or a
+    // zero-width joiner surviving however the stimulus is stored and redrawn.
+    const compound = pool.filter(s => [...s].length !== 1);
+    assert(compound.length === 0,
+        `${compound.length} stimuli are more than one code point`);
+
+    // And distinct, or two objects in one item could look identical.
+    equal(new Set(pool).size, pool.length, "the pool repeats a stimulus");
 });
