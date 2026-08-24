@@ -43,6 +43,7 @@ import "./widest-group.test";
 import "./collapsible.test";
 import "./hierarchy-syllogism.test";
 import "./registries.test";
+import "./session.test";
 import "./testimony.test";
 import "./deictic.test";
 import "./anchor-negation.test";

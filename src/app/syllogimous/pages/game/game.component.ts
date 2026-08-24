@@ -12,6 +12,7 @@ import { ProgressionService } from '../../services/progression.service';
 import { SlotAnswer, blankPicks, compareConstruction, slotsRemaining } from '../../utils/construct.utils';
 import { KeybindService, keyLabel } from '../../services/keybind.service';
 import { slideNames, stepSlide } from '../../utils/slides.utils';
+import { ProgressAndPerformanceService } from '../../services/progress-and-performance.service';
 
 @Component({
     selector: 'app-game',
@@ -20,6 +21,29 @@ import { slideNames, stepSlide } from '../../utils/slides.utils';
 })
 export class GameComponent {
     Array = Array;
+    EnumScreens = EnumScreens;
+
+    /**
+     * Whether today's goal has been reached, and so whether there is a way out.
+     *
+     * The stream stays endless — nothing here stops or interrupts play, which
+     * is the point of an arcade. What reaching the goal buys is a *stopping
+     * point*: a button that was not there before, offering the day's summary.
+     * An app with no end and no marker of having done anything is one you stop
+     * playing for no reason and start again for none either.
+     *
+     * Recomputed when an answer lands rather than continuously, since the only
+     * thing that can change it is an answer.
+     */
+    goalMet = false;
+
+    refreshGoal() {
+        // The daily goal that has always been in Settings, in minutes, tracked
+        // per day by the service that has always tracked it. Nothing here
+        // invents a second goal for the button to answer to.
+        const today = this.progress.getToday();
+        this.goalMet = this.progress.calcDailyProgress(today) >= 100;
+    }
 
     /**
      * The answer just given, dimension by dimension.
@@ -55,7 +79,8 @@ export class GameComponent {
         private statsService: StatsService,
         public progressionService: ProgressionService,
         public keys: KeybindService,
-        private router: Router,
+        public router: Router,
+        private progress: ProgressAndPerformanceService,
     ) {
         this.timerType = localStorage.getItem(LS_TIMER) || '0';
         this.gameMode = localStorage.getItem(LS_GAME_MODE) || '0';
@@ -207,6 +232,7 @@ export class GameComponent {
     ngOnInit() {
         this.startTimerForQuestion();
         this.resetPicks();
+        this.refreshGoal();
 
         // Auto-advance replaces the question in place, so the screen has to
         // re-arm itself rather than relying on a fresh component.
@@ -215,6 +241,8 @@ export class GameComponent {
             this.trueButtonToTheRight = Math.random() > 0.5;
             this.resetPicks();
             this.startTimerForQuestion();
+            // The item that just left is the one that may have met the goal.
+            this.refreshGoal();
         });
     }
 

@@ -1,0 +1,122 @@
+<app-card>
+    <div body class="d-grid gap-3 py-3 px-md-3" style="min-width: 320px;">
+
+        <!--
+          Today first. The card exists because reaching the goal should mean
+          something, so the thing it opens on is what you did to reach it.
+        -->
+        <div>
+            <h2 class="text-center mb-1">Today</h2>
+            <p class="text-center text-muted small mb-2">
+                <ng-container *ngIf="goalMet">Goal reached &mdash; </ng-container>
+                {{ dailyPct }}% of today's goal.
+            </p>
+
+            <ul class="list-group">
+                <li class="list-group-item flex-between align-items-center">
+                    <b>Answered</b>
+                    <div>{{ today.answered }}</div>
+                </li>
+                <li class="list-group-item flex-between align-items-center">
+                    <b>Right</b>
+                    <div>
+                        {{ today.correct }}
+                        <small class="text-muted">({{ pct(today.correct, today.answered) }}%)</small>
+                    </div>
+                </li>
+                <li class="list-group-item flex-between align-items-center" *ngIf="today.timeouts">
+                    <b>Ran out of clock</b>
+                    <div>{{ today.timeouts }}</div>
+                </li>
+                <li class="list-group-item flex-between align-items-center">
+                    <b>Time on task</b>
+                    <div>{{ duration(today.seconds) }}</div>
+                </li>
+                <li class="list-group-item flex-between align-items-center" *ngIf="today.modes.length">
+                    <b>Most played</b>
+                    <div>
+                        {{ today.modes[0].type }}
+                        <small class="text-muted">&times;{{ today.modes[0].answered }}</small>
+                    </div>
+                </li>
+                <!--
+                  The one line on this card that says something you could not
+                  have counted yourself.
+                -->
+                <li class="list-group-item flex-between align-items-center" *ngIf="weakestDimension as d">
+                    <b>Costliest dimension</b>
+                    <div>
+                        {{ d.label }}
+                        <small class="text-muted">
+                            {{ d.wrong }} wrong of {{ d.attempts }}<ng-container
+                                *ngIf="d.misread > d.miscounted">, mostly misread</ng-container><ng-container
+                                *ngIf="d.miscounted > d.misread">, mostly miscounted</ng-container>
+                        </small>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- This week. -->
+        <div>
+            <h2 class="text-center mb-1">This week</h2>
+            <p class="text-center text-muted small mb-2">
+                The last seven days. {{ daysMet }} of 7 reached the daily goal,
+                and this week is at {{ weeklyPct }}% of the weekly one.
+            </p>
+
+            <div class="week__strip mb-2">
+                <div class="week__day" *ngFor="let d of week.days; let i = index">
+                    <div class="week__barbox">
+                        <div class="week__bar"
+                             [class.week__bar--met]="metByDay[i]"
+                             [style.height.%]="barHeight(d.answered)"
+                             [attr.title]="d.answered + ' answered, '
+                                 + minutesOn(d.key) + ' minutes'"></div>
+                    </div>
+                    <small class="text-muted">{{ dayLabel(d.at, i) }}</small>
+                    <small class="week__count">{{ d.answered }}</small>
+                </div>
+            </div>
+
+            <ul class="list-group">
+                <li class="list-group-item flex-between align-items-center">
+                    <b>Answered</b>
+                    <div>{{ week.answered }}</div>
+                </li>
+                <li class="list-group-item flex-between align-items-center">
+                    <b>Right</b>
+                    <div>
+                        {{ week.correct }}
+                        <small class="text-muted">({{ pct(week.correct, week.answered) }}%)</small>
+                    </div>
+                </li>
+                <li class="list-group-item flex-between align-items-center" *ngIf="week.modes.length">
+                    <b>Modes played</b>
+                    <div>{{ week.modes.length }}</div>
+                </li>
+                <!--
+                  The model decays an estimate by the day, so the app already
+                  knows which modes have gone stale. This is it saying so.
+                -->
+                <li class="list-group-item" *ngIf="week.stale.length">
+                    <b>Not touched this week</b>
+                    <div class="small text-muted">{{ week.stale.join(", ") }}</div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div footer class="playcard-toolbar">
+        <div>
+            <button class="btn btn-outline-primary" (click)="router.navigate([EnumScreens.Start])">
+                <i class="bi bi-arrow-left"></i> Start
+            </button>
+        </div>
+        <div>
+            <button class="btn btn-outline-primary" (click)="router.navigate([EnumScreens.Stats])">
+                Stats <i class="bi bi-graph-up"></i>
+            </button>
+        </div>
+    </div>
+</app-card>

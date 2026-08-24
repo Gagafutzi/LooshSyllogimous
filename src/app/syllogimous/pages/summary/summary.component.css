@@ -1,0 +1,32 @@
+.week__strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: .35rem;
+    align-items: end;
+}
+
+.week__day {
+    display: grid;
+    justify-items: center;
+    gap: .1rem;
+}
+
+/* A fixed box so the bars share a baseline and an empty day still holds its
+   column — a week strip that collapses on a rest day reads as a bug. */
+.week__barbox {
+    width: 100%;
+    height: 3.5rem;
+    display: flex;
+    align-items: flex-end;
+}
+
+.week__bar {
+    width: 100%;
+    border-radius: 2px;
+    background: currentColor;
+    opacity: .35;
+}
+
+.week__bar--met { opacity: 1; }
+
+.week__count { font-variant-numeric: tabular-nums; }

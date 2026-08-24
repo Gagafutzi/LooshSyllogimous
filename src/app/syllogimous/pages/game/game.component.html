@@ -1,3 +1,16 @@
+<!--
+  The way out, and only once there is one.
+  Nothing on this screen interrupts play — reaching the goal does not stop the
+  stream, end a session or throw up a modal. What it does is put a door where
+  there was none: an app you can only leave by closing the tab is one you leave
+  for no reason and return to for none either.
+-->
+<button class="day-done" *ngIf="goalMet && !game.verdict"
+        (click)="router.navigate([EnumScreens.Summary])">
+    <i class="bi bi-check2-circle"></i>
+    Today's goal done &mdash; see the day
+</button>
+
 <!-- Verdict flashes over the card, then the next question loads itself. -->
 <div class="verdict-box" *ngIf="game.verdict" [attr.data-verdict]="game.verdict">
     {{ game.verdict === 'correct' ? 'Correct' : game.verdict === 'wrong' ? 'Wrong' : 'Timeout' }}

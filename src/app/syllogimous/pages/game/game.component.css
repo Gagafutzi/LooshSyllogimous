@@ -461,3 +461,20 @@
     padding-top: .5rem;
     border-top: 1px solid rgba(128, 128, 128, .25);
 }
+
+/* Out of the way of the item, and quiet: it is an offer, not a demand. The
+   arcade's whole argument is that nothing interrupts the thing you are
+   reading. */
+.day-done {
+    display: block;
+    margin: 0 auto .5rem;
+    padding: .25rem .75rem;
+    border: 1px solid rgba(128, 128, 128, .35);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    opacity: .7;
+    font-size: .8rem;
+}
+
+.day-done:hover { opacity: 1; }

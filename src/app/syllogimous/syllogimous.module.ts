@@ -27,6 +27,7 @@ import { TutorialCircularArrangementComponent } from './pages/tutorial/circular-
 import { AccuracyStatsComponent } from './pages/stats/accuracy-stats/accuracy-stats.component';
 import { ErrorAnalysisComponent } from './pages/stats/error-analysis/error-analysis.component';
 import { DimensionStatsComponent } from './pages/stats/dimension-stats/dimension-stats.component';
+import { SummaryComponent } from './pages/summary/summary.component';
 import { TierStatsComponent } from './pages/stats/tier-stats/tier-stats.component';
 import { TimeBasedStatsComponent } from './pages/stats/time-based-stats/time-based-stats.component';
 import { TypeBasedStatsComponent } from './pages/stats/type-based-stats/type-based-stats.component';
@@ -71,6 +72,7 @@ const routes: Routes = [
             { path: EnumScreens.Appearance, component: AppearanceComponent },
             { path: EnumScreens.AdvancedOptions, component: AdvancedOptionsComponent },
             { path: EnumScreens.Diagnostics, component: DiagnosticsComponent },
+            { path: EnumScreens.Summary, component: SummaryComponent },
             { path: EnumScreens.Calibration, component: CalibrationComponent },
             { path: EnumScreens.Tutorials, component: TutorialsComponent },
             {
@@ -127,6 +129,7 @@ const routes: Routes = [
         AccuracyStatsComponent,
         ErrorAnalysisComponent,
         DimensionStatsComponent,
+        SummaryComponent,
         TierStatsComponent,
         TimeBasedStatsComponent,
         TypeBasedStatsComponent,
