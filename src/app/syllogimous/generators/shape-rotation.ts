@@ -40,7 +40,7 @@ import { Question } from "../models/question.models";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { getRandomSymbols, shuffle } from "../utils/question.utils";
 import { hi, rel, subj } from "../utils/phrasing";
-import { GeneratorContext } from "./context";
+import { GeneratorContext, deepConclusions } from "./context";
 
 /** Positive remainder — JavaScript's % keeps the sign of the dividend. */
 const mod = (n: number, m: number) => ((n % m) + m) % m;
@@ -83,6 +83,7 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
 
     const type = EnumQuestionType.ShapeRotation;
     const settings = ctx.settings;
+    const deep = deepConclusions(ctx);
 
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
         throw new Error("Cannot generate.");
@@ -185,10 +186,18 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
          * worth teaching and worth a quarter of the items; it is not worth
          * most of them.
          */
-        if (words.length >= 2 && Math.random() < 0.25) {
-            if (!fillInvarianceQuestion(question, words, neighbors, start, final, order, shape)) continue;
+        /*
+         * Off, the split goes back the other way — invariance three items in
+         * five — because that is what it was, and the switch is meant to make
+         * the two comparable rather than to hand back a tidied version of the
+         * old one.
+         */
+        const invariance = deep ? 0.25 : 0.6;
+
+        if (words.length >= 2 && Math.random() < invariance) {
+            if (!fillInvarianceQuestion(question, words, neighbors, start, final, order, shape, deep)) continue;
         } else {
-            fillPositionQuestion(question, words, neighbors, final, shape);
+            fillPositionQuestion(question, words, neighbors, final, shape, deep);
         }
 
         return question;
@@ -210,6 +219,7 @@ function fillPositionQuestion(
     neighbors: Record<string, string[]>,
     final: Record<string, number>,
     shape: { name: string; corners: string[] },
+    deep: boolean,
 ) {
     /*
      * The object furthest from the frame, not a random one.
@@ -226,10 +236,16 @@ function fillPositionQuestion(
         .filter(x => Number.isFinite(x.d));
     const far = reach.length ? Math.max(...reach.map(x => x.d)) : 0;
     const candidates = reach.filter(x => x.d === far).map(x => x.w);
-    const asked = candidates.length
+    const anyone = words[Math.floor(Math.random() * words.length)];
+    const asked = deep && candidates.length
         ? candidates[Math.floor(Math.random() * candidates.length)]
-        : words[Math.floor(Math.random() * words.length)];
+        : anyone;
     const order = shuffle([...Array(shape.corners.length).keys()]);
+
+    // Premises between the frame and the object asked about: a named object is
+    // one hop, which is the shallow item this floor removes.
+    const reached = hops(FRAME, asked, neighbors);
+    question.depth = Number.isFinite(reached) ? reached : 0;
 
     question.choices = order.map(i => rel(shape.corners[i]));
     question.correctChoice = order.indexOf(final[asked]);
@@ -261,6 +277,7 @@ function fillInvarianceQuestion(
     final: Record<string, number>,
     order: number,
     shape: { name: string; corners: string[] },
+    deep: boolean,
 ): boolean {
     /*
      * The pair furthest apart in the premises, and never one a premise states.
@@ -282,15 +299,20 @@ function fillInvarianceQuestion(
     for (let i = 0; i < words.length; i++) {
         for (let j = i + 1; j < words.length; j++) {
             const a = words[i], b = words[j];
-            if (mod(final[a] - final[b], order) === order / 2) continue;
+            // Off, both guards come away: any pair, including one a premise
+            // states and one at the separation that is its own reverse.
+            if (deep && mod(final[a] - final[b], order) === order / 2) continue;
             const d = hops(a, b, neighbors);
-            if (Number.isFinite(d) && d >= 2) pairs.push([a, b, d]);
+            if (Number.isFinite(d) && d >= (deep ? 2 : 1)) pairs.push([a, b, d]);
         }
     }
     if (!pairs.length) return false;
 
     const far = Math.max(...pairs.map(p => p[2]));
-    const [a, b] = shuffle(pairs.filter(p => p[2] === far))[0];
+    const [a, b, span] = deep
+        ? shuffle(pairs.filter(p => p[2] === far))[0]
+        : shuffle(pairs)[0];
+    question.depth = span;
 
     const truth = mod(final[a] - final[b], order);
     const claim = Math.random() < 0.5 ? truth : mod(truth + 1 + Math.floor(Math.random() * (order - 1)), order);

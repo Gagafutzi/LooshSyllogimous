@@ -33,7 +33,7 @@ import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 
 /** Nothing switched on: no circular axes, no under-specification. */
-function ndContext(): GeneratorContext {
+function ndContext(deep = true): GeneratorContext {
     const settings = new Settings();
     for (const type of Object.values(EnumQuestionType)) settings.question[type].enabled = true;
     const ctx: GeneratorContext = {
@@ -42,6 +42,8 @@ function ndContext(): GeneratorContext {
         settingsOverrideService: {
             linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
             spread: () => null, depthFor: () => 0, scramble: 100,
+            // Absent would read as on, so the off case has to say so outright.
+            deepConclusions: deep,
         } as unknown as SettingsOverrideService,
         progressionService: {
             hasRung: () => false, depthBonusFor: () => 0,
@@ -578,4 +580,114 @@ test("a branching item still asks about a distant pair", () => {
             equal(shallow, 0, `${shallow} of ${built} branching items asked back a stated pair`);
         }
     });
+});
+
+/* ------------------------------------------------------------------ *
+ * The switch                                                          *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Everything above describes the deep model. This describes the other one.
+ *
+ * The switch is only worth having if its two positions produce different
+ * items, and only honest if the off position is the behaviour that shipped
+ * before the depth work rather than a softened version of what replaced it. So
+ * each of the three things the switch governs is asserted to come back: the
+ * one-axis claim, the pair drawn short of the diameter, and the rotation form
+ * that asks about a random object.
+ *
+ * They are asserted as *frequencies*, because the old rules were probabilistic
+ * — a 30% flat draw, a 40% band drop, a two-in-five split. A single shallow
+ * item proves nothing either way; a run of them without one proves the switch
+ * did nothing.
+ */
+test("switching the deeper conclusions off puts the one-axis claim back", () => {
+    const ctx = ndContext(false);
+    let wide = 0, narrow = 0;
+
+    seeded(4242, () => {
+        for (const type of [
+            EnumQuestionType.Space4D, EnumQuestionType.Space5D,
+            EnumQuestionType.Space6D, EnumQuestionType.Space7D,
+        ]) {
+            for (let rep = 0; rep < 25; rep++) {
+                let q;
+                try { q = createNdSpace(ctx, 3, type); } catch { continue; }
+                const conclusion = String(q.conclusion ?? "");
+                if (!conclusion || q.answerMode !== "boolean") continue;
+
+                const stated = new Set<string>();
+                for (const p of q.premises) for (const d of dims(p)) stated.add(d);
+                if (stated.size < 2) continue;
+
+                if (dims(conclusion).size === stated.size) wide++; else narrow++;
+            }
+        }
+    });
+
+    assert(narrow > 10, `only ${narrow} one-axis conclusions; the switch did nothing`);
+    assert(wide === 0,
+        `${wide} conclusions still named every axis with the switch off`);
+});
+
+test("switching it off lets a pair short of the diameter through", () => {
+    const ctx = ndContext(false);
+    let short = 0, full = 0;
+
+    seeded(20260824, () => {
+        for (let n = 5; n <= 9; n++) {
+            for (const layout of [buildChain(
+                Array.from({ length: n + 1 }, (_, i) => `w${i}`))]) {
+                const far = diameter(layout.neighbors);
+                if (far < 3) continue;
+
+                for (let rep = 0; rep < 80; rep++) {
+                    const pair = pickDistantPair(layout, 0, true);
+                    assert(!!pair, "no pair at all");
+                    const d = graphDistance(pair![0], pair![1], layout.neighbors);
+                    // The floor the old rule kept: a stated pair is still not
+                    // asked back, which was never the part that was wrong.
+                    assert(d >= 2, `the old rule handed back a stated pair`);
+                    if (d < far) short++; else full++;
+                }
+            }
+        }
+    });
+
+    assert(short > 20, `only ${short} pairs fell short of the diameter`);
+    assert(full > 20, `only ${full} pairs reached it; the old rule preferred it`);
+});
+
+test("switching it off asks a rotation about whoever it likes", () => {
+    const ctx = ndContext(false);
+    let restated = 0, relative = 0;
+    const named = (html: string) =>
+        [...html.matchAll(/<span class="subject">([^<]*)<\/span>/g)].map(m => m[1]);
+
+    seeded(6006, () => {
+        for (let n = 4; n <= 8; n++) {
+            for (let rep = 0; rep < 40; rep++) {
+                let q;
+                try { q = createShapeRotation(ctx, n); } catch { continue; }
+                const conclusion = String(q.conclusion ?? "");
+                if (!conclusion.includes("after the turns")) continue;
+
+                const asked = named(conclusion);
+                if (asked.length !== 2) continue;
+                relative++;
+
+                const key = [...asked].sort().join(" ");
+                for (const premise of q.premises) {
+                    const pair = named(premise);
+                    if (pair.length !== 2) continue;
+                    if ([...pair].sort().join(" ") === key) { restated++; break; }
+                }
+            }
+        }
+    });
+
+    assert(relative > 30,
+        `only ${relative} relative items; off, they are meant to be the commoner form`);
+    assert(restated > 0,
+        "no conclusion restated a premise, so the rotation guard is still on");
 });

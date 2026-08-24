@@ -773,8 +773,16 @@ export function graphDistance(a: string, b: string, neighbors: Record<string, st
  * conclusion in three could be answered from two premises, which is the
  * complaint this whole change comes from. See `pickDistantPair` in
  * `linear.utils` for the longer version of the argument.
+ *
+ * `legacy` is that flat 30% draw, put back for the player who has switched the
+ * deep conclusions off. Written as the old rule rather than as a wide `slack`,
+ * because the two are not the same shape: slack widens by bands from the
+ * diameter, and what v3 did was ignore the diameter entirely, three times in
+ * ten, in favour of every pair equally.
  */
-export function pickDistantPair(layout: NdLayout, minSpan = 2, slack = 0): [string, string] | null {
+export function pickDistantPair(
+    layout: NdLayout, minSpan = 2, slack = 0, legacy = false,
+): [string, string] | null {
     const pairs: Array<[string, string, number]> = [];
     for (let i = 0; i < layout.words.length; i++) {
         for (let j = i + 1; j < layout.words.length; j++) {
@@ -785,7 +793,8 @@ export function pickDistantPair(layout: NdLayout, minSpan = 2, slack = 0): [stri
     if (!pairs.length) return null;
 
     const max = Math.max(...pairs.map(p => p[2]));
-    const floor = Math.max(minSpan, max - Math.max(0, slack));
+    const anyPair = legacy && Math.random() < 0.3;
+    const floor = anyPair ? minSpan : Math.max(minSpan, max - Math.max(0, slack));
     const chosen = pick(pairs.filter(p => p[2] >= floor));
     return [chosen[0], chosen[1]];
 }
@@ -1278,12 +1287,13 @@ export function buildNdConclusionSet(
     layout: NdLayout,
     count: number,
     wantValid: boolean[],
+    legacy = false,
 ): NdConclusion[] {
     const used = new Set<string>();
     const out: NdConclusion[] = [];
 
     for (let guard = 0; out.length < count && guard < count * 60; guard++) {
-        const pair = pickDistantPair(layout);
+        const pair = pickDistantPair(layout, 2, 0, legacy);
         if (!pair) break;
         const axisIndex = Math.floor(Math.random() * layout.axes.length);
         const key = [...pair].sort().join(" ") + "#" + axisIndex;

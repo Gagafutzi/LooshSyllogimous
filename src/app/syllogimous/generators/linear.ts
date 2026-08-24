@@ -6,12 +6,12 @@
  */
 
 import { coordMapFromPositions } from "../utils/map.utils";
-import { GeneratorContext, modifierOn } from "./context";
+import { GeneratorContext, deepConclusions, modifierOn } from "./context";
 import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
 import { CoordMap, Transform, describeTransform, drawTransforms, replay } from "../utils/transformations.utils";
-import { LINEAR_SCALES, LinearLayout, LinearScale, buildBranching, buildChain, buildConclusion, buildConclusionSet, buildConstructClaim, compare, explainLinear, hasTies, pickDistantPair, prefixLayout, renderPremises, vocabFor } from "../utils/linear.utils";
+import { LINEAR_SCALES, LinearLayout, LinearScale, buildBranching, buildChain, buildConclusion, buildConclusionSet, buildConstructClaim, compare, explainLinear, graphDistance, hasTies, pickDistantPair, prefixLayout, renderPremises, vocabFor } from "../utils/linear.utils";
 import { scrambleBlocks, scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
@@ -388,6 +388,21 @@ export function fillLinearConclusion(ctx: GeneratorContext,
     const transformsBite = (pairs: Array<[string, string]>) =>
         !transformed || pairs.some(([a, b]) => compare(initial, a, b) !== compare(final, a, b));
 
+    /*
+     * Which conclusion model to draw the pair under.
+     *
+     * Read once for the whole item rather than per call, so a checkpoint and
+     * its final claim cannot end up on different sides of the switch — the two
+     * are meant to be read against each other.
+     *
+     * It changes how far apart the asked-about pair sits and nothing else. The
+     * rungs that add a *form* of conclusion — the checkpoint, choose-one,
+     * multi-conclusion, construction — are ladder steps the player holds, and
+     * taking them away because a depth switch was turned off would remove
+     * something they earned to fix something they did not complain about.
+     */
+    const legacy = !deepConclusions(ctx);
+
     const pairsOf = (texts: string[]) => texts
         .map(t => (t.match(/<span class="subject">(.*?)<\/span>/g) ?? [])
             .map(s => s.replace(/<[^>]+>/g, "")))
@@ -416,8 +431,8 @@ export function fillLinearConclusion(ctx: GeneratorContext,
     if (feat.checkpoint && numOfPremises > 4) {
         const half = Math.floor(numOfPremises / 2);
         const early = prefixLayout(final, half);
-        const earlyPair = pickDistantPair(early);
-        const latePair = pickDistantPair(final);
+        const earlyPair = pickDistantPair(early, 0, legacy);
+        const latePair = pickDistantPair(final, 0, legacy);
 
         if (earlyPair && latePair && transformsBite([latePair])) {
             const first = buildConstructClaim(scale, early, earlyPair[0], earlyPair[1], false);
@@ -433,6 +448,7 @@ export function fillLinearConclusion(ctx: GeneratorContext,
                 first.slots[0] = { ...first.slots[0], label: `From the first ${half}` };
                 last.slots[0] = { ...last.slots[0], label: "From all of them" };
 
+                question.depth = graphDistance(latePair[0], latePair[1], final.neighbors);
                 question.construct = [first, last];
                 question.answerMode = "construct";
                 question.isValid = true;
@@ -443,13 +459,28 @@ export function fillLinearConclusion(ctx: GeneratorContext,
     }
 
     if (feat.constructConclusion) {
+        /*
+         * The shallowest claim, not the deepest.
+         *
+         * A construction is answered as a whole and scored per slot, so what it
+         * costs is set by the claim that needed most of the item — but the
+         * figure being recorded is a floor on how much of the item the *answer*
+         * takes, and a set containing one shallow claim contains a slot that
+         * can be filled without composing much. Reporting the maximum would
+         * describe the item by its hardest part and call that its depth.
+         */
+        let shallowest = Infinity;
         const claims = buildConstructClaims(ctx, 
             slack => {
-                const pair = pickDistantPair(final, slack);
-                return pair && buildConstructClaim(scale, final, pair[0], pair[1], feat.constructDistance);
+                const pair = pickDistantPair(final, slack, legacy);
+                if (!pair) return null;
+                shallowest = Math.min(
+                    shallowest, graphDistance(pair[0], pair[1], final.neighbors));
+                return buildConstructClaim(scale, final, pair[0], pair[1], feat.constructDistance);
             },
             numOfPremises);
         if (!claims.length) return false;
+        question.depth = Number.isFinite(shallowest) ? shallowest : 0;
         question.construct = claims;
         question.answerMode = "construct";
         question.isValid = true;
@@ -464,11 +495,14 @@ export function fillLinearConclusion(ctx: GeneratorContext,
          * otherwise three of the four options share two subjects and the
          * answer can be found by looking for the odd one out.
          */
-        const set = buildConclusionSet(scale, final, 4, [true, false, false, false], options);
+        const set = buildConclusionSet(scale, final, 4, [true, false, false, false], options, legacy);
         if (set.length < 4) return false;
         // Only the true one has to move; the distractors are false either way.
         if (!transformsBite(pairsOf([set[0].text]))) return false;
 
+        // Only the true claim is on the path to the answer; the distractors
+        // are about other pairs on purpose.
+        question.depth = set[0].span;
         const order = shuffle(set.map((c, i) => i));
         question.choices = order.map(i => set[i].text);
         question.correctChoice = order.indexOf(0);
@@ -488,16 +522,19 @@ export function fillLinearConclusion(ctx: GeneratorContext,
         const wants = Array(count).fill(true);
         if (!allTrue) wants[Math.floor(Math.random() * count)] = false;
 
-        const set = buildConclusionSet(scale, final, count, wants, options);
+        const set = buildConclusionSet(scale, final, count, wants, options, legacy);
         if (set.length < count) return false;
         if (!transformsBite(pairsOf(set.map(c => c.text)))) return false;
 
+        // Every claim has to be checked, so the cheapest one is what the item
+        // can be answered from when it is false.
+        question.depth = Math.min(...set.map(c => c.span));
         question.conclusion = set.map(c => c.text);
         question.isValid = allTrue;
         return true;
     }
 
-    const pair = pickDistantPair(final);
+    const pair = pickDistantPair(final, 0, legacy);
     if (!pair) return false;
 
     // A transformation list that does not change the answer is decoration:
@@ -509,6 +546,7 @@ export function fillLinearConclusion(ctx: GeneratorContext,
     const conclusion = buildConclusion(scale, final, pair[0], pair[1], coinFlip(), options);
     question.conclusion = conclusion.text;
     question.isValid = conclusion.isValid;
+    question.depth = conclusion.span;
     /*
      * Only when nothing moved. `final` is the post-transformation layout, so
      * its positions no longer decompose into the stated steps, and walking

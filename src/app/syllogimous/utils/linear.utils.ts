@@ -450,8 +450,17 @@ export function graphDistance(a: string, b: string, neighbors: Record<string, st
  * it uses everything. Raising it is for a caller that wants a deliberately
  * shallower question — the halfway conclusion is the case that will want it —
  * and never for variety.
+ *
+ * `legacy` puts the ported rule back, for the player who has switched the deep
+ * conclusions off. It is the rule described above, not an approximation of it:
+ * drop a band with probability 0.4, again with 0.4, up to three — which is
+ * where the 40/17/7 figures come from. A caller's own `slack` still counts as a
+ * floor under it, so a request for a deliberately shallower pair is not
+ * narrowed by asking for the old model.
  */
-export function pickDistantPair(layout: LinearLayout, slack = 0): [string, string] | null {
+export function pickDistantPair(
+    layout: LinearLayout, slack = 0, legacy = false,
+): [string, string] | null {
     const { neighbors } = layout;
     const words = Object.keys(neighbors);
 
@@ -478,10 +487,24 @@ export function pickDistantPair(layout: LinearLayout, slack = 0): [string, strin
     if (!bands.size) return null;
 
     const ranked = [...bands.entries()].sort((a, b) => b[0] - a[0]).map(e => e[1]);
-    const reach = Math.min(slack, ranked.length - 1);
+    const asked = legacy ? Math.max(slack, v3Bands()) : slack;
+    const reach = Math.min(asked, ranked.length - 1);
     const band = ranked[reach > 0 ? Math.floor(Math.random() * (reach + 1)) : 0];
 
     return pick(band);
+}
+
+/**
+ * How many bands below the diameter v3 was willing to drop, drawn its way.
+ *
+ * Kept as its own function so the old rule is one readable thing rather than a
+ * branch inside the new one, and so nothing is tempted to reuse it: it exists
+ * to be switched off, not to be a source of variety.
+ */
+function v3Bands(): number {
+    let dropped = 0;
+    while (dropped < 3 && Math.random() < 0.4) dropped++;
+    return dropped;
 }
 
 /* ------------------------------------------------------------------ *
@@ -747,12 +770,13 @@ export function buildConclusionSet(
     count: number,
     wantValid: boolean[],
     options: RenderOptions = {},
+    legacy = false,
 ): LinearConclusion[] {
     const used = new Set<string>();
     const out: LinearConclusion[] = [];
 
     for (let guard = 0; out.length < count && guard < count * 40; guard++) {
-        const pair = pickDistantPair(layout, out.length);
+        const pair = pickDistantPair(layout, out.length, legacy);
         if (!pair) break;
         const key = [...pair].sort().join("\u0000");
         if (used.has(key)) continue;

@@ -35,11 +35,24 @@ codebase, the same item.
 
 The four instances:
 
-**Nested** ([shot 03](shots/03-nested-shallow-conclusion.png)). Five premises,
-each carrying an outer relation and a bracketed inner one, so ten relations in
-play. The conclusion is *"Inside the brackets: Lens is after Doorstep"* and
-premise four's bracket reads *"where Lens is before Doorstep"*. The conclusion
-is one premise, negated. Depth 1 out of a possible 5.
+**Nested** ([shot 03](shots/03-nested-shallow-conclusion.png)) — **FIXED**.
+Five premises, each carrying an outer relation and a bracketed inner one, so ten
+relations in play. The conclusion is *"Inside the brackets: Lens is after
+Doorstep"* and premise four's bracket reads *"where Lens is before Doorstep"*.
+The conclusion is one premise, negated. Depth 1 out of a possible 5.
+
+`pickPair` drew any two objects, so the pair a bracket stated outright was as
+likely as any other. It now draws from the pairs at least `MIN_DEPTH` relations
+apart in the space being asked about — a floor, not a fixed distance, so where
+the answer sits in the chain still varies while a restatement is impossible.
+
+`MIN_DEPTH` is **2**, not the chain's full length, and that is a deliberate
+first step rather than a compromise. Nested's difficulty is carried by the
+interference between its two spaces as much as by the span within either, so
+pinning the conclusion to the ends of one chain would make the answer's
+position predictable while adding little. Raising the floor is one number, and
+the mode is the natural place to raise it first, because it is the one whose
+premises carry twice as many relations as they appear to.
 
 **Shape Rotation** ([shot 05](shots/05-shape-rotation-shallow.png)). Premise
 three is *"Cord is 2 corners clockwise from Hostess"*; the conclusion is *"after
@@ -190,6 +203,53 @@ first, charge for it once there are answered items to fit a coefficient
 against. It also gives the diagnostics page something to show, which is how a
 claim like "conclusion depth is unrelated to premise depth" gets settled by
 measurement instead of by screenshot.
+
+---
+
+## 2.2b The switch — **BUILT**
+
+All of the above is behind **Conclusions** in Customise, on by default. Off,
+the generators do what they did before this section existed.
+
+Three things it governs, and they are the three that changed for every item:
+how far apart the asked-about pair sits (`pickDistantPair` in both
+`linear.utils` and `ndspace.utils`), how wide the claim is
+(`buildNdWideConclusion`), and which form Shape Rotation asks in. Nested's
+floor is the fourth.
+
+**Off is the old rule, not a softened new one.** That distinction is the whole
+value of the switch — it exists so the two models can be compared, and a
+comparison against a tidied-up version of the old one answers nothing. So the
+ported probabilities are back in the code rather than approximated by a wide
+`slack`: `v3Bands()` drops a band with probability 0.4 up to three, which is
+where the 40/17/7 figures in `pickDistantPair`'s comment come from; the
+composed spaces draw from every pair 30% of the time; Shape Rotation goes back
+to invariance three items in five, asking about a random object. `slack` and
+the legacy draw are deliberately not the same mechanism, because they are not
+the same shape: slack widens by bands *from* the diameter, and what v3 did was
+ignore the diameter entirely.
+
+**It does not remove rungs.** The checkpoint, choose-one, multi-conclusion and
+construction are ladder steps a player holds, and taking one away because a
+depth switch was turned off would remove something earned to fix something
+nobody complained about. The switch changes how their pairs are drawn and
+nothing else.
+
+**It sits outside Customise's master switch and outside profiles.** Everything
+else in `settings-override.service.ts` is an override layered on top of what
+the tier decided and is meaningless with Customise off; this is a choice
+between two versions of the generators, so holding an opinion about it must not
+require switching a dozen unrelated overrides on. For the same reason a profile
+saved last month does not carry one around and silently apply it. It is also
+not suppressed during placement: `suppress` exists so a placement measures the
+mode rather than the mode plus whatever is switched on, and the conclusion
+model is not something switched on — it is what the mode *is*, so measuring
+under the other one would measure a mode the player never plays.
+
+**Absent reads as on**, in the stored state and in the generator's reader
+alike. One rule in both places, and it is the right way round: the players who
+have state saved from before the switch existed were already being served the
+deep model.
 
 ---
 

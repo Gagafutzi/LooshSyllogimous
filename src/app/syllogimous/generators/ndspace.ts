@@ -5,12 +5,12 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { GeneratorContext } from "./context";
+import { GeneratorContext, deepConclusions } from "./context";
 import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
-import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdWideConclusion, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
+import { AxisSpec, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdWideConclusion, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, graphDistance, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
@@ -584,13 +584,26 @@ export function fillNdConclusion(ctx: GeneratorContext,
      */
     if (useAnalogy && !lastChance) return false;
 
+    /*
+     * Which conclusion model this item is built under. Read once, so the pair's
+     * distance and the claim's width cannot disagree — a wide claim about an
+     * adjacent pair is neither model.
+     */
+    const legacy = !deepConclusions(ctx);
+
     if (feat.constructConclusion) {
+        // The claim that needed least of the item; see the linear generator for
+        // why the minimum rather than the maximum.
+        let shallowest = Infinity;
         const claims = buildConstructClaims(ctx, slack => {
-            const pair = pickDistantPairNd(layout, 2, slack);
+            const pair = pickDistantPairNd(layout, 2, slack, legacy);
             if (!pair || !pairBites(pair[0], pair[1])) return null;
+            shallowest = Math.min(
+                shallowest, graphDistance(pair[0], pair[1], layout.neighbors));
             return buildNdConstructClaim(layout, pair[0], pair[1], feat.constructDistance);
         }, numOfPremises);
         if (!claims.length) return false;
+        question.depth = Number.isFinite(shallowest) ? shallowest : 0;
         question.construct = claims;
         question.answerMode = "construct";
         question.isValid = true;
@@ -599,8 +612,9 @@ export function fillNdConclusion(ctx: GeneratorContext,
     }
 
     if (feat.chooseConclusion) {
-        const set = buildNdConclusionSet(layout, 4, [true, false, false, false]);
+        const set = buildNdConclusionSet(layout, 4, [true, false, false, false], legacy);
         if (set.length < 4) return false;
+        question.depth = graphDistance(set[0].a, set[0].b, layout.neighbors);
         // set[0] is the one that follows, so it is the one that has to need
         // the operations; the distractors are false either way.
         if (!axisBites(set[0].a, set[0].b, set[0].axis)) return false;
@@ -619,8 +633,10 @@ export function fillNdConclusion(ctx: GeneratorContext,
         const wants = Array(count).fill(true);
         if (!allTrue) wants[Math.floor(Math.random() * count)] = false;
 
-        const set = buildNdConclusionSet(layout, count, wants);
+        const set = buildNdConclusionSet(layout, count, wants, legacy);
         if (set.length < count) return false;
+        question.depth = Math.min(
+            ...set.map(c => graphDistance(c.a, c.b, layout.neighbors)));
         if (!set.some(c => axisBites(c.a, c.b, c.axis))) return false;
         question.conclusion = set.map(c => c.text);
         question.isValid = allTrue;
@@ -683,7 +699,7 @@ export function fillNdConclusion(ctx: GeneratorContext,
     let axisIndex = -1;
     for (let slack = 0; slack <= 2 && axisIndex < 0; slack++) {
         for (let attempt = 0; attempt < 8 && axisIndex < 0; attempt++) {
-            const candidate = pickDistantPairNd(layout, 2, slack);
+            const candidate = pickDistantPairNd(layout, 2, slack, legacy);
             if (!candidate) break;
             /*
              * Draw the axis from the ones the operations actually reached,
@@ -716,8 +732,11 @@ export function fillNdConclusion(ctx: GeneratorContext,
      * the single-axis claim, which is what those items were already getting.
      */
     const strict = feat.indeterminate || feat.speakers || feat.testimony;
-    const c = buildNdWideConclusion(layout, pair[0], pair[1], coinFlip(), strict)
+    // Off, the claim names one axis of however many — which is the other half
+    // of what the switch turns off, and the half a player would notice first.
+    const c = (legacy ? null : buildNdWideConclusion(layout, pair[0], pair[1], coinFlip(), strict))
         ?? buildNdConclusion(layout, pair[0], pair[1], axisIndex, coinFlip());
+    question.depth = graphDistance(pair[0], pair[1], layout.neighbors);
     asked.a = c.a;
     asked.b = c.b;
     // A wide claim turns on the axis it lies about; a true one turns on all of
