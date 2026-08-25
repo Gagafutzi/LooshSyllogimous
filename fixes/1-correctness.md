@@ -49,6 +49,48 @@ the words.
 
 ---
 
+## 1.0b Graph Matching gave itself away by the arrow count — **FIXED**
+
+Reported: *"there should never be a different connects-to count, that is easy to
+spot"*. Right, and it was true of every form.
+
+The mode asks whether two edge lists are the same **shape**. A shape question
+settled by **counting** is not one: if the odd group has four arrows where the
+others have five, or one node with three where every twin has two, it is found
+without comparing anything to anything. Counting is the shortcut every reader
+finds first.
+
+Every way the generator made two drawings differ handed it over. `perturb`
+changed one relation — turn a `→` into a `↔` and that group has a link more. The
+base form was worse: it swapped one-way links for two-way ones *and* reconnected
+edges to different objects, either of which moves a node's count.
+
+Two moves replace them, and neither changes a number:
+
+- **Trade two relations.** The multiset of link types is untouched by
+  construction.
+- **Rewire two links end for end.** Given `a → b` and `c → d`, make them
+  `a → d` and `c → b` — the classic degree-preserving swap. Every node keeps
+  exactly the links it had, and what changed is where they go.
+
+Both are checked rather than trusted: a trade keeps the *totals* but can still
+hand one node an arrow more, so `sameDegrees` filters the result, and a draw
+that cannot be made to differ without giving itself away is abandoned rather
+than served.
+
+**Both moves are needed, not one.** Without the rewire, the two drawings would
+always join the same pairs and differ only in which way the arrows point — so
+*"same shape?"* would quietly have become *"same directions?"*.
+
+**A note on measuring it.** The first probe parsed the rendered sentences and
+reported 33 of 38 items as still broken. They were not: a **meta** premise
+states a relation between relations rather than a link, so the parser silently
+dropped it and reported its own gap as a counting shortcut. The test reads
+`graphPremises` and `graphConclusion` — the edge lists the item was actually
+built from — and the group forms are read through the shared `readGroups`.
+
+---
+
 ## 1.1 A conclusion naming an object no premise states — **FIXED**
 
 **Found: wide premises and meta relations, together.** Eight items in a hundred

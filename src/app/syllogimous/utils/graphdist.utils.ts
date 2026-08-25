@@ -220,3 +220,38 @@ export function orderConsistent(edges: GraphEdge[]): boolean {
     for (const node of new Set(directed.flat())) if (!walk(node)) return false;
     return true;
 }
+
+/**
+ * How many links each node has, in and out, sorted so names do not matter.
+ *
+ * The number to make sure two drawings agree on. This mode asks whether two
+ * edge lists are the same *shape*, and a shape question that can be settled by
+ * **counting** is not one: if the odd group has four arrows where the others
+ * have five, or one node with three where every twin has two, it is found
+ * without comparing anything to anything.
+ *
+ * Counting is the shortcut every reader finds first, and it is the one this
+ * mode exists to close off — so a perturbation has to leave every count where
+ * it was and change only where the links *go*.
+ */
+export function degreeSignature(edges: GraphEdge[]): string {
+    const out = new Map<string, number>();
+    const into = new Map<string, number>();
+    const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
+
+    for (const [a, rel, b] of edges) {
+        if (rel === "↔") { bump(out, a); bump(into, b); bump(out, b); bump(into, a); continue; }
+        const [from, to] = rel === "→" ? [a, b] : [b, a];
+        bump(out, from);
+        bump(into, to);
+    }
+
+    return [...nodesOf(edges)]
+        .map(n => `${out.get(n) ?? 0}/${into.get(n) ?? 0}`)
+        .sort()
+        .join(",");
+}
+
+/** Whether two edge lists agree on every count a reader could make. */
+export const sameDegrees = (a: GraphEdge[], b: GraphEdge[]) =>
+    degreeSignature(a) === degreeSignature(b);

@@ -14,6 +14,7 @@ import { assert, equal, seeded, test } from "./harness";
 import {
     GraphEdge, MAX_DISTANCE_NODES, editDistance, isomorphicByDistance, nodesOf, oddGraphOut,
     orderConsistent,
+    degreeSignature,
 } from "../src/app/syllogimous/utils/graphdist.utils";
 
 const g = (...edges: Array<[string, "↔" | "→" | "←", string]>): GraphEdge[] => edges;
@@ -444,4 +445,71 @@ test("an item worded as comparisons states nothing impossible", () => {
     });
 
     assert(checked > 30, `only ${checked} comparison-worded items in the sample`);
+});
+
+/* ------------------------------------------------------------------ *
+ * Counting must not answer it                                         *
+ * ------------------------------------------------------------------ */
+
+/**
+ * No drawing gives itself away by how many links it has.
+ *
+ * This mode asks whether two edge lists are the same *shape*. A shape question
+ * that can be settled by **counting** is not one: if the odd group has four
+ * arrows where the others have five, or one node with three where every twin
+ * has two, it is found without comparing anything to anything. Counting is the
+ * shortcut every reader finds first and the one the mode exists to close off.
+ *
+ * The perturbations used to hand it over. Swapping a one-way link for a two-way
+ * one changes the count; reconnecting an edge to a different object changes a
+ * node's. Both are gone: a difference is now made by trading two relations or
+ * by rewiring two links end for end, and every node keeps exactly the links it
+ * had.
+ *
+ * Read off `graphPremises` and `graphConclusion`, which are the edge lists the
+ * item was built from. Parsing the sentences was tried and is a trap — a meta
+ * premise states a *relation between relations* rather than a link, so a parser
+ * silently drops it and reports its own gap as a counting shortcut.
+ */
+test("the two graphs never differ in how many links they have", () => {
+    const ctx = context("");
+    let checked = 0, differing = 0;
+
+    for (let run = 0; run < 200; run++) {
+        const q = seeded(run * 4051 + 7, () => createGraphMatching(ctx, 5));
+        if (!q.graphPremises?.length || !q.graphConclusion?.length) continue;
+        checked++;
+        if (q.isValid) continue;
+        differing++;
+
+        equal(degreeSignature(q.graphPremises as GraphEdge[]),
+            degreeSignature(q.graphConclusion as GraphEdge[]),
+            "the two graphs can be told apart by counting links");
+    }
+
+    assert(checked > 80, `only ${checked} items carried their graphs`);
+    assert(differing > 20, `only ${differing} of them were different shapes`);
+});
+
+/** And the odd one out is not the group with a different number of arrows. */
+test("the odd group has the same counts as the ones it differs from", () => {
+    const ctx = context("which-differs");
+    let checked = 0;
+
+    for (let run = 0; run < 60 && checked < 20; run++) {
+        const q = seeded(run * 1237 + 3, () => createGraphMatching(ctx, 5));
+        if (q.answerMode !== "choice"
+            || !String(q.choicePrompt).includes("not the same shape")) continue;
+
+        const groups = readGroups(q.premises);
+        if (groups.length < 3) continue;
+        checked++;
+
+        const signatures = groups.map(degreeSignature);
+        equal(new Set(signatures).size, 1,
+            `the groups have ${new Set(signatures).size} different link counts,`
+            + " so the odd one is found by counting");
+    }
+
+    assert(checked >= 15, `only ${checked} odd-one-out items appeared`);
 });

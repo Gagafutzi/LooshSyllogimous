@@ -13,7 +13,7 @@ import { EnumQuestionType } from "../constants/question.constants";
 import { hi, neg, subj } from "../utils/phrasing";
 import { LINEAR_SCALES, LinearScale } from "../utils/linear.utils";
 import {
-    GraphEdge, MAX_DISTANCE_NODES, editDistance, oddGraphOut, orderConsistent,
+    GraphEdge, MAX_DISTANCE_NODES, editDistance, oddGraphOut, orderConsistent, sameDegrees,
 } from "../utils/graphdist.utils";
 
 export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number): Question {
@@ -100,38 +100,31 @@ export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number
 
     question.isValid = coinFlip();
     if (!question.isValid) {
-        ctx.logger.info("Modifying graph in an invalid way");
+        /*
+         * Made to differ without changing a single count.
+         *
+         * The old mutations swapped a one-way link for a two-way one, or
+         * reconnected an edge to a different object — both of which leave one
+         * drawing with more links than the other, or one object with more links
+         * than its twin. Either is found by **counting**, which settles the item
+         * without comparing any two shapes, and counting is the shortcut this
+         * mode exists to close off.
+         *
+         * `perturbEvenly` trades relation types or rewires two links end for
+         * end, and every node keeps exactly the links it had. What is left to
+         * notice is only where they go.
+         */
+        let guard = 0;
+        while (areGraphsIsomorphic(edgeList, edgeList2) && guard++ < 40) {
+            const next = perturbEvenly(edgeList2);
+            if (!next) break;
+            edgeList2 = next;
+        }
 
-        while (areGraphsIsomorphic(edgeList, edgeList2)) {
-            const { picked } = pickUniqueItems(edgeList2, 1);
-            const [a, rel, b] = picked[0];
-
-            if (rel === "→" || rel === "←") {
-                if (Math.random() < 0.15) {
-                    ctx.logger.info("Swap 1-way for 2-way");
-                    picked[0][1] = "↔";
-                } else if (coinFlip()) {
-                    ctx.logger.info("Rotate 1-way direction");
-                    picked[0][1] = inverseMap[picked[0][1] as "→" | "←"] as "→" | "←";
-                }
-            } else if (Math.random() < 0.15) {
-                ctx.logger.info("Swap 2-way for 1-way");
-                picked[0][1] = { "true": "→", "false": "←" }[String(coinFlip())] as "→" | "←";
-            }
-
-            if (coinFlip() && numOfEls > 3) {
-                const rndBool = coinFlip();
-                const bool2subject: Record<string, number> = { "true": 0, "false": 2 };
-                const subjectPosIdx = bool2subject[String(rndBool)];
-                const subjectNegIdx = bool2subject[String(!rndBool)];
-                const { picked: picked2 } = pickUniqueItems(edgeList2, 1);
-                let picked;
-                while (!picked || picked === picked2[0][subjectPosIdx] || picked === picked2[0][subjectNegIdx]) {
-                    picked = pickUniqueItems(newWords, 1).picked[0];
-                }
-                ctx.logger.info("Change an edge by connecting a/b to a different subject", [picked2[0][subjectPosIdx], picked]);
-                picked2[0][subjectPosIdx] = picked;
-            }
+        // A draw that could not be made to differ without giving itself away is
+        // abandoned rather than served with the shortcut in it.
+        if (areGraphsIsomorphic(edgeList, edgeList2) || !sameDegrees(edgeList, edgeList2)) {
+            return createGraphMatching(ctx, numOfPremises);
         }
     }
 
@@ -313,13 +306,98 @@ function relabel(edges: GraphEdge[], from: string[], to: string[]): GraphEdge[] 
     return out;
 }
 
-/** Change one relation, chosen at random. */
-function perturb(edges: GraphEdge[]): GraphEdge[] {
+/**
+ * Change where the links go, never how many there are.
+ *
+ * Changing one relation was the obvious perturbation and it gives the answer
+ * away: turn a "→" into a "↔" and the group has a link more than its twins, so
+ * the odd one out is found by **counting** rather than by comparing shapes. That
+ * is the shortcut every reader finds first, and the one this mode exists to
+ * close off.
+ *
+ * Two relations trade places instead. The multiset of link types is untouched by
+ * construction, and the caller checks the per-node counts as well — a swap can
+ * still leave one node with an arrow more than it had — so what is left to
+ * notice is only where the links run.
+ *
+ * Returns null when the graph is all one type of link and there is nothing to
+ * trade, which the callers treat as a draw to abandon rather than a failure.
+ */
+function perturb(edges: GraphEdge[]): GraphEdge[] | null {
+    const pairs: Array<[number, number]> = [];
+    for (let i = 0; i < edges.length; i++) {
+        for (let j = i + 1; j < edges.length; j++) {
+            if (edges[i][1] !== edges[j][1]) pairs.push([i, j]);
+        }
+    }
+    if (!pairs.length) return null;
+
+    const [i, j] = pairs[Math.floor(Math.random() * pairs.length)];
     const out: GraphEdge[] = edges.map(e => [...e] as GraphEdge);
-    const at = Math.floor(Math.random() * out.length);
-    const others = (["→", "←", "↔"] as const).filter(r => r !== out[at][1]);
-    out[at][1] = others[Math.floor(Math.random() * others.length)];
+    [out[i][1], out[j][1]] = [out[j][1], out[i][1]];
     return out;
+}
+
+/**
+ * Rewire two links without changing anybody's count.
+ *
+ * The classic degree-preserving move: given `a → b` and `c → d`, make them
+ * `a → d` and `c → b`. Every node keeps exactly the links it had — a still
+ * sends one, b still receives one — and what changed is *where they go*, which
+ * is the only thing this mode wants a reader to have to look at.
+ *
+ * Trading relation types is the other move, and the two are worth having
+ * together: without this one, the two drawings would always join the same pairs
+ * and differ only in which way the arrows point, so "same shape?" would quietly
+ * become "same directions?".
+ */
+function rewire(edges: GraphEdge[]): GraphEdge[] | null {
+    const directed = edges
+        .map((e, i) => ({ e, i }))
+        .filter(({ e }) => e[1] !== "↔");
+    if (directed.length < 2) return null;
+
+    const pairs: Array<[number, number]> = [];
+    for (let x = 0; x < directed.length; x++) {
+        for (let y = x + 1; y < directed.length; y++) {
+            pairs.push([directed[x].i, directed[y].i]);
+        }
+    }
+    if (!pairs.length) return null;
+
+    const [i, j] = pairs[Math.floor(Math.random() * pairs.length)];
+    const out: GraphEdge[] = edges.map(e => [...e] as GraphEdge);
+
+    // Read both as "from → to" whichever way round they are written.
+    const ends = (e: GraphEdge): [string, string] => e[1] === "→" ? [e[0], e[2]] : [e[2], e[0]];
+    const [fromA, toA] = ends(out[i]);
+    const [fromB, toB] = ends(out[j]);
+
+    // Four distinct nodes, or the rewire makes a self-link or a duplicate.
+    if (new Set([fromA, toA, fromB, toB]).size !== 4) return null;
+
+    const joined = (a: string, b: string) =>
+        out.some(([x, , y]) => (x === a && y === b) || (x === b && y === a));
+    if (joined(fromA, toB) || joined(fromB, toA)) return null;
+
+    out[i] = [fromA, "→", toB];
+    out[j] = [fromB, "→", toA];
+    return out;
+}
+
+/**
+ * A perturbation that leaves every count where it was.
+ *
+ * Both moves are tried and the result is checked rather than trusted: trading
+ * relation types keeps the *totals* by construction but can still hand one node
+ * an arrow more than it had, and a rewire that fell through returns null.
+ */
+function perturbEvenly(edges: GraphEdge[], tries = 60): GraphEdge[] | null {
+    for (let i = 0; i < tries; i++) {
+        const next = Math.random() < 0.5 ? rewire(edges) : perturb(edges);
+        if (next && sameDegrees(edges, next)) return next;
+    }
+    return null;
 }
 
 /**
@@ -346,14 +424,17 @@ function buildWhichDiffers(ctx: GeneratorContext, numOfPremises: number): Questi
 
         const graphs = names.map((set, i) => {
             const copy = relabel(base, names[0], set);
-            return i === odd ? perturb(copy) : copy;
+            if (i !== odd) return copy;
+            return perturbEvenly(copy);
         });
+        if (graphs.some(g => !g)) continue;
+        const built = graphs as GraphEdge[][];
 
-        if (oddGraphOut(graphs) !== odd) continue;
+        if (oddGraphOut(built) !== odd) continue;
 
         const question = new Question(EnumQuestionType.GraphMatching);
         question.bucket = picked;
-        question.premises = graphs.flatMap((edges, i) => [
+        question.premises = built.flatMap((edges, i) => [
             `${hi(`Group ${i + 1}`)}:`,
             ...statements(edges),
         ]);
@@ -368,8 +449,8 @@ function buildWhichDiffers(ctx: GeneratorContext, numOfPremises: number): Questi
          * The rival is the group nearest the odd one, so the two on offer are
          * the two that take real comparing to tell apart.
          */
-        const rival = graphs
-            .map((g, i) => ({ i, gap: editDistance(graphs[odd], g) ?? Infinity }))
+        const rival = built
+            .map((g, i) => ({ i, gap: editDistance(built[odd], g) ?? Infinity }))
             .filter(x => x.i !== odd)
             .sort((a, b) => a.gap - b.gap)[0];
         if (!rival) continue;
@@ -427,7 +508,14 @@ function buildDistance(ctx: GeneratorContext, numOfPremises: number): Question |
         const base = drawGraph(first);
         let other = relabel(base, first, second);
         const edits = 1 + Math.floor(Math.random() * 3);
-        for (let k = 0; k < edits; k++) other = perturb(other);
+        for (let k = 0; k < edits; k++) {
+            const next = perturbEvenly(other);
+            if (!next) break;
+            other = next;
+        }
+        // Counting must not answer this either: "how many links would have to
+        // change" is a lower bound anybody can read off mismatched degrees.
+        if (!sameDegrees(base, other)) continue;
 
         const truth = editDistance(base, other);
         if (truth === null || truth < 1 || truth > 4) continue;
@@ -535,7 +623,12 @@ function buildAsRelations(ctx: GeneratorContext, numOfPremises: number): Questio
             // relabelling makes it equivalent, and an item claiming "different"
             // about two matching structures is simply wrong.
             let guard = 0;
-            do { other = perturb(other); } while (editDistance(base, other) === 0 && guard++ < 40);
+            do {
+                const next = perturbEvenly(other);
+                if (!next) break;
+                other = next;
+            } while (editDistance(base, other) === 0 && guard++ < 40);
+            if (!sameDegrees(base, other)) continue;
             if (editDistance(base, other) === 0) continue;
             // A change can also turn a readable set into an impossible one.
             if (!orderConsistent(other)) continue;
