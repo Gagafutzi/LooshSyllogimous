@@ -56,13 +56,13 @@ function relationCount(numOfPremises: number): number {
 /**
  * Six axes, and five relations at most.
  *
- * The stack is capped at the six-axis preset because past it `axesForDimensions`
- * extends from the choice list and draws axes that share direction words —
- * quantity and vertical both say "higher"/"lower". A premise then states
- * "higher" twice with no way to tell which dimension either belongs to, which
- * is ambiguous to *read*, never mind to solve. It is the exact failure
- * `axisWordConflicts` exists to name, and it showed up the first time this mode
- * was run.
+ * The stack was capped at the six-axis preset because past it
+ * `axesForDimensions` extended from the choice list and drew axes sharing
+ * direction words — quantity and vertical both said "higher"/"lower", so a
+ * premise stated "higher" twice with nothing to say which dimension either
+ * belonged to. That was a mistake in the data rather than a fact about the
+ * vocabulary and is fixed, so the cap now rests on the second reason below,
+ * which is the arithmetic one and was always the sturdier of the two.
  *
  * Five relations is then what six axes can carry: distances 0..4 need ten
  * deviations and six axes hold two apiece.

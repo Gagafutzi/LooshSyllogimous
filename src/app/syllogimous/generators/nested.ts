@@ -7,11 +7,18 @@
  * by the engines that built them.
  *
  * **The point is semantic interference.** `axisWordConflicts` forbids two axes
- * that share direction words, because "higher" belongs to both quantity and
- * height and a flat premise naming both is genuinely ambiguous — the generator
- * knows what it meant and the reader cannot. This mode wants exactly those
- * pairs, and it can have them for a reason worth stating in the code rather
- * than only in a design note:
+ * that share direction words, because a flat premise naming both is genuinely
+ * ambiguous — the generator knows what it meant and the reader cannot. This
+ * mode wants exactly those pairs, and it can have them for a reason worth
+ * stating in the code rather than only in a design note:
+ *
+ * The pairs that deliver it are the ones using the *same scale twice*. A
+ * quantity/vertical pairing was listed here too, on the strength of both saying
+ * "higher" — but a premise is rendered from a scale's *relations*, not its
+ * direction words, so "is more than" beside "is on top of" never interfered
+ * with anything. It has been dropped rather than left as a pair that looks like
+ * it is doing something. (And quantity no longer says "higher" at all: that was
+ * a mistake in the data, corrected in `linear.utils`.)
  *
  *   **the space is identified by syntax, not by vocabulary.**
  *
@@ -62,10 +69,6 @@ const COLLIDING_PAIRS: Array<[string, string]> = [
     ["horizontal", "horizontal"],
     ["vertical", "vertical"],
     ["temporal", "temporal"],
-    // Same word, different scales — the pairing `axisWordConflicts` exists to
-    // forbid, which is sound to allow here and nowhere else.
-    ["quantity", "vertical"],
-    ["vertical", "quantity"],
 ];
 
 /**

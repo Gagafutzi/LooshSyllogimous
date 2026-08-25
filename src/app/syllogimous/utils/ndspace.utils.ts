@@ -1386,9 +1386,16 @@ export function buildNdConclusionSet(
  * Whether a set of axes can be told apart in a premise.
  *
  * Clauses are read by their words, not their position, so two axes sharing a
- * direction word ("higher" belongs to both quantity and vertical) would make a
- * premise ambiguous to a reader even though the generator knows what it meant.
- * The defaults are clean; this exists because the axis list is configurable.
+ * direction word would make a premise ambiguous to a reader even though the
+ * generator knows what it meant. The defaults are clean; this exists because
+ * the axis list is configurable.
+ *
+ * It used to have a standing example: "higher" belonged to both quantity and
+ * vertical. That turned out to be a mistake in the data rather than a fact
+ * about the vocabulary — quantity compares *amounts* and its relations say "is
+ * more than", so its direction words are now "greater"/"smaller" and the two
+ * axes can be stacked. The check stays; what it guards against is a
+ * configuration nobody has built yet rather than one shipped by accident.
  */
 export function axisWordConflicts(scales: LinearScale[]): string[] {
     const seen = new Map<string, string>();

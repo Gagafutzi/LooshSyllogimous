@@ -116,10 +116,26 @@ export interface LinearScale {
 }
 
 export const LINEAR_SCALES: Record<string, LinearScale> = {
+    /*
+     * `direction` was ["higher", "lower"], which names a different axis.
+     *
+     * The relations here are "is more than" and "is less than" — an amount — and
+     * the direction words are what everything *else* says about the same scale:
+     * a transformation offset reads "3 units <direction> than X", and the modes
+     * that state a rule read "Being <direction> makes something …". So an item
+     * whose premises compared amounts introduced itself with *"Being higher
+     * makes something less fragile"*, which is a claim about height.
+     *
+     * `axisWordConflicts` exists because of this and says so in its own comment:
+     * "higher" belonged to quantity and to vertical at once, and two axes that
+     * share a direction word cannot both appear in a composed space. Naming this
+     * one after what it measures removes the clash rather than working around
+     * it, so the two can now be stacked.
+     */
     quantity: {
         id: "quantity", name: "Quantity",
         above: "is more than", below: "is less than", same: "is equal to",
-        direction: ["higher", "lower"], link: "than", unit: "unit", axisName: "",
+        direction: ["greater", "smaller"], link: "than", unit: "unit", axisName: "",
         tie: "same amount",
     },
     temporal: {

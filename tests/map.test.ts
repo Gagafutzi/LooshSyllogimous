@@ -132,10 +132,10 @@ test("a scale item plots on one axis, named after the scale", () => {
 test("every preset axis stack is readable", () => {
     /*
      * Two axes sharing a direction word make a premise that cannot be read at
-     * all — "higher" twice, with nothing to say which dimension either belongs
-     * to. Extending the preset past six pulls `vertical` off the choice list,
-     * whose words are `quantity`'s exactly, which is why 7D needed a new scale
-     * rather than the next spare.
+     * all — the same word twice, with nothing to say which dimension either
+     * belongs to. The standing example was `quantity` and `vertical`, which
+     * both said "higher"; that was a mistake in the data and quantity now says
+     * "greater". The check is what says so, and what would say so again.
      */
     for (const dims of [3, 4, 5, 6, 7]) {
         const clashes = axisWordConflicts(axesForDimensions(dims));
