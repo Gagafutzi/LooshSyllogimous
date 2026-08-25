@@ -26,6 +26,7 @@ import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
 import { LS_DONT_SHOW, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_TIMER } from "../constants/local-storage.constants";
+import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
 import { Router } from "@angular/router";
@@ -948,6 +949,17 @@ export class GameService implements GeneratorContext {
     }
 
     /**
+     * Whether a wrong answer stops for its explanation.
+     *
+     * Read through the service rather than out of storage in each screen, so
+     * the switch on Display & timer and the panel it governs cannot come to
+     * different conclusions. The rule itself lives in `review.utils`.
+     */
+    get explanationsShown(): boolean { return explanationsOn(); }
+
+    setExplanationsShown(value: boolean) { setExplanationsOn(value); }
+
+    /**
      * The outcome of one claim, without ending the item.
      *
      * Short, and it does not stop the clock or offer the derivation: the next
@@ -974,9 +986,10 @@ export class GameService implements GeneratorContext {
          * things are going well. An error is the opposite case: the item took a
          * minute to read and returned a single bit, and an error only teaches if
          * the correction is actually read. So this waits for the player instead
-         * of moving on.
+         * of moving on — unless the player has said not to, on Display & timer,
+         * in which case a wrong answer flows on like every other.
          */
-        const derivation = kind === "correct" ? [] : (this.question.explanation ?? []);
+        const derivation = reviewSteps(kind, this.question.explanation);
 
         // Long enough to register, short enough not to feel like a screen.
         setTimeout(() => {

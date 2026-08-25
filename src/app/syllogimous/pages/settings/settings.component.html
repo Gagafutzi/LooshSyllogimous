@@ -20,6 +20,29 @@
         <app-collapsible heading="Timer mode">
                 <app-timer-choose></app-timer-choose>
         </app-collapsible>
+
+        <!--
+          The one deliberate interruption on the game screen, and the switch
+          that removes it. Here rather than on Customise because it changes
+          nothing about what a question asks.
+        -->
+        <app-collapsible heading="After a wrong answer">
+            <div class="d-grid" style="gap: 0.5rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="explanationsShown" (change)="setExplanationsShown($any($event.target).checked)">
+                    <span>Explain wrong answers
+                        <small class="d-block text-muted">
+                            Stops after a wrong answer or a timeout and shows how it
+                            followed — the derivation with the map, diagram or
+                            dimension breakdown that goes with it. Turned off, a wrong
+                            answer runs straight into the next question.
+                            <strong>History</strong> keeps the explanation either way.
+                        </small>
+                    </span>
+                </label>
+            </div>
+        </app-collapsible>
         <!--
           Wording, not difficulty. These two used to sit on Customise beside the
           modifiers that change what has to be worked out; they only change how

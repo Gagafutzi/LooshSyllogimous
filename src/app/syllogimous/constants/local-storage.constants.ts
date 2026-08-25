@@ -90,3 +90,12 @@ for (const type of Object.values(EnumQuestionType)) {
 
 /** Seconds handed back for each claim of a series answered. */
 export const LS_SERIES_BONUS = "SYL_SERIES_BONUS";
+
+/**
+ * Suppress the explanation overlay after a wrong answer.
+ *
+ * Stored as an *off* switch, like `LS_TRAINING_UNITS_OFF` and for the same
+ * reason: absence means shown, so nobody has to be migrated onto the behaviour
+ * they already had.
+ */
+export const LS_EXPLANATIONS_OFF = "SYL_EXPLANATIONS_OFF";

@@ -73,6 +73,17 @@ export class SettingsComponent {
         this.overrides.setLinear(key, value);
     }
 
+    /* ---- the explanation overlay ---- */
+
+    /**
+     * Straight through the game service, which is the only reader of the flag
+     * that matters — a second copy of "is it on" is how a checkbox and the
+     * thing it checks drift apart.
+     */
+    get explanationsShown() { return this.game.explanationsShown; }
+
+    setExplanationsShown(value: boolean) { this.game.setExplanationsShown(value); }
+
     dailyProgressMinutes = new FormControl(DEFAULT_DAILY_GOAL);
     weeklyProgressMinutes = new FormControl(DEFAULT_WEEKLY_GOAL);
 

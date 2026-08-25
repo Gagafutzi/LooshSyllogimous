@@ -371,3 +371,48 @@ above fails it, which makes it worth having as a floor in
 `tests/derivation.test.ts` alongside the existing coverage test. The coverage
 test's floor is already the full set of modes rather than a number to beat;
 this adds a floor on what counts as coverage.
+
+---
+
+## 3.5 An off switch for the overlay — **BUILT**
+
+Everything above is about making the explanation worth reading. None of it
+answers the reader who does not want to be stopped: the panel interrupts twice a
+minute in a bad run, and someone drilling for speed already knows why they were
+wrong before the derivation has finished rendering.
+
+**Display & timer → After a wrong answer → Explain wrong answers**, on by
+default. Off, a wrong answer flows into the next question the way a correct one
+does.
+
+Three things about how it is built are worth stating, because each was a choice
+and not the only option:
+
+- **It empties `game.review`, which is what the whole panel is shown by.** So it
+  takes the map, the Venn, the stages and the per-dimension breakdown with it,
+  not just the prose. Those *are* the explanation in the modes where a picture
+  explains better than a sentence — §3.1 and §3.3 both argue exactly that — and
+  a switch that left half the panel up would be a switch about paragraphs rather
+  than about being interrupted. It is also already the behaviour of every mode
+  that derives nothing: no panel, straight on. Off makes every mode behave the
+  way those ones always have.
+
+- **Nothing is discarded.** `explanation` is still built and still stored on the
+  question, and History still renders it for every item, right or wrong. The
+  switch suppresses an interruption, not a record — which is the difference
+  between turning off a notification and deleting the mail.
+
+- **Stored as an off switch** (`SYL_EXPLANATIONS_OFF`), like
+  `SYL_TRAINING_UNITS_OFF`, so absence means shown and no existing player is
+  migrated onto anything. Switching it back on removes the key rather than
+  storing a `true`, which keeps the default a thing that can still be changed
+  later instead of one frozen into everybody's storage.
+
+The rule lives in
+[`utils/review.utils.ts`](../src/app/syllogimous/utils/review.utils.ts) rather
+than inline in `showVerdict`, because `GameService` needs a router, a modal
+service and four more collaborators to construct, and "does the panel open" is
+worth a test rather than a look at the screen — the lesson `tests/display.test.ts`
+opens with. `tests/review.test.ts` holds the five cases: the untouched default,
+off, back on, that on leaves no key behind, and that a correct answer never
+opened it either way.
