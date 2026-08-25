@@ -40,7 +40,9 @@ import { Question } from "../models/question.models";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { getRandomSymbols, shuffle } from "../utils/question.utils";
 import { hi, rel, subj } from "../utils/phrasing";
-import { GeneratorContext, deepConclusions } from "./context";
+import {
+    GeneratorContext, buildSeries, deepConclusions, extendWithSeries, seriesWanted,
+} from "./context";
 
 /** Positive remainder — JavaScript's % keeps the sign of the dividend. */
 const mod = (n: number, m: number) => ((n % m) + m) % m;
@@ -198,7 +200,7 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
             if (!fillInvarianceQuestion(question, words, neighbors, start, final, order, shape, deep)) continue;
         } else {
             fillPositionQuestion(
-                question, words, neighbors, start, final, total, shape, deep);
+                ctx, question, words, neighbors, start, final, total, shape, deep);
         }
 
         return question;
@@ -215,6 +217,7 @@ const plainName = (s: string) => s.replace(/<[^>]+>/g, "");
 
 /** "Which corner is X on now?" — a choice among the corner names. */
 function fillPositionQuestion(
+    ctx: GeneratorContext,
     question: Question,
     words: string[],
     neighbors: Record<string, string[]>,
@@ -276,6 +279,40 @@ function fillPositionQuestion(
     // Said the short way round, which is how anyone reads a dial.
     const cw = net <= sides / 2;
     const steps = cw ? net : sides - net;
+
+    /*
+     * The other objects, asked one at a time.
+     *
+     * The turns are the expensive part and they are worked out once; every
+     * further object is that same result read somewhere else on the same
+     * shape. So a second question costs the reader almost nothing except the
+     * thing the mode is for — which is exactly the trade the series form is
+     * good at, and this is the first *picking* item to take it.
+     *
+     * Under the deep model an object whose corner is stated outright is not
+     * offered: its answer is that corner plus the turns, one premise and the
+     * arithmetic, with every relative placement in the item unused. That is the
+     * shallow item the floor removed from the first claim, and letting it back
+     * in as the second would return it by the side door.
+     */
+    if (seriesWanted(ctx)) {
+        const others = words.filter(w => w !== asked
+            && (!deep || hops(FRAME, w, neighbors) > 1));
+
+        extendWithSeries(question, buildSeries(() => {
+            if (!others.length) return null;
+            const w = others[Math.floor(Math.random() * others.length)];
+            const shuffled = shuffle([...Array(shape.corners.length).keys()]);
+            return {
+                text: "",
+                isValid: true,
+                choices: shuffled.map(i => rel(shape.corners[i])),
+                correctChoice: shuffled.indexOf(final[w]),
+                prompt: `Which corner is ${plainName(w)} on after the turns?`,
+                key: w,
+            };
+        }));
+    }
 
     question.explanation = [
         `Following the premises, ${subj(asked)} starts on the`

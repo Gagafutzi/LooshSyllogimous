@@ -699,6 +699,14 @@ export class GameService implements GeneratorContext {
             const next = series[this.question.seriesAt];
             this.question.conclusion = next.text;
             this.question.isValid = next.isValid;
+            // A picking claim brings its own options and prompt with it; the
+            // premises above them do not move, which is the whole point.
+            if (next.choices) {
+                this.question.choices = [...next.choices];
+                this.question.correctChoice = next.correctChoice ?? -1;
+                this.question.choicePrompt = next.prompt ?? this.question.choicePrompt;
+                this.question.userChoice = -1;
+            }
             this.gameTimerService.extend(this.seriesBonusSeconds);
 
             this.flashClaim(

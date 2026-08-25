@@ -391,6 +391,28 @@ Binary is already two questions compounded into one claim. And Analogy must
 takes a finished item from another mode and re-purposes the object, so the
 inner mode's claims rode along, about a question the item no longer asks.
 
+**A series need not be true-or-false.** Shape Rotation's absolute form asks
+*"which corner is Buckles on after the turns?"* and is answered by picking, and
+it is the form that gains most from being asked again: the turns are worked out
+once, and every further object is that same result read somewhere else on the
+same shape. So the second question costs the reader almost nothing except the
+thing the mode is for.
+
+A claim therefore carries either a wording and a verdict, or a set of options
+and which of them is right. Advancing swaps whichever it has, and the premises
+above do not move.
+
+Under the deep model an object whose corner is **stated outright** is not
+offered as a further claim. Its answer is that corner plus the turns — one
+premise and the arithmetic, with every relative placement in the item unused —
+which is precisely the shallow item the floor removed from the first claim, and
+letting it back in as the second would return it by the side door.
+
+One trap, worth recording because it cost a run to find: the shared drawer
+mapped a drawn claim down to `{ text, isValid }`, which silently dropped the
+options. A picking series with nothing to pick, and every claim after the first
+unanswerable.
+
 ---
 
 ## 2.2c Several claims, for everybody — **BUILT**

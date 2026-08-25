@@ -227,3 +227,60 @@ test("a mode that re-purposes another's item carries no series", () => {
         });
     }
 });
+
+/* ------------------------------------------------------------------ *
+ * A series answered by picking                                        *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Not every item that can ask twice is a true-or-false item.
+ *
+ * Shape Rotation works the turns out once and every further object is that same
+ * result read somewhere else on the same shape — so a second question costs the
+ * reader almost nothing except the thing the mode is for. It is the form that
+ * gains most from being asked again, and it is answered by *picking*, so a
+ * claim has to carry its own options and prompt rather than a wording and a
+ * verdict.
+ *
+ * The trap, which cost a run to find: the shared drawer used to map a drawn
+ * claim down to `{ text, isValid }`, which silently dropped the options — a
+ * picking series with nothing to pick, and every claim after the first
+ * unanswerable.
+ */
+test("a picking item can ask about the other objects too", () => {
+    const ctx = context();
+    let asked = 0;
+
+    seeded(9753, () => {
+        for (let rep = 0; rep < 80; rep++) {
+            let q: Question | undefined;
+            try { q = BUILD[EnumQuestionType.ShapeRotation](ctx, 6); } catch { continue; }
+            if (!q || q.answerMode !== "choice" || q.series.length < 2) continue;
+            asked++;
+
+            for (const [i, claim] of q.series.entries()) {
+                assert(!!claim.choices && claim.choices.length > 1,
+                    `claim ${i + 1} has nothing to pick from`);
+                assert(claim.correctChoice != null
+                    && claim.correctChoice >= 0
+                    && claim.correctChoice < claim.choices!.length,
+                    `claim ${i + 1} points at no option`);
+                assert(!!claim.prompt, `claim ${i + 1} asks nothing`);
+            }
+
+            // The card opens on the first claim, as every series does.
+            equal(q.series[0].prompt, q.choicePrompt,
+                "the card is asking something other than its first claim");
+            equal(q.series[0].correctChoice, q.correctChoice,
+                "the card is scored against something other than its first claim");
+
+            // Each claim is about a different object, or it is the same
+            // question twice with the options shuffled.
+            const prompts = q.series.map(c => c.prompt);
+            equal(new Set(prompts).size, prompts.length,
+                "two claims ask about the same object");
+        }
+    });
+
+    assert(asked > 20, `only ${asked} picking series in the sample`);
+});

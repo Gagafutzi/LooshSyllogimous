@@ -31,10 +31,28 @@ export interface IDirection3DProposition {
 }
 
 /** One relation the player has to state, dimension by dimension. */
-/** One claim of a series, with the answer it is looking for. */
+/**
+ * One claim of a series, with the answer it is looking for.
+ *
+ * Two shapes, because two kinds of item ask several things. A true-or-false
+ * claim carries its wording and whether it holds. A claim answered by *picking*
+ * carries the options and which of them is right instead — "which corner is
+ * Buckles on after the turns?", asked again about the next object, on premises
+ * that have not moved.
+ *
+ * The picking form is the one that gains most from being asked several times:
+ * the turns are worked out once and every further object is that same result
+ * read somewhere else, so the second question costs the reader almost nothing
+ * except the thing the mode is actually training.
+ */
 export interface SeriesClaim {
     text: string;
     isValid: boolean;
+    /** The options, for a claim answered by picking rather than by judging. */
+    choices?: string[];
+    correctChoice?: number;
+    /** What the picker is being asked, which changes with the claim. */
+    prompt?: string;
 }
 
 export interface ConstructClaim {

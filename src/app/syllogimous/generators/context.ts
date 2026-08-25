@@ -150,7 +150,7 @@ export function seriesWanted(ctx: GeneratorContext): boolean {
  * conclusion, so one or two.
  */
 export function buildSeries(
-    draw: (wantValid: boolean) => { text: string; isValid: boolean; key: string } | null,
+    draw: (wantValid: boolean) => (SeriesClaim & { key: string }) | null,
     count = 1 + Math.floor(Math.random() * 2),
 ): SeriesClaim[] {
     const out: SeriesClaim[] = [];
@@ -160,7 +160,10 @@ export function buildSeries(
         const claim = draw(Math.random() < 0.5);
         if (!claim || used.has(claim.key)) continue;
         used.add(claim.key);
-        out.push({ text: claim.text, isValid: claim.isValid });
+        // Everything but the key, so a claim answered by picking keeps its
+        // options — dropping them left a picking series with nothing to pick.
+        const { key, ...rest } = claim;
+        out.push(rest);
     }
 
     return out.length === count ? out : [];
@@ -183,11 +186,19 @@ export function buildSeries(
 export function extendWithSeries(question: Question, extra: SeriesClaim[]): boolean {
     if (!extra.length) return false;
 
-    const first = {
+    const first: SeriesClaim = {
         text: Array.isArray(question.conclusion) ? question.conclusion[0] : question.conclusion,
         isValid: question.isValid,
     };
-    if (!first.text) return false;
+    // A picking item has no conclusion text; what identifies its first claim is
+    // the options and the prompt.
+    if (question.answerMode === "choice") {
+        first.choices = [...question.choices];
+        first.correctChoice = question.correctChoice;
+        first.prompt = question.choicePrompt;
+    } else if (!first.text) {
+        return false;
+    }
 
     question.series = [first, ...extra];
     question.seriesAt = 0;
