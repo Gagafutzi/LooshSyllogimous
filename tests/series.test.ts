@@ -178,7 +178,20 @@ const MUST_OFFER: Array<[EnumQuestionType, number]> = [
     [EnumQuestionType.AnchorSpace, 5],
     [EnumQuestionType.AnchorSpaceV2, 5],
     [EnumQuestionType.Knaves, 5],
+    // Answered by picking rather than by judging, which the form reaches too.
+    [EnumQuestionType.ShapeRotation, 6],
+    [EnumQuestionType.AxisMap, 3],
+    [EnumQuestionType.InferRelation, 6],
 ];
+
+/**
+ * Widest Group is deliberately not on the list.
+ *
+ * Two groups is what the mode is — the extra ones came off the ladder for being
+ * a longer read rather than a harder one — and asking "which is widest" a
+ * second time about the same two groups is the same question with the answer
+ * already given. The form only pays where a second question exists to ask.
+ */
 
 test("every true-or-false mode asks more than one conclusion", () => {
     const ctx = context();
@@ -283,4 +296,76 @@ test("a picking item can ask about the other objects too", () => {
     });
 
     assert(asked > 20, `only ${asked} picking series in the sample`);
+});
+
+/**
+ * Where the map is the expensive half, the map is what stays.
+ *
+ * Most series keep every premise and ask something else about them. These two
+ * are built the other way round: the costly reading is a *map* — a change read
+ * off worked examples, a space read off its premises — and the cheap half is
+ * what it gets applied to. So the examples or the space stay put and the part
+ * being asked about is replaced, which is the same trade every other series
+ * makes and simply falls on the other side of the card.
+ *
+ * Swapping the other half would be the wrong direction: different examples mean
+ * a different change, and that is not another question about this item, it is a
+ * different item printed underneath.
+ */
+test("a map-and-apply item keeps its map and replaces what it is applied to", () => {
+    const ctx = context();
+
+    for (const [type, n, keeps] of [
+        [EnumQuestionType.AxisMap, 3, "examples"],
+        [EnumQuestionType.InferRelation, 6, "the space"],
+    ] as const) {
+        let checked = 0;
+
+        seeded(1379, () => {
+            for (let rep = 0; rep < 60; rep++) {
+                let q: Question | undefined;
+                try { q = BUILD[type](ctx, n); } catch { continue; }
+                if (!q || q.series.length < 2) continue;
+                checked++;
+
+                const lists = q.series.map(c => c.premises);
+                for (const [i, list] of lists.entries()) {
+                    assert(!!list && list.length > 0,
+                        `${type}: claim ${i + 1} shows no premises at all`);
+                }
+
+                /*
+                 * The shared head is the map. It has to be a real prefix and a
+                 * substantial one — a series whose claims share nothing has
+                 * replaced the item, and one that shares everything has not
+                 * asked a second question.
+                 */
+                const first = lists[0]!;
+                for (let c = 1; c < lists.length; c++) {
+                    const other = lists[c]!;
+                    let shared = 0;
+                    while (shared < first.length && shared < other.length
+                        && first[shared] === other[shared]) shared++;
+
+                    assert(shared > 0,
+                        `${type}: claim ${c + 1} keeps none of the ${keeps}`);
+                    assert(shared < first.length,
+                        `${type}: claim ${c + 1} changed nothing, so it is the`
+                        + " same question twice");
+                    assert(first.slice(0, shared).join("\n") === other.slice(0, shared).join("\n"),
+                        `${type}: the ${keeps} moved between claims`);
+                }
+
+                // And each claim is answerable: it brings its own options.
+                for (const [i, claim] of q.series.entries()) {
+                    assert(!!claim.choices && claim.choices.length > 1,
+                        `${type}: claim ${i + 1} has nothing to pick from`);
+                    assert(claim.correctChoice != null && claim.correctChoice >= 0,
+                        `${type}: claim ${i + 1} points at no option`);
+                }
+            }
+        });
+
+        assert(checked > 15, `only ${checked} ${type} series in the sample`);
+    }
 });

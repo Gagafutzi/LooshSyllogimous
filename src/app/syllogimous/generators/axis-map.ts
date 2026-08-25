@@ -24,7 +24,7 @@
  * unchanged, which is stated with the item.
  */
 
-import { GeneratorContext } from "./context";
+import { GeneratorContext, buildSeries, extendWithSeries, seriesWanted } from "./context";
 import { Question } from "../models/question.models";
 import { EnumQuestionType } from "../constants/question.constants";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
@@ -620,6 +620,77 @@ function buildGroups(
     question.correctChoice = options.indexOf(truth);
     question.conclusion = "";
     question.isValid = true;
+
+    /*
+     * The same change, applied to another chain.
+     *
+     * Working the map out of the examples is the whole cost of the item and it
+     * is paid once. So the **examples stay exactly as they are** and the chain
+     * is replaced — the half being asked about — which is a second question at
+     * the price of reading four short lines rather than the price of a fresh
+     * item.
+     *
+     * The other direction would be the wrong one: swapping the *examples* means
+     * a different map, and that is not another question about this item, it is
+     * a different item printed underneath.
+     */
+    if (seriesWanted(ctx)) {
+        const spare = getRandomSymbols(settings, chainLen * 3);
+        let taken = 0;
+
+        extendWithSeries(question, buildSeries(() => {
+            const chain = spare.slice(taken, taken + chainLen);
+            if (chain.length < chainLen) return null;
+            taken += chainLen;
+
+            const coords: number[][] = [];
+            for (let i = 0; i < chain.length; i++) {
+                const step = Array(axes.length).fill(0);
+                for (const k of shuffle(axes.map((_, j) => j)).slice(0, Math.min(2, axes.length))) {
+                    step[k] = pick([-3, -2, -1, 1, 2, 3]);
+                }
+                coords.push(i === 0 ? step : coords[i - 1].map((v, k) => v + step[k]));
+            }
+
+            const lines = chain.map((n, i) =>
+                i === 0
+                    ? shortLine(n, coords[0], axes)
+                    : shortLine(n, minus(coords[i], coords[i - 1]), axes, chain[i - 1]));
+
+            const say = (m: AxisMap) => {
+                const after = coords.map(c => applyAxisMap(c, m));
+                return chain.map((n, i) =>
+                    i === 0
+                        ? shortLine(n, after[0], axes)
+                        : shortLine(n, minus(after[i], after[i - 1]), axes, chain[i - 1]))
+                    .join(` ${hi("·")} `);
+            };
+
+            const right = say(asked.map);
+            const others = new Set<string>();
+            for (let i = 0; i < 200 && others.size < 3; i++) {
+                const near = nearMiss();
+                if (!near) continue;
+                const text = say(near);
+                if (text !== right) others.add(text);
+            }
+            if (others.size < 3) return null;
+
+            const shownOptions = shuffle([right, ...others]);
+            return {
+                text: "",
+                isValid: true,
+                premises: [
+                    ...premises.slice(0, premises.length - asked.chain.length),
+                    ...lines,
+                ],
+                choices: shownOptions,
+                correctChoice: shownOptions.indexOf(right),
+                prompt: "After the change, which describes them?",
+                key: chain.join("\u0000"),
+            };
+        }));
+    }
 
     /*
      * One stage per step of the change, covering every group at once.

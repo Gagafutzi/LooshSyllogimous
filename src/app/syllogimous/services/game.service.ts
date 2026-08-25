@@ -707,6 +707,13 @@ export class GameService implements GeneratorContext {
                 this.question.choicePrompt = next.prompt ?? this.question.choicePrompt;
                 this.question.userChoice = -1;
             }
+            /*
+             * Where the claim brings its own premises, the part being asked
+             * about is what changed and the part that cost the reading did not
+             * — a map's examples, a space's relations. Everything else keeps
+             * every premise it had.
+             */
+            if (next.premises) this.question.premises = [...next.premises];
             this.gameTimerService.extend(this.seriesBonusSeconds);
 
             this.flashClaim(

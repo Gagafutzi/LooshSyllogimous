@@ -200,6 +200,13 @@ export function extendWithSeries(question: Question, extra: SeriesClaim[]): bool
         return false;
     }
 
+    /*
+     * If any later claim replaces the premises, the first has to state its own
+     * — otherwise going back is impossible and, more to the point, the first
+     * claim's premises would be whatever the last one left behind.
+     */
+    if (extra.some(c => c.premises)) first.premises = [...question.premises];
+
     question.series = [first, ...extra];
     question.seriesAt = 0;
     return true;

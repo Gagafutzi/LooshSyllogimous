@@ -413,6 +413,29 @@ mapped a drawn claim down to `{ text, isValid }`, which silently dropped the
 options. A picking series with nothing to pick, and every claim after the first
 unanswerable.
 
+**Two modes are built the other way round, and keep their map instead.** Most
+series hold every premise and ask something else about them. Axis Maps and
+Infer Relation have the costly reading in a *map* — a change read off worked
+examples, a space read off its premises — and the cheap half is what it gets
+applied to. So a claim there carries its own premise list: the examples or the
+space stay exactly as they are, and the chain, or the claims made with the
+withheld operator, are replaced.
+
+Swapping the other half would be the wrong direction. Different examples mean a
+different change, which is not another question about this item but a different
+item printed underneath — and that is the distinction the test asserts: the
+shared head has to be a real prefix, non-empty and not the whole thing.
+
+Infer Relation also uses a **different symbol per question**. Its setup says the
+operator means one relation "every time", which is true within a question and
+would be a lie across a series of them — a reader carrying ⊕ over from the last
+claim would be answering the wrong question with the right method.
+
+**Widest Group is deliberately left out**, on the author's call. Two groups is
+what the mode is, and asking which is widest a second time about the same two
+groups is the same question with the answer already given. The form only pays
+where a second question exists to ask.
+
 ---
 
 ## 2.2c Several claims, for everybody — **BUILT**

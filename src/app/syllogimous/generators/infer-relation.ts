@@ -30,10 +30,20 @@ import {
     AxisSpec, axesForDimensions, buildNdLayout, compareOn, isCircular, ndAxisColors,
     renderNdPremises,
 } from "../utils/ndspace.utils";
-import { GeneratorContext } from "./context";
+import { GeneratorContext, buildSeries, extendWithSeries, seriesWanted } from "./context";
 
 /** The stand-in for the relation being identified. */
 const OPERATOR = "⊕";
+
+/**
+ * A symbol per question, not one reused.
+ *
+ * The setup says the operator means one relation "every time", which is true
+ * within a question and would be a lie across a series of them — a reader
+ * carrying ⊕ over from the last claim would be answering the wrong question
+ * with the right method.
+ */
+const OPERATORS = ["⊕", "⊗", "⊙", "⊘", "⊛"];
 
 /**
  * How many axes an item offers as candidates.
@@ -140,6 +150,61 @@ export function createInferRelation(ctx: GeneratorContext, numOfPremises: number
 
         question.explanation = explainInference(
             layout, axes, colors, claims, hidden, survivors);
+
+        /*
+         * The same space, another withheld relation.
+         *
+         * Reading the space is the whole cost of the item and it is paid once —
+         * every object's position on every axis is stated, and a further
+         * question re-uses all of it. So the map stays exactly as it is and
+         * only the claims made *with* the operator are replaced, which is the
+         * half being asked about.
+         *
+         * A different symbol each time, deliberately. The setup says the
+         * operator means one relation "every time", which is true within a
+         * question and would be a lie across them — a reader carrying ⊕ over
+         * from the last claim would be answering the wrong question with the
+         * right method.
+         */
+        if (seriesWanted(ctx)) {
+            const mapLines = question.premises.slice(0, -claims.length);
+            const spent = new Set([hidden]);
+
+            extendWithSeries(question, buildSeries(() => {
+                const free = axes.map((_, i) => i)
+                    .filter(i => !spent.has(i) && !isCircular(axes[i]));
+                if (!free.length) return null;
+
+                const next = free[Math.floor(Math.random() * free.length)];
+                const fits = pairs.filter(([a, b]) => compareOn(layout, next, a, b) === 1);
+                if (fits.length < claimCount) return null;
+
+                const drawn = pickUniqueItems(fits, claimCount).picked;
+                // The same uniqueness the first claim is held to: an item where
+                // two axes both fit has no answer.
+                const alive = axes.map((_, i) => i).filter(i => !isCircular(axes[i])
+                    && drawn.every(([a, b]) => compareOn(layout, i, a, b) === 1));
+                if (alive.length !== 1 || alive[0] !== next) return null;
+
+                spent.add(next);
+                const symbol = OPERATORS[spent.size - 1] ?? OPERATOR;
+                const shown = shuffle(usable(axes).map((_, i) => i));
+                const opts = usable(axes);
+
+                return {
+                    text: "",
+                    isValid: true,
+                    premises: [
+                        ...mapLines,
+                        ...drawn.map(([a, b]) => `${subj(a)} ${hi(symbol)} ${subj(b)}`),
+                    ],
+                    choices: shown.map(i => rel(opts[i].scale.above, colors[axes.indexOf(opts[i])])),
+                    correctChoice: shown.indexOf(opts.findIndex(a => a === axes[next])),
+                    prompt: `Which relation is ${symbol}?`,
+                    key: String(next),
+                };
+            }));
+        }
 
         return question;
     }

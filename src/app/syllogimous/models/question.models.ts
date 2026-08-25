@@ -53,6 +53,23 @@ export interface SeriesClaim {
     correctChoice?: number;
     /** What the picker is being asked, which changes with the claim. */
     prompt?: string;
+    /**
+     * The premises shown while this claim is up, where they are not the same
+     * ones the last claim had.
+     *
+     * Most series keep every premise: the arrangement is stated once and each
+     * claim asks something else about it. Two modes are built the other way
+     * round — the expensive half is a *map* and the cheap half is what it is
+     * applied to. Axis Maps reads a change off its examples and then applies it
+     * to a chain; Infer Relation reads a space off its premises and then judges
+     * a handful of claims made with a withheld operator. In both, the examples
+     * or the space stay put and the part being *asked about* is replaced, which
+     * is the same trade every other series makes and simply falls on the other
+     * side of the card.
+     *
+     * Absent means nothing changes, which is what the other modes want.
+     */
+    premises?: string[];
 }
 
 export interface ConstructClaim {
