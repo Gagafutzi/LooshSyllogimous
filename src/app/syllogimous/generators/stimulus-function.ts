@@ -130,16 +130,42 @@ export function createStimulusFunction(ctx: GeneratorContext, numOfPremises: num
         if (asExtreme) {
             const wantMost = Math.random() < 0.5;
             const answer = wantMost ? most : least;
-            const order = shuffle([...words]);
+            /*
+             * Two options, the answer and the one nearest it.
+             *
+             * Every object used to be offered, which is a *scan*: eight names,
+             * one of which is at the end of the line, and the seven that are
+             * plainly not at the end cost nothing to dismiss. The question is
+             * really between the extreme and whatever sits next to it, so that
+             * is what it asks — and the guess floor is worse on paper while the
+             * item is harder in fact, because there is no longer anything to
+             * eliminate without working the order out.
+             */
+            const rival = wantMost ? ranked[1] : ranked[ranked.length - 2];
+            if (!rival || carried(rival) === carried(answer)) continue;
 
+            const order = shuffle([answer, rival]);
             question.choices = order.map(w => subj(w));
             question.correctChoice = order.indexOf(answer);
             question.answerMode = "choice";
             question.isValid = true;
             question.conclusion = "";
-            question.choicePrompt = `Which is ${wantMost ? fn.superlative : fn.least}?`;
+            /*
+             * The rule, beside the options.
+             *
+             * Which way the scale runs is the one thing the item cannot be
+             * answered without, and it is stated at the top of the card — where
+             * it scrolls out of sight the moment the premises are long enough,
+             * and in fullscreen it is not on screen at all when the options
+             * are. Repeated here because a fact you must hold and cannot see is
+             * not a difficulty, it is a defect.
+             */
+            question.choicePrompt = `Which is ${wantMost ? fn.superlative : fn.least}?`
+                + ` \u2014 ${scale.direction[0]} means`
+                + ` ${alignedWithScale ? fn.comparative : "less " + fn.adjective}`;
             question.explanation = [
                 ...groundwork,
+                `${subj(answer)} and ${subj(rival)} are the two it is between.`,
                 `so the ${wantMost ? fn.superlative : fn.least} is ${subj(answer)}.`,
             ];
         } else {

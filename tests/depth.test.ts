@@ -30,6 +30,7 @@ import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.co
 import { BUILD } from "./modes";
 import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
+import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
 import { createLinear } from "../src/app/syllogimous/generators/linear";
 import { compareConstruction } from "../src/app/syllogimous/utils/construct.utils";
 import { createGraphMatching } from "../src/app/syllogimous/generators/graph-matching";
@@ -1401,4 +1402,47 @@ test("no claim of a series repeats one already asked", () => {
     });
 
     assert(checked > 40, `only ${checked} series items in the sample`);
+});
+
+/**
+ * The extreme question is between two things, and says which way the scale runs.
+ *
+ * Every object used to be offered, which is a scan rather than a comparison:
+ * eight names, one of which is at the end of the line, and the seven plainly not
+ * at the end cost nothing to dismiss. The question is really between the extreme
+ * and whatever sits next to it.
+ *
+ * And the rule the item turns on — which direction carries more of the property
+ * — is stated at the top of the card, where it scrolls out of sight once the
+ * premises are long enough and is off screen entirely in fullscreen when the
+ * options are showing. A fact you must hold and cannot see is not a difficulty.
+ */
+test("a stimulus-function extreme asks between two, with the rule in view", () => {
+    const ctx = ndContext();
+    let asked = 0;
+
+    seeded(5150, () => {
+        for (let rep = 0; rep < 80; rep++) {
+            let q;
+            try { q = createStimulusFunction(ctx, 5); } catch { continue; }
+            if (q.answerMode !== "choice") continue;
+            asked++;
+
+            equal(q.choices.length, 2,
+                `the extreme was offered among ${q.choices.length} objects`);
+            assert(q.correctChoice === 0 || q.correctChoice === 1,
+                "the answer is not one of the two offered");
+            equal(new Set(q.choices).size, 2, "the same object was offered twice");
+
+            /*
+             * The prompt carries the mapping, because it sits with the options
+             * and the setup does not once the card is scrolled.
+             */
+            const prompt = String(q.choicePrompt ?? "").replace(/<[^>]+>/g, "");
+            assert(/ means /.test(prompt),
+                `the prompt does not say which way the scale runs: ${prompt}`);
+        }
+    });
+
+    assert(asked > 25, `only ${asked} extreme items in the sample`);
 });

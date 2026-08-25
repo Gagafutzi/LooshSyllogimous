@@ -260,6 +260,46 @@ are meant to be tracking or a word they failed to see.
 
 ---
 
+## 4.2c The rule you must hold scrolled off the card — **FIXED**
+
+Reported of the stimulus-function mode: *"you cant see how linear maps to the
+adjective, in fullscreen for example height to fragility isnt specified"*.
+
+The item states two things at the top — which object has the property, and
+**which direction along the scale carries more of it** — and then a list of
+premises, a question and a column of options. Once the premises are long enough
+the top scrolls away, and in fullscreen the rule is simply not on screen when
+the options are. The whole item turns on it.
+
+It is repeated in the prompt, which sits with the options: *"Which is least
+dangerous? — greater means more dangerous"*. A fact you must hold and cannot see
+is not a difficulty, it is a defect, and the cheapest repair is to put it where
+the answering happens rather than to hope the card is short.
+
+The setup lines stay as they are. Making the whole setup **stick** to the top of
+the scrolling card would fix this for every mode at once and is the better
+answer if it works; it is a layout change nobody has looked at yet, so it is
+noted here rather than shipped blind.
+
+---
+
+## 4.2d The extreme question offered eight options — **FIXED**
+
+Same screenshot, and the same reason it was worth reporting: *"reduce options to
+the 2 most closest"*.
+
+*"Which is least fragile?"* listed every object. That is a **scan**: eight names,
+one of which is at the end of the line, and the seven plainly not at the end
+cost nothing to dismiss. The question is really between the extreme and whatever
+sits next to it, so that is what it now asks.
+
+The guess floor is worse on paper — one in two against one in eight — and the
+item is harder in fact, because there is nothing left to eliminate without
+working the order out. Which is the trade this whole plan keeps making: a
+smaller menu you have to *earn* beats a longer one you can shorten by looking.
+
+---
+
 ## 4.3 Negation is the least legible thing on the card
 
 Not in the source list — an observation from reading the stylesheet, visible in
