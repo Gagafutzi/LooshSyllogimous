@@ -8,6 +8,47 @@ have caught it, which is the part worth keeping.
 
 ---
 
+## 1.0 Graph Matching stated the impossible, and marked it right — **FIXED**
+
+Reported:
+
+```
+Containment:  Fondue is within Cushion · Cushion is within Garland
+              Garland is the same size as Lamb · Fondue contains Lamb
+Height:       Violin is on top of Paste · Hippopotamus is at the same height as Paste
+              Milk is under Hippopotamus · Violin is under Milk
+Conclusion:   The two sets describe the same structure   → marked correct
+```
+
+Fondue is smaller than Lamb by the chain and larger than Lamb by the last
+statement. The height set is impossible in the same shape. **Neither set
+describes an arrangement at all**, so "the two describe the same structure" is
+true of the arrows and meaningless of the words — and it was marked right.
+
+**The cause is one form, not the mode.** `drawGraph` picks each link
+independently from →, ← and ↔, which is correct for the forms that word a link
+as *"goes to"* or *"comes from"*: there a cycle is an ordinary graph and nothing
+is wrong with it. The `as-relations` rung words the same links as
+**comparisons**, and there a cycle is a contradiction — nothing is larger than
+the thing it is inside. Nothing constrained the graph when it was dressed that
+way.
+
+`orderConsistent` is the constraint: sameness statements merge things into
+groups, no group is said to outrank itself, and the groups can be laid out in
+some order without a loop. Required of both sets in that form, and of the
+perturbed set too, since changing one link can turn a readable set into an
+impossible one. Items still build 300 times in 300, and the form still comes up
+in a bit over half of them.
+
+**The setup line did not cover this.** *"Compare the statements as made, not
+what they add up to"* is a fair instruction about a chain implying more than it
+states — A below B below C does not *state* A below C, and that implication is
+not part of the pattern. It is not an instruction that can rescue a set which
+cannot be true, and asking a reader to hold one is asking them to stop reading
+the words.
+
+---
+
 ## 1.1 A conclusion naming an object no premise states — **FIXED**
 
 **Found: wide premises and meta relations, together.** Eight items in a hundred

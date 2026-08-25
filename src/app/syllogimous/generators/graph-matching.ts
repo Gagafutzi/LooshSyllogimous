@@ -13,7 +13,7 @@ import { EnumQuestionType } from "../constants/question.constants";
 import { hi, neg, subj } from "../utils/phrasing";
 import { LINEAR_SCALES, LinearScale } from "../utils/linear.utils";
 import {
-    GraphEdge, MAX_DISTANCE_NODES, editDistance, oddGraphOut,
+    GraphEdge, MAX_DISTANCE_NODES, editDistance, oddGraphOut, orderConsistent,
 } from "../utils/graphdist.utils";
 
 export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number): Question {
@@ -483,6 +483,24 @@ function buildAsRelations(ctx: GeneratorContext, numOfPremises: number): Questio
         const right = picked.slice(nodes);
 
         const base = drawGraph(left);
+        /*
+         * Both sets have to be readable as arrangements, not merely as graphs.
+         *
+         * This is the one form that words a link as a *comparison* — contains,
+         * is on top of, is the same size as — and there a cycle is not a shape
+         * but a contradiction: nothing is larger than the thing it is inside.
+         * The other forms say "goes to" and "comes from", where a loop is an
+         * ordinary graph and nothing is wrong with it, which is why the
+         * constraint lives here and not in `drawGraph`.
+         *
+         * Left unchecked it shipped impossible items and marked them right:
+         * *Fondue is within Cushion, Cushion is within Garland, Garland is the
+         * same size as Lamb, Fondue contains Lamb*. Two sets that cannot be true
+         * were isomorphic as digraphs, so "the two describe the same structure"
+         * came out correct — true of the arrows and meaningless of the words.
+         */
+        if (!orderConsistent(base)) continue;
+
         let other = relabel(base, left, right);
 
         const same = coinFlip();
@@ -493,6 +511,8 @@ function buildAsRelations(ctx: GeneratorContext, numOfPremises: number): Questio
             let guard = 0;
             do { other = perturb(other); } while (editDistance(base, other) === 0 && guard++ < 40);
             if (editDistance(base, other) === 0) continue;
+            // A change can also turn a readable set into an impossible one.
+            if (!orderConsistent(other)) continue;
         }
 
         const question = new Question(EnumQuestionType.GraphMatching);

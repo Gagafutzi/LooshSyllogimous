@@ -13,6 +13,7 @@
 import { assert, equal, seeded, test } from "./harness";
 import {
     GraphEdge, MAX_DISTANCE_NODES, editDistance, isomorphicByDistance, nodesOf, oddGraphOut,
+    orderConsistent,
 } from "../src/app/syllogimous/utils/graphdist.utils";
 
 const g = (...edges: Array<[string, "↔" | "→" | "←", string]>): GraphEdge[] => edges;
@@ -334,3 +335,100 @@ function readRelationGroups(premises: string[]): GraphEdge[][] {
 
     return groups;
 }
+
+/* ------------------------------------------------------------------ *
+ * Statements that can be true at once                                 *
+ * ------------------------------------------------------------------ */
+
+/**
+ * A comparison is not an arrow.
+ *
+ * Most of this mode's forms word a link as "goes to" or "comes from", where a
+ * cycle is an ordinary graph. One words the same links as *comparisons*, and
+ * there a cycle is a contradiction: nothing is larger than the thing it is
+ * inside.
+ *
+ * The reported item, as edges. Fondue is smaller than Lamb by the chain and
+ * larger by the last statement — and the other set was impossible in the same
+ * shape, so the two were isomorphic as digraphs and the item said "the two
+ * describe the same structure" and marked it right.
+ */
+test("a set that contradicts itself is not an arrangement", () => {
+    assert(!orderConsistent(g(
+        ["Cushion", "→", "Fondue"],
+        ["Garland", "→", "Cushion"],
+        ["Garland", "↔", "Lamb"],
+        ["Fondue", "→", "Lamb"],
+    )), "the reported item was accepted as readable");
+
+    // Sameness merges things into a group, and nothing outranks its own group.
+    assert(!orderConsistent(g(["A", "→", "B"], ["A", "↔", "B"])),
+        "something was allowed to be both equal to and larger than a thing");
+    assert(!orderConsistent(g(["A", "→", "B"], ["B", "→", "C"], ["C", "→", "A"])),
+        "a loop of comparisons was accepted");
+
+    // And the ordinary shapes stay allowed.
+    assert(orderConsistent(g(["A", "→", "B"], ["B", "→", "C"])), "a plain chain was rejected");
+    assert(orderConsistent(g(["A", "→", "B"], ["B", "↔", "C"])), "equality was rejected");
+    assert(orderConsistent(g(["A", "→", "C"], ["B", "→", "C"])), "a fork was rejected");
+    assert(orderConsistent([]), "an empty set was rejected");
+});
+
+/**
+ * And the items themselves, read only from what is on the card.
+ *
+ * The relation words are decoded from the scale the group heading names, which
+ * is how the reader decodes them — so this checks the sentences that were
+ * actually shown rather than the structure they were built from.
+ */
+test("an item worded as comparisons states nothing impossible", () => {
+    const ctx = context("as-relations");
+    const strip = (t: string) => t.replace(/<[^>]+>/g, "");
+    let checked = 0;
+
+    seeded(31415, () => {
+        for (let rep = 0; rep < 120; rep++) {
+            let q;
+            try { q = createGraphMatching(ctx, 5); } catch { continue; }
+
+            const byName = new Map(Object.values(LINEAR_SCALES).map(sc => [sc.name, sc]));
+            let scale: typeof LINEAR_SCALES[string] | undefined;
+            let group: GraphEdge[] = [];
+            const groups: GraphEdge[][] = [];
+
+            for (const line of q.premises.map(strip)) {
+                const heading = byName.get(line.replace(/:$/, "").trim());
+                if (heading) {
+                    if (group.length) groups.push(group);
+                    group = [];
+                    scale = heading;
+                    continue;
+                }
+                if (!scale) continue;
+
+                for (const [phrase, rel] of [
+                    [scale.above, "→"], [scale.below, "←"], [scale.same, "↔"],
+                ] as const) {
+                    const at = line.indexOf(` ${phrase} `);
+                    if (at < 0) continue;
+                    group.push([
+                        line.slice(0, at).trim(), rel, line.slice(at + phrase.length + 2).trim(),
+                    ]);
+                    break;
+                }
+            }
+            if (group.length) groups.push(group);
+            if (groups.length !== 2) continue;   // some other form of the mode
+
+            checked++;
+            for (const [i, edges] of groups.entries()) {
+                assert(edges.length >= 3, `group ${i + 1} read back as ${edges.length} statements`);
+                assert(orderConsistent(edges),
+                    `group ${i + 1} cannot be true:\n  `
+                    + q.premises.map(strip).join("\n  "));
+            }
+        }
+    });
+
+    assert(checked > 30, `only ${checked} comparison-worded items in the sample`);
+});

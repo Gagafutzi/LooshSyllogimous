@@ -153,3 +153,70 @@ function permutations(n: number, visit: (perm: number[]) => boolean) {
 
     step(0);
 }
+
+/**
+ * Whether an edge list can be read as an *arrangement* rather than a graph.
+ *
+ * Most of this mode's forms word a link as "goes to" or "comes from", where a
+ * cycle is an ordinary graph and nothing is wrong with it. One form words the
+ * same links as **comparisons** — contains, is on top of, is the same size as —
+ * and there a cycle is not a shape, it is a contradiction: nothing can be
+ * larger than the thing it is inside.
+ *
+ * The reported item was exactly that. *Fondue is within Cushion, Cushion is
+ * within Garland, Garland is the same size as Lamb, Fondue contains Lamb* — so
+ * Fondue is smaller than Lamb and larger than Lamb. The other set was
+ * impossible the same way, the two impossibilities were isomorphic as digraphs,
+ * and the item said "the two describe the same structure" and marked it right.
+ *
+ * The instruction to *"compare the statements as made, not what they add up
+ * to"* covers a chain implying more than it states, which is fair. It does not
+ * cover a set that cannot be true, and asking a reader to hold one is asking
+ * them to stop reading the words.
+ *
+ * Consistent means: sameness statements merge things into groups, no group is
+ * said to be above or below itself, and the groups can be laid out in some
+ * order without a loop.
+ */
+export function orderConsistent(edges: GraphEdge[]): boolean {
+    const parent = new Map<string, string>();
+    const find = (x: string): string => {
+        if (!parent.has(x)) parent.set(x, x);
+        const p = parent.get(x)!;
+        if (p === x) return x;
+        const root = find(p);
+        parent.set(x, root);
+        return root;
+    };
+    const union = (a: string, b: string) => { parent.set(find(a), find(b)); };
+
+    for (const [a, rel, b] of edges) { find(a); find(b); if (rel === "↔") union(a, b); }
+
+    // Nothing is above or below something it has been declared equal to.
+    const directed: Array<[string, string]> = [];
+    for (const [a, rel, b] of edges) {
+        if (rel === "↔") continue;
+        const [from, to] = rel === "→" ? [find(a), find(b)] : [find(b), find(a)];
+        if (from === to) return false;
+        directed.push([from, to]);
+    }
+
+    // And the groups can be put in an order: a loop among them is a set of
+    // things each larger than the next and than itself.
+    const next = new Map<string, string[]>();
+    for (const [from, to] of directed) (next.get(from) ?? next.set(from, []).get(from)!).push(to);
+
+    const state = new Map<string, 0 | 1 | 2>();
+    const walk = (node: string): boolean => {
+        const seen = state.get(node);
+        if (seen === 1) return false;      // back on ourselves
+        if (seen === 2) return true;
+        state.set(node, 1);
+        for (const to of next.get(node) ?? []) if (!walk(to)) return false;
+        state.set(node, 2);
+        return true;
+    };
+
+    for (const node of new Set(directed.flat())) if (!walk(node)) return false;
+    return true;
+}
