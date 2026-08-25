@@ -244,9 +244,17 @@ export function createOddestRelation(ctx: GeneratorContext, numOfPremises: numbe
                 seen.add(key);
                 wrong.push(candidate);
             }
-            if (wrong.length < 3) continue;
+            /*
+             * One wrong pattern, not three.
+             *
+             * Four patterns is a search: a reader who has settled two dimensions
+             * can usually drop two options without settling the rest. The
+             * distractors are already built a flip or two from the consensus, so
+             * taking one keeps the near miss and removes the elimination.
+             */
+            if (!wrong.length) continue;
 
-            const options = shuffle([consensus, ...wrong]);
+            const options = shuffle([consensus, wrong[0]]);
             question.answerMode = "choice";
             question.choicePrompt = "Which pattern do most of these follow?";
             question.choices = options.map(v => renderNdPattern(axes, v));
@@ -297,7 +305,18 @@ export function createOddestRelation(ctx: GeneratorContext, numOfPremises: numbe
             question.answerMode = "construct";
             question.setup.push("State how far <b>each</b> one is.");
         } else {
-            const order = shuffle([...Array(count).keys()]);
+            /*
+             * The furthest and the runner-up, which is where the measuring
+             * actually has to be done. Every relation on the menu lets a reader
+             * discard the ones that plainly match the pattern without measuring
+             * any of them.
+             */
+            const byDistance = [...Array(count).keys()]
+                .sort((a, b) => distances[b] - distances[a]);
+            const rival = byDistance.find(i => i !== furthest);
+            if (rival === undefined) continue;
+
+            const order = shuffle([furthest, rival]);
             question.choices = order.map(i => labels[i]);
             question.correctChoice = order.indexOf(furthest);
             question.answerMode = "choice";

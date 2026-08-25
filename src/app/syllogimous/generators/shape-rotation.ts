@@ -246,7 +246,18 @@ function fillPositionQuestion(
     const asked = deep && candidates.length
         ? candidates[Math.floor(Math.random() * candidates.length)]
         : anyone;
-    const order = shuffle([...Array(shape.corners.length).keys()]);
+    /*
+     * Two corners, and the wrong one is next door.
+     *
+     * Every corner used to be offered, which on a square is a menu of four you
+     * can work backwards from — and on a hexagon a menu of six, where most
+     * options are so far from the answer that they cost nothing to dismiss.
+     * Being one corner out is the mistake a reader actually makes: a turn
+     * miscounted by one step. So that is the option beside the answer, and
+     * neither can be ruled out without counting the turns properly.
+     */
+    const near = mod(final[asked] + (Math.random() < 0.5 ? 1 : -1), shape.corners.length);
+    const order = shuffle([final[asked], near]);
 
     // Premises between the frame and the object asked about: a named object is
     // one hop, which is the shallow item this floor removes.
@@ -302,7 +313,9 @@ function fillPositionQuestion(
         extendWithSeries(question, buildSeries(() => {
             if (!others.length) return null;
             const w = others[Math.floor(Math.random() * others.length)];
-            const shuffled = shuffle([...Array(shape.corners.length).keys()]);
+            // The same two-corner rule as the first claim.
+            const beside = mod(final[w] + (Math.random() < 0.5 ? 1 : -1), shape.corners.length);
+            const shuffled = shuffle([final[w], beside]);
             return {
                 text: "",
                 isValid: true,

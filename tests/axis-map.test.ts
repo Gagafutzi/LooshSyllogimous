@@ -59,7 +59,7 @@ const examplesOf = (q: { premises: string[] }) => q.premises.filter(p => p.inclu
 const chainOf = (q: { premises: string[] }) =>
     q.premises.filter(p => !p.includes("→") && !p.includes(":")).map(strip);
 
-test("an item states its examples, its chain, and four distinct options", () => {
+test("an item states its examples, its chain, and two distinct options", () => {
     for (const rungs of [[], FULL.slice(0, 4), FULL]) {
         seeded(1234, () => {
             const ctx = context(rungs);
@@ -85,9 +85,19 @@ test("an item states its examples, its chain, and four distinct options", () => 
                 // and the reader has to find where the evidence stops.
                 assert(q.premises.filter(p => p.includes(":")).length >= 2,
                     "the examples and the chain are not labelled apart");
-                equal(q.choices.length, 4, "not four options");
-                equal(new Set(q.choices).size, 4, "two options say the same thing");
-                assert(q.correctChoice >= 0 && q.correctChoice < 4, "no correct option");
+                /*
+                 * Two readings, differing by one part of the map.
+                 *
+                 * Four was a search: the reader compares them to each other and
+                 * takes the odd one out, which can be done without applying the
+                 * change at all. Two that differ by one part have nothing to
+                 * compare against each other — the only way to tell them apart
+                 * is to apply the change and see which comes out.
+                 */
+                equal(q.choices.length, 2,
+                    "the chain was offered among more than two readings");
+                equal(new Set(q.choices).size, 2, "the two options say the same thing");
+                assert(q.correctChoice >= 0 && q.correctChoice < 2, "no correct option");
                 assert(q.explanation.length > 0, "no derivation");
             }
         });
@@ -428,7 +438,7 @@ test("no option is reached by using another marker's change", () => {
              * Four distinct readings, not three plus a near-repeat. The chain
              * names its marker and every option is that chain under *some* map.
              */
-            equal(new Set(q.choices).size, 4, "two options describe the same arrangement");
+            equal(new Set(q.choices).size, 2, "the two options describe the same arrangement");
 
             /*
              * Every option names the same objects as the chain. Checked by cast

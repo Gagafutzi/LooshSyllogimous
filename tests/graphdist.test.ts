@@ -199,9 +199,22 @@ test("the group named as odd really is the only one that differs", () => {
         const groups = readGroups(q.premises);
         assert(groups.length >= 3, `only ${groups.length} groups were stated`);
 
+        /*
+         * Every group is stated; two are offered. So the marked group has to be
+         * read off the option, not taken as an index into the groups — those
+         * were the same number only while every group was on the menu.
+         */
+        equal(q.choices.length, 2, "the odd one out was offered among every group");
+        const named = Number(/Group (\d+)/.exec(q.choices[q.correctChoice])![1]) - 1;
+
         // Recomputed from the premises, not from what the generator intended.
-        equal(oddGraphOut(groups), q.correctChoice,
+        equal(oddGraphOut(groups), named,
             "the marked group is not the one the premises single out");
+
+        // And the option beside it is a real group, not a filler label.
+        const rival = Number(/Group (\d+)/.exec(q.choices[1 - q.correctChoice])![1]) - 1;
+        assert(rival >= 0 && rival < groups.length && rival !== named,
+            "the other option is not one of the stated groups");
         checked++;
     }
 

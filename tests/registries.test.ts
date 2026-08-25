@@ -496,3 +496,79 @@ test("a series starts with the conclusion the card is showing", () => {
 
     assert(withSeries > 20, `only ${withSeries} items carried a series at all`);
 });
+
+/* ------------------------------------------------------------------ *
+ * Options                                                             *
+ * ------------------------------------------------------------------ */
+
+/**
+ * A choice item offers two options, and they differ by one thing.
+ *
+ * A longer menu turns judging into **searching**. Four claims about four
+ * different pairs let three be dismissed for not being about the pair that
+ * matters; four corners of a square let most be dismissed for being nowhere
+ * near; four numbers around the answer let a reader who counted roughly drop
+ * the far ones without counting exactly. In every case the item can be
+ * shortened by *looking* rather than by reasoning, and what is left is not the
+ * task the mode was built for.
+ *
+ * Two options that differ by one part have nothing to play off against each
+ * other. The guess floor is worse — one in two rather than one in four — and
+ * the item is harder for it, which is the trade this whole plan keeps making.
+ * The ability model reads the option count, so it already scores these as the
+ * weaker evidence they are and nothing has to be told twice.
+ *
+ * Asserted over every mode and every claim of a series, at every rung a player
+ * can reach, because the failure this prevents is a *new* mode shipping a menu
+ * rather than an old one growing once.
+ */
+test("no item offers more than two options", () => {
+    const settings = new Settings();
+    for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;
+
+    const wide: string[] = [];
+
+    for (const type of ORDERED_QUESTION_TYPES) {
+        if (!BUILD[type]) continue;
+        const held = settableRungsFor(type);
+        const params = QUESTION_TYPE_SETTING_PARAMS[type];
+
+        const ctx: GeneratorContext = {
+            settings,
+            logger: new Logger("error", false),
+            settingsOverrideService: {
+                linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
+                spread: () => null, depthFor: () => 0, scramble: 100, rungOverride: () => null,
+            } as unknown as SettingsOverrideService,
+            progressionService: {
+                hasRung: () => false, depthBonusFor: () => 0,
+            } as unknown as ProgressionService,
+            forceConstruction: "off",
+            hasRung: (_t: string, r: string) => held.includes(r),
+            random: (n?: number) => createDistinction(ctx, n ?? 2),
+        };
+
+        seeded(6060, () => {
+            for (let n = params.minNumOfPremises; n <= params.maxNumOfPremises; n++) {
+                for (let rep = 0; rep < 4; rep++) {
+                    let q;
+                    try { q = BUILD[type](ctx, n); } catch { continue; }
+
+                    for (const claim of [q, ...q.series]) {
+                        const offered = claim.choices;
+                        if (!offered || !offered.length) continue;
+                        if (offered.length > 2) {
+                            wide.push(`${type} at ${n} premises offers ${offered.length}`);
+                        }
+                        equal(new Set(offered).size, offered.length,
+                            `${type} offers the same option twice`);
+                    }
+                }
+            }
+        });
+    }
+
+    assert(wide.length === 0,
+        `${new Set(wide).size} items turn judging into searching:\n  `
+        + [...new Set(wide)].join("\n  "));
+});

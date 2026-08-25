@@ -9,7 +9,7 @@ import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { hi } from "../utils/phrasing";
 import { coinFlip, getRandomSymbols, shuffle } from "../utils/question.utils";
-import { HierarchyLayout, buildHierarchy, buildHierarchyQuerySet, explainHierarchy, pickHierarchyQuery, renderHierarchyConclusion, renderHierarchyPremise } from "../utils/hierarchy.utils";
+import { HierarchyLayout, HierarchyQuery, buildHierarchy, buildHierarchyQuerySet, explainHierarchy, pickHierarchyQuery, renderHierarchyConclusion, renderHierarchyPremise } from "../utils/hierarchy.utils";
 import { scrambleByFactor } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
@@ -114,17 +114,32 @@ export function fillHierarchyConclusion(ctx: GeneratorContext,
     const cost = (span: number) => Number.isFinite(span) ? span : layout.edges.length;
 
     if (feat.chooseConclusion) {
-        const set = buildHierarchyQuerySet(layout, 4, [true, false, false, false], feat.minSpan);
-        if (set.length < 4) return false;
-        // Only the true claim is on the path to the answer; the distractors
-        // are about other pairs by construction.
-        question.depth = cost(set[0].span);
-        const order = shuffle(set.map((_, i) => i));
-        question.choices = order.map(i => renderHierarchyConclusion(set[i]));
-        question.correctChoice = order.indexOf(0);
+        /*
+         * Two options about one pair, differing by direction.
+         *
+         * Four claims about four different pairs is a search — three can be
+         * dismissed for not being about the pair that matters. What a hierarchy
+         * item is *about* is which way a route runs, so that is what the two
+         * options differ on: the same two nodes, the arrow the other way, and
+         * nothing to eliminate without following the links.
+         */
+        const right = pickHierarchyQuery(layout, true, feat.minSpan);
+        if (!right) return false;
+
+        const reversed: HierarchyQuery = {
+            ...right,
+            direction: right.direction === "to" ? "from" : "to",
+            isValid: false,
+        };
+
+        const shown = shuffle([right, reversed]);
+        question.depth = cost(right.span);
+        question.choices = shown.map(renderHierarchyConclusion);
+        question.correctChoice = shown.indexOf(right);
         question.answerMode = "choice";
         question.isValid = true;
         question.conclusion = "";
+        question.explanation = explainHierarchy(layout, right);
         return true;
     }
 

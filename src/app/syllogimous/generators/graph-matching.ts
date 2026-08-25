@@ -357,10 +357,28 @@ function buildWhichDiffers(ctx: GeneratorContext, numOfPremises: number): Questi
             `${hi(`Group ${i + 1}`)}:`,
             ...statements(edges),
         ]);
+        /*
+         * Every group is shown; two of them are offered.
+         *
+         * The question needs three or more groups to mean anything — an odd one
+         * out among two is neither — so the *groups* cannot be cut to two. The
+         * menu can: with every label offered, a reader who has spotted one
+         * matching pair is already most of the way there by elimination.
+         *
+         * The rival is the group nearest the odd one, so the two on offer are
+         * the two that take real comparing to tell apart.
+         */
+        const rival = graphs
+            .map((g, i) => ({ i, gap: editDistance(graphs[odd], g) ?? Infinity }))
+            .filter(x => x.i !== odd)
+            .sort((a, b) => a.gap - b.gap)[0];
+        if (!rival) continue;
+
+        const offered = shuffle([odd, rival.i]);
         question.answerMode = "choice";
         question.choicePrompt = "Which group is not the same shape as the others?";
-        question.choices = graphs.map((_, i) => `Group ${i + 1}`);
-        question.correctChoice = odd;
+        question.choices = offered.map(i => `Group ${i + 1}`);
+        question.correctChoice = offered.indexOf(odd);
         question.conclusion = `Group ${odd + 1}`;
         question.isValid = true;
         question.setup = [
@@ -414,11 +432,19 @@ function buildDistance(ctx: GeneratorContext, numOfPremises: number): Question |
         const truth = editDistance(base, other);
         if (truth === null || truth < 1 || truth > 4) continue;
 
-        // Options around the answer, so the wrong ones are the numbers a
-        // reader would plausibly arrive at rather than obvious outliers.
-        const pool = [0, 1, 2, 3, 4, 5].filter(n => n !== truth);
-        shuffle(pool);
-        const options = [truth, ...pool.slice(0, 3)].sort((a, b) => a - b);
+        /*
+         * Two numbers, one apart.
+         *
+         * Four numbers spread around the answer is a search: a reader who has
+         * counted *roughly* can drop the two far ones without counting exactly,
+         * which is the whole of the task. One apart is the miscount anybody
+         * actually makes — an edit seen twice, or one missed — and neither
+         * option can be dropped without counting properly.
+         */
+        const options = [truth, truth + (Math.random() < 0.5 ? 1 : -1)]
+            .filter(n => n >= 0)
+            .sort((a, b) => a - b);
+        if (options.length < 2) continue;
 
         const question = new Question(EnumQuestionType.GraphMatching);
         question.bucket = picked;

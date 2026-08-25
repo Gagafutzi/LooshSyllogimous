@@ -479,6 +479,51 @@ premises no longer describe where things ended up, so walking them derives the
 
 ---
 
+## 2.7 A menu of four is a search — **BUILT**
+
+Every choice item offers **two** options now, differing by one thing.
+
+The author's argument, and it is right: a longer menu turns judging into
+searching. Four claims about four *different* pairs let three be dismissed for
+not being about the pair that matters. Four corners of a square let most be
+dismissed for being nowhere near. Four numbers around the answer let a reader
+who counted roughly drop the far ones without counting exactly. In every case
+the item can be shortened by **looking** rather than by reasoning, and what is
+left is not the task the mode was built for.
+
+What "off by one" means, per mode:
+
+| mode | the two options |
+|---|---|
+| the scale family | one pair, the relation either way round |
+| composed spaces | one pair, one axis of the wide claim turned round |
+| Hierarchy | one pair, the route either way |
+| Shape Rotation | the corner, and the one next to it |
+| Infer the Relation | the answer, and the axis that fits all but one claim |
+| Axis Maps | the chain under this map, and under the map with one part wrong |
+| Widest Group | the order, and the order with two neighbours swapped |
+| Graph Matching | the distance, and one more or less; the odd group, and the one nearest it |
+| Stimulus Function | the extreme, and the one beside it |
+| Transformation Matching | the map, and the map that agrees everywhere but one point |
+
+Two of them could not simply cut the field, and the distinction is worth
+keeping. **Graph Matching's odd-one-out needs three or more groups** — an odd
+one among two is neither — so every group is still *shown* and two are
+*offered*. **Oddest Relation** states every relation and offers the furthest and
+the runner-up, for the same reason.
+
+**The guess floor gets worse and the items get harder**, which is the trade this
+whole document keeps making: a floor you have to earn beats a longer menu you
+can shorten by looking. Nothing needed telling twice — `guessRateFor` already
+reads the option count, so the ability model scores two-option items as the
+weaker evidence they are.
+
+The invariant is asserted over every mode, every claim of a series, and every
+rung a player can reach, because what it prevents is a *new* mode shipping a
+menu rather than an old one growing one.
+
+---
+
 ## 2.2b The switch — **BUILT**
 
 All of the above is behind **Conclusions** in Customise, on by default. Off,

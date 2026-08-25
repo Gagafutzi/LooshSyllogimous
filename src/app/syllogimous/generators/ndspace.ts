@@ -576,8 +576,10 @@ export function fillNdConclusion(ctx: GeneratorContext,
         // too; createNdSpace appends the mode-level lines in front.
         question.setup.push(ND_ANALOGY_NOTE);
         if (feat.chooseConclusion) {
-            const set = buildNdAnalogySet(layout, [true, false, false, false], analogyBites);
-            if (set.length < 4) return false;
+            // Two, and the wrong one is the near miss — see the plain choice
+            // below for why four was a search rather than a comparison.
+            const set = buildNdAnalogySet(layout, [true, false], analogyBites);
+            if (set.length < 2) return false;
             const order = shuffle(set.map((_, i) => i));
             question.choices = order.map(i => set[i].text);
             question.correctChoice = order.indexOf(0);
@@ -724,15 +726,34 @@ export function fillNdConclusion(ctx: GeneratorContext,
     }
 
     if (feat.chooseConclusion) {
-        const set = buildNdConclusionSet(layout, 4, [true, false, false, false], legacy);
-        if (set.length < 4) return false;
-        question.depth = graphDistance(set[0].a, set[0].b, layout.neighbors);
-        // set[0] is the one that follows, so it is the one that has to need
-        // the operations; the distractors are false either way.
-        if (!axisBites(set[0].a, set[0].b, set[0].axis)) return false;
-        const order = shuffle(set.map((_, i) => i));
-        question.choices = order.map(i => set[i].text);
-        question.correctChoice = order.indexOf(0);
+        /*
+         * Two options about one pair, differing on one axis.
+         *
+         * Four claims about four *different* pairs is a search: three can be
+         * dismissed for not being about the pair that matters, and none has to
+         * be judged. A wide claim already lies about exactly one axis, which is
+         * the near miss this wants — so the two options are the same pair, the
+         * same axes, and one of them turned round.
+         *
+         * The guess floor is one in two rather than one in four, and the item is
+         * harder for it: there is nothing to eliminate without reading the
+         * premises. The ability model reads the option count, so it scores these
+         * as the weaker evidence they are.
+         */
+        const pair = pickDistantPairNd(layout, 2, 0, legacy);
+        if (!pair || !pairBites(pair[0], pair[1])) return false;
+
+        const strictPick = feat.indeterminate || feat.speakers || feat.testimony;
+        const right = buildNdWideConclusion(layout, pair[0], pair[1], true, strictPick)
+            ?? buildNdConclusion(layout, pair[0], pair[1], 0, true);
+        const wrong = buildNdWideConclusion(layout, pair[0], pair[1], false, strictPick)
+            ?? buildNdConclusion(layout, pair[0], pair[1], 0, false);
+        if (!right || !wrong || right.text === wrong.text) return false;
+
+        question.depth = graphDistance(pair[0], pair[1], layout.neighbors);
+        const order = shuffle([right.text, wrong.text]);
+        question.choices = order;
+        question.correctChoice = order.indexOf(right.text);
         question.answerMode = "choice";
         question.isValid = true;
         question.conclusion = "";

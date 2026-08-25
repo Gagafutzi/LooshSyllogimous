@@ -599,19 +599,28 @@ function buildGroups(
         return m;
     };
 
-    for (let i = 0; i < 200 && wrong.size < 3; i++) {
+    /*
+     * One wrong option, not three.
+     *
+     * Four readings of the same chain is a search: the reader compares them to
+     * each other and takes the odd one out, which can be done without ever
+     * applying the change. Two readings that differ by one part of the map have
+     * nothing to compare against each other — the only way to tell them apart is
+     * to apply the change and see which comes out.
+     */
+    for (let i = 0; i < 200 && !wrong.size; i++) {
         const near = nearMiss();
         if (!near) continue;
         const text = render(near);
         if (text !== truth) wrong.add(text);
     }
-    for (let i = 0; i < 120 && wrong.size < 3; i++) {
+    for (let i = 0; i < 120 && !wrong.size; i++) {
         const other = buildMap(axes, covered, feat.kinds, feat.count);
         if (!other) continue;
         const text = render(other);
         if (text !== truth) wrong.add(text);
     }
-    if (wrong.size < 3) return null;
+    if (!wrong.size) return null;
 
     const options = shuffle([truth, ...wrong]);
     question.answerMode = "choice";
@@ -667,14 +676,15 @@ function buildGroups(
             };
 
             const right = say(asked.map);
+            // The same one-wrong-option rule as the first claim.
             const others = new Set<string>();
-            for (let i = 0; i < 200 && others.size < 3; i++) {
+            for (let i = 0; i < 200 && !others.size; i++) {
                 const near = nearMiss();
                 if (!near) continue;
                 const text = say(near);
                 if (text !== right) others.add(text);
             }
-            if (others.size < 3) return null;
+            if (!others.size) return null;
 
             const shownOptions = shuffle([right, ...others]);
             return {

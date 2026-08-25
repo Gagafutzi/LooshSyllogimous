@@ -302,7 +302,7 @@ test("ranking forces enough groups to be worth ranking", () => {
             built++;
             groups = Math.max(groups, readGroups(q.premises).length);
             // Four options or the guess floor is not what the rung claims.
-            equal(q.choices.length, 4, "a ranked item offered fewer than four orders");
+            equal(q.choices.length, 2, "a ranked item was not narrowed to two orders");
         }
     });
 

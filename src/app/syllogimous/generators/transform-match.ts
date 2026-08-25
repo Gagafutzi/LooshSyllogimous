@@ -208,11 +208,23 @@ function buildIdentify(question: Question, order: string[], source: Structure): 
     const wrong = mapPool()
         .filter(m => !sameStructure(applyMap(source, m), image))
         .filter(m => describeMap(m) !== describeMap(truth));
-    if (wrong.length < 3) return false;
+    if (!wrong.length) return false;
 
-    const options = nearMissOptions(order, source, truth, wrong);
-    if (!options) return false;
-    shuffle(options);
+    /*
+     * Two options, and the wrong one agrees with the truth almost everywhere.
+     *
+     * Four maps is a search: a reader who has settled one point can usually drop
+     * two of them without settling any others, so most of the item is never
+     * read. The closest miss shares every point but one, which is exactly the
+     * comparison the mode is for — and with only two on offer there is nothing
+     * to play them off against.
+     */
+    const image2 = applyMap(source, truth);
+    const agreesWith = (m: GridMap) =>
+        order.filter(n => applyMap(source, m)[n].join(",") === image2[n].join(",")).length;
+
+    const closest = [...wrong].sort((a, b) => agreesWith(b) - agreesWith(a))[0];
+    const options = shuffle([truth, closest]);
 
     stateBoth(question, order, source, image);
     question.answerMode = "choice";
@@ -337,7 +349,11 @@ function buildApply(
     if (distinct.length < 3) return false;
 
     shuffle(distinct);
-    const options = [answer, ...distinct.slice(0, 3)];
+    /*
+     * Two options, the answer and the nearest structure to it. Four is a search
+     * — see the map form above for the same argument.
+     */
+    const options = [answer, distinct[0]];
     shuffle(options);
 
     question.bucket = [...order, ...otherNames];
@@ -512,7 +528,11 @@ function buildSequence(question: Question, order: string[], source: Structure): 
     }
     if (distinct.length < 3) return false;
 
-    const options = [answer, ...distinct.slice(0, 3)];
+    /*
+     * Two options, the answer and the nearest structure to it. Four is a search
+     * — see the map form above for the same argument.
+     */
+    const options = [answer, distinct[0]];
     shuffle(options);
 
     question.premises = [

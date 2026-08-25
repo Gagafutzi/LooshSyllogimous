@@ -252,12 +252,24 @@ export function createWidestGroup(ctx: GeneratorContext, numOfPremises: number):
                 .sort((a, b) => measured[b] - measured[a])
                 .map(label).join(" > ");
 
-            const wrong = new Set<string>();
-            for (let i = 0; i < 60 && wrong.size < 3; i++) {
-                const text = shuffle(built.map((_, k) => k)).map(label).join(" > ");
-                if (text !== ranking) wrong.add(text);
-            }
-            if (wrong.size < 3) continue;
+            /*
+             * One wrong order, and it is the right one with two neighbours
+             * swapped.
+             *
+             * Four orderings drawn at random is a search: most of them put the
+             * widest group somewhere obviously wrong, so they are dismissed
+             * without ranking anything. Swapping an adjacent pair leaves the
+             * only difference at the place the scores are closest, which is
+             * where the ranking actually has to be worked out.
+             */
+            const order = [...built.map((_, i) => i)].sort((a, b) => measured[b] - measured[a]);
+            const swap = Math.floor(Math.random() * (order.length - 1));
+            const nearly = [...order];
+            [nearly[swap], nearly[swap + 1]] = [nearly[swap + 1], nearly[swap]];
+
+            const wrong = new Set([nearly.map(label).join(" > ")]);
+            wrong.delete(ranking);
+            if (!wrong.size) continue;
 
             const options = shuffle([ranking, ...wrong]);
             question.choicePrompt = "Widest first — which order?";

@@ -133,10 +133,28 @@ export function createInferRelation(ctx: GeneratorContext, numOfPremises: number
          * answer sitting at the hidden axis's position would be readable off
          * the premise order.
          */
-        const order = shuffle(usable(axes).map((_, i) => i));
-        const options = usable(axes);
-        question.choices = order.map(i => rel(options[i].scale.above, colors[axes.indexOf(options[i])]));
-        question.correctChoice = order.indexOf(options.findIndex(a => a === axes[hidden]));
+        /*
+         * Two relations, and the wrong one nearly fits.
+         *
+         * Every axis used to be offered, which turns elimination into a sweep:
+         * on six axes most candidates are ruled out by the first claim and cost
+         * nothing. The one worth offering is the axis that survives the most
+         * claims without surviving them all — the answer a reader lands on if
+         * they stop checking one claim early, which is the mistake this mode is
+         * built to catch.
+         */
+        const candidates = usable(axes).filter(a => a !== axes[hidden]);
+        const runnerUp = candidates
+            .map(a => ({
+                axis: a,
+                fits: claims.filter(([x, y]) => compareOn(layout, axes.indexOf(a), x, y) === 1).length,
+            }))
+            .sort((p, q) => q.fits - p.fits)[0];
+        if (!runnerUp) continue;
+
+        const shown = shuffle([axes[hidden], runnerUp.axis]);
+        question.choices = shown.map(a => rel(a.scale.above, colors[axes.indexOf(a)]));
+        question.correctChoice = shown.indexOf(axes[hidden]);
         question.answerMode = "choice";
         question.choicePrompt = `Which relation is ${OPERATOR}?`;
         // Scored as "did they pick the right one", like every other choice item.
@@ -188,8 +206,17 @@ export function createInferRelation(ctx: GeneratorContext, numOfPremises: number
 
                 spent.add(next);
                 const symbol = OPERATORS[spent.size - 1] ?? OPERATOR;
-                const shown = shuffle(usable(axes).map((_, i) => i));
-                const opts = usable(axes);
+                // The same two-option rule as the first claim.
+                const rival = usable(axes)
+                    .filter(a => a !== axes[next])
+                    .map(a => ({
+                        axis: a,
+                        fits: drawn.filter(([x, y]) => compareOn(layout, axes.indexOf(a), x, y) === 1).length,
+                    }))
+                    .sort((p, q) => q.fits - p.fits)[0];
+                if (!rival) return null;
+
+                const shown = shuffle([axes[next], rival.axis]);
 
                 return {
                     text: "",
@@ -198,8 +225,8 @@ export function createInferRelation(ctx: GeneratorContext, numOfPremises: number
                         ...mapLines,
                         ...drawn.map(([a, b]) => `${subj(a)} ${hi(symbol)} ${subj(b)}`),
                     ],
-                    choices: shown.map(i => rel(opts[i].scale.above, colors[axes.indexOf(opts[i])])),
-                    correctChoice: shown.indexOf(opts.findIndex(a => a === axes[next])),
+                    choices: shown.map(a => rel(a.scale.above, colors[axes.indexOf(a)])),
+                    correctChoice: shown.indexOf(axes[next]),
                     prompt: `Which relation is ${symbol}?`,
                     key: String(next),
                 };

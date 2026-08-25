@@ -64,12 +64,25 @@ const plain = (s: string) => s.replace(/<[^>]+>/g, "").trim();
  * P9 — Infer the relation                                             *
  * ------------------------------------------------------------------ */
 
-test("infer-relation offers one choice per candidate, all distinct", () => {
+/**
+ * Two candidates, and the wrong one nearly fits.
+ *
+ * Every axis used to be offered, which turns elimination into a sweep: on six
+ * axes most candidates are ruled out by the first claim and cost nothing to
+ * dismiss. What is worth offering is the axis that survives the most claims
+ * without surviving them all — the answer a reader lands on if they stop
+ * checking one claim early, which is the mistake this mode exists to catch.
+ *
+ * The guess floor is one in two rather than one in six, and the item is harder
+ * for it: neither option can be dropped without checking every claim against
+ * it. The ability model reads the option count and scores accordingly.
+ */
+test("infer-relation offers the answer and its closest rival", () => {
     for (let run = 0; run < 25; run++) {
         const q = seeded(run * 104729 + 3, () => createInferRelation(context(), 6));
-        assert(q.choices.length >= 3, "fewer than three candidates to eliminate");
-        equal(new Set(q.choices.map(plain)).size, q.choices.length,
-            "two candidates were the same relation");
+        equal(q.choices.length, 2, "the candidates were not narrowed to two");
+        equal(new Set(q.choices.map(plain)).size, 2,
+            "the same relation was offered twice");
         assert(q.correctChoice >= 0 && q.correctChoice < q.choices.length,
             "the answer is not among the choices");
     }
@@ -98,11 +111,23 @@ test("infer-relation always names the relation it settles on", () => {
  * P11 — Oddest relation out                                           *
  * ------------------------------------------------------------------ */
 
-test("oddest-relation states one relation per candidate", () => {
+/**
+ * Every relation is stated; two of them are offered.
+ *
+ * The menu used to list every candidate, which lets a reader discard the ones
+ * that plainly follow the pattern without measuring any of them — a search
+ * rather than a measurement. The two on offer are the furthest and the
+ * runner-up, which is where the measuring actually has to be done.
+ */
+test("oddest-relation states every relation and offers two", () => {
     for (let run = 0; run < 25; run++) {
         const q = seeded(run * 65537 + 5, () => createOddestRelation(context(), 8));
-        equal(q.premises.length, q.choices.length,
-            "the number of relations stated does not match the number offered");
+        assert(q.premises.length >= 3,
+            `only ${q.premises.length} relations were stated to compare`);
+        equal(q.choices.length, 2, "the candidates were not narrowed to two");
+        equal(new Set(q.choices.map(plain)).size, 2, "the same relation was offered twice");
+        assert(q.correctChoice >= 0 && q.correctChoice < 2,
+            "the answer is not among the two offered");
     }
 });
 
@@ -128,9 +153,17 @@ test("oddest-relation grades its deviants — every distance is distinct", () =>
             .filter((m): m is RegExpExecArray => !!m)
             .map(m => Number(m[1]));
 
-        // One line per candidate, plus the closing line naming the winner.
-        const distances = stated.slice(0, q.choices.length);
-        equal(distances.length, q.choices.length, "a candidate has no stated distance");
+        /*
+         * One line per candidate, plus the closing line naming the winner.
+         *
+         * Counted from the *stated relations* rather than the options: only two
+         * are offered now, and the derivation still accounts for every candidate
+         * — which it must, since "furthest from the pattern" is a claim about
+         * all of them and an explanation covering two would be answering a
+         * different question.
+         */
+        const distances = stated.slice(0, -1);
+        equal(distances.length, q.premises.length, "a candidate has no stated distance");
         equal(new Set(distances).size, distances.length, "two candidates tied");
         equal(Math.max(...distances), stated[stated.length - 1],
             "the closing line does not name the furthest distance");

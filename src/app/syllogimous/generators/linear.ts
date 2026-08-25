@@ -500,27 +500,40 @@ export function fillLinearConclusion(ctx: GeneratorContext,
 
     if (feat.chooseConclusion) {
         /*
-         * Exactly one of four claims follows. The distractors are about
-         * *other* pairs rather than other relations on the same pair —
-         * otherwise three of the four options share two subjects and the
-         * answer can be found by looking for the odd one out.
+         * Two options about one pair, differing by the relation.
+         *
+         * Four claims about four *different* pairs is a search: three of them
+         * can be dismissed by noticing they are not about the pair that matters,
+         * and none of them has to be judged. Which way one pair sits is the
+         * whole content of a scale item, so that is what the options differ on —
+         * the same two objects, the opposite relation, and nothing to eliminate
+         * without reading the premises.
+         *
+         * The guess floor is worse for it, one in two rather than one in four,
+         * and the item is harder: a floor you have to *earn* beats a longer
+         * menu you can shorten by looking. The ability model reads the option
+         * count, so it already scores these as the weaker evidence they are.
          */
-        const set = buildConclusionSet(scale, final, 4, [true, false, false, false], options, legacy);
-        if (set.length < 4) return false;
-        // Only the true one has to move; the distractors are false either way.
-        if (!transformsBite(pairsOf([set[0].text]))) return false;
+        const pair = pickDistantPair(final, 0, legacy);
+        if (!pair) return false;
+        if (!transformsBite([pair])) return false;
 
-        // Only the true claim is on the path to the answer; the distractors
-        // are about other pairs on purpose.
-        question.depth = set[0].span;
-        const order = shuffle(set.map((c, i) => i));
-        question.choices = order.map(i => set[i].text);
-        question.correctChoice = order.indexOf(0);
+        const right = buildConclusion(scale, final, pair[0], pair[1], true, options);
+        const wrong = buildConclusion(scale, final, pair[0], pair[1], false, options);
+        if (!right || !wrong || right.text === wrong.text) return false;
+
+        question.depth = right.span;
+        const order = shuffle([right.text, wrong.text]);
+        question.choices = order;
+        question.correctChoice = order.indexOf(right.text);
         question.answerMode = "choice";
         // Scored as "did they pick the right one", so the item itself is
         // always the valid side of the comparison in checkQuestion.
         question.isValid = true;
         question.conclusion = "";
+        if (!transformed) {
+            question.explanation = explainLinear(scale, final, pair[0], pair[1]);
+        }
         return true;
     }
 
