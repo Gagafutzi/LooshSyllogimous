@@ -26,6 +26,8 @@ import { createHierarchy } from "../src/app/syllogimous/generators/hierarchy";
 import { createDeictic } from "../src/app/syllogimous/generators/deictic";
 import { reversalTextFor } from "../src/app/syllogimous/utils/deictic.utils";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
+import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.constants";
+import { BUILD } from "./modes";
 import { createNdSpace } from "../src/app/syllogimous/generators/ndspace";
 import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rotation";
 import { createLinear } from "../src/app/syllogimous/generators/linear";
@@ -1310,4 +1312,93 @@ test("an under-specified item still builds when several claims cannot", () => {
     });
 
     assert(built > 30, `only ${built} of 40 under-specified items could be built`);
+});
+
+/**
+ * The transformation family answers about every dimension it differs on.
+ *
+ * The composed spaces were given wide conclusions and this family was missed,
+ * because it words its claims through its own helper — so a three-dimensional
+ * item was answered by a claim about *one* dimension, which asks a third of
+ * what it stated, and which third was arbitrary.
+ *
+ * Two things had to change together. The claim names every axis the pair
+ * differs on; and the pair is chosen as the one differing on *most* axes,
+ * because a pair drawn at random coincides on some axis often enough to matter
+ * — a fifth of them on a two-axis frame — and that produced one-dimensional
+ * claims again by the other door.
+ */
+test("a transformation conclusion names every dimension the pair differs on", () => {
+    const WORDS = ["east", "west", "north", "south", "above", "below"];
+    const strip = (t: string) => t.replace(/<[^>]+>/g, "");
+    const named = (t: string) =>
+        WORDS.filter(w => new RegExp(`\\b${w}\\b`).test(strip(t))).length;
+
+    for (const [type, axes] of [
+        [EnumQuestionType.Transformation, 3],
+        [EnumQuestionType.AnchorSpace, 2],
+        [EnumQuestionType.AnchorSpaceV2, 2],
+    ] as const) {
+        let items = 0, flat = 0, total = 0;
+
+        seeded(2024, () => {
+            const ctx = ndContext();
+            for (let rep = 0; rep < 60; rep++) {
+                let q;
+                try { q = BUILD[type](ctx, 5); } catch { continue; }
+                const count = named(String(q.conclusion));
+                if (!count) continue;
+                items++;
+                total += count;
+                if (count <= 1) flat++;
+            }
+        });
+
+        assert(items > 30, `${type}: only ${items} items to check`);
+        /*
+         * Not every pair *can* differ on every axis — two objects that share a
+         * row genuinely have nothing to say about it — so the bar is on how
+         * often a claim collapses to one dimension rather than on never.
+         */
+        assert(flat / items < 0.15,
+            `${type}: ${flat} of ${items} conclusions name a single dimension`);
+        assert(total / items > axes - 0.6,
+            `${type}: conclusions name ${(total / items).toFixed(2)} of ${axes} dimensions`);
+    }
+});
+
+/**
+ * And a series never asks the same thing twice.
+ *
+ * Reported on a transformation item: both conclusions took the same dimension
+ * of three and the same two objects. `buildSeries` kept its drawn claims
+ * distinct from each other and knew nothing about the conclusion they were
+ * being added to, so the second claim could be the first one over again — which
+ * reads worse than a missing claim, because it looks like the item is checking
+ * whether you noticed.
+ */
+test("no claim of a series repeats one already asked", () => {
+    const ctx = ndContext();
+    let checked = 0;
+
+    seeded(4242, () => {
+        for (const type of ORDERED_QUESTION_TYPES) {
+            if (!BUILD[type]) continue;
+            for (let rep = 0; rep < 8; rep++) {
+                let q;
+                try { q = BUILD[type](ctx, 5); } catch { continue; }
+                if (q.series.length < 2) continue;
+                checked++;
+
+                const faces = q.series.map(c => [
+                    c.text, c.prompt,
+                    (c.premises ?? []).join("|"), (c.choices ?? []).join("|"),
+                ].join("~"));
+                equal(new Set(faces).size, faces.length,
+                    `${type} asks the same question twice in one item`);
+            }
+        }
+    });
+
+    assert(checked > 40, `only ${checked} series items in the sample`);
 });

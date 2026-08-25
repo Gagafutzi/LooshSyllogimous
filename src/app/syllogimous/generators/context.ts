@@ -207,7 +207,35 @@ export function extendWithSeries(question: Question, extra: SeriesClaim[]): bool
      */
     if (extra.some(c => c.premises)) first.premises = [...question.premises];
 
-    question.series = [first, ...extra];
+    /*
+     * Nothing asked twice, including the claim the mode built for itself.
+     *
+     * `buildSeries` keeps its drawn claims distinct from each other, and knew
+     * nothing about the conclusion they were being added to — so the second
+     * claim could be the first one over again, same objects and same dimension.
+     * That is what a player reported, and it reads worse than a missing claim:
+     * it looks like the item is checking whether you noticed.
+     *
+     * Matched on everything the card *shows* rather than on a key, because a key
+     * is per-mode and the thing that must not repeat is the question as read.
+     * All of it, too: a picking item can reuse one prompt across every claim —
+     * "after the change, which describes them?" — and what tells those apart is
+     * the premises above and the options below, not the sentence between them.
+     */
+    const shown = new Set<string>();
+    const distinct = [first, ...extra].filter(claim => {
+        const face = [
+            claim.text, claim.prompt,
+            (claim.premises ?? []).join("\u0001"),
+            (claim.choices ?? []).join("\u0001"),
+        ].join("\u0002");
+        if (shown.has(face)) return false;
+        shown.add(face);
+        return true;
+    });
+    if (distinct.length < 2) return false;
+
+    question.series = distinct;
     question.seriesAt = 0;
     return true;
 }

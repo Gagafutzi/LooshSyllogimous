@@ -552,6 +552,55 @@ export function describeOffset(
  * Returns null when the two objects tie on that axis — a tie has no direction
  * word, so it cannot be phrased as a true/false claim.
  */
+/**
+ * The whole relation between two objects, not one axis of it.
+ *
+ * A three-dimensional item answered by a claim about *one* dimension asks about
+ * a third of what it stated, and which third was arbitrary — the same defect the
+ * composed spaces had and the same fix they got. Two objects placed in three
+ * dimensions differ on however many of them they differ on, and the claim names
+ * all of those.
+ *
+ * A false claim is wrong on **exactly one** axis. Wrong on two of three is
+ * spotted from whichever the reader checks first, which turns a
+ * three-dimensional item back into a one-dimensional one by the back door.
+ *
+ * Returns null when the pair differs on nothing, which has no relation to state.
+ */
+export function describeWideConclusion(
+    a: string,
+    b: string,
+    pa: Coord,
+    pb: Coord,
+    claimTrue: boolean,
+    vocab: TransformVocab = SPATIAL_VOCAB,
+): { text: string; isValid: boolean; axes: number[] } | null {
+    const live = pa.map((_, i) => i).filter(i => pb[i] - pa[i] !== 0);
+    if (!live.length) return null;
+
+    const lie = claimTrue ? -1 : live[Math.floor(Math.random() * live.length)];
+
+    const words = live.map(axis => {
+        const delta = pb[axis] - pa[axis];
+        const [pos, neg] = vocab.axisWords[axis];
+        // The truth on every axis but the one being lied about.
+        return (delta > 0) === (axis !== lie) ? pos : neg;
+    });
+
+    /*
+     * One axis keeps the phrasing it always had — "B is east of A" — because
+     * that is what the premises sound like and a single-axis claim has nothing
+     * to disambiguate. Several axes name the anchor once at the end instead,
+     * the way a composed space words its wide claim: "east of A, north of A,
+     * above A" says the same thing three times.
+     */
+    const text = words.length === 1
+        ? `${subj(b)} is ${joinAnchor(words[0], live[0], subj(a), vocab)}`
+        : `${subj(b)} is ${words.join(", ")} relative to ${subj(a)}`;
+
+    return { text, isValid: claimTrue, axes: live };
+}
+
 export function describeConclusion(
     a: string,
     b: string,

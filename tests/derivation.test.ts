@@ -194,10 +194,31 @@ test("how many modes explain themselves", () => {
  * direction the conclusion contradicts, one of them is wrong.
  */
 test("a replayed trace ends where the answer says it does", () => {
-    const OPPOSITE: Record<string, string> = {
-        east: "west", west: "east",
-        north: "south", south: "north",
-        above: "below", below: "above",
+    /*
+     * Which axis each word belongs to, so a claim naming several can be
+     * compared to the trace one dimension at a time.
+     *
+     * Comparing a single word used to be enough, because a claim named a single
+     * axis. It names every axis the pair differs on now — a three-dimensional
+     * item answered about one dimension asked a third of what it stated — so a
+     * check that found the *first* direction word in each and compared them was
+     * comparing whichever axis happened to come first in two different orders.
+     */
+    const AXIS: Record<string, [number, boolean]> = {
+        east: [0, true], west: [0, false],
+        north: [1, true], south: [1, false],
+        above: [2, true], below: [2, false],
+    };
+
+    /** Which way each named axis runs, as the sentence states it. */
+    const readAxes = (text: string) => {
+        const found = new Map<number, boolean>();
+        for (const [word, [axis, positive]] of Object.entries(AXIS)) {
+            if (new RegExp(`\\b${word}\\b`).test(text) && !found.has(axis)) {
+                found.set(axis, positive);
+            }
+        }
+        return found;
     };
 
     const traced: Array<[EnumQuestionType, (c: GeneratorContext, n: number) => Question]> = [
@@ -214,17 +235,29 @@ test("a replayed trace ends where the answer says it does", () => {
             if (!q.explanation.length) continue;
 
             const plain = (s: string) => s.replace(/<[^>]+>/g, "");
-            const conclusion = plain(String(q.conclusion));
-            const closing = plain(q.explanation[q.explanation.length - 1]);
+            const claimed = readAxes(plain(String(q.conclusion)));
+            const derived = readAxes(plain(q.explanation[q.explanation.length - 1]));
+            if (!claimed.size || !derived.size) continue;
 
-            const claimed = Object.keys(OPPOSITE).find(w => new RegExp(`\\b${w}\\b`).test(conclusion));
-            const derived = Object.keys(OPPOSITE).find(w => new RegExp(`\\b${w}\\b`).test(closing));
-            if (!claimed || !derived) continue;
+            /*
+             * The closing line says what is *true*. A true claim agrees with it
+             * on every axis it names; a false one differs on exactly one —
+             * wrong on two of three would be spotted from whichever the reader
+             * checked first, which is the thing the wide claim exists to stop.
+             */
+            let wrong = 0, compared = 0;
+            for (const [axis, positive] of claimed) {
+                if (!derived.has(axis)) continue;
+                compared++;
+                if (derived.get(axis) !== positive) wrong++;
+            }
+            if (!compared) continue;
 
-            const agrees = q.isValid ? derived === claimed : derived === OPPOSITE[claimed];
-            assert(agrees,
-                `${type}: the item is ${q.isValid ? "true" : "false"} and claims "${claimed}",`
-                + ` but the trace ends on "${derived}"\n  ${closing}`);
+            assert(q.isValid ? wrong === 0 : wrong === 1,
+                `${type}: the item is ${q.isValid ? "true" : "false"} and differs from`
+                + ` the trace on ${wrong} of ${compared} axes\n  `
+                + plain(String(q.conclusion)) + `\n  `
+                + plain(q.explanation[q.explanation.length - 1]));
             checked++;
         }
 

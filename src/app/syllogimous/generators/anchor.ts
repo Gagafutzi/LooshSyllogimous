@@ -10,7 +10,7 @@ import { GeneratorContext, modifierOn, buildSeries, extendWithSeries, seriesWant
 import { extraTransforms } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
-import { CoordMap, SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
+import { CoordMap, SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeWideConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
 import { ANCHORS, anchorCoordMap } from "../utils/anchor.utils";
 import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
@@ -64,7 +64,7 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
             anchorOf[n] = anchor.token;
         }
 
-        const [x, y] = pickUniqueItems(names, 2).picked;
+        const [x, y] = widestPair(names, coords);
         if (anchorOf[x] === anchorOf[y]) continue;
 
         const axisOrder = [0, 1];
@@ -72,7 +72,12 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
         const axes = axisOrder.filter(ax => coords[y][ax] !== coords[x][ax]);
         if (!axes.length) continue;
 
-        const conclusion = describeConclusion(x, y, coords[x], coords[y], axes[0], coinFlip());
+        /*
+         * Both dimensions the pair differs on, not one of two. A frame stated
+         * in two directions and answered about one asks half of what it said,
+         * and which half was arbitrary — the same fix the composed spaces got.
+         */
+        const conclusion = describeWideConclusion(x, y, coords[x], coords[y], coinFlip());
         if (!conclusion) continue;
 
         const inverted = invertedPremises(negate, objectCount);
@@ -119,7 +124,8 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
         // map without it would leave out the half that made the item hard.
         question.wordCoordMap = { ...coords };
         question.axisNames = ["East-west", "North-south"];
-        question.explanation = explainAnchor(x, y, anchorOf, coords, axes[0]);
+        question.explanation = conclusion.axes.flatMap((ax: number) =>
+            explainAnchor(x, y, anchorOf, coords, ax));
         return question;
     }
 
@@ -168,6 +174,34 @@ function invertedPremises(on: boolean, count: number): Set<number> {
  * derivation shows the recovered offset, which is the number they should have
  * arrived at.
  */
+/**
+ * The pair that differs on the most dimensions.
+ *
+ * A pair drawn at random coincides on some axis often enough to matter — a
+ * fifth of them on a two-axis frame — and a claim can only name the axes a pair
+ * actually differs on. So a random draw produced one-dimensional claims in a
+ * multi-dimensional item, which is the defect the wide claim exists to remove,
+ * arriving by the other door.
+ *
+ * Drawn among the widest rather than fixed on one, so the item does not always
+ * ask about the same extreme pair.
+ */
+function widestPair(names: string[], at: Record<string, number[]>): [string, string] {
+    const pairs: Array<{ pair: [string, string]; spread: number }> = [];
+    for (let i = 0; i < names.length; i++) {
+        for (let j = i + 1; j < names.length; j++) {
+            const [a, b] = [names[i], names[j]];
+            const spread = at[a].filter((_, k) => at[b][k] !== at[a][k]).length;
+            if (spread) pairs.push({ pair: [a, b], spread });
+        }
+    }
+    if (!pairs.length) return [names[0], names[1]];
+
+    const most = Math.max(...pairs.map(p => p.spread));
+    const best = pairs.filter(p => p.spread === most);
+    return best[Math.floor(Math.random() * best.length)].pair;
+}
+
 function explainAnchor(
     x: string,
     y: string,
@@ -254,7 +288,7 @@ export function createAnchorSpaceV2(ctx: GeneratorContext, numOfPremises: number
         // premise stated against it.
         if (ANCHORS.some(a => final[a.token].join(",") !== a.coord.join(","))) continue;
 
-        const [x, y] = pickUniqueItems(names, 2).picked;
+        const [x, y] = widestPair(names, final);
 
         // Layout premises always pin to an anchor, so only a transform can name
         // both queried objects — and that would state their relation directly.
@@ -265,7 +299,8 @@ export function createAnchorSpaceV2(ctx: GeneratorContext, numOfPremises: number
         const axes = axisOrder.filter(ax => final[y][ax] !== final[x][ax]);
         if (!axes.length) continue;
 
-        const conclusion = describeConclusion(x, y, final[x], final[y], axes[0], coinFlip());
+        // Both dimensions, as in v1; see there.
+        const conclusion = describeWideConclusion(x, y, final[x], final[y], coinFlip());
         if (!conclusion) continue;
 
         // Reject items the transforms did not actually change at the queried
@@ -284,8 +319,20 @@ export function createAnchorSpaceV2(ctx: GeneratorContext, numOfPremises: number
             ctx.settingsOverrideService.scramble);
         question.conclusion = conclusion.text;
         question.isValid = conclusion.isValid;
-        question.explanation = explainAnchorV2(
-            x, y, anchorOf, initial, transforms, axes[0]);
+        /*
+         * One walk per dimension the claim names, then what is actually true.
+         * A walk down one axis explained half a two-axis claim — and for a
+         * false one, possibly the half that was right.
+         */
+        question.explanation = [
+            ...conclusion.axes.flatMap((ax: number) =>
+                explainAnchorV2(x, y, anchorOf, initial, transforms, ax)),
+            `so ${subj(y)} ends up `
+            + hi(conclusion.axes
+                .map((ax: number) => SPATIAL_VOCAB.axisWords[ax][final[y][ax] - final[x][ax] > 0 ? 0 : 1])
+                .join(", "))
+            + ` relative to ${subj(x)}.`,
+        ];
 
         /*
          * More pairs of the result. Each carries the first claim's requirement:

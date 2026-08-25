@@ -9,7 +9,7 @@ import { GeneratorContext, buildSeries, extendWithSeries, seriesWanted } from ".
 import { extraTransforms } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
-import { CoordMap, SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
+import { CoordMap, SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeOffset, describeTransform, replay, describeWideConclusion } from "../utils/transformations.utils";
 import { scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
@@ -92,7 +92,7 @@ export function createTransformation(ctx: GeneratorContext, numOfPremises: numbe
 
         // Ask about an axis the two objects actually differ on; a tie has no
         // direction word and cannot be phrased as a true/false claim.
-        const [x, y] = pickUniqueItems(names, 2).picked;
+        const [x, y] = widestPair(names, final);
 
         /*
          * A single premise relating both queried objects hands over the answer
@@ -112,14 +112,28 @@ export function createTransformation(ctx: GeneratorContext, numOfPremises: numbe
         const axes = axisOrder.filter(ax => final[y][ax] !== final[x][ax]);
         if (!axes.length) continue;
 
-        const conclusion = describeConclusion(x, y, final[x], final[y], axes[0], coinFlip());
+        /*
+         * Every dimension the pair differs on, not one of three.
+         *
+         * A three-dimensional item answered by a claim about one dimension asks
+         * about a third of what it stated, and which third was arbitrary. The
+         * composed spaces were fixed years of work ago and this family was
+         * missed, because it words its claims through its own helper.
+         */
+        const conclusion = describeWideConclusion(x, y, final[x], final[y], coinFlip());
         if (!conclusion) continue;
 
-        // Reject items the transforms left untouched at the queried pair —
-        // those are answerable from the layout premises alone.
-        const before = describeConclusion(x, y, initial[x], initial[y], axes[0], true);
-        const after = describeConclusion(x, y, final[x], final[y], axes[0], true);
-        if (before && after && before.isValid === after.isValid) continue;
+        /*
+         * The transforms have to change the answer, on some axis the claim
+         * actually names — otherwise the item is answerable from the layout
+         * premises alone and the operations are reading practice.
+         */
+        const moved = conclusion.axes.some((ax: number) => {
+            const was = describeConclusion(x, y, initial[x], initial[y], ax, true);
+            const now = describeConclusion(x, y, final[x], final[y], ax, true);
+            return !was || !now || was.isValid !== now.isValid;
+        });
+        if (!moved) continue;
 
         question.bucket = names;
         question.premises = scrambleLeading(
@@ -128,7 +142,8 @@ export function createTransformation(ctx: GeneratorContext, numOfPremises: numbe
             ctx.settingsOverrideService.scramble);
         question.conclusion = conclusion.text;
         question.isValid = conclusion.isValid;
-        question.explanation = explainTransformation(x, y, names, initial, transforms, axes[0]);
+        question.explanation = explainWide(
+            x, y, names, initial, transforms, conclusion.axes, final);
 
         /*
          * More pairs of the arrangement the transforms left behind.
@@ -140,22 +155,35 @@ export function createTransformation(ctx: GeneratorContext, numOfPremises: numbe
          * it — or it is answerable from the layout premises alone and the
          * operations become reading practice.
          */
+        /*
+         * Another pair, and never the one already asked about.
+         *
+         * The first version keyed a claim on its pair and axis but never told
+         * the drawer which pair the item's *own* conclusion had taken — so the
+         * second claim could be the first one over again, same objects and same
+         * dimension. Which is what happened.
+         */
         if (seriesWanted(ctx)) {
+            const askedPair = [x, y].sort().join("\u0000");
             extendWithSeries(question, buildSeries(want => {
                 const a = names[Math.floor(Math.random() * names.length)];
                 const b = names[Math.floor(Math.random() * names.length)];
                 if (a === b) return null;
 
-                const live = [0, 1, 2].filter(ax => final[b][ax] !== final[a][ax]);
-                if (!live.length) return null;
-                const axis = live[Math.floor(Math.random() * live.length)];
+                const key = [a, b].sort().join("\u0000");
+                if (key === askedPair) return null;
 
-                const was = describeConclusion(a, b, initial[a], initial[b], axis, true);
-                const now = describeConclusion(a, b, final[a], final[b], axis, true);
-                if (!was || !now || was.isValid === now.isValid) return null;
+                const claim = describeWideConclusion(a, b, final[a], final[b], want);
+                if (!claim) return null;
 
-                const claim = describeConclusion(a, b, final[a], final[b], axis, want);
-                return claim && { text: claim.text, isValid: claim.isValid, key: `${a}:${b}:${axis}` };
+                const bites = claim.axes.some((ax: number) => {
+                    const was = describeConclusion(a, b, initial[a], initial[b], ax, true);
+                    const now = describeConclusion(a, b, final[a], final[b], ax, true);
+                    return !was || !now || was.isValid !== now.isValid;
+                });
+                if (!bites) return null;
+
+                return { text: claim.text, isValid: claim.isValid, key };
             }));
         }
         return question;
@@ -181,6 +209,34 @@ export function createTransformation(ctx: GeneratorContext, numOfPremises: numbe
  * scaling or a rotation about a moved pivot gives the same result moved by the
  * same amount — so the trace is the same arrangement in readable numbers.
  */
+/**
+ * The pair that differs on the most dimensions.
+ *
+ * A pair drawn at random coincides on some axis often enough to matter — a
+ * fifth of them on a two-axis frame — and a claim can only name the axes a pair
+ * actually differs on. So a random draw produced one-dimensional claims in a
+ * multi-dimensional item, which is the defect the wide claim exists to remove,
+ * arriving by the other door.
+ *
+ * Drawn among the widest rather than fixed on one, so the item does not always
+ * ask about the same extreme pair.
+ */
+function widestPair(names: string[], at: Record<string, number[]>): [string, string] {
+    const pairs: Array<{ pair: [string, string]; spread: number }> = [];
+    for (let i = 0; i < names.length; i++) {
+        for (let j = i + 1; j < names.length; j++) {
+            const [a, b] = [names[i], names[j]];
+            const spread = at[a].filter((_, k) => at[b][k] !== at[a][k]).length;
+            if (spread) pairs.push({ pair: [a, b], spread });
+        }
+    }
+    if (!pairs.length) return [names[0], names[1]];
+
+    const most = Math.max(...pairs.map(p => p.spread));
+    const best = pairs.filter(p => p.spread === most);
+    return best[Math.floor(Math.random() * best.length)].pair;
+}
+
 function explainTransformation(
     x: string,
     y: string,
@@ -217,5 +273,39 @@ function explainTransformation(
     const delta = at[y][axis] - at[x][axis];
     lines.push(`so ${subj(y)} ends up ${hi(delta > 0 ? pos : neg)} of ${subj(x)}`
         + ` \u2014 ${Math.abs(delta)} apart.`);
+    return lines;
+}
+
+/**
+ * The trace, once per dimension the claim names.
+ *
+ * A wide claim is several statements at once, so a derivation that walked one
+ * axis explained a third of it — and worse, explained a *different* third from
+ * the one a false claim was wrong about, which is a derivation proving
+ * something the item never said.
+ *
+ * Walked in the order the claim states them, so the reader can follow the two
+ * side by side, and closed on the whole relation as it actually ended up. That
+ * closing line is what a false claim has to be checked against: it says what is
+ * true, and the claim differs from it on exactly one axis.
+ */
+function explainWide(
+    x: string,
+    y: string,
+    names: string[],
+    initial: CoordMap,
+    transforms: Transform[],
+    axes: number[],
+    final: CoordMap,
+): string[] {
+    const lines = axes.flatMap(axis =>
+        explainTransformation(x, y, names, initial, transforms, axis));
+
+    const truth = axes.map(axis => {
+        const [pos, neg] = SPATIAL_VOCAB.axisWords[axis];
+        return final[y][axis] - final[x][axis] > 0 ? pos : neg;
+    });
+
+    lines.push(`so ${subj(y)} ends up ${hi(truth.join(", "))} relative to ${subj(x)}.`);
     return lines;
 }

@@ -727,6 +727,50 @@ extends to the new claim form for free, since it reads the rendered conclusion.
 
 ---
 
+## 2.5b The transformation family was still answering about one axis — **FIXED**
+
+Reported on a three-dimensional Transformation item: *"both conclusions were the
+exact same, they took the same 1 dimension of 3 and they took the same
+objects"*. Two faults, and the first is the one
+[2.5](#25-an-n-dimensional-map-deserves-an-n-dimensional-conclusion) was
+supposed to have settled.
+
+**The width fix never reached this family.** It words its claims through its
+own helper, `describeConclusion`, which names a single axis — so Transformation,
+Anchor Space and Anchor Space v2 all asked about a third or a half of what they
+stated, and which third was arbitrary. `describeWideConclusion` is the twin of
+`buildNdWideConclusion`: every axis the pair differs on, and a false claim wrong
+on **exactly one** of them, since wrong on two of three is spotted from
+whichever the reader checks first.
+
+**And the pair has to be chosen for it.** A pair drawn at random coincides on
+some axis often enough to matter — a fifth of them on the two-axis frames — and
+a claim can only name the axes a pair actually differs on, so a random draw put
+one-dimensional claims back by the other door. `widestPair` draws among the
+pairs differing on the most axes. Measured over 200 items: Transformation went
+from one dimension per conclusion to **2.90 of 3**, Anchor Space to **2.00 of
+2**.
+
+The derivation had to follow. A walk down one axis explains a third of a wide
+claim, and for a false one it may explain the third that was *right* — a
+derivation proving something the item never said, which is the one shape this
+project has agreed is dangerous. Each named axis is walked, in the order the
+claim states them, and the closing line says what is actually true.
+
+The trace test could no longer work by finding *a* direction word in each and
+comparing: it now reads the claim and the trace one axis at a time and requires
+a true item to agree everywhere and a false one to differ in exactly one place.
+
+**The repeated claim was general, and is fixed in the shared helper.**
+`buildSeries` kept its drawn claims distinct from each other and knew nothing
+about the conclusion they were being added to, so the second claim could be the
+first one over again. `extendWithSeries` now drops any claim that repeats one
+already asked, matched on everything the card *shows* — a picking item can reuse
+one prompt across every claim, and what tells those apart is the premises above
+and the options below rather than the sentence between them.
+
+---
+
 ## 2.6 A halfway conclusion and a final one — **BUILT**, both families
 
 The `checkpoint` rung, last on the linear ladder. Two claims, answered together
