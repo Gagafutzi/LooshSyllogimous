@@ -7,7 +7,7 @@
 
 import { GeneratorContext, buildSeries, extendWithSeries, seriesWanted } from "./context";
 import { IDirection3DProposition, IDirectionProposition, Question } from "../models/question.models";
-import { coinFlip, getSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
+import { isPremiseLikeConclusion, coinFlip, getSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { guid } from "src/app/utils/uuid";
@@ -381,11 +381,11 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
                 : truth.map(([w, n], i) =>
                     [w, i === 0 ? (n > 1 && coinFlip() ? n - 1 : n + 1) : n] as [string, number]);
 
-            return {
-                text: `${subj(x)} is ${getRelationship(said)} of ${subj(y)}`,
-                isValid: want,
-                key: `${x}:${y}`,
-            };
+            const text = `${subj(x)} is ${getRelationship(said)} of ${subj(y)}`;
+            // A pair some premise places directly is read, not composed.
+            if (isPremiseLikeConclusion(question.premises, text)) return null;
+
+            return { text, isValid: want, key: `${x}:${y}` };
         }));
     }
     question.notes = [
@@ -759,6 +759,8 @@ export function createDirection3D(ctx: GeneratorContext, numOfPremises: number, 
             if (!dx && !dy && !dz) return null;
 
             const text = `${subj(x)} is ${phrase3(dx + (want ? 0 : 1), dy, dz)} of ${subj(y)}`;
+            if (isPremiseLikeConclusion(question.premises, text)) return null;
+
             return { text, isValid: want, key: `${x}:${y}` };
         }));
     }

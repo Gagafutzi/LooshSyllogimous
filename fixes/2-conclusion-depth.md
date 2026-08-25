@@ -771,6 +771,35 @@ and the options below rather than the sentence between them.
 
 ---
 
+## 2.5c A series claim could restate a premise — **FIXED**
+
+Reported on Distinction: premises *"Lantern is opposite of Ladybug"* and a claim
+*"Ladybug is same as Lantern"* — the same pair, so the answer is one premise
+read backwards, in a mode whose whole content is carrying a side along a chain.
+
+Every mode's own conclusion has been held to `isPremiseLikeConclusion` for a
+long time. The **series drawers were not**: they picked a pair and asked about
+it. Fixed in Distinction, both Arrangements and all three Directions, with the
+same guard each mode's conclusion already uses.
+
+One of them needed moving as well as guarding: Arrangement drew its series
+*before* `question.premises` was assigned, so the guard was comparing against an
+empty list and doing nothing at all.
+
+**The measure that found this over-reports, and the exclusions are the
+interesting part.** A shared subject pair is not always a restatement:
+
+| mode | why a shared pair is not a restatement |
+|---|---|
+| Deictic | one subject per line, so any two lines naming the same thing look like a matching pair to a check built for two-ended relations |
+| Transformation, Anchor v2 | the premise states the *initial* offset and the claim asks about the *final* relation, and the transforms are required to have changed it |
+| Hierarchy | a reversed pair is offered *deliberately* — a premise says A leads to B, the claim says B leads to A, and catching it means reading the direction |
+
+Left alone, and the test says so, so that "fixing" them later takes an argument
+rather than a glance.
+
+---
+
 ## 2.6 A halfway conclusion and a final one — **BUILT**, both families
 
 The `checkpoint` rung, last on the linear ladder. Two claims, answered together

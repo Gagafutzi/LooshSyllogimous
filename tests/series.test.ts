@@ -25,6 +25,7 @@ import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { GameTimerService } from "../src/app/syllogimous/services/game-timer.service";
 import { Question } from "../src/app/syllogimous/models/question.models";
+import { isPremiseLikeConclusion } from "../src/app/syllogimous/utils/question.utils";
 
 function context(): GeneratorContext {
     const settings = new Settings();
@@ -367,5 +368,64 @@ test("a map-and-apply item keeps its map and replaces what it is applied to", ()
         });
 
         assert(checked > 15, `only ${checked} ${type} series in the sample`);
+    }
+});
+
+/**
+ * A claim about a pair some premise states outright is read, not worked out.
+ *
+ * Reported on Distinction: premises *"Lantern is opposite of Ladybug"* and a
+ * claim *"Ladybug is same as Lantern"* — the same pair, so the answer is one
+ * premise read backwards, in a mode whose whole content is carrying a side
+ * along a chain. Every mode's own conclusion has always rejected those; the
+ * series was drawing pairs without asking.
+ *
+ * **Only the modes where a shared pair really is a restatement.** The measure
+ * that found this over-reports badly, and the exclusions are the interesting
+ * part:
+ *
+ *   - **Deictic** states one subject per line, so any two lines naming the same
+ *     thing look like a matching "pair" to a check built for two-ended
+ *     relations. It has its own guard against an exact repeat.
+ *   - **Transformation** and **Anchor Space v2** state the *initial* offset and
+ *     ask about the *final* relation, and the transforms are required to have
+ *     changed it — so a shared pair is the item working, not failing.
+ *   - **Hierarchy** offers a reversed pair deliberately: a premise says A leads
+ *     to B and the claim says B leads to A, which is false and has to be caught
+ *     by reading the direction. That is a near miss on purpose.
+ */
+test("no claim restates a pair the premises already state", () => {
+    const ctx = context();
+    const PAIRWISE: Array<[EnumQuestionType, number]> = [
+        [EnumQuestionType.Distinction, 5],
+        [EnumQuestionType.LinearArrangement, 5],
+        [EnumQuestionType.CircularArrangement, 5],
+        [EnumQuestionType.Direction, 5],
+        [EnumQuestionType.Direction3DSpatial, 5],
+        [EnumQuestionType.Direction3DTemporal, 5],
+    ];
+
+    for (const [type, n] of PAIRWISE) {
+        let claims = 0, restated = 0;
+
+        seeded(8080, () => {
+            for (let rep = 0; rep < 40; rep++) {
+                let q: Question | undefined;
+                try { q = BUILD[type](ctx, n); } catch { continue; }
+                if (!q || q.series.length < 2) continue;
+
+                for (const claim of q.series) {
+                    if (!claim.text) continue;
+                    claims++;
+                    if (isPremiseLikeConclusion(claim.premises ?? q.premises, claim.text)) {
+                        restated++;
+                    }
+                }
+            }
+        });
+
+        assert(claims > 40, `${type}: only ${claims} claims in the sample`);
+        equal(restated, 0,
+            `${type}: ${restated} of ${claims} claims ask about a pair a premise states`);
     }
 });

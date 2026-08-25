@@ -117,11 +117,18 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
             // The claim is what we want it to be; whether it holds is what the
             // buckets say about the words it names.
             const says = want ? same : !same;
-            return {
-                text: `${subj(a)} is ${getRelation(settings, type, says)} ${subj(b)}`,
-                isValid: says === same,
-                key: [a, b].sort().join("\u0000"),
-            };
+            const text = `${subj(a)} is ${getRelation(settings, type, says)} ${subj(b)}`;
+            /*
+             * The same guard the item's own conclusion is held to.
+             *
+             * A claim about a pair some premise states outright is answered by
+             * reading that premise — depth one, in a mode whose whole content is
+             * carrying a side along a chain. The conclusion has always rejected
+             * those; the series was drawing pairs without asking.
+             */
+            if (isPremiseLikeConclusion(question.premises, text)) return null;
+
+            return { text, isValid: says === same, key: [a, b].sort().join("\u0000") };
         });
         extendWithSeries(question, claims);
     }
