@@ -476,8 +476,9 @@ app-card-dropdown {
 .anchor--diamond  { color: #f0555f; }
 
 /* Junk-shape stimuli sit inline in a premise, so they take the line's size
- * rather than a fixed one. */
-svg.junk {
+ * rather than a fixed one. An <img> rather than an <svg>: the sanitiser that
+ * stands between a premise and the screen keeps no svg element. */
+.junk {
     inline-size: 1.15em;
     block-size: 1.15em;
     vertical-align: -0.18em;
