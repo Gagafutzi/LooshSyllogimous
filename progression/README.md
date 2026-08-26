@@ -199,24 +199,45 @@ tiers were reachable at all, since the ceiling is 2600.
 ```
 level = max(aggregate across modes, best single mode)
 row   = the highest threshold in TIER_UNLOCK_LEVELS that level clears
-        (forced to the top if any mode has run out entirely)
+        (forced to row 6 if any mode has run out entirely)
 ```
 
-`TIER_UNLOCK_LEVELS` is `[0, 3, 4, 5, 6, 7, 8]`, giving 4 modes at the start,
-rising to all 33 by level 8. Deliberately low: the gate exists so a first
-session is not thirty-three modes at once, not to be a months-long treadmill,
-and a mode opened early is not an unfair one because `priorForNewMode` places it
-against what the player has already shown.
+`TIER_UNLOCK_LEVELS` is `[0, 3, 4, 5, 6, 7, 8, 10, 12, 14]`, giving 4 modes at
+the start and rising to all 30 of the ordinary ones by level 8. That part is
+deliberately low: the gate exists so a first session is not thirty-three modes
+at once, not to be a months-long treadmill, and a mode opened early is not an
+unfair one because `priorForNewMode` places it against what the player has
+already shown.
 
-Two rules carry the weight:
+**The last three thresholds are the widest composed spaces**, and they are the
+exception to all of that: 5D at level 10, 6D at 12, 7D at 14. Reported from
+play — a six-dimensional space was being offered by the same row as a
+three-premise graph match, and no amount of per-mode difficulty aiming makes
+those the same order of task.
+
+Width is the reason it needs a gate of its own. Every other difficulty in the
+app has a substitute somewhere: length, modifiers, answer mode, relational
+order. Nothing else asks you to carry six independent accumulations through one
+chain, so a level earned anywhere else is not evidence about whether you can.
+That is also why these three are in `FLOOR_START_MODES`, which excuses them from
+the cross-mode prior: they open at **three premises with no rungs** whoever you
+are, and climb from there — about ten answers to reach a four-premise item with
+two rungs, on the measured model.
+
+Three rules carry the weight:
 
 - **The best evidence, not the average.** A player deep in one mode has
   demonstrated that much reasoning, and gating on their average is backwards
   twice over — it withholds the modes that would raise the average, and it makes
   breadth a prerequisite for depth in an app that measures depth.
-- **Anything exhausted forces a full unlock.** Every rung claimed and the
-  premise ceiling reached means there is nothing left to serve there, and a
-  pacing system that responds to that with nothing new is not pacing anything.
+- **Anything exhausted forces a full unlock**, up to row 6. Every rung claimed
+  and the premise ceiling reached means there is nothing left to serve there,
+  and a pacing system that responds to that with nothing new is not pacing
+  anything. It stops short of the widest spaces because it fires at aggregate
+  level 1: running out of Distinction is evidence about Distinction.
+- **The gate is a default, not a lock.** Customise applies after the tier row
+  and can switch any mode back on, which is where anyone who wants 7D before
+  level 14 goes.
 
 **The tier badge is one level per tier.** It used to be bands of 250 points
 running to 6000, written for the accumulated score — so under the derived score,

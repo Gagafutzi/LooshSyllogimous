@@ -31,8 +31,33 @@ import { Settings } from "../models/settings.models";
  * mode is open by level 8, which is a competent player rather than an expert
  * one — and a mode opened early is not an unfair one, because
  * `priorForNewMode` places it against what the player has already shown.
+ *
+ * **Except the three widest composed spaces**, which continue past that.
+ * Reported from play: a six-dimensional space was being offered by the same row
+ * as a three-premise graph match, and no amount of per-mode difficulty aiming
+ * makes those the same order of task — one is a mode you can be shown, the
+ * other is a mode you have to be ready for. So 5D, 6D and 7D each wait two
+ * further levels, which is two tiers apart on the badge as well.
+ *
+ * Two levels rather than some larger gap because of what happens on arrival:
+ * these three open at their *own floor* rather than at the player's aggregate
+ * (`FLOOR_START_MODES`), so the first 6D item is three premises whoever you
+ * are. The threshold only has to be far enough above that floor — 5.7, 6.6 and
+ * 7.2 levels for the three of them — that the opening items are comfortably
+ * within reach and the mode climbs from there.
  */
-export const TIER_UNLOCK_LEVELS = [0, 3, 4, 5, 6, 7, 8];
+export const TIER_UNLOCK_LEVELS = [0, 3, 4, 5, 6, 7, 8, 10, 12, 14];
+
+/**
+ * The furthest row exhaustion alone can reach.
+ *
+ * Running out of a mode is evidence that *that* mode has nothing left, which is
+ * a good reason to be shown the rest of the app and a bad reason to be handed
+ * seven axes: `anyExhausted` is true at aggregate level 1 in the case it was
+ * written for. So it still opens everything the ramp opens, and the three
+ * widest spaces stay behind the levels that price them.
+ */
+export const EXHAUSTION_ROW = 6;
 
 export interface UnlockEvidence {
     /** Precision-weighted level across every mode with answers. */
@@ -63,7 +88,7 @@ export function unlockRow(evidence: UnlockEvidence): number {
     for (let i = 0; i < TIER_UNLOCK_LEVELS.length; i++) {
         if (level >= TIER_UNLOCK_LEVELS[i]) row = i;
     }
-    if (evidence.anyExhausted) row = Math.max(row, TIER_UNLOCK_LEVELS.length - 1);
+    if (evidence.anyExhausted) row = Math.max(row, EXHAUSTION_ROW);
     return Math.min(row, Object.keys(TIERS_MATRIX).length - 1);
 }
 
@@ -124,8 +149,19 @@ export function settingsForTier(tier: EnumTiers, options: TierOptions, row?: num
      * Read against the *unlocked* row, so it tracks what the player can do
      * rather than a score that means one of two things.
      */
-    if (tierIdx > 5) settings.setEnable("negation", true);
-    if (tierIdx > 6) settings.setEnable("meta", true);
+    /*
+     * Row numbers, not "one row after the other".
+     *
+     * These read `> 5` and `> 6` when row 6 was the last row anybody could
+     * reach, so negation was granted at the top of the ramp and meta was never
+     * granted at all. Adding rows 7 to 9 for the widest spaces would have
+     * handed meta out as a side effect of a change about which spaces are
+     * offered — so the two are pinned: negation where it already landed, meta
+     * at the end of the ramp rather than at the first row past it. A row that
+     * exists to say "you may see 5D now" is not a modifier reward.
+     */
+    if (tierIdx >= 6) settings.setEnable("negation", true);
+    if (tierIdx >= 9) settings.setEnable("meta", true);
 
     return settings;
 }

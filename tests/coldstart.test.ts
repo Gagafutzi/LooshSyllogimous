@@ -9,13 +9,14 @@
  * whatever the user had typed.
  */
 
-import { assert, test } from "./harness";
+import { assert, equal, test } from "./harness";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
 import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { buildChain, LINEAR_SCALES, renderPremises } from "../src/app/syllogimous/utils/linear.utils";
+import { FLOOR_START_MODES } from "../src/app/syllogimous/utils/progression.utils";
 
 /** A service with no saved history, whatever earlier tests left behind. */
 function fresh() {
@@ -202,4 +203,55 @@ test("play advances the item, not only the estimate", () => {
         `forty correct answers and the item is still ${served} premises, the mode's minimum`);
 
     localStorage.clear();
+});
+
+/**
+ * The three modes a good record does not open the door to.
+ *
+ * `priorForNewMode` centres a mode with no history on the player's aggregate,
+ * which is right almost everywhere: a strong player meeting a new mode should
+ * not be dropped to the floor and made to climb back through items they
+ * finished with. Width is the exception. Nothing else in the app asks you to
+ * carry six independent accumulations through one chain, so an aggregate built
+ * out of everything else says nothing about whether you can — and these three
+ * are gated late precisely because they are not a variation on what came
+ * before.
+ */
+test("the widest spaces open at their own floor however good the record is", () => {
+    const p = fresh();
+
+    // A broad, strong record — several modes, all answered right at length.
+    for (const type of [
+        EnumQuestionType.Distinction, EnumQuestionType.Syllogism,
+        EnumQuestionType.Direction3DSpatial, EnumQuestionType.Analogy,
+    ]) {
+        for (let i = 0; i < 40; i++) p.record(type, "right", 8);
+    }
+
+    for (const type of [
+        EnumQuestionType.Space5D, EnumQuestionType.Space6D, EnumQuestionType.Space7D,
+    ]) {
+        const floor = QUESTION_TYPE_SETTING_PARAMS[type].minNumOfPremises;
+        equal(p.configFor(type).premises, floor,
+            `${type} opened above its floor for a player who has never seen it`);
+        equal(p.rungsFor(type).length, 0, `${type} opened carrying modifiers`);
+    }
+
+    /*
+     * And the exception is an exception. A mode that is merely *new* still
+     * arrives where the player already is, which is the cold-start fix this
+     * carves out of rather than reverses.
+     */
+    const other = EnumQuestionType.Deictic;
+    assert(p.configFor(other).premises
+        > QUESTION_TYPE_SETTING_PARAMS[other].minNumOfPremises,
+        "a new mode was dropped to the floor for a player with a strong record");
+});
+
+/** A typo in the set is a mode that silently keeps the cross-mode prior. */
+test("every floor-start mode is a real mode", () => {
+    const types = Object.values(EnumQuestionType) as string[];
+    for (const name of FLOOR_START_MODES) {
+        assert(types.includes(name), `${name} is not a question type`);
+    }
 });

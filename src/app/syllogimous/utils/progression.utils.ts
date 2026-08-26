@@ -305,6 +305,32 @@ export const MODE_FAMILIES: Record<string, string> = {
     "Containment": "scale",
 };
 
+/**
+ * Modes that open at their own floor rather than at what you can already do.
+ *
+ * `priorForNewMode` centres a mode with no history on the player's aggregate,
+ * which is right almost everywhere: a strong player meeting a new mode should
+ * not be dropped to two premises and made to climb back through items they
+ * finished with months ago. The evidence for that is real — being good at
+ * reasoning transfers.
+ *
+ * It does not transfer to a sixth axis. Width is the one difficulty in this app
+ * with no substitute anywhere else: nothing in Analogy or Knaves or a
+ * ten-premise chain asks you to carry six independent accumulations through the
+ * same chain, so an aggregate built out of those says nothing about whether you
+ * can. These three arrive late (`TIER_UNLOCK_LEVELS`) *and* arrive at three
+ * premises, and the climb from there is short because the ability model moves
+ * on a dozen answers.
+ *
+ * A legacy staircase state for one of these still seeds it, because that is
+ * evidence about this mode rather than about the player in general.
+ */
+export const FLOOR_START_MODES = new Set<string>([
+    "Space 5D",
+    "Space 6D",
+    "Space 7D",
+]);
+
 /** The ledger a mode's evidence goes in. */
 export function familyOf(type: string): string {
     return MODE_FAMILIES[type] ?? type;

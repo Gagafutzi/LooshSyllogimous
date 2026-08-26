@@ -188,3 +188,66 @@ alternative is the current state, where per-mode is impossible.
 **Test.** `tests/customise.test.ts` covers the override service already. Add the
 precedence table directly — nine cases, three states each for global and
 per-mode — because precedence bugs are invisible in play and obvious in a table.
+
+---
+
+## 6.4 The widest spaces unlock late, and open at the floor — **BUILT**
+
+> Lock 5, 6 and 7 D in some higher tiers, 6D can't be there alongside something
+> like 3p graph isomorphism. And it should start with minimal premises.
+
+Both halves of that are one observation. Every mode arrived at row 6 — level 8,
+"a competent player" — which put a six-dimensional space beside a three-premise
+graph match, and then `priorForNewMode` opened it at whatever the player's
+aggregate said, so the first 6D item was several premises wide as well as six
+axes deep.
+
+### Width is the difficulty with no substitute
+
+The unlock ramp is built on a defensible assumption: reasoning transfers, so a
+level earned anywhere is evidence about a mode you have never played, and a
+mode opened early is not unfair because the prior places it against what you
+have shown. That holds for length, for modifiers, for answer mode, for
+relational order — Analogy, Knaves and a ten-premise chain really are evidence
+about each other.
+
+It does not hold for width. Nothing else in the app asks you to carry six
+independent accumulations through one chain, so an aggregate assembled from
+everything else says nothing about whether you can. That is the whole argument,
+and it is why the fix is in two places rather than one: a late unlock alone
+would still have opened 6D at eight premises, and a floor start alone would
+still have offered it beside the graph match.
+
+### What changed
+
+1. **`TIER_UNLOCK_LEVELS` is `[0, 3, 4, 5, 6, 7, 8, 10, 12, 14]`.** Rows 7, 8
+   and 9 exist to add one axis each: 5D at level 10, 6D at 12, 7D at 14. Two
+   levels apart is two tiers apart on the badge, so the climb is visible.
+2. **Rows 6 to 8 of `TIERS_MATRIX` zero those three columns**, which is the
+   half `tsc` cannot check — the tuple width is all it sees.
+3. **`FLOOR_START_MODES` excuses the three from the cross-mode prior**, so they
+   open at three premises with no rungs however good the record is. The climb
+   out is short: about ten answers to a four-premise item with two rungs, which
+   is the ability model doing what it is for.
+4. **Exhaustion stops at row 6** (`EXHAUSTION_ROW`). `anyExhausted` fires at
+   aggregate level 1 — running out of Distinction is evidence about Distinction,
+   not a reason to be handed seven axes.
+5. **The negation and meta grants are pinned to row numbers.** They read `> 5`
+   and `> 6` when row 6 was the last row anyone could reach, so negation landed
+   at the top of the ramp and meta was never granted at all on that path.
+   Adding three rows would have handed meta out as a side effect of a change
+   about which spaces are offered; they are now `>= 6` and `>= 9`, so the
+   deep-space rows are about spaces and nothing else.
+
+**The gate is a default, not a lock.** Customise applies after the tier row and
+`ProgressionService.applyTo` never disables anything, so switching 7D back on
+by hand still works and always did.
+
+**Tests.** `tests/unlock.test.ts` gains the ordering (each axis its own unlock,
+in order), the exhaustion cap, and a check that each threshold sits at least two
+levels above the level of that mode's own opening item — a gate you clear on the
+day the first item is beyond you is not pacing anything.
+`tests/coldstart.test.ts` gains the floor start, including the case that keeps
+it honest: a mode that is merely *new* still arrives where the player already
+is, so this carves an exception out of the cold-start fix rather than reversing
+it.

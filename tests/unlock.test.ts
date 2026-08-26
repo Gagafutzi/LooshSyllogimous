@@ -16,7 +16,7 @@ import { TIER_UNLOCK_LEVELS, unlockRow } from "../src/app/syllogimous/utils/tier
 import {
     ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIERS_MATRIX, TIER_SCORE_RANGES,
 } from "../src/app/syllogimous/constants/game.constants";
-import { DEFAULT_ABILITY } from "../src/app/syllogimous/utils/ability.utils";
+import { DEFAULT_ABILITY, levelOf } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 
@@ -67,8 +67,21 @@ test("being strong at one mode is enough to unlock", () => {
  */
 test("a mode with nothing left to give unlocks the rest", () => {
     const stuck = unlockRow({ aggregateLevel: 1, bestLevel: 1, anyExhausted: true });
-    equal(modesAt(stuck), EVERY_MODE,
+    equal(modesAt(stuck), EVERY_MODE - DEEP.length,
         "a player who has exhausted a mode was still being held back");
+
+    /*
+     * But not the widest spaces, and this is the case that says why.
+     *
+     * `anyExhausted` is true at aggregate level 1 here — running out of
+     * Distinction is evidence about Distinction. Handing that player six axes
+     * would be reading "this mode has nothing left" as "this player is ready
+     * for anything".
+     */
+    for (const type of DEEP) {
+        equal(TIERS_MATRIX[stuck][ORDERED_QUESTION_TYPES.indexOf(type)], 0,
+            `exhausting one mode handed out ${type}`);
+    }
 });
 
 test("a first session is not thirty-three modes at once", () => {
@@ -77,18 +90,66 @@ test("a first session is not thirty-three modes at once", () => {
     assert(modesAt(fresh) <= 6, `a first session offers ${modesAt(fresh)} modes`);
 });
 
-/** The gate is an onboarding ramp, not a treadmill. */
-test("everything is open to a competent player", () => {
-    const top = TIER_UNLOCK_LEVELS[TIER_UNLOCK_LEVELS.length - 1];
-    assert(top <= 10, `the last unlock waits for level ${top}, which is an expert`);
-    const row = unlockRow({ aggregateLevel: top, bestLevel: top, anyExhausted: false });
-    equal(modesAt(row), EVERY_MODE, "the top threshold does not open everything");
+/**
+ * The three the ramp does not finish with.
+ *
+ * Reported from play: a six-dimensional space was being offered by the same row
+ * as a three-premise graph match. Width is the one difficulty with no
+ * substitute elsewhere in the app, so it is the one thing a general level does
+ * not buy.
+ */
+const DEEP = [
+    EnumQuestionType.Space5D,
+    EnumQuestionType.Space6D,
+    EnumQuestionType.Space7D,
+];
 
-    // The mode the complaint named, specifically.
-    const idx = ORDERED_QUESTION_TYPES.indexOf(EnumQuestionType.Space3D);
-    const at7 = unlockRow({ aggregateLevel: 7, bestLevel: 7, anyExhausted: false });
-    assert(TIERS_MATRIX[at7][idx] === 1,
-        "a level-7 player still cannot see Space 3D");
+const offers = (level: number, type: EnumQuestionType) =>
+    TIERS_MATRIX[unlockRow({ aggregateLevel: level, bestLevel: level, anyExhausted: false })]
+        [ORDERED_QUESTION_TYPES.indexOf(type)] === 1;
+
+/** The gate is an onboarding ramp, not a treadmill — for everything but three. */
+test("everything but the widest spaces is open to a competent player", () => {
+    const ordinary = 8;
+    const row = unlockRow({ aggregateLevel: ordinary, bestLevel: ordinary, anyExhausted: false });
+    equal(modesAt(row), EVERY_MODE - DEEP.length,
+        "level 8 does not open everything the ramp offers");
+
+    // The mode the original complaint named, specifically.
+    assert(offers(7, EnumQuestionType.Space3D), "a level-7 player still cannot see Space 3D");
+});
+
+test("each extra axis is its own unlock, in order", () => {
+    let previous = 0;
+    for (const type of DEEP) {
+        // Somewhere above the general ramp, and after the axis below it.
+        let at = 0;
+        for (let level = 8; level <= 20; level += 0.5) {
+            if (offers(level, type)) { at = level; break; }
+        }
+        assert(at > 8, `${type} is open to a level-8 player`);
+        assert(at > previous, `${type} opens no later than the axis below it`);
+        previous = at;
+    }
+});
+
+/**
+ * The threshold has to leave room above the mode's own opening item, because
+ * these open at their floor rather than at what the player can already do.
+ * A gate you clear on the same day the first item is beyond you is not pacing.
+ */
+test("a widest space opens well above the level of its own first item", () => {
+    for (const type of DEEP) {
+        const params = QUESTION_TYPE_SETTING_PARAMS[type];
+        const floor = levelOf(
+            { type, premises: params.minNumOfPremises, rungs: [], seconds: null });
+        let at = 0;
+        for (let level = 0; level <= 20; level += 0.5) {
+            if (offers(level, type)) { at = level; break; }
+        }
+        assert(at >= floor + 2,
+            `${type} opens at level ${at} for a floor item worth ${floor.toFixed(1)}`);
+    }
 });
 
 /**

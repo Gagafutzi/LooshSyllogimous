@@ -4,6 +4,7 @@ import { LS_TIMER } from "../constants/local-storage.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { Settings } from "../models/settings.models";
 import {
+    FLOOR_START_MODES,
     LadderEvent, LadderState, Outcome, familyMembers, familyOf, ladderFor,
 } from "../utils/progression.utils";
 import { UnlockEvidence } from "../utils/tier.utils";
@@ -490,7 +491,11 @@ export class ProgressionService {
      */
     private freshPrior(type: EnumQuestionType): AbilityState {
         const agg = this.aggregateNow();
-        if (agg.modes > 0) return priorForNewMode(agg, this.abilityConfig);
+        // Width does not transfer, so the widest spaces open at their own floor
+        // however good the player is. See FLOOR_START_MODES.
+        if (agg.modes > 0 && !FLOOR_START_MODES.has(type)) {
+            return priorForNewMode(agg, this.abilityConfig);
+        }
 
         try {
             const raw = localStorage.getItem(LS_LEGACY_STATE + type);

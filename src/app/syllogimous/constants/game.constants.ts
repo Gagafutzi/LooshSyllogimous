@@ -241,18 +241,13 @@ export const ORDERED_QUESTION_TYPES = [
  * ORDERED_QUESTION_TYPES. The two must be edited together — the tuple width is
  * the only thing the compiler checks, so a row of the right length in the wrong
  * order fails silently.
- */
-/**
- * Which modes each tier has unlocked, as a positional tuple over
- * ORDERED_QUESTION_TYPES. The two must be edited together — the tuple width is
- * the only thing the compiler checks, so a row of the right length in the wrong
- * order fails silently.
- */
-/**
- * Which modes each tier has unlocked, as a positional tuple over
- * ORDERED_QUESTION_TYPES. The two must be edited together — the tuple width is
- * the only thing the compiler checks, so a row of the right length in the wrong
- * order fails silently.
+ *
+ * **Row 6 is no longer the end of the ramp.** Everything else opens there, but
+ * the three widest composed spaces do not: 5D at row 7, 6D at row 8, 7D at row
+ * 9. A sixth axis is not a variation on the modes it used to arrive beside — a
+ * three-premise graph match and a six-dimensional space were being offered by
+ * the same row, and they are not the same order of task. `TIER_UNLOCK_LEVELS`
+ * in `tier.utils` is where those rows are priced in levels.
  */
 export const TIERS_MATRIX: Record<number, [ 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1 ]> = {
     
@@ -282,15 +277,15 @@ export const TIERS_MATRIX: Record<number, [ 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0
     
     
     
-     6: [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  0,  1,  1,  1,  1 ],
+     6: [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  0,  1,  1,  1,  1 ],
     
     
     
-     7: [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  0,  1,  1,  1,  1 ],
+     7: [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  0,  1,  1,  1,  1 ],
     
     
     
-     8: [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  0,  1,  1,  1,  1 ],
+     8: [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  0,  1,  1,  1,  1 ],
     
     
     
