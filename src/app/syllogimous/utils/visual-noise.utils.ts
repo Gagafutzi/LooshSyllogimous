@@ -10,6 +10,8 @@
  * matters for the history view: a stored question has to re-render identically.
  */
 
+import { rasterise } from "./raster.utils";
+
 /** Lehmer / Park-Miller LCG — matches v3 so seeds stay compatible. */
 function seededRandom(seed: number) {
     const m = 2 ** 31 - 1;
@@ -87,21 +89,25 @@ class VisualNoise {
     }
 
     /**
-     * Render to a PNG data URL.
+     * Render to a PNG data URL. `raster.utils` carries the reason why.
      *
-     * Premises reach the DOM through an [innerHTML] binding, and Angular's default
-     * sanitizer strips <svg> outright and removes style attributes — so neither an
-     * inline SVG nor inline-styled divs survive to be displayed. An <img> with a
-     * data:image/png source does. (SVG data URLs are also blocked, since they can
-     * carry script.)
-     *
-     * Falls back to SVG markup when there is no DOM, so the generator stays
-     * testable under node.
+     * Falls back to SVG markup when there is nothing to draw with, so the
+     * generator stays testable under node. That is the fallback and never what
+     * a player sees.
      */
     private toMarkup(id: number, art: ReturnType<VisualNoise["build"]>) {
         const { width, height, cells } = art;
 
-        if (typeof document === "undefined") {
+        const url = rasterise(width, height, 1, ctx => {
+            for (const r of cells) {
+                ctx.fillStyle = r.fill;
+                // Round outward so neighbouring cells never leave a seam.
+                ctx.fillRect(Math.floor(r.x), Math.floor(r.y),
+                    Math.ceil(r.width), Math.ceil(r.height));
+            }
+        });
+
+        if (!url) {
             const rects = cells.map(r =>
                 `<rect x="${Math.round(r.x)}" y="${Math.round(r.y)}"`
                 + ` width="${Math.round(r.width)}" height="${Math.round(r.height)}"`
@@ -110,17 +116,8 @@ class VisualNoise {
                 + ` viewBox="0 0 ${width} ${height}">${rects}</svg>`;
         }
 
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d")!;
-        for (const r of cells) {
-            ctx.fillStyle = r.fill;
-            // Round outward so neighbouring cells never leave a seam.
-            ctx.fillRect(Math.floor(r.x), Math.floor(r.y), Math.ceil(r.width), Math.ceil(r.height));
-        }
         return `<img class="noise" alt="" width="${DISPLAY_WIDTH}" height="${DISPLAY_HEIGHT}"`
-            + ` src="${canvas.toDataURL("image/png")}">`;
+            + ` src="${url}">`;
     }
 
     generate(seed: number, splits: number): string {
@@ -151,6 +148,15 @@ let pool: string[] | undefined;
  * index and de-duplicates, so the pool only has to be larger than any single
  * question needs.
  */
+/**
+ * Drop the cache.
+ *
+ * For tests, which have to build the pool both with a canvas and without —
+ * the cache would otherwise hand the second caller whatever the first one's
+ * environment produced.
+ */
+export function resetVisualNoisePool() { pool = undefined; }
+
 export function getVisualNoiseSymbols(size = 240, splits = DEFAULT_SPLITS) {
     if (!pool || pool.length !== size) {
         pool = Array.from({ length: size }, (_, i) => generator.generate(i + 1, splits));

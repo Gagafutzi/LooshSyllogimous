@@ -3,6 +3,7 @@ import { EnumArrangements, EnumQuestionType } from "../constants/question.consta
 import { IArrangementPremise, IArrangementRelationship, Question } from "../models/question.models";
 import { Settings, Picked } from "../models/settings.models";
 import { getVisualNoiseSymbols } from "./visual-noise.utils";
+import { getPharmaSymbols } from "./pharma.utils";
 import { getJunkEmojiSymbols } from "./junk-emoji.utils";
 import { neg, subj } from "./phrasing";
 
@@ -95,6 +96,7 @@ export function getSymbols(settings: Settings) {
         if (on && weight > 0) kinds.push({ pool: pool(), weight });
     };
 
+    add(settings.enabled.pharmaStimuli, "pharmaStimuli", getPharmaSymbols);
     add(settings.enabled.visualNoise, "visualNoise", getVisualNoiseSymbols);
     add(settings.enabled.junkEmojis, "junkEmojis", getJunkEmojiSymbols);
     add(settings.enabled.useEmojis, "useEmojis", getEmojis);

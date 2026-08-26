@@ -328,6 +328,7 @@ export class AdvancedOptionsComponent {
         { key: "useEmojis", label: "Emoji" },
         { key: "junkEmojis", label: "Junk shapes" },
         { key: "visualNoise", label: "Visual noise" },
+        { key: "pharmaStimuli", label: "Pharmacy" },
     ];
 
     /** Whether more than one kind is on, so a mix means anything. */

@@ -370,3 +370,47 @@ correct and complete.
 (`docs/favicon.ico`, `docs/android-chrome-*.png`, …) which are the ones actually
 served from Pages, and a rebuild is what replaces them. A stale icon in `docs/`
 would keep the old mark live regardless of what `src/` holds.
+
+---
+
+## 4.x Stimuli that never reached the screen — **FIXED**
+
+Found while adding the pharmacy stimulus pool, and it explains an earlier
+report of *"symbols the program can't display"* better than the emoji fix did.
+
+Everything on a card reaches the DOM through an `[innerHTML]` binding, and
+Angular's sanitiser keeps only the elements on its allowlist. `svg` is not on
+it — `VALID_ELEMENTS` in `@angular/core` is void plus block plus inline HTML
+elements and nothing else. So a stimulus built out of inline SVG is not styled
+oddly; it is **removed**, and the player sees an empty subject where a token
+should be.
+
+`visual-noise.utils` had met this, solved it by drawing to a PNG data URL, and
+written the reason down — inside that file. `junk-emoji.utils` was written
+afterwards and shipped `<svg class="junk">`, so **every junk-shape stimulus was
+invisible**. The theme even carried an `svg.junk` rule sizing something that
+never arrived, which is what a rule written from the code rather than from the
+screen looks like.
+
+### Three changes, and only one of them is the fix
+
+1. **`utils/raster.utils.ts`** — one `rasterise(w, h, scale, draw)` that both
+   picture kinds go through, carrying the explanation. A rule that has to be
+   rediscovered belongs where both callers already are.
+2. **Junk shapes draw to a canvas** and ship as `<img src="data:image/png…">`.
+   Their six silhouettes are now described once as geometry and rendered twice
+   — SVG for the no-canvas fallback, canvas for the screen — because two
+   hand-written copies of six shapes drift.
+3. **The guard was wrong in both files.** `typeof document === "undefined"` asks
+   whether there is a document, not whether there is anything to draw with. The
+   test harness stubs a `document` with a `documentElement` and no
+   `createElement`, so under test both would have thrown; in a browser with a
+   partial DOM they would too. `rasterise` returns `null` when it cannot draw
+   and the callers fall back.
+
+**Test.** `tests/stimuli.test.ts` holds every pool — letters, nouns, emoji, junk
+shapes, visual noise, pharmacy — to markup the sanitiser keeps, and asserts that
+a picture stimulus *ships* as an image. That last part matters: the SVG output
+is a legitimate fallback for having no canvas, so a test that read the fallback
+would be checking the one path that never reaches a player, which is how this
+survived being written down.

@@ -251,3 +251,50 @@ day the first item is beyond you is not pacing anything.
 it honest: a mode that is merely *new* still arrives where the player already
 is, so this carves an exception out of the cold-start fix rather than reversing
 it.
+
+---
+
+## 6.5 Pharmacy stimuli — **BUILT**
+
+> Ich denke das Programm ist gestärkt dadurch dass alle Regeln arbiträr sind.
+> Füge lediglich Moleküle in unterschiedlichen Darstellungen und Begriffe aus
+> der Pharmazie als Stimuli hinzu. So kann ich mir immerhin passiv die Namen
+> usw einprägen. — als Option
+
+The scope is the point, and it is the player's own: **the rules stay arbitrary.**
+Nothing here makes a premise mean anything. An item saying one molecule is above
+another is as invented as it was with nonsense triples — which is what keeps it
+a reasoning item the ability model can price, rather than a knowledge question
+it cannot. Only the tokens change.
+
+**Display & timer → What the stimuli are → Pharmacy stimuli**, off by default,
+and a weight in the mix on Customise like every other kind.
+
+### Three decisions worth stating
+
+**One face per molecule per run.** The pool is rebuilt per question and several
+generators draw from it more than once for a single item, so choosing a
+representation per draw would eventually put "Ibuprofen is above C₁₃H₁₈O₂" on a
+card — not a premise, a contradiction the reader has to ignore. The face is
+chosen once per run instead: some molecules are names this session, others
+formulas, and the assignment reshuffles on reload. That makes the collision
+impossible rather than unlikely, and the pairing is still what gets learned
+across sessions. `tests/stimuli.test.ts` asserts both halves, including that no
+two *different* molecules can show the same face — sucrose and lactose share a
+sum formula, and a pool holding both as formulas would repeat a token under two
+names.
+
+**Short and checkable rather than long and impressive.** Forty molecules, every
+formula one anybody can verify, in Hill notation, with a test that the elements
+are real ones. A junk shape cannot be wrong; a molecular formula can, and a
+wrong one shown three hundred times is worse than no formula at all.
+
+**No structural formulas.** They are the representation a chemistry exam most
+wants, and they need a picture — which after §4.x means a canvas drawing, which
+means either hand-encoding 2D coordinates per molecule or taking on a SMILES
+renderer as a dependency. Hand-encoding forty skeletons is exactly the "wrong
+thing memorised passively" risk above, at forty times the surface. Left out, and
+worth doing properly with a renderer if it is wanted.
+
+German terms, because the exam is in German and half the value of a vocabulary
+list is recognising the word when it turns up in a question stem.

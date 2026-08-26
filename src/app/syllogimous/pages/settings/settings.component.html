@@ -95,6 +95,19 @@
                         <small class="d-block text-muted">Abstract patterns that resist naming. Selected kinds are mixed within a question.</small>
                     </span>
                 </label>
+
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="stimulusFlags.pharmaStimuli" (change)="setStimulus('pharmaStimuli', $any($event.target).checked)">
+                    <span>Pharmacy stimuli
+                        <small class="d-block text-muted">
+                            Drug names, molecular formulas and pharmacy vocabulary as the
+                            tokens. The relations stay invented — this only changes what
+                            the names are, so they go past your eyes a few hundred times
+                            a session.
+                        </small>
+                    </span>
+                </label>
             </div>
         </app-collapsible>
 

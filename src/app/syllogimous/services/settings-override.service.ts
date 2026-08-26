@@ -240,6 +240,7 @@ export interface OverrideState {
         meaningfulWords: boolean;
         visualNoise: boolean;
         junkEmojis: boolean;
+        pharmaStimuli: boolean;
         stimulusMix: Record<string, number>;
     };
     linear: LinearFeatureFlags;
@@ -318,7 +319,7 @@ const DEFAULT_STATE: OverrideState = {
     curateSession: true,
     scrambleFactor: 100,
     modes: {},
-    flags: { meta: null, negation: null, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false, stimulusMix: {} },
+    flags: { meta: null, negation: null, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false, pharmaStimuli: false, stimulusMix: {} },
     linear: { ...DEFAULT_LINEAR_FEATURES },
     space: { axes: {}, circularAxes: null, spread: null },
     rungs: {},
@@ -366,6 +367,7 @@ export class SettingsOverrideService {
             settings.setEnable("meaningfulWords", f.meaningfulWords);
             settings.setEnable("visualNoise", f.visualNoise);
             settings.setEnable("junkEmojis", f.junkEmojis);
+            settings.setEnable("pharmaStimuli", !!f.pharmaStimuli);
             for (const [kind, weight] of Object.entries(f.stimulusMix ?? {})) {
                 settings.setMix(kind, weight);
             }

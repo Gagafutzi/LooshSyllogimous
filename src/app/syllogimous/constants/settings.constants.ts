@@ -385,6 +385,8 @@ export const DEFAULT_ENABLED_FLAGS = {
     useEmojis: false,
     visualNoise: false,
     junkEmojis: false,
+    /** Drug names, formulas and pharmacy vocabulary as the tokens. Off by default. */
+    pharmaStimuli: false,
     /**
      * Relative share of each stimulus kind, when more than one is on.
      *
