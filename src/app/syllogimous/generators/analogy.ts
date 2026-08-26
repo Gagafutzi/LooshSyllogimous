@@ -73,21 +73,24 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
     const choiceIndex = pickUniqueItems(choiceIndices, 1).picked[0];
 
     /*
-     * Whatever this borrows, it does not borrow the other mode's questions.
+     * Whatever this borrows, it does not borrow the other mode's questions —
+     * nor the way they were answered.
      *
      * Analogy takes a finished item from one of five other modes and *reuses
-     * the object*, overwriting the conclusion with one of its own. Any series
-     * the inner mode drew is still on it — claims about a question this item no
-     * longer asks — and the answer flow would step the player through them
-     * while the card says analogy. Cleared where the takeover happens rather
-     * than in five branches.
+     * the object*, overwriting the conclusion with one of its own. Anything the
+     * inner mode set about answering is still on it and is about a question
+     * this item no longer asks: a series would step the player through claims
+     * the card never shows, and an inherited `answerMode` put the construction
+     * builder or a set of options on an item whose only claim is "alike or
+     * unlike". Both were reported from play, the second as a correct answer
+     * marked wrong — which it was, since the scoring then compared "did you
+     * build the inner arrangement" against whether the analogy held.
+     *
+     * Analogy's own ladder is `["negation", "meta"]`: it has no construction or
+     * picking rung and was never meant to serve one. Cleared where the takeover
+     * happens rather than in five branches.
      */
-    const takeOver = (q: Question) => {
-        q.series = [];
-        q.seriesAt = 0;
-        q.seriesAnswers = [];
-        return q;
-    };
+    const takeOver = (q: Question) => q.askAsTrueOrFalse();
 
     let question = new Question(topType);
     let isValidSame;

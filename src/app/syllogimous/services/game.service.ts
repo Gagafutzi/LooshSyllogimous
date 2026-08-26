@@ -27,6 +27,7 @@ import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
 import { LS_DONT_SHOW, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_TIMER } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
+import { hasNextClaim, judgeItem, takeSeriesAnswer } from "../utils/answer.utils";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
 import { Router } from "@angular/router";
@@ -690,35 +691,10 @@ export class GameService implements GeneratorContext {
          * and handing back time for a claim nobody answered would make the
          * deadline cheaper the more claims an item has.
          */
-        const series = this.question.series;
-        if (series.length > 1 && value != null
-            && this.question.seriesAt < series.length - 1) {
-            this.question.seriesAnswers[this.question.seriesAt] =
-                value === series[this.question.seriesAt].isValid;
-
-            this.question.seriesAt++;
-            const next = series[this.question.seriesAt];
-            this.question.conclusion = next.text;
-            this.question.isValid = next.isValid;
-            // A picking claim brings its own options and prompt with it; the
-            // premises above them do not move, which is the whole point.
-            if (next.choices) {
-                this.question.choices = [...next.choices];
-                this.question.correctChoice = next.correctChoice ?? -1;
-                this.question.choicePrompt = next.prompt ?? this.question.choicePrompt;
-                this.question.userChoice = -1;
-            }
-            /*
-             * Where the claim brings its own premises, the part being asked
-             * about is what changed and the part that cost the reading did not
-             * — a map's examples, a space's relations. Everything else keeps
-             * every premise it had.
-             */
-            if (next.premises) this.question.premises = [...next.premises];
+        if (value != null && hasNextClaim(this.question)) {
+            const right = takeSeriesAnswer(this.question, value);
             this.gameTimerService.extend(this.seriesBonusSeconds);
-
-            this.flashClaim(
-                this.question.seriesAnswers[this.question.seriesAt - 1] === true);
+            this.flashClaim(right);
             return;
         }
 
@@ -741,23 +717,9 @@ export class GameService implements GeneratorContext {
             !!this.playgroundSettings || this.settingsOverrideService.practice;
 
         const type = this.question.type;
-        /*
-         * The last claim's answer, recorded like the others, and then the item
-         * judged on all of them.
-         *
-         * The verdict and the score are about the set — getting two of three is
-         * not getting the item — while the ability model is handed the claims
-         * separately below, because "answered one of two" and "answered neither"
-         * are different evidence about a player and identical to an AND.
-         */
-        if (series.length) {
-            this.question.seriesAnswers[this.question.seriesAt] =
-                value != null && value === series[this.question.seriesAt].isValid;
-        }
-
-        const isQuestionValid = series.length
-            ? series.every((_, i) => this.question.seriesAnswers[i] === true)
-            : this.question.userAnswer === this.question.isValid;
+        // The last claim recorded like the others, and the item judged on all
+        // of them. The rule is in `answer.utils` so it can be walked in a test.
+        const isQuestionValid = judgeItem(this.question, value);
 
         // Playground doesn't progress tiers
         if (!this.question.playgroundMode) {

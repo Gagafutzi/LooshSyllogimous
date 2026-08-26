@@ -401,4 +401,49 @@ export class Question {
     constructor(type: EnumQuestionType) {
         this.type = type;
     }
+
+    /**
+     * Strip the answering apparatus back to a plain true-or-false.
+     *
+     * For the one mode that reuses another mode's finished question object.
+     * Analogy takes an item from one of five other modes, keeps its premises
+     * and overwrites the conclusion with a claim of its own — and the claim it
+     * writes is always "one pair stands to each other as another pair does",
+     * which is a true-or-false and nothing else.
+     *
+     * Everything about *how the inner item was answered* therefore has to go,
+     * and this is the list of it. Reported from play as a correct answer marked
+     * wrong, and that is exactly what it was: an inner item carrying the
+     * `construct-conclusion` rung left `answerMode` as "construct", so the card
+     * showed the builder from a question the item no longer asked while the
+     * scoring compared "did you build that arrangement" against whether the
+     * analogy held. A right answer was wrong and a wrong one was right.
+     *
+     * The series clearing was here first, for the same reason and found the
+     * same way. It stopped at the series; the rest of the apparatus is the rest
+     * of the same bug, which is why the whole of it lives in one method next to
+     * the fields it clears rather than in the five branches that take over.
+     */
+    askAsTrueOrFalse() {
+        this.answerMode = "boolean";
+
+        this.series = [];
+        this.seriesAt = 0;
+        this.seriesAnswers = [];
+
+        this.choices = [];
+        this.choicePrompt = "";
+        this.correctChoice = -1;
+        this.userChoice = undefined;
+        this.choiceGrids = undefined;
+
+        this.construct = [];
+        this.userConstruct = undefined;
+
+        this.mapTargets = [];
+        this.mapAnswer = [];
+        this.userMap = [];
+
+        return this;
+    }
 }

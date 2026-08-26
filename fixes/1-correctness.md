@@ -91,6 +91,69 @@ built from — and the group forms are read through the shared `readGroups`.
 
 ---
 
+## 1.0c Analogy marked a correct answer wrong — **FIXED**
+
+> Occasionally a correct answer gives me feedback that it was wrong, in
+> multiple conclusions especially transformation I believe.
+
+It was Analogy, and it was conditional rather than occasional.
+
+Analogy has no relation of its own. It takes a finished item from one of five
+other modes, keeps its premises, and **reuses the object** — overwriting the
+conclusion with a claim of its own form: *A is to B as C is to D, alike or
+unlike*. Everything the inner mode had set about how *it* was answered came
+along with the premises.
+
+When the inner item carried the `construct-conclusion` rung, `answerMode` was
+still `"construct"`. So the card showed the construction builder — several
+claims to fill in, which is the "multiple conclusions" in the report — for a
+question the item no longer asked, and `checkConstruction` passed
+"did you build that arrangement" into a scoring line that compared it against
+whether the analogy held. **A right answer was scored wrong and a wrong one
+right.** The same applies to an inherited `"choice"` mode, where the options
+belong to the inner item and the truth to the analogy.
+
+### It had been half-fixed already, which is the interesting part
+
+The series version of exactly this was reported earlier and fixed: an inherited
+series stepped the player through claims about a question the card no longer
+asked. That fix cleared `series`, `seriesAt` and `seriesAnswers` — the three
+fields the symptom named — and left the rest of the same apparatus behind.
+
+So this time the clearing is a method on `Question`, `askAsTrueOrFalse()`,
+sitting next to the fields it clears, and Analogy's takeover is one call to it.
+Analogy's own ladder is `["negation", "meta"]`: it has no construction or
+picking rung and was never meant to serve one.
+
+### Three tests, at three altitudes
+
+`tsc` cannot see any of this — every field is on every `Question`, and a stale
+one is a value, not a type error. `tests/answering.test.ts`:
+
+1. **The apparatus matches the answer mode**, for every mode, both with rungs
+   and without: a boolean item carries no options and nothing to build, a
+   picking item has options and a correct one among them, and — the line that
+   fails on this bug — anything not answered as a judgement has `isValid` true,
+   or a correct answer is scored wrong by construction.
+2. **Every claim of a series is answerable the way the item is**, since
+   advancing swaps a claim's text, truth, options, prompt and premises and
+   nothing else. The two modes whose apparatus the advance cannot swap —
+   construction and matching — may not carry a series at all.
+3. **The report itself, walked.** Answer every claim the way the item says is
+   right; it has to come out right. That one needed a seam: the rule lived
+   inside `checkQuestion`, which also stops clocks, plays sounds and builds the
+   next question, so it moved to `utils/answer.utils.ts` as `hasNextClaim`,
+   `takeSeriesAnswer` and `judgeItem`. With the fix reverted it fails saying
+   *"Analogy: every claim answered right and the item scored wrong"*, which is
+   the report in the test runner's words.
+
+The three catch different things and the bug tripped all three, which is the
+point of having them at different altitudes: the invariant would pass a mode
+that agreed with itself and mis-scored anyway, and the walk would pass a mode
+whose fields were quietly wrong in a way the scoring happened not to read.
+
+---
+
 ## 1.1 A conclusion naming an object no premise states — **FIXED**
 
 **Found: wide premises and meta relations, together.** Eight items in a hundred
