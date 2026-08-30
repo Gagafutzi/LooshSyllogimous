@@ -349,6 +349,13 @@
     color: var(--th-text-dim, #7d8ca6);
 }
 
+/* Which conclusion the steps below are about, on an item that asked several. */
+.review__note {
+    font-size: 0.85rem;
+    color: var(--th-text-dim, #7d8ca6);
+    margin-block-start: 0.2rem;
+}
+
 .review__steps {
     display: grid;
     gap: 0.6rem;

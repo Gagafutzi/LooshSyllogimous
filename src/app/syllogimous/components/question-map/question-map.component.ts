@@ -48,17 +48,46 @@ export class QuestionMapComponent {
      * shape and the same shape shifted two east each fill their own grid and
      * look identical.
      */
+    /**
+     * The last plot built, so an unchanged one is not built again.
+     *
+     * Every caller passes an **object literal** — `[plot]="{ map: g.map, axes:
+     * …, bounds: … }"` — and Angular compares inputs by reference, so a fresh
+     * literal on every change-detection pass reads as a changed input. That is
+     * five bindings, four of them on the game screen and one of those inside an
+     * `*ngFor` over the options, each rebuilding a whole grid on every tick of
+     * the clock, every keypress and every mouse move.
+     *
+     * Reported as the site slowing down and breaking, worst in Axis Maps, which
+     * is exactly the mode that draws a grid *per option* on top of the ones in
+     * its premises.
+     *
+     * The fields inside those literals are stable references off the question,
+     * so comparing the three of them is O(1) and never misses a real change —
+     * at worst it rebuilds when it need not. Fixing it here rather than in five
+     * templates also covers the sixth one somebody writes later.
+     */
+    private lastPlot?: { map: CoordMap; axes?: string[]; bounds?: Array<[number, number]> };
+
     @Input() set plot(p: {
         map: CoordMap;
         axes?: string[];
         bounds?: Array<[number, number]>;
     } | undefined) {
+        const same = !!p && !!this.lastPlot
+            && p.map === this.lastPlot.map
+            && p.axes === this.lastPlot.axes
+            && p.bounds === this.lastPlot.bounds;
+        if (same) return;
+
+        this.lastPlot = p;
         this.chain = [];
         this.groups = [];
         this.map = p ? buildQuestionMap(p.map, p.axes ?? [], p.bounds) : null;
     }
 
     @Input() set question(q: Question | undefined) {
+        this.lastPlot = undefined;
         this.map = null;
         this.chain = [];
         this.groups = [];

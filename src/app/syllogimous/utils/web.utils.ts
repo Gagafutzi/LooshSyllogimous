@@ -252,41 +252,30 @@ export interface WebProperty {
     holds: (w: Web) => boolean;
 }
 
-const pairs = (w: Web) => {
-    const out: Array<[number, number]> = [];
-    for (let i = 0; i < w.n; i++) for (let j = 0; j < w.n; j++) out.push([i, j]);
-    return out;
-};
-
 /**
  * The properties worth asking about.
  *
- * **Reflexivity and symmetry are gone.** Both are answered by looking rather
- * than by reasoning — "does every node have a loop on it" and "is every arrow
- * paired" are counted off the picture in a glance, and a question answered by
- * glancing is not what a mode built on seeing structure should spend a fifth of
- * its items on. Node assignment and shape comparison are the demands here.
+ * **Only transitivity is left, and that is the whole list on purpose.**
  *
- * Their negations stay, and it is worth being straight about why that is not
- * quite consistent: irreflexivity is the same glance as reflexivity. What keeps
- * it is that a *false* item needs a property that fails interestingly, and the
- * negations fail on one node where the positives fail on all of them — so they
- * survive as the easy end of a pool that has to have one, while transitivity
- * carries the other end.
+ * Reflexivity and symmetry went first, being answered by looking rather than by
+ * reasoning: "does every node have a loop on it" and "is every arrow paired"
+ * are counted off the picture in a glance. Their negations were kept on the
+ * argument that a false item needs a property that fails *interestingly*, and
+ * that irreflexivity fails on one node where reflexivity fails on all of them.
+ *
+ * That argument was wrong, and it was reported as wrong from play. The glance
+ * is the same glance. Whether you are checking that every node has a loop or
+ * that no node does, you are scanning for loops — and antisymmetry and
+ * asymmetry are the same scan for paired arrows. Keeping them meant most items
+ * in this form were counting rather than composing, in the one mode built
+ * around seeing structure.
+ *
+ * Transitivity is the property that cannot be glanced: every two-step path has
+ * to be found and then checked for its shortcut, which is composition and is
+ * what the mode is for. A pool of one is not a loss of variety here — the
+ * variety was four ways to ask an easy question and one way to ask a real one.
  */
 export const WEB_PROPERTIES: WebProperty[] = [
-    {
-        id: "irreflexive", name: "Irreflexivity", gloss: "no node points at itself",
-        holds: w => w.adj.every((row, i) => !row[i]),
-    },
-    {
-        id: "antisymmetric", name: "Antisymmetry", gloss: "no two nodes point at each other",
-        holds: w => pairs(w).every(([i, j]) => !(w.adj[i][j] && w.adj[j][i]) || i === j),
-    },
-    {
-        id: "asymmetric", name: "Asymmetry", gloss: "antisymmetry, and no self-arrows either",
-        holds: w => pairs(w).every(([i, j]) => !w.adj[i][j] || !w.adj[j][i]),
-    },
     {
         id: "transitive", name: "Transitivity", gloss: "wherever you can go in two steps, you can go in one",
         holds: w => {

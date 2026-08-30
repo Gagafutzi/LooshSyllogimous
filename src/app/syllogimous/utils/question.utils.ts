@@ -112,18 +112,37 @@ export function getSymbols(settings: Settings) {
         Math.max(1, Math.min(k.pool.length, Math.round((k.weight / total) * budget)))));
 }
 
+/**
+ * Distinct stimuli, and never a hang.
+ *
+ * The rejection loop had no exit: asking for more stimuli than the pool holds
+ * left it drawing indices forever with every one of them already seen, which
+ * freezes the tab rather than throwing. Nothing asks for that many today, but
+ * the pool size depends on which kinds are switched on and their weights in the
+ * mix, so "today" is a property of the settings rather than of the code.
+ *
+ * Capped at what the pool can supply, and the tail is filled by repeating from
+ * the front — a duplicate stimulus makes an item odd, which is a thing you can
+ * see and report. A frozen page is not.
+ */
 export function getRandomSymbols(settings: Settings, length: number) {
     const symbols = getSymbols(settings);
-    const seen = new Set();
-    return Array(length).fill(0)
-        .map(() => {
-            let rnd = Math.floor(Math.random() * symbols.length);
-            while (seen.has(rnd)) {
-                rnd = Math.floor(Math.random() * symbols.length);
-            }
-            seen.add(rnd);
-            return symbols[rnd];
-        });
+    if (!symbols.length) return Array(length).fill("?");
+
+    const wanted = Math.min(length, symbols.length);
+    const seen = new Set<number>();
+    const out: string[] = [];
+
+    while (out.length < wanted) {
+        let rnd = Math.floor(Math.random() * symbols.length);
+        // Bounded: walk on from a taken index rather than redrawing forever.
+        while (seen.has(rnd)) rnd = (rnd + 1) % symbols.length;
+        seen.add(rnd);
+        out.push(symbols[rnd]);
+    }
+
+    while (out.length < length) out.push(out[out.length % wanted]);
+    return out;
 }
 
 export function getMetaReplacer(settings: Settings, choosenPair: Picked<string>, relations: string[], negations: boolean[]) {

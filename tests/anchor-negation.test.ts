@@ -34,6 +34,7 @@ import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/s
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { SPATIAL_VOCAB } from "../src/app/syllogimous/utils/transformations.utils";
+import { ANCHORS } from "../src/app/syllogimous/utils/anchor.utils";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import { RUNG_COST } from "../src/app/syllogimous/utils/ability.utils";
 
@@ -276,4 +277,62 @@ test("an inverted anchor premise is the same fact, said the other way round", ()
     // about whichever one never came up.
     assert(inverted > 40, `only ${inverted} inverted clauses were checked`);
     assert(plainClauses > 40, `only ${plainClauses} plain clauses were checked`);
+});
+
+/**
+ * The frame is not the only route between two things.
+ *
+ * Reported from play: *"Anchor space only creates relations directly involving
+ * the anchors, not between other objects."* Every object was pinned straight to
+ * an anchor, so every path between any two of them was the same two hops —
+ * object to its anchor, anchor to anchor, anchor to object — and no premise
+ * ever related two ordinary objects at all.
+ *
+ * An object may now be stated against an object already placed. The chain is
+ * capped at two hops from an anchor: past that the frame stops being the point
+ * and the item turns into the chain of offsets the composed spaces already are.
+ */
+test("some premises relate two ordinary objects", () => {
+    const anchors = new Set(ANCHORS.map(a => a.token));
+    let items = 0, withObjectPremise = 0, objectPremises = 0, total = 0;
+
+    seeded(4242, () => {
+        for (let rep = 0; rep < 120; rep++) {
+            const q = createAnchorSpace(context("off"), 4 + (rep % 4));
+            items++;
+            let any = false;
+            for (const premise of q.premises) {
+                total++;
+                if ([...anchors].some(a => premise.includes(a))) continue;
+                objectPremises++;
+                any = true;
+            }
+            if (any) withObjectPremise++;
+        }
+    });
+
+    assert(withObjectPremise > items / 2,
+        `only ${withObjectPremise} of ${items} items relate two objects to each other`);
+    assert(objectPremises < total / 2,
+        `${objectPremises} of ${total} premises skip the frame, which stops being a frame`);
+});
+
+/** A chain the reader has to compose is a chain the derivation has to walk. */
+test("the derivation walks every hop back to the frame", () => {
+    // The glyph, not the markup: the steps are compared after stripping tags.
+    const anchors = new Set(ANCHORS.map(a => a.token.replace(/<[^>]*>/g, "")));
+
+    seeded(99, () => {
+        for (let rep = 0; rep < 120; rep++) {
+            const q = createAnchorSpace(context("off"), 5);
+            const strip = (t: string) => t.replace(/<[^>]*>/g, "");
+            const steps = q.explanation.map(strip);
+
+            // Whatever the conclusion names, the derivation reaches an anchor:
+            // an offset chain explained only from its last hop explains the
+            // easy half of exactly the items the chaining made hard.
+            assert(steps.some(s => [...anchors].some(a => s.includes(a))),
+                `a derivation never reached the frame:\n${steps.join("\n")}`);
+        }
+    });
 });

@@ -47,21 +47,54 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
         const names = getRandomSymbols(settings, objectCount);
         const coords = anchorCoordMap();
 
-        // Each object is pinned to one anchor. Recording which anchor lets us
-        // reject pairs that share one — those are comparable directly, without
-        // routing through the frame, which is the skill being trained.
+        /*
+         * Each object is stated against a parent — an anchor, or an object
+         * already placed.
+         *
+         * Every object used to be pinned directly to an anchor, so **no premise
+         * ever related two ordinary objects**, and that was reported from play.
+         * It made the frame the only route between anything: every path was
+         * object → anchor → anchor → object, two hops, the same two hops every
+         * time.
+         *
+         * A parent that is another object adds the step the mode was missing.
+         * The arrangement stays fully determined because a parent is always
+         * placed before its child, and the chains are capped at two hops from
+         * an anchor — past that the item stops being about a frame and becomes
+         * a chain of offsets, which is what the composed spaces already are.
+         *
+         * The first two objects always take anchors, so there is something to
+         * hang the rest on and the queried pair can still be made to route
+         * through the frame.
+         */
+        const parentOf: Record<string, string> = {};
+        const depthOf: Record<string, number> = {};
         const anchorOf: Record<string, string> = {};
         const taken = new Set(Object.values(coords).map(c => c.join(",")));
 
-        for (const n of names) {
-            const anchor = ANCHORS[Math.floor(Math.random() * ANCHORS.length)];
+        for (const [i, n] of names.entries()) {
+            // Only objects shallow enough to keep a chain within two hops.
+            const hosts = names.slice(0, i).filter(h => depthOf[h] < 2);
+            const host = i >= 2 && hosts.length && Math.random() < 0.45
+                ? hosts[Math.floor(Math.random() * hosts.length)]
+                : null;
+
+            const base = host
+                ? { token: host, coord: coords[host] }
+                : ANCHORS[Math.floor(Math.random() * ANCHORS.length)];
+
             let c: number[];
             do {
-                c = anchor.coord.map(v => v + Math.floor(Math.random() * 7) - 3);
+                c = base.coord.map(v => v + Math.floor(Math.random() * 7) - 3);
             } while (taken.has(c.join(",")));
             taken.add(c.join(","));
+
             coords[n] = c;
-            anchorOf[n] = anchor.token;
+            parentOf[n] = base.token;
+            depthOf[n] = host ? depthOf[host] + 1 : 0;
+            // The frame it ultimately hangs from, which is what decides whether
+            // two objects are comparable without going through the anchors.
+            anchorOf[n] = host ? anchorOf[host] : base.token;
         }
 
         const [x, y] = widestPair(names, coords);
@@ -85,7 +118,7 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
         question.bucket = names;
         question.premises = scrambleByFactor(
             names.map((n, i) => describeOffset(
-                anchorOf[n], n, coords[anchorOf[n]], coords[n], SPATIAL_VOCAB, inverted.has(i))),
+                parentOf[n], n, coords[parentOf[n]], coords[n], SPATIAL_VOCAB, inverted.has(i))),
             ctx.settingsOverrideService.scramble);
         /*
          * Counted from the decision rather than from the rendered text, which is
@@ -125,7 +158,7 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
         question.wordCoordMap = { ...coords };
         question.axisNames = ["East-west", "North-south"];
         question.explanation = conclusion.axes.flatMap((ax: number) =>
-            explainAnchor(x, y, anchorOf, coords, ax));
+            explainAnchor(x, y, parentOf, coords, ax));
         return question;
     }
 
@@ -202,27 +235,45 @@ function widestPair(names: string[], at: Record<string, number[]>): [string, str
     return best[Math.floor(Math.random() * best.length)].pair;
 }
 
+/**
+ * Both objects walked back to the frame, one step per premise.
+ *
+ * A parent is an anchor or another object, so a chain can be two steps long —
+ * and a derivation that stated only the last step would explain the easy half
+ * of exactly the items the chaining made hard. Each step is one premise the
+ * reader was given, in the order they have to be composed.
+ */
 function explainAnchor(
     x: string,
     y: string,
-    anchorOf: Record<string, string>,
+    parentOf: Record<string, string>,
     coords: Record<string, number[]>,
     axis: number,
 ): string[] {
     const [pos, neg] = SPATIAL_VOCAB.axisWords[axis];
-    const at = (n: string) => {
-        const a = anchorOf[n];
-        const delta = coords[n][axis] - coords[a][axis];
-        const word = delta === 0 ? "level with" : `${Math.abs(delta)} ${delta > 0 ? pos : neg} of`;
-        return `${subj(n)} sits ${hi(word)} ${subj(a)}, which is at ${hi(String(coords[a][axis]))}`
-            + ` — so ${subj(n)} is at ${hi(String(coords[n][axis]))}`;
+
+    const walk = (n: string): string[] => {
+        // Anchor first, then down to the object, which is the order the reader
+        // has to put the offsets together in.
+        const chain: string[] = [];
+        for (let at = n, guard = 0; parentOf[at] && guard < 8; at = parentOf[at], guard++) {
+            chain.unshift(at);
+        }
+        return chain.map(step => {
+            const p = parentOf[step];
+            const delta = coords[step][axis] - coords[p][axis];
+            const word = delta === 0 ? "level with" : `${Math.abs(delta)} ${delta > 0 ? pos : neg} of`;
+            return `${subj(step)} sits ${hi(word)} ${subj(p)}, which is at`
+                + ` ${hi(String(coords[p][axis]))} — so ${subj(step)} is at`
+                + ` ${hi(String(coords[step][axis]))}`;
+        });
     };
 
     const delta = coords[y][axis] - coords[x][axis];
     return [
         `On this dimension the anchors are what tie the two together.`,
-        at(x),
-        at(y),
+        ...walk(x),
+        ...walk(y),
         `so ${subj(y)} is ${hi(delta > 0 ? pos : neg)} of ${subj(x)}`
         + ` — ${Math.abs(delta)} apart.`,
     ];

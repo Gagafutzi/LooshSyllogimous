@@ -13,7 +13,9 @@
 
 <!-- Verdict flashes over the card, then the next question loads itself. -->
 <div class="verdict-box" *ngIf="game.verdict" [attr.data-verdict]="game.verdict">
-    {{ game.verdict === 'correct' ? 'Correct' : game.verdict === 'wrong' ? 'Wrong' : 'Timeout' }}
+    <span>{{ game.verdict === 'correct' ? 'Correct' : game.verdict === 'wrong' ? 'Wrong' : 'Timeout' }}</span>
+    <!-- One word about three conclusions is a verdict on none of them. -->
+    <small class="verdict-box__note" *ngIf="game.verdictNote">{{ game.verdictNote }}</small>
 </div>
 
 <!--
@@ -24,6 +26,7 @@
 -->
 <div class="review" *ngIf="game.review.length">
     <div class="review__title">How it follows</div>
+    <div class="review__note" *ngIf="game.reviewNote">{{ game.reviewNote }}</div>
     <ol class="review__steps">
         <li *ngFor="let step of game.review" [innerHTML]="step"></li>
     </ol>

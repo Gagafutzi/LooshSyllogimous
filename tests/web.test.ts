@@ -106,12 +106,16 @@ test("a near miss keeps every degree and changes the shape", () => {
 });
 
 /**
- * Reflexivity and symmetry are gone, being answered by looking rather than by
- * reasoning: "does every node have a loop" and "is every arrow paired" are
- * counted off the picture in a glance.
+ * Every glanceable property is gone, not just the positive half.
+ *
+ * Reflexivity and symmetry went first — "does every node have a loop" and "is
+ * every arrow paired" are counted off the picture. Their negations were kept on
+ * the argument that a false item needs a property that fails interestingly.
+ * That was wrong: the glance is the same glance either way, which is what play
+ * reported. Transitivity is the only one that has to be composed.
  */
 test("the glanceable properties are not offered", () => {
-    for (const gone of ["reflexive", "symmetric"]) {
+    for (const gone of ["reflexive", "symmetric", "irreflexive", "antisymmetric", "asymmetric"]) {
         assert(!WEB_PROPERTIES.some(p => p.id === gone),
             `${gone} is still in the pool`);
     }
@@ -122,20 +126,22 @@ test("the glanceable properties are not offered", () => {
 test("the properties agree with worked examples", () => {
     const prop = (id: string) => WEB_PROPERTIES.find(p => p.id === id)!;
 
-    const loops = emptyWeb(3);
-    for (let i = 0; i < 3; i++) loops.adj[i][i] = true;
-    assert(!prop("irreflexive").holds(loops), "all self-arrows counted as irreflexive");
-
-    const mutual = emptyWeb(2);
-    mutual.adj[0][1] = true; mutual.adj[1][0] = true;
-    assert(!prop("antisymmetric").holds(mutual), "a mutual pair counted as antisymmetric");
-    assert(!prop("asymmetric").holds(mutual), "a mutual pair counted as asymmetric");
-
     const chain = emptyWeb(3);
     chain.adj[0][1] = true; chain.adj[1][2] = true;
     assert(!prop("transitive").holds(chain), "a two-step with no shortcut is not transitive");
     chain.adj[0][2] = true;
     assert(prop("transitive").holds(chain), "the shortcut did not make it transitive");
+
+    // A loop and a mutual pair are both transitive, which is the point of
+    // keeping this one: it is not answered by looking for either.
+    const loops = emptyWeb(2);
+    loops.adj[0][0] = true;
+    assert(prop("transitive").holds(loops), "a self-arrow was read as a two-step");
+
+    const mutual = emptyWeb(2);
+    mutual.adj[0][1] = true; mutual.adj[1][0] = true;
+    assert(!prop("transitive").holds(mutual),
+        "a mutual pair has two-steps back to itself and needs the loops");
 });
 
 test("every mapping item has exactly one right answer", () => {

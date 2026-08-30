@@ -19,6 +19,7 @@
          4" is only where they are. -->
     <div class="stages__label small text-muted" [innerHTML]="current?.label"></div>
 
-    <app-question-map
-        [plot]="{ map: current!.map, axes: axisNames, bounds: bounds }"></app-question-map>
+    <!-- A field, not a literal: a fresh object here is a changed input on every
+         change-detection pass, and a rebuilt grid with it. -->
+    <app-question-map [plot]="plot"></app-question-map>
 </div>

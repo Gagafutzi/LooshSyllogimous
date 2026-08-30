@@ -102,6 +102,36 @@ export class GameService implements GeneratorContext {
     /** Shown briefly between questions; null when nothing to announce. */
     verdict: "correct" | "wrong" | "timeout" | null = null;
 
+    /**
+     * A second line under the verdict word, for the items where one word lies.
+     *
+     * Reported from play as *"correct answers in multiple conclusions get the
+     * incorrect feedback"*, and the scoring was right — the wording was not. An
+     * item that asks three conclusions is scored on all three, so answering the
+     * last one correctly can still be told "Wrong", with the claim that was
+     * actually missed two questions back behind a 450ms flash the player was
+     * reading past. One word about a set of three is not feedback about any of
+     * them.
+     *
+     * So the marks come with it: `✗ ✓ ✓` under the word says which conclusion
+     * lost the item, which is the thing the player wanted to know and the only
+     * part they could not reconstruct.
+     */
+    verdictNote = "";
+
+    /** Which claim the derivation is about, when the item asked more than one. */
+    reviewNote = "";
+
+    /**
+     * The pending claim-flash timer.
+     *
+     * Answering the last claim quickly used to have the previous claim's
+     * 450ms timer fire *after* the item verdict went up and blank it, so the
+     * one verdict that matters could vanish on exactly the fast answers that
+     * earned it.
+     */
+    private flashTimer: ReturnType<typeof setTimeout> | null = null;
+
     /** The derivation for an item just got wrong; empty means move straight on. */
     review: string[] = [];
 
@@ -931,12 +961,36 @@ export class GameService implements GeneratorContext {
      */
     private flashClaim(right: boolean) {
         this.verdict = right ? "correct" : "wrong";
+        // Which one this was about, since the next is already on screen behind
+        // it and "Correct" alone could be about either.
+        this.verdictNote =
+            `Conclusion ${this.question.seriesAt} of ${this.question.series.length}`;
         this.playVerdictSound(this.verdict);
-        setTimeout(() => { this.verdict = null; }, 450);
+
+        if (this.flashTimer) clearTimeout(this.flashTimer);
+        this.flashTimer = setTimeout(() => {
+            this.flashTimer = null;
+            this.verdict = null;
+            this.verdictNote = "";
+        }, 450);
     }
 
     private showVerdict(kind: "correct" | "wrong" | "timeout") {
+        // A claim flash still pending would blank this one; it is superseded.
+        if (this.flashTimer) { clearTimeout(this.flashTimer); this.flashTimer = null; }
+
         this.verdict = kind;
+        /*
+         * An item judged on several conclusions says how each went.
+         *
+         * The word is about the set — two of three is not the item — and on its
+         * own it reads as a verdict on the conclusion still on screen, which is
+         * the one the player just answered and may well have got right.
+         */
+        const marks = this.question.series;
+        this.verdictNote = marks.length > 1
+            ? marks.map((_, i) => this.question.seriesAnswers[i] ? "✓" : "✗").join(" ")
+            : "";
         this.playVerdictSound(kind);
         this.prepareNext();
 
@@ -954,8 +1008,22 @@ export class GameService implements GeneratorContext {
         const derivation = reviewSteps(kind, this.question.explanation);
 
         // Long enough to register, short enough not to feel like a screen.
+        /*
+         * Which claim the derivation is about.
+         *
+         * It is always the mode's own conclusion — the first one — because that
+         * is the claim the mode built and explained. On an item that asked
+         * three, a derivation about the first while the third is what went
+         * wrong is a confident answer to a question nobody asked, so it says
+         * which one it is answering.
+         */
+        this.reviewNote = this.question.series.length > 1
+            ? "This explains the first conclusion of the item."
+            : "";
+
         setTimeout(() => {
             this.verdict = null;
+            this.verdictNote = "";
             if (derivation.length) { this.review = derivation; return; }
             this.play(true, true);
         }, kind === "correct" ? 650 : 900);

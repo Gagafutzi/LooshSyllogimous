@@ -414,3 +414,47 @@ a picture stimulus *ships* as an image. That last part matters: the SVG output
 is a legitimate fallback for having no canvas, so a test that read the fallback
 would be checking the one path that never reaches a player, which is how this
 survived being written down.
+
+---
+
+## 4.y The grids were rebuilt on every change-detection pass — **FIXED**
+
+> The website often slows down or completely breaks especially with the axis
+> mode.
+
+Not the generators. Every mode builds an item in under 8ms and Axis Maps in
+under 2ms, measured across 40 draws each at five premise counts. The cost was in
+the drawing, and it was paid over and over.
+
+`app-question-map` takes a `plot` input, and **all five callers pass an object
+literal**:
+
+```html
+<app-question-map [plot]="{ map: g.map, axes: game.question.gridAxes, … }">
+```
+
+Angular compares inputs by reference, so a fresh literal every change-detection
+pass reads as a changed input — and the setter rebuilds the whole grid through
+`buildQuestionMap`. Four of the five are on the game screen and one of those is
+inside an `*ngFor` over the options, so the work is *grids × options*, redone on
+every tick of the clock, every keypress and every mouse move.
+
+Axis Maps is the worst case and that is not a coincidence: it is the mode that
+draws a grid per option on top of the ones in its premises.
+
+`StagesComponent` had the same fault twice over — its `bounds` was a *getter*
+returning a fresh array, so even a stable literal would have looked new.
+
+**Fix.** The setter compares the three fields by reference and returns early
+when nothing moved; they are stable references off the question, so it is O(1)
+and can only ever rebuild more often than needed, never less. Fixed there rather
+than in five templates, which also covers the sixth one somebody writes later.
+`bounds` and the plot object became fields recomputed when the step changes.
+
+**Also removed: an unbounded loop that could freeze the tab.**
+`getRandomSymbols` drew random indices and rejected the ones already seen, with
+no exit when more stimuli were asked for than the pool holds. Nothing asks for
+that many today — but the pool size depends on which stimulus kinds are on and
+their weights in the mix, so "today" was a property of the settings rather than
+of the code. It is capped now, and a short pool repeats rather than hanging: a
+duplicate stimulus is a thing you can see and report, and a frozen page is not.

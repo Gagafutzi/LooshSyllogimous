@@ -709,6 +709,17 @@ app-card-dropdown {
     animation: verdict-in .18s ease-out;
 }
 
+/* The per-conclusion marks: quieter than the word, and never wider than it. */
+.verdict-box__note {
+    display: block;
+    margin-block-start: 0.15rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: .28em;
+    opacity: 0.85;
+    text-transform: none;
+}
+
 .verdict-box[data-verdict="correct"] {
     color: var(--th-ok);
     box-shadow: 0 2px calc(var(--th-glow) * 2.4) color-mix(in srgb, var(--th-ok) 40%, transparent);
