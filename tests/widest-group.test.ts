@@ -56,14 +56,35 @@ const spreads = (rows: number[][]) =>
         return Math.max(...values) - Math.min(...values);
     });
 
+/** Every `subj(...)` token on a line, markup stripped, in order. */
+const subjectsOf = (line: string) =>
+    [...line.matchAll(/<span class="subject">([\s\S]*?)<\/span>/g)]
+        .map(m => m[1].replace(/<[^>]+>/g, "").trim())
+        .filter(t => t.length > 0);
+
+/**
+ * Positions off the rendered premises, **resolving what they are relative to.**
+ *
+ * Not every member is stated against the marker any more: one per group at
+ * least is stated against another member, which has to be resolved before it
+ * can be ranked. That is the whole of the change, so a solver that kept reading
+ * every line as an absolute position would be agreeing with the generator by
+ * sharing its mistake — it is the reason three tests in this file failed on the
+ * change rather than passing quietly, and the reason they are worth having.
+ *
+ * A line's first subject is the object being placed and its last is what it is
+ * placed against. A reference naming a member already read is a displacement
+ * from that member; anything else is the marker, and the marker is the origin.
+ */
 function readGroups(premises: string[]): number[][][] {
     const scales = axesForDimensions(7);
     const groups: number[][][] = [];
+    let placed: Record<string, number[]> = {};
 
     for (const line of premises) {
-        if (!line.includes('class="subject"')) { groups.push([]); continue; }
+        if (!line.includes('class="subject"')) { groups.push([]); placed = {}; continue; }
 
-        const coord = Array(7).fill(0);
+        const delta = Array(7).fill(0);
         for (const [, slot, size, word] of line.matchAll(
             /<span class="relation dim dim-(\d+)">(\d+) ([^<]+)<\/span>/g)) {
             const axis = Number(slot) - 1;
@@ -71,8 +92,16 @@ function readGroups(premises: string[]): number[][][] {
             const sign = word === scale.direction[0] ? 1
                 : word === scale.direction[1] ? -1 : 0;
             assert(sign !== 0, `"${word}" is not a direction of ${scale.name}`);
-            coord[axis] = sign * Number(size);
+            delta[axis] = sign * Number(size);
         }
+
+        const names = subjectsOf(line);
+        const self = names[0];
+        const against = names[names.length - 1];
+        const base = placed[against] ?? Array(7).fill(0);
+
+        const coord = delta.map((v, d) => v + base[d]);
+        placed[self] = coord;
         groups[groups.length - 1].push(coord);
     }
     return groups.filter(g => g.length > 0);
@@ -221,9 +250,17 @@ test("every group is stated against the same marker", () => {
              * nested markup rather than a bare word -- which is exactly why the
              * markers are *visual* in this family of modes.
              */
+            /*
+             * The *markers*, which is not every reference any more: a member
+             * may now be placed against another member of its own group, and
+             * the point this test defends is that there is one marker for the
+             * whole item rather than one per group.
+             */
+            const members = new Set(q.buckets.flat().map(n => n.replace(/<[^>]+>/g, "").trim()));
             const markers = new Set(q.premises
                 .filter(p => p.includes("relative to"))
-                .map(p => /relative to (.+)$/.exec(p)?.[1]));
+                .map(p => /relative to (.+)$/.exec(p)?.[1])
+                .filter(ref => !!ref && !members.has(ref!.replace(/<[^>]+>/g, "").trim())));
             equal(markers.size, 1,
                 `groups are stated against ${markers.size} different markers`);
 
@@ -308,4 +345,68 @@ test("ranking forces enough groups to be worth ranking", () => {
 
     equal(built, 15, "ranked items could not be built");
     assert(groups >= 3, `ranking was offered over ${groups} groups`);
+});
+
+/**
+ * Not every member against the marker.
+ *
+ * Reported from play: *"the way it is currently done it's a counting task
+ * without any relational integration"* — and it was. Every member was stated
+ * against the same point, so a group's spread was a column of numbers to scan
+ * for a maximum and a minimum. Nothing had to be composed before it could be
+ * compared, because every position arrived finished.
+ */
+test("every group states at least one member against another member", () => {
+    let groups = 0, chained = 0, lines = 0, relative = 0;
+
+    seeded(2718, () => {
+        const ctx = context(FULL);
+        for (let rep = 0; rep < 60; rep++) {
+            const q = createWidestGroup(ctx, 4 + (rep % 3));
+            const members = new Set(q.buckets.flat().map(n => n.replace(/<[^>]+>/g, "").trim()));
+
+            let inGroup = 0, chainedHere = 0;
+            const close = () => {
+                if (!inGroup) return;
+                groups++;
+                if (chainedHere) chained++;
+                inGroup = 0; chainedHere = 0;
+            };
+
+            for (const line of q.premises) {
+                if (!line.includes('class="subject"')) { close(); continue; }
+                inGroup++; lines++;
+                const names = subjectsOf(line);
+                if (members.has(names[names.length - 1])) { chainedHere++; relative++; }
+            }
+            close();
+        }
+    });
+
+    equal(chained, groups, `${groups - chained} of ${groups} groups state every member against the marker`);
+    assert(relative < lines / 2,
+        `${relative} of ${lines} placements skip the marker, which stops it being a shared frame`);
+});
+
+/** A chain nobody can resolve is a group with no readable spread. */
+test("every member resolves against the marker in the end", () => {
+    seeded(31415, () => {
+        const ctx = context(FULL);
+        for (let rep = 0; rep < 60; rep++) {
+            const q = createWidestGroup(ctx, 5);
+            const members = new Set(q.buckets.flat().map(n => n.replace(/<[^>]+>/g, "").trim()));
+
+            let seen = new Set<string>();
+            for (const line of q.premises) {
+                if (!line.includes('class="subject"')) { seen = new Set(); continue; }
+                const names = subjectsOf(line);
+                const against = names[names.length - 1];
+                if (members.has(against)) {
+                    assert(seen.has(against),
+                        `a member is placed against ${against}, which has not been placed yet`);
+                }
+                seen.add(names[0]);
+            }
+        }
+    });
 });

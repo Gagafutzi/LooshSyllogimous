@@ -216,7 +216,8 @@ export function createWidestGroup(ctx: GeneratorContext, numOfPremises: number):
         question.bucket = names;
         question.buckets = order.map(i => built[i].members.map(m => m.name));
         question.setup = [
-            `Everything is placed against ${anchor}, which never moves.`
+            `Positions are given against ${anchor}, which never moves, or against`
+            + ` another member of the same group.`
             + ` A direction nobody mentions is one nothing differs on.`,
             `A group's <b>spread</b> on a direction is the distance between its two`
             + ` outermost members on it. Score a group by its <b>widest</b>`
@@ -233,10 +234,50 @@ export function createWidestGroup(ctx: GeneratorContext, numOfPremises: number):
          * Members that differ on two axes of six read as two facts, not six,
          * so a wide space stays wide without every line naming every direction.
          */
-        question.premises = order.flatMap((i, k) => [
-            hi(`Group ${k + 1}`),
-            ...built[i].members.map(m => statePosition(m.name, anchor, m.coord, scales)),
-        ]);
+        /*
+         * Not every member against the marker.
+         *
+         * Stating all of them against the same point made a group's spread a
+         * column of numbers to scan for a maximum and a minimum — reported from
+         * play as *"a counting task without any relational integration"*, and
+         * that is what it was: nothing had to be composed before it could be
+         * compared, because every position arrived finished.
+         *
+         * A member stated against another member of its own group has to be
+         * resolved before it can be ranked, and it is the *ranking* that the
+         * mode is about. At least one per group, so the property is there
+         * rather than likely, and chains capped at two hops from the marker —
+         * past that the item stops being about spread and becomes an offset
+         * chain, which is what the composed spaces already are.
+         *
+         * Within a group only. A member placed against something in another
+         * group would make the groups an arbitrary label on one arrangement,
+         * where the whole question is which of them is widest.
+         */
+        question.premises = order.flatMap((i, k) => {
+            const ms = built[i].members;
+            const depth: number[] = [];
+            // One member is always chained, whatever the coin says.
+            const mustChain = ms.length >= 2 ? 1 + Math.floor(Math.random() * (ms.length - 1)) : -1;
+
+            return [
+                hi(`Group ${k + 1}`),
+                ...ms.map((m, mi) => {
+                    const hosts = ms.slice(0, mi).filter((_, hostIdx) => depth[hostIdx] < 2);
+                    const chain = hosts.length && (mi === mustChain || Math.random() < 0.45);
+
+                    if (!chain) {
+                        depth[mi] = 0;
+                        return statePosition(m.name, anchor, m.coord, scales);
+                    }
+
+                    const host = pick(hosts);
+                    depth[mi] = depth[ms.indexOf(host)] + 1;
+                    return statePosition(m.name, host.name,
+                        m.coord.map((v, d) => v - host.coord[d]), scales);
+                }),
+            ];
+        });
 
         /*
          * Naming the top group needs only the top group's score. Ordering them
@@ -283,11 +324,25 @@ export function createWidestGroup(ctx: GeneratorContext, numOfPremises: number):
         question.conclusion = "";
         question.isValid = true;
 
+        /*
+         * Which two members the spread is between, and where they resolved to.
+         *
+         * The spread alone was enough while every position was stated outright.
+         * Now that some are stated against each other, a reader who got the
+         * item wrong most likely resolved one member to the wrong place — and a
+         * derivation that opens with the finished spread explains the half they
+         * already had.
+         */
         question.explanation = order.map((i, k) => {
             const s = actual[i];
             const w = s.indexOf(Math.max(...s));
+            const ms = built[i].members;
+            const lo = ms.reduce((a, b) => (a.coord[w] <= b.coord[w] ? a : b));
+            const hi_ = ms.reduce((a, b) => (a.coord[w] >= b.coord[w] ? a : b));
             return `Group ${k + 1} is widest on ${hi(axes[w].name, dimClass(dimSlot(w)))}`
-                + `, spanning ${hi(String(s[w]))}.`;
+                + `, spanning ${hi(String(s[w]))}`
+                + ` — from ${subj(lo.name)} to ${subj(hi_.name)}, once every position`
+                + ` is resolved against ${anchor}.`;
         }).concat([
             `so the widest is ${hi(`Group ${order.indexOf(winner) + 1}`)}`
             + `, by ${hi(String(best - Math.max(...measured.filter((_, i) => i !== winner))))}.`,

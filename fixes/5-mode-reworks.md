@@ -337,3 +337,62 @@ turn; and — the one that matters — no invariance item is ever asked about a 
 that moved differently. Removing the guard fails that last test with the item it
 would have served: *"after the turns, Man is 1 corner clockwise from Cashier"*,
 asked about a pair one of which had stepped an extra corner anticlockwise.
+
+---
+
+## 5.y Widest Group: not every member against the marker — **BUILT**
+
+> Made widest group so that not all elements have a direct relation to the
+> center; the way it is currently done it's a counting task without any
+> relational integration.
+
+Accurate, and the premise-building line said it in one expression: every member
+was `statePosition(m.name, anchor, m.coord, scales)`. So a group's spread on a
+direction was a column of finished numbers to scan for a maximum and a minimum.
+Nothing had to be *composed* before it could be compared.
+
+That is a real gap against what the mode's own header claims for it — "the
+per-dimension work cannot be finished before the cross-group work starts" was
+true of the comparison between groups and false of everything below it.
+
+**At least one member per group is now stated against another member of that
+group.** It has to be resolved before it can be ranked, and the ranking is what
+the mode is about. Chains are capped at two hops from the marker: past that the
+item stops being about spread and becomes an offset chain, which the composed
+spaces already are. Within a group only — a member placed against something in
+another group would make the groups an arbitrary label on one arrangement, when
+the whole question is which of them is widest.
+
+`statePosition` already took an arbitrary reference; the generator had simply
+never passed anything but the marker.
+
+### The tests failed, which is what they were for
+
+Three existing tests broke on this and were right to. `tests/widest-group.test.ts`
+carries a **solver** that reads the rendered premises the way a player does and
+recomputes the answer — and it was reading every line as an absolute position,
+so a chained member came out at its displacement rather than its place. It
+reported the wrong winner, a group tied with itself, and the wrong margin.
+
+Teaching the solver to resolve chains is what turns this from an assertion into
+a verification: it now takes each line's first subject as the object and its
+last as the reference, resolves a reference naming an already-placed member, and
+agrees with the generator on the winner, the uniqueness of each group's widest,
+and the margin. A solver that had kept the old assumption would have agreed with
+the generator by sharing its mistake.
+
+Two new tests: every group states at least one member against another member
+(the property, rather than the likelihood), and every chained member is placed
+against one that has already been placed — a chain nobody can resolve is a group
+with no readable spread.
+
+**The marker test was also right to fail** and its intent survives: it defends
+"one marker for the whole item, not one per group", so it now ignores
+member-relative lines rather than counting them as markers.
+
+The setup line no longer says everything is placed against the marker, because
+it is not. And the derivation names the two edge members and says their spread
+is read "once every position is resolved against the marker" — with chains in
+the premises, a reader who got the item wrong most likely resolved one member to
+the wrong place, and a derivation opening with the finished spread explains the
+half they already had.
