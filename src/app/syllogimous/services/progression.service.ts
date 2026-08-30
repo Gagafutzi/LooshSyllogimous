@@ -15,6 +15,7 @@ import {
     DepthFit, DepthReport, Trial, depthReport, fitDepthCoefficient, fitRungCosts,
     fitWidthCoefficient, referenceSecondsFrom,
 } from "../utils/ability.utils";
+import { MODE_SCALE } from "../utils/calibration.utils";
 
 /**
  * One ability estimate per mode, and everything else derived from it.
@@ -162,6 +163,43 @@ const DEFAULT_SETTINGS: ProgressionSettings = {
     pauseWhenTired: true,
     perClaimCredit: true,
 };
+
+/**
+ * Where length stops being difficulty, per mode.
+ *
+ * `MODE_SCALE.ceiling` is documented as "the highest level at which the mode
+ * still tells you anything — past it, extra premises add length rather than
+ * difficulty", and it says *"above a mode's ceiling it simply stops being
+ * offered"*. That was true of the placement test, which is the only thing that
+ * ever read it. In play nothing did, so a mode could be asked for a premise
+ * count far past the point its own scale says it measures anything.
+ *
+ * From a real account: Graph Matching served at **15 premises** — level 18 on a
+ * scale whose ceiling is 9. It was answered wrong, as a fifteen-relation
+ * counting exercise would be, and the estimate for that mode fell to 3.3, which
+ * is two premises and ten seconds. Both extremes of "weirdly easy or difficult"
+ * came out of the same gap, and they came out of it in that order.
+ *
+ * **Only where the mode's own maximum is not already the tighter statement, and
+ * only where the cap leaves a usable range.** A mode whose ceiling divided by
+ * its weight lands on its own floor is not telling us its length cap — it is
+ * telling us its ceiling and its weight disagree with its premise bounds, which
+ * is a calibration question and not something to enforce silently. Those modes
+ * are left exactly as they were.
+ */
+export function lengthCapFor(
+    type: EnumQuestionType,
+    params: { minNumOfPremises: number; maxNumOfPremises: number },
+): number {
+    const scale = MODE_SCALE[type];
+    if (!scale?.ceiling || !scale.weight) return params.maxNumOfPremises;
+
+    const cap = Math.floor(scale.ceiling / scale.weight);
+    // Two configurations at least, or the cap is a pin and says nothing.
+    if (cap < params.minNumOfPremises + 2) return params.maxNumOfPremises;
+
+    return Math.min(params.maxNumOfPremises, cap);
+}
 
 @Injectable({ providedIn: "root" })
 export class ProgressionService {
@@ -648,7 +686,7 @@ export class ProgressionService {
         const ladder = ladderFor(type);
         const opts = {
             minPremises: params.minNumOfPremises,
-            maxPremises: params.maxNumOfPremises,
+            maxPremises: lengthCapFor(type, params),
             ladder,
             target: 0,
             structureBefore: this.config.structureBefore,

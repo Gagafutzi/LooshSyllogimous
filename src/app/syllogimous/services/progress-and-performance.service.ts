@@ -5,6 +5,7 @@ import {
 } from "../constants/local-storage.constants";
 import { EnumQuestionType } from "../constants/question.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
+import { MAX_ITEM_SECONDS } from "../utils/session.utils";
 
 export const DEFAULT_DAILY_GOAL = 30;
 export const DEFAULT_WEEKLY_GOAL = 120;
@@ -44,10 +45,29 @@ export class ProgressAndPerformanceService {
         return JSON.parse(lsDailyProgress) as Record<string, number>;
     }
 
+    /**
+     * Add one item's time to the day, and never more than an item can be worth.
+     *
+     * Reported from play: *"sometimes the program counts far too much time if
+     * you have the timer off and you are afk"*. With no deadline nothing bounds
+     * the gap between an item being built and being answered, so a tab left
+     * open goes in whole. In one real export a single item carried **8,938
+     * seconds** — 149 minutes of a 207-minute day, and a 180-minute daily goal
+     * met almost entirely by being away from the keyboard.
+     *
+     * The day and week summary cards had already met this and clamped at five
+     * minutes an item. This is the same clamp, from the same constant, so the
+     * two numbers cannot disagree: one screen saying three hours and another
+     * saying forty minutes about the same day is worse than either being wrong.
+     *
+     * The history keeps the real elapsed time. What is capped is what gets
+     * *counted*, which is the honest split — the raw number is a record, and
+     * "time on task" is a claim.
+     */
     setDailyProgress(isoDate: string, ms: number) {
         const dailyProgress = this.getDailyProgress();
         dailyProgress[isoDate] = dailyProgress[isoDate] || 0;
-        dailyProgress[isoDate] += ms;
+        dailyProgress[isoDate] += Math.max(0, Math.min(ms, MAX_ITEM_SECONDS * 1000));
         localStorage.setItem(LS_DAILY_PROGRESS, JSON.stringify(dailyProgress));
     }
 

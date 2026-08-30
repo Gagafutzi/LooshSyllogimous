@@ -298,3 +298,69 @@ worth doing properly with a renderer if it is wanted.
 
 German terms, because the exam is in German and half the value of a vocabulary
 list is recognising the word when it turns up in a question stem.
+
+---
+
+## 6.6 Two numbers read off a real account — **FIXED**
+
+An export and a history CSV from a played account, which settled a question left
+open in §6.x and produced a second finding neither of us was looking for.
+
+### The premise count was never held to the mode's own ceiling
+
+`MODE_SCALE.ceiling` is documented as *"the highest level at which the mode
+still tells you anything. Past it, extra premises add length rather than
+difficulty"* — and it says outright that above it a mode *"simply stops being
+offered"*. The placement test is the only thing that ever read it. **In play,
+nothing did.**
+
+What that produced, from the account:
+
+| mode | served | that is level | ceiling |
+| --- | --- | --- | --- |
+| Graph Matching | 15 premises | 18.0 | 9 |
+| Anchor Space v2 | up to 20 allowed | 50.0 | 20 |
+| Distinction | 8 premises | 8.0 | 6 |
+
+The Graph Matching row is the whole story. Fifteen relations is a *counting*
+exercise, not a reasoning one; it was answered wrong, repeatedly, and the
+estimate for that mode fell to **3.3** — which is two premises answered in ten
+seconds. Both halves of *"the system gives me weirdly easy or difficult tasks"*
+came out of the same gap, in that order, and the swing between modes in one
+session is now about ten levels: Graph Matching at 3.3 beside Anchor Space v2 at
+13.2.
+
+**The fix** caps the served premise count at `ceiling / weight`, applied in
+`configFor` where the bounds are assembled. Two conditions on it:
+
+- Never above the mode's own `maxNumOfPremises`, which is the author's tighter
+  statement where there is one.
+- Never where the cap would land within one premise of the mode's floor. A
+  ceiling that divides down onto the floor is not a length cap; it is a mode
+  whose ceiling, weight and premise bounds disagree, and that is a calibration
+  question rather than something to enforce silently. Six modes are skipped on
+  this rule — Axis Maps, Knights and Knaves, Nested Spaces, Infer the Relation,
+  Oddest Relation, Transformation Matching — and they are worth a look.
+
+**What it costs, stated plainly.** A player past a capped mode's ceiling now
+gets easy items from it, because the other half of what `MODE_SCALE` describes —
+*"it simply stops being offered and the harder modes carry the run"* — is not
+built. The draw does not yet drop a mode nobody can be stretched by.
+`tests/progression.test.ts` says so where it used to assert the opposite.
+
+### Time away from the keyboard counted as time on task
+
+> Sometimes the program counts far too much time if you have timer off and you
+> are afk.
+
+With no deadline, nothing bounds the gap between an item being built and being
+answered. Ten items in the export ran past five minutes; the worst carried
+**8,938 seconds** — 149 minutes of a 207-minute day, against a 180-minute daily
+goal that was therefore met almost entirely by a tab left open.
+
+The day and week summary cards had already met this and clamp at five minutes an
+item. `setDailyProgress` did not, so the two screens disagreed by hours about
+the same day. Same clamp now, from the same exported constant.
+
+The history keeps the real elapsed time. What is capped is what gets *counted* —
+the raw number is a record, and "time on task" is a claim.

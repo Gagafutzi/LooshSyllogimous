@@ -137,8 +137,11 @@ function tallyModes(items: AnsweredItem[]): ModeTally[] {
  * the middle of a session does not become time on task. Clamped at five minutes
  * an item: leaving the tab open over lunch is not two hours of training, and a
  * summary that claimed it would be the least trustworthy number on the card.
+ *
+ * The daily goal counts the same item and used to count it *unclamped*, which
+ * is how the two came to disagree by hours — see `LOGGED_ITEM_MS`.
  */
-const MAX_ITEM_SECONDS = 300;
+export const MAX_ITEM_SECONDS = 300;
 
 function timeOnTask(items: AnsweredItem[]): number {
     let total = 0;

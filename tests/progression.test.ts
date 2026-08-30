@@ -16,7 +16,7 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { RUNG_LADDERS, ladderFor, settableRungsFor } from "../src/app/syllogimous/utils/progression.utils";
 import { ORDERED_QUESTION_TYPES } from "../src/app/syllogimous/constants/game.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
-import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
+import { ProgressionService, lengthCapFor } from "../src/app/syllogimous/services/progression.service";
 
 const opts = (target: number, untimed = false) => ({
     minPremises: 2,
@@ -164,7 +164,21 @@ test("a mode only serves easy items when it has actually run out", () => {
         if (outcome.served <= 0.95) continue;
 
         const ladder = ladderFor(type);
-        const ceiling = QUESTION_TYPE_SETTING_PARAMS[type].maxNumOfPremises;
+        /*
+         * The mode's *length cap*, not its raw premise maximum.
+         *
+         * `MODE_SCALE.ceiling` says where extra premises stop being difficulty
+         * and start being length, and the served count is capped there now — so
+         * a mode sitting at that cap with every rung claimed really has nothing
+         * left, which is what this test means by exhausted.
+         *
+         * It follows that a player past a capped mode's ceiling gets easy items
+         * from it, and that is the trade `MODE_SCALE` already describes: "above
+         * a mode's ceiling it simply stops being offered and the harder modes
+         * carry the run". The *stops being offered* half is not built — the
+         * draw does not yet drop a mode nobody can be stretched by.
+         */
+        const ceiling = lengthCapFor(type, QUESTION_TYPE_SETTING_PARAMS[type]);
         const exhausted = outcome.c.rungs >= ladder.length && outcome.c.premises >= ceiling;
 
         if (!exhausted) {
