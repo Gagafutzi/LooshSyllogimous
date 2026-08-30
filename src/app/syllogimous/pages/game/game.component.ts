@@ -284,6 +284,25 @@ export class GameComponent {
     activeSlide = "";
 
     /** How the skip key reads, for the button that says so. */
+    /**
+     * The keys, said once and quietly, for the mode that removed the buttons.
+     *
+     * Zen mode is about having less on the card, not about guessing — a screen
+     * with no controls and no hint is a screen you cannot start. Muted and one
+     * line, so it is information rather than a control.
+     */
+    get zenKeyHint(): string {
+        const b = this.keys.binds;
+        if (this.game.question.answerMode === "boolean") {
+            return `${keyLabel(b.answerTrue)} true · ${keyLabel(b.answerFalse)} false`;
+        }
+        if (this.game.question.answerMode === "choice") {
+            return `${keyLabel(b.answerTrue)}${keyLabel(b.answerFalse)} choose`
+                + ` · ${keyLabel(b.submit)} answer`;
+        }
+        return "";
+    }
+
     get skipKeyLabel() {
         const key = this.keys.binds.submit;
         return key ? keyLabel(key) : "";
@@ -444,6 +463,9 @@ export class GameComponent {
     private resetPicks() {
         this.mapPicks = [];
         this.webRedraw = 0;
+        // A cursor left on the last item's third option would be pointing at
+        // an answer to a question nobody has read yet.
+        this.choiceFocus = -1;
         this.picks = blankPicks(this.game.question.construct);
         this.armCarousel();
     }
@@ -510,6 +532,32 @@ export class GameComponent {
      * Number keys still answer a choice item directly: four buttons is more
      * hunting than two, and 1–4 is faster than any binding could be.
      */
+    /**
+     * Which option the arrow keys are sitting on, in zen mode.
+     *
+     * -1 until the first arrow press, so an item does not open with an answer
+     * already half-given — the cursor appearing is what says the keys are live,
+     * and a highlight that is there before you touch anything reads as a
+     * suggestion.
+     */
+    choiceFocus = -1;
+
+    /** Options in the order they are drawn, whichever of the two forms is up. */
+    private get choiceCount(): number {
+        const q = this.game.question;
+        return q.choiceGrids?.length || q.choices.length;
+    }
+
+    private moveChoice(by: number) {
+        const n = this.choiceCount;
+        if (!n) return;
+        // Wraps, because a cursor that stops at the end makes you count to know
+        // which way is shorter — and the whole point is not having to look.
+        this.choiceFocus = this.choiceFocus < 0
+            ? (by > 0 ? 0 : n - 1)
+            : (this.choiceFocus + by + n) % n;
+    }
+
     @HostListener("document:keydown", ["$event"])
     onKey(event: KeyboardEvent) {
         // Never while a verdict is up: a late keypress would answer the next
@@ -531,10 +579,34 @@ export class GameComponent {
 
         if (this.game.question.answerMode === "choice") {
             const index = Number(event.key) - 1;
-            if (Number.isInteger(index) && index >= 0 && index < this.game.question.choices.length) {
+            if (Number.isInteger(index) && index >= 0 && index < this.choiceCount) {
                 event.preventDefault();
                 this.game.checkChoice(index);
                 return;
+            }
+
+            /*
+             * Zen mode answers a picking item from the arrows too.
+             *
+             * Up and down move the cursor rather than left and right, because
+             * left and right already page the carousel — and an item can be
+             * both a carousel and a picking item, so the two must not fight.
+             * `submit` commits, which is the same key that dismisses an
+             * explanation elsewhere: in zen mode there is no explanation to
+             * dismiss, so it is free and it is where the thumb already is.
+             */
+            if (this.game.zenMode) {
+                const action = this.keys.actionFor(event);
+                if (action === "answerTrue" || action === "answerFalse") {
+                    event.preventDefault();
+                    this.moveChoice(action === "answerFalse" ? 1 : -1);
+                    return;
+                }
+                if (action === "submit" && this.choiceFocus >= 0) {
+                    event.preventDefault();
+                    this.game.checkChoice(this.choiceFocus);
+                    return;
+                }
             }
         }
 

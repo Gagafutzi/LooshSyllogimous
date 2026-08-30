@@ -72,6 +72,22 @@
     line-height: 1.25;
 }
 
+/* The arrow cursor in zen mode: the only thing saying where a keypress lands,
+   so it has to read at a glance without shouting. */
+.choice--focus {
+    border-color: var(--th-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--th-accent) 45%, transparent);
+}
+
+/* One muted line of keys, in the mode that took the buttons away. */
+.zen-keys {
+    text-align: center;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    color: var(--th-text-dim, #7d8ca6);
+    opacity: 0.75;
+}
+
 .choice__key {
     flex-shrink: 0;
     display: grid;

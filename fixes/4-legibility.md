@@ -458,3 +458,45 @@ that many today — but the pool size depends on which stimulus kinds are on and
 their weights in the mix, so "today" was a property of the settings rather than
 of the code. It is capped now, and a short pool repeats rather than hanging: a
 duplicate stimulus is a thing you can see and report, and a frozen page is not.
+
+---
+
+## 4.z Zen mode — **BUILT**
+
+> Make a zen mode without true false buttons and no explanations where all can
+> be controlled with arrow keys. The options should also be controlled with the
+> arrow keys.
+
+**Display & timer → Zen mode.** One switch, because it is one way of playing
+rather than three settings that happen to combine.
+
+- **No answer buttons.** They swapped sides between questions on purpose, which
+  already made the mouse the slow way to play them — you cannot aim before you
+  have read. Removing them takes the last thing off the card that is not the
+  question.
+- **No explanation.** It *overrides* the "Explain wrong answers" switch rather
+  than writing to it, so turning zen off gives back whatever was set before
+  rather than whatever zen left behind. That is the part with a test.
+- **The options on the arrows.** Up and down move a cursor through them and
+  `submit` — Space by default — answers.
+
+### Two decisions inside that
+
+**Up and down move the cursor, not left and right.** Left and right already page
+the carousel, and an item can be a carousel *and* a picking item, so the two
+would fight over the same keys on exactly the items where both matter. Up and
+down are free on a picking item, since there is no true or false to press.
+
+**The cursor starts nowhere.** `choiceFocus` is −1 until the first arrow press,
+so an item does not open with an answer already half-given — a highlight that is
+there before you touch anything reads as a suggestion. It wraps once it exists,
+because a cursor that stops at the end makes you count to know which way is
+shorter, and not having to look is the point.
+
+Number keys still answer directly, and now work on the grid-option items too —
+they were bounded by `choices.length`, which is empty when the options are
+drawings. The carousel arrows are untouched.
+
+**One line of key hints stays**, muted, under the card. Zen mode is about having
+less to look at, not about guessing: a screen with no controls and no hint is a
+screen you cannot start.

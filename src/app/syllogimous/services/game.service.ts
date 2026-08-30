@@ -25,7 +25,7 @@ import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils"
 import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
-import { LS_DONT_SHOW, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_TIMER } from "../constants/local-storage.constants";
+import { LS_DONT_SHOW, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 import { hasNextClaim, judgeItem, takeSeriesAnswer } from "../utils/answer.utils";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
@@ -952,6 +952,29 @@ export class GameService implements GeneratorContext {
     setExplanationsShown(value: boolean) { setExplanationsOn(value); }
 
     /**
+     * Zen mode: the screen stops offering, and the keyboard does everything.
+     *
+     * No answer buttons, no explanation panel, and the options answered from
+     * the arrow keys rather than pointed at. It is one switch rather than three
+     * because it is one way of playing — a request for less to look at, not for
+     * three settings that happen to combine.
+     *
+     * It *overrides* the explanation switch rather than writing to it, so
+     * turning zen off gives back whatever was set before rather than whatever
+     * zen left behind.
+     */
+    get zenMode(): boolean {
+        try { return localStorage.getItem(LS_ZEN) === "1"; } catch { return false; }
+    }
+
+    setZenMode(on: boolean) {
+        try {
+            if (on) localStorage.setItem(LS_ZEN, "1");
+            else localStorage.removeItem(LS_ZEN);
+        } catch { /* private mode; the default stands */ }
+    }
+
+    /**
      * The outcome of one claim, without ending the item.
      *
      * Short, and it does not stop the clock or offer the derivation: the next
@@ -1005,7 +1028,8 @@ export class GameService implements GeneratorContext {
          * of moving on — unless the player has said not to, on Display & timer,
          * in which case a wrong answer flows on like every other.
          */
-        const derivation = reviewSteps(kind, this.question.explanation);
+        const derivation = reviewSteps(kind, this.question.explanation,
+            this.explanationsShown && !this.zenMode);
 
         // Long enough to register, short enough not to feel like a screen.
         /*

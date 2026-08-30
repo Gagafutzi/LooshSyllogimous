@@ -389,7 +389,7 @@
              would have nothing to refer to. -->
         <div class="choices" *ngIf="game.question.answerMode === 'choice' && !game.question.choiceGrids?.length">
             <button *ngFor="let c of game.question.choices; let i = index"
-                    class="btn choice"
+                    class="btn choice" [class.choice--focus]="choiceFocus === i"
                     (click)="game.checkChoice(i)">
                 <span class="choice__key">{{ i + 1 }}</span>
                 <span [innerHTML]="c"></span>
@@ -403,14 +403,24 @@
         -->
         <div class="choices choices--grid" *ngIf="game.question.answerMode === 'choice' && game.question.choiceGrids?.length">
             <button *ngFor="let g of game.question.choiceGrids; let i = index"
-                    class="btn choice choice--grid"
+                    class="btn choice choice--grid" [class.choice--focus]="choiceFocus === i"
                     (click)="game.checkChoice(i)">
                 <span class="choice__key">{{ i + 1 }}</span>
                 <app-question-map [plot]="{ map: g, axes: game.question.gridAxes, bounds: game.question.gridBounds }"></app-question-map>
             </button>
         </div>
 
-        <div class="d-flex gap-3 justify-content-center" *ngIf="game.question.answerMode === 'boolean'">
+        <!-- The keys, once and quietly, since zen mode removed the controls. -->
+        <div class="zen-keys" *ngIf="game.zenMode && zenKeyHint">{{ zenKeyHint }}</div>
+
+        <!--
+          Zen mode takes the answer buttons away and leaves the keys.
+          The buttons swap sides between questions so the mouse was never the
+          fast way to play them; removing them removes the only thing on the
+          card that is not the question.
+        -->
+        <div class="d-flex gap-3 justify-content-center"
+             *ngIf="game.question.answerMode === 'boolean' && !game.zenMode">
             <!--
               The face carries the fill and the silhouette; the button stays a
               plain rectangle so the whole area still takes a click. Clipping the

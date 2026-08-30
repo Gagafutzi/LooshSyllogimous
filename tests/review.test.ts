@@ -70,3 +70,37 @@ test("a mode with no derivation asks for no panel", () => {
     equal(reviewSteps("wrong", undefined).length, 0, "an absent derivation became a panel");
     equal(reviewSteps("wrong", []).length, 0, "an empty derivation became a panel");
 });
+
+/* ------------------------------------------------------------------ *
+ * Zen mode                                                            *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Zen mode is a way of playing, not three settings that happen to combine: no
+ * answer buttons, no explanation, and the arrows doing everything.
+ *
+ * The part worth testing here is the one that could quietly go wrong — that it
+ * *overrides* the explanation switch rather than writing to it. Writing would
+ * mean turning zen off left explanations off too, and the player would have to
+ * remember what they had set before it.
+ */
+test("zen mode suppresses the explanation without changing the setting", () => {
+    fresh();
+    setExplanationsOn(true);
+
+    // What the game service passes while zen is on.
+    equal(reviewSteps("wrong", steps, explanationsOn() && !true).length, 0,
+        "zen mode still stopped for the derivation");
+
+    // And the setting underneath is untouched, so switching zen off restores it.
+    assert(explanationsOn(), "zen mode wrote through to the explanation setting");
+    equal(reviewSteps("wrong", steps, explanationsOn() && !false).length, steps.length,
+        "turning zen off did not give the explanation back");
+});
+
+test("zen mode leaves an explanation off if that is what was set", () => {
+    fresh();
+    setExplanationsOn(false);
+    equal(reviewSteps("wrong", steps, explanationsOn() && !false).length, 0,
+        "turning zen off turned explanations on for someone who had them off");
+});

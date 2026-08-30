@@ -99,3 +99,12 @@ export const LS_SERIES_BONUS = "SYL_SERIES_BONUS";
  * they already had.
  */
 export const LS_EXPLANATIONS_OFF = "SYL_EXPLANATIONS_OFF";
+
+/**
+ * Zen mode: no answer buttons, no explanation, arrows for everything.
+ *
+ * Stored as an *on* switch — absent means off — because unlike the other two
+ * flags here this one did not exist before, so there is no prior behaviour to
+ * preserve for anybody.
+ */
+export const LS_ZEN = "SYL_ZEN";

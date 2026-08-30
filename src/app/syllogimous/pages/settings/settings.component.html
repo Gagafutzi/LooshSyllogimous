@@ -22,6 +22,30 @@
         </app-collapsible>
 
         <!--
+          One way of playing rather than three settings that happen to combine,
+          which is why it is one switch.
+        -->
+        <app-collapsible heading="Zen mode">
+            <div class="d-grid" style="gap: 0.5rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="zenMode" (change)="setZenMode($any($event.target).checked)">
+                    <span>Zen mode
+                        <small class="d-block text-muted">
+                            No answer buttons and no explanation — just the question and
+                            the keys. <strong>↑</strong> and <strong>↓</strong> answer true
+                            and false, and on a picking item they move through the options
+                            with <strong>Space</strong> to answer. Number keys and the
+                            carousel arrows keep working. Overrides
+                            <strong>Explain wrong answers</strong> while it is on, and gives
+                            it back when it is off.
+                        </small>
+                    </span>
+                </label>
+            </div>
+        </app-collapsible>
+
+        <!--
           The one deliberate interruption on the game screen, and the switch
           that removes it. Here rather than on Customise because it changes
           nothing about what a question asks.

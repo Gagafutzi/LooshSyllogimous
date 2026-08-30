@@ -85,6 +85,10 @@ export class SettingsComponent {
 
     setExplanationsShown(value: boolean) { this.game.setExplanationsShown(value); }
 
+    get zenMode() { return this.game.zenMode; }
+
+    setZenMode(value: boolean) { this.game.setZenMode(value); }
+
     dailyProgressMinutes = new FormControl(DEFAULT_DAILY_GOAL);
     weeklyProgressMinutes = new FormControl(DEFAULT_WEEKLY_GOAL);
 
