@@ -445,3 +445,42 @@ A stamp on each trial of the pricing inputs — a signature over `MODE_SCALE`,
 `RUNG_COST` and `DEFAULT_ABILITY` — changes exactly when the pricing changes and
 needs nobody to remember to bump it, which is what an analysis wants to slice on.
 Not built.
+
+---
+
+## 6.8 The settings screen was a list of identifiers — **FIXED**
+
+> I can't find any option for the halfway conclusions?
+
+It was there. It was called **`checkpoint`**.
+
+`rungLabel` in the Customise mode rows had fourteen entries and fell through to
+`?? rung` for everything else — so **43 of the 57 settable rungs printed their
+own internal id**: `checkpoint`, `min-span-3`, `as-relations`, `dim-6`,
+`state-rule`, `compose-4`. A control whose name is an identifier is a control
+nobody can find, and it gets reported the way this one was: as a missing
+feature.
+
+All 43 are named now, grouped by what they change. Two tests in
+`tests/registries.test.ts`: every settable rung has a label that is not its own
+id, and no two rungs share a label — the second because the cheap way to satisfy
+the first is to paste a neighbour's.
+
+### Where the halfway conclusion actually is, and what it needs
+
+**Customise → the mode → "A halfway conclusion as well as the final one."** It
+is a per-mode rung on the linear family and the composed spaces, so it is set
+per mode rather than globally.
+
+Two things about it worth knowing, both measured rather than assumed:
+
+- **It needs five premises.** `RUNG_MIN_PREMISES.checkpoint` is 5, and forcing
+  it below that does nothing at all — 0 of 40 items at three or four premises
+  carry a halfway claim, 40 of 40 at five and above. That is the documented
+  intent (§2.6: below five the midpoint is depth 1 or 2, which is not a halfway
+  question), but forced-on-and-silent is a bad way to learn it.
+- **It is last on both ladders**, so nobody reaches it by climbing: position 12
+  of the linear ladder and 18 of the composed-space one. Setting it by hand is
+  how it is meant to be reached for now. Moving it is not a free edit — a
+  profile stores how many rungs it has earned and reads them by position, so an
+  insertion renames every rung after it for everyone who already has them.

@@ -45,6 +45,7 @@ import { RUNG_COST, RUNG_MIN_PREMISES } from "../src/app/syllogimous/utils/abili
 import { TypeBasedStats } from "../src/app/syllogimous/models/stats.models";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
+import { ModeModifiersComponent } from "../src/app/syllogimous/components/mode-modifiers/mode-modifiers.component";
 
 /**
  * A tombstone holds a ladder slot without meaning anything.
@@ -571,4 +572,50 @@ test("no item offers more than two options", () => {
     assert(wide.length === 0,
         `${new Set(wide).size} items turn judging into searching:\n  `
         + [...new Set(wide)].join("\n  "));
+});
+
+/**
+ * A control whose name is an internal identifier is a control nobody can find.
+ *
+ * Forty-three of the fifty-seven settable rungs fell through `rungLabel` to its
+ * fallback and printed their own id — `checkpoint`, `min-span-3`,
+ * `as-relations`, `dim-6`. The halfway-conclusion rung was among them, and it
+ * was reported the way an unfindable setting always is: as a missing feature.
+ *
+ * The label table is hand-written, like every other registry here, so it drifts
+ * the same way and is checked the same way.
+ */
+test("every rung a player can set has a name a player can read", () => {
+    const component = new ModeModifiersComponent({} as never);
+
+    const nameless: string[] = [];
+    for (const type of Object.values(EnumQuestionType)) {
+        for (const rung of settableRungsFor(type)) {
+            if (isTombstone(rung)) continue;
+            if (component.rungLabel(rung) === rung) nameless.push(`${type}: ${rung}`);
+        }
+    }
+
+    equal([...new Set(nameless.map(n => n.split(": ")[1]))].length, 0,
+        `rungs shown as raw ids: ${[...new Set(nameless.map(n => n.split(": ")[1]))].join(", ")}`);
+});
+
+/** And a label has to be about the rung, not a copy of its neighbour's. */
+test("no two rungs share a label", () => {
+    const component = new ModeModifiersComponent({} as never);
+
+    const byLabel = new Map<string, string[]>();
+    for (const type of Object.values(EnumQuestionType)) {
+        for (const rung of settableRungsFor(type)) {
+            if (isTombstone(rung)) continue;
+            const label = component.rungLabel(rung);
+            const owners = byLabel.get(label) ?? [];
+            if (!owners.includes(rung)) owners.push(rung);
+            byLabel.set(label, owners);
+        }
+    }
+
+    const shared = [...byLabel].filter(([, rungs]) => rungs.length > 1);
+    equal(shared.length, 0,
+        shared.map(([label, rungs]) => `"${label}" is used by ${rungs.join(" and ")}`).join("; "));
 });

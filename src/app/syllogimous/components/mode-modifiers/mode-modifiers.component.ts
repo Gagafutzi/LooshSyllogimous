@@ -71,22 +71,96 @@ export class ModeModifiersComponent {
     }
 
     /** Rung names are kebab ids; this is what they are called out loud. */
+    /**
+     * What a rung is, in words.
+     *
+     * Forty-three of the fifty-seven settable rungs used to fall through to the
+     * fallback and print their own id — `checkpoint`, `min-span-3`,
+     * `as-relations`, `dim-6`. A control whose name is an internal identifier is
+     * a control nobody can find, which is how it was reported: *"I can't find
+     * any option for the halfway conclusions"*. It was there. It was called
+     * `checkpoint`, one unlabelled row among forty-two others.
+     *
+     * `tests/registries.test.ts` now fails on a settable rung with no label, so
+     * the next one added is named before it ships rather than after somebody
+     * goes looking for it.
+     */
     rungLabel(rung: string) {
         return ({
+            /* --- everywhere --- */
             "negation": "Negated premises — “is not above”, here only",
             "meta": "Relations about relations, here only",
-            "structural": "Structural matching — no counting arrows",
-            "rank": "Rank every candidate, not just the furthest",
+
+            /* --- how the conclusion is asked --- */
+            "checkpoint": "A halfway conclusion as well as the final one",
+            "choose-conclusion": "Pick which conclusion follows, instead of true or false",
+            "construct-conclusion": "Build the conclusion yourself, one slot per dimension",
+            "construct-distance": "Build it with distances, not only directions",
+            "analogy": "Analogy conclusions — one pair against another",
+
+            /* --- shape of the premise network --- */
+            "branching": "Branching premises, not a single chain",
+            "overlap": "Ties allowed — two things can share a place",
             "min-span-3": "Longer routes",
             "cycles": "Cycles in the hierarchy",
-            "180": "Backtracking arrangements",
             "reaches": "Reachability, not just direct links",
+            "180": "Backtracking arrangements",
+            "hierarchy": "Set hierarchies, not only two-premise syllogisms",
+
+            /* --- composed spaces --- */
+            "circular": "One axis wraps around",
+            "circular-2": "A second axis wraps around",
+            "indeterminate": "Some pairs are left undetermined",
+            "facing": "Relations from an object’s own facing, not the map’s",
+            "speakers": "Premises reported by speakers, and some of them lie",
+            "testimony": "Reports that have to be checked against each other",
+            "transform-1": "One transformation applied to the arrangement",
+            "transform-2": "Two transformations applied",
             "transform-depth-1": "One extra transformation",
             "transform-depth-2": "Two extra transformations",
+            "edit-1": "One premise rewritten, so the first arrangement never existed",
+            "edit-2": "Two premises rewritten",
+            "collide": "The two spaces share their vocabulary",
+
+            /* --- graph matching --- */
+            "which-differs": "Which group is the odd one out",
+            "distance": "How many changes apart the two are",
+            "as-relations": "Links stated as relations rather than drawn",
+            "structure-match": "Match the whole structure, not one node",
+            "structural": "Structural matching — no counting arrows",
+            "match-3": "Match a third node, not just two",
+
+            /* --- transformation matching --- */
+            "identify": "Work out which change was applied",
+            "apply": "Apply the change to a different structure",
+            "compose": "Two changes at once",
+            "sequence": "Continue the sequence of changes",
+
+            /* --- axis maps --- */
+            "compose-2": "Two changes composed",
+            "compose-3": "Three changes composed",
+            "compose-4": "Four changes composed",
+            "compose-5": "Five changes composed",
+            "offset": "A change that shifts everything",
+            "dense-examples": "More example lines to read",
+            "dim-3": "Three dimensions",
+            "dim-4": "Four dimensions",
+            "dim-5": "Five dimensions",
+            "dim-6": "Six dimensions",
+            "dim-7": "Seven dimensions",
+
+            /* --- widest group --- */
+            "margin-1": "A margin of one between the groups, not two",
+            "rank": "Rank every candidate, not just the furthest",
             "groups-2": "A second group, with its own change",
             "groups-3": "Three groups to compare, not two",
             "groups-4": "Four groups to compare, not two",
-            "match-3": "Match a third node, not just two",
+
+            /* --- the rest --- */
+            "state-rule": "State the rule, rather than pick the odd one out",
+            "incorrect-directions": "Near-miss distractors, wrong in one attribute at a time",
+            "compound": "Compound statements — “A and not B”",
+            "undetermined": "Some cases cannot be decided either way",
         } as Record<string, string>)[rung] ?? rung;
     }
 
