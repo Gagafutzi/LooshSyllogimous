@@ -330,10 +330,25 @@ export class ProgressionService {
         // The family's answers, not just this mode's: they are the same task at
         // the same pace, and one mode alone rarely has enough to calibrate with.
         const kin = new Set(familyMembers(type));
-        const times = this.trials()
-            .filter(t => kin.has(t.type) && typeof t.answerSeconds === "number")
-            .slice(-40)
-            .map(t => t.answerSeconds!);
+        const pool = this.trials()
+            .filter(t => kin.has(t.type) && typeof t.answerSeconds === "number");
+
+        /*
+         * Untimed answers, where there are enough of them.
+         *
+         * An anchor is meant to say how long an *unhurried* answer takes, and a
+         * timed answer cannot exceed its own deadline — so measuring the anchor
+         * from timed answers measures the deadline instead. That closes a loop:
+         * switch the clock on, the recorded times are truncated by it, the
+         * anchor falls towards the deadline, the deadline is then priced as
+         * nearly free, and the difficulty goes into a longer item under the same
+         * clock. Which produces more timeouts, and shorter times, and so on.
+         *
+         * Falls back to every answer below the sample floor, since an anchor
+         * estimated from censored times still beats no anchor at all.
+         */
+        const free = pool.filter(t => t.seconds == null);
+        const times = (free.length >= 8 ? free : pool).slice(-40).map(t => t.answerSeconds!);
 
         return { ...base, referenceSeconds: referenceSecondsFrom(times, base.referenceSeconds) };
     }

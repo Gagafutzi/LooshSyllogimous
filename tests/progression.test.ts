@@ -10,7 +10,7 @@
 import { readFileSync } from "fs";
 import { assert, equal, seeded, test } from "./harness";
 import {
-    RUNG_COST, chooseConfig, DEFAULT_ABILITY, levelOf, pCorrect, referenceSecondsFrom, timeCost,
+    RUNG_COST, chooseConfig, DEFAULT_ABILITY, levelOf, pCorrect, referenceSecondsFrom, timeCost, MAX_REFERENCE_SECONDS,
 } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { RUNG_LADDERS, ladderFor, settableRungsFor } from "../src/app/syllogimous/utils/progression.utils";
@@ -233,9 +233,23 @@ test("the clock is anchored to what the player actually does", () => {
     assert(quick < 12, `anchor stayed at ${quick.toFixed(1)}s for a player answering in three`);
     assert(quick >= 6, `anchor fell to ${quick.toFixed(1)}s, which would price every clock as a crisis`);
 
-    // A slow player is not punished: the anchor never exceeds the default.
+    /*
+     * A slow player's anchor rises to their own pace.
+     *
+     * This used to assert the opposite — "a slow player is not punished: the
+     * anchor never exceeds the default" — and the sign was backwards. Holding
+     * the anchor at 60 for someone whose unhurried answer takes 150 prices
+     * their deadline as nearly free, so the model spends the difficulty on the
+     * *item* instead and hands them a longer one under the same clock. Being
+     * charged for the clock is what protects them, not being spared it.
+     */
     const slow = referenceSecondsFrom(Array(20).fill(80), fallback);
-    equal(slow, fallback, "the anchor drifted above the configured ceiling");
+    assert(slow > fallback, `the anchor stayed at ${slow.toFixed(1)}s for a player who takes 80`);
+    assert(slow <= MAX_REFERENCE_SECONDS, `the anchor reached ${slow.toFixed(1)}s`);
+
+    // But a log full of tabs left open cannot drag it up for ever.
+    const idle = referenceSecondsFrom(Array(20).fill(4000), fallback);
+    equal(idle, MAX_REFERENCE_SECONDS, "an idle log re-anchored the whole scale");
 });
 
 test("a fast player's difficulty goes into the item, not into a slack clock", () => {

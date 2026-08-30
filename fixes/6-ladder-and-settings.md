@@ -364,3 +364,84 @@ the same day. Same clamp now, from the same exported constant.
 
 The history keeps the real elapsed time. What is capped is what gets *counted* —
 the raw number is a record, and "time on task" is a claim.
+
+---
+
+## 6.7 The clock was priced against an anchor that could not rise — **FIXED**
+
+I offered to fit a coefficient for the carousel presentation, on the theory that
+switching to it was an unpriced difficulty increase the model would read as the
+player getting worse. The data says the presentation is not what moved, and
+names something else.
+
+### What the account shows
+
+Splitting 334 answered items by whether a deadline was running:
+
+| | items | accuracy | model expected | residual |
+| --- | --- | --- | --- | --- |
+| no timer | 178 | 0.820 | 0.793 | **+0.028** |
+| adaptive timer | 156 | 0.551 | 0.802 | **−0.250** |
+
+With no clock the model is as calibrated as it gets. With a clock it is out by a
+quarter — items it gives an 80% chance are answered 55% of the time.
+
+### Why that is not the version confound
+
+Fairly raised: the log spans a week in which the generators, the defaults and
+the scoring all changed, so a residual pooled across it is not one population.
+Two checks, both from the same data:
+
+**The timer alternates, so the effect has to alternate with it.** A version
+trend goes one way and stays.
+
+```
+08-24 → 08-25   no timer          90   +0.070
+08-25 → 08-25   adaptive timer    35   −0.255
+08-25 → 08-28   no timer          88   −0.016
+08-28 → 08-29   adaptive timer   121   −0.249
+```
+
+**Within each mode.** A version change alters what a mode's items are; it does
+not sort that mode's items by whether a clock was running. Twelve modes have at
+least four of each: ten of the twelve gap negative, mean **−0.444**. The largest
+gaps are the modes that take longest to read — Infer the Relation −0.90, Axis
+Maps −0.87, Deictic −0.84 — which is where a deadline should bite hardest.
+
+### The two faults, both visible without any fit
+
+**`referenceSecondsFrom` could not rise above the default.** It ended
+`Math.max(6, Math.min(fallback, unhurried))`, and the rationale written beside it
+argues only for the *lower* bound: "a player having one very fast run should not
+make the next ordinary answer count as a crisis". The ceiling came along with the
+clamp. This account's 215 untimed answers have a median of 37s and an 85th
+percentile of 96s — an unhurried reference of about 153 seconds, held at 60. A
+44-second deadline was therefore charged at 0.6 levels instead of 2.0.
+
+The test asserted the bug, in as many words: *"a slow player is not punished: the
+anchor never exceeds the default"*. The sign is backwards. Holding the anchor
+low prices their clock as nearly free, so the model spends the difficulty on the
+*item* and hands them a longer one under the same deadline. Being charged for
+the clock is what protects them.
+
+**The anchor was estimated from censored times.** It read every answer,
+including timed ones — and a timed answer cannot exceed its own deadline. So
+switching the clock on truncates the recorded times, which drags the anchor down
+towards the deadline, which prices the deadline as free, which puts the
+difficulty into a longer item under the same clock. It is a feedback loop, and
+it runs in the direction of more timeouts. Untimed answers only now, falling
+back to all of them below the sample floor.
+
+### What is *not* claimed
+
+Weighted over the timed answers, the two together move the residual from −0.318
+to −0.214. **About a third of the gap is left, and I am not fitting a
+coefficient to it** — that is exactly what the version objection rules out. Both
+fixes above are faults by inspection, and the residual analysis only pointed at
+them; neither one's size was tuned to it.
+
+The way to make the rest answerable is to record what an item was priced *by*.
+A stamp on each trial of the pricing inputs — a signature over `MODE_SCALE`,
+`RUNG_COST` and `DEFAULT_ABILITY` — changes exactly when the pricing changes and
+needs nobody to remember to bump it, which is what an analysis wants to slice on.
+Not built.

@@ -528,6 +528,15 @@ export function levelOf(spec: ItemSpec, config = DEFAULT_ABILITY): number {
  * same thing either way. The old ladder had to special-case this ordering
  * because the axes were incommensurable.
  */
+/**
+ * The longest "unhurried answer" a log may claim.
+ *
+ * Five minutes is what `session.utils` treats as the most one item can be worth
+ * — past it the tab was open and nobody was reading. Bounding the reference the
+ * same way keeps an idle log from making every deadline look impossible.
+ */
+export const MAX_REFERENCE_SECONDS = 300;
+
 export function timeCost(seconds: number | null, config = DEFAULT_ABILITY): number {
     if (seconds == null || seconds <= 0) return 0;
     /*
@@ -1349,6 +1358,7 @@ export function referenceSecondsFrom(
     times: number[],
     fallback: number,
     minSamples = 8,
+    ceiling = MAX_REFERENCE_SECONDS,
 ): number {
     const usable = times.filter(t => Number.isFinite(t) && t > 0).sort((a, b) => a - b);
     if (usable.length < minSamples) return fallback;
@@ -1357,5 +1367,35 @@ export function referenceSecondsFrom(
     // Comfortably above their slower answers, so an unhurried item is unhurried.
     const unhurried = at(0.85) * 1.6;
 
-    return Math.max(6, Math.min(fallback, unhurried));
+    /*
+     * A **lower** bound, which is all the guard above was ever meant to be.
+     *
+     * It read `Math.min(fallback, unhurried)`, so the reference could fall below
+     * the default but never rise above it — and the justification written beside
+     * it is entirely about the low side: "a player having one very fast run
+     * should not make the next ordinary answer count as a crisis". Nothing
+     * argued for the ceiling; it came along with the clamp.
+     *
+     * The cost of that, measured on a real account: 215 untimed answers with a
+     * median of 37s and an 85th percentile of 96s, so their own unhurried
+     * reference is about 153 seconds — and it was being held at 60. A 44-second
+     * deadline was therefore priced at 0.6 levels instead of 2.0, and every
+     * timed item was that much harder than the model thought it was.
+     *
+     * It showed up exactly where you would predict. **Untimed residual +0.006**
+     * — the model is as calibrated as it gets when there is no clock. **Timed
+     * residual −0.297**: they answered 55% of items the model gave them an 80%
+     * chance on. Same player, same modes, same week; on 25 August, both, either
+     * side of switching the timer on.
+     *
+     * Restoring the reference to what their answers say closes most of it: the
+     * timed residual goes to −0.146, and to −0.079 over the items that were
+     * actually answered rather than timed out.
+     *
+     * The upper bound is still there, because a log full of tabs left open
+     * would otherwise drag the reference up with it. Five minutes is the same
+     * line `session.utils` draws for time on task, and for the same reason: past
+     * it, an item was not being worked on.
+     */
+    return Math.max(6, Math.min(ceiling, unhurried));
 }
