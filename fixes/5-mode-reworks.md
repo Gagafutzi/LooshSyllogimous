@@ -289,3 +289,51 @@ its answer distribution honest.
   than whatever a uniform draw produces.
 - A solver reading only the rendered table re-derives the answer. Standard for
   this codebase and non-negotiable for a new mode.
+
+---
+
+## 5.x Shape and Rotation: objects that move on their own — **BUILT**
+
+> Add that objects can rotate alone in the shape in the mode, currently only the
+> whole shape is spinning.
+
+True, and the setup line said so outright: *"Objects turn with the shape"* was
+the whole movement model. Every object's answer was one shared addition applied
+to a different starting corner, so once you had the net turn you had all of
+them.
+
+**`solo-turns`**, the mode's first rung — its ladder was `[]` — so it is earned,
+priced (1.2, above a plain extra turn) and settable in Customise like any other.
+A solo step is the one offset that is *not* shared and so cannot be folded into
+the running total: the reader carries the shape's turn for everything and a
+second number for one object.
+
+Never all of them, and never below three objects. If every object stepped by its
+own amount the shape's turn would be dead weight, and the invariance form would
+have no pair left to be invariant about.
+
+### The hazard is the other question form, not the feature
+
+This mode's second form asks whether a pair is unchanged by the turns, and its
+derivation states outright:
+
+> A turn moves every object by the same amount, so it cannot change how two of
+> them sit relative to each other.
+
+**A solo step falsifies exactly that sentence.** Asked about a pair where one
+stepped alone, the item would be a confident, correct-looking derivation of a
+false claim — and it would read identically to the times it is right, which is
+the one failure here a player could not catch.
+
+So the invariance form now requires the pair to have moved the *same* amount on
+their own, which for most pairs means neither did. The pair still has to be
+**checked** for solo steps, so the rung adds work to that form rather than
+removing it, and the derivation says which case it is in.
+
+**Tests.** `tests/shape-rotation.test.ts`: nothing moves alone without the rung;
+with it, over half of items carry a solo step and never all objects at once; the
+derivation of a solo answer states the extra step instead of folding it into the
+turn; and — the one that matters — no invariance item is ever asked about a pair
+that moved differently. Removing the guard fails that last test with the item it
+would have served: *"after the turns, Man is 1 corner clockwise from Cashier"*,
+asked about a pair one of which had stepped an extra corner anticlockwise.

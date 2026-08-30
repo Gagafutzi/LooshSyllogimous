@@ -158,6 +158,7 @@ export class ModeModifiersComponent {
 
             /* --- the rest --- */
             "state-rule": "State the rule, rather than pick the odd one out",
+            "solo-turns": "An object steps round the shape on its own",
             "incorrect-directions": "Near-miss distractors, wrong in one attribute at a time",
             "compound": "Compound statements — “A and not B”",
             "undetermined": "Some cases cannot be decided either way",

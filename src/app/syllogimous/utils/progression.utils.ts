@@ -476,7 +476,14 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * than making the items longer.
      */
     "Infer the Relation":        [],
-    "Shape and Rotation":        [],
+    /*
+     * One rung, and it is the thing the mode was missing: until now the shape
+     * was the only thing that ever moved, so every object's answer was the same
+     * addition applied to a different starting corner. An object that steps
+     * round on its own is a second offset to carry, and the only one that is
+     * not shared.
+     */
+    "Shape and Rotation":        ["solo-turns"],
     /*
      * Longer paths first — a small, continuous increase. Cycles are the
      * structural jump: in a hierarchy "reaches" is a partial order you can

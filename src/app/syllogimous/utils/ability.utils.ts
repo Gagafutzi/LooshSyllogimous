@@ -156,6 +156,13 @@ export const RUNG_COST: Record<string, number> = {
 
     collide: 1.5,
     "state-rule": 1.1,
+    /*
+     * A per-object offset on top of the shared one. Priced above a plain extra
+     * turn because it cannot be folded into the running total — every other
+     * turn in the mode applies to everything at once, and this is the one that
+     * has to be kept separately and applied to one object.
+     */
+    "solo-turns": 1.2,
     "which-differs": 1.2,
     /*
      * Costed above naming the odd one out and below counting the changes. The
@@ -262,6 +269,9 @@ export const RUNG_MIN_PREMISES: Record<string, number> = {
     // The halfway claim only exists above four premises, so granting the rung
     // below that hands out something that silently does nothing.
     checkpoint: 5,
+    // Three objects at least: one that moves alone, and a pair that does not,
+    // or the invariance form has nothing left to be invariant about.
+    "solo-turns": 4,
     cycles: 4,
     "min-span-3": 4,
     // Three badges need three nodes the web holds rigid, which a small web

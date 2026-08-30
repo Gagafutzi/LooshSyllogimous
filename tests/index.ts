@@ -19,6 +19,7 @@ import "./keybind.test";
 import "./review.test";
 import "./answering.test";
 import "./stimuli.test";
+import "./shape-rotation.test";
 import "./customise.test";
 import "./save-data.test";
 import "./map.test";

@@ -162,21 +162,61 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
         // decorative: the answer would be readable off the opening premises.
         if (mod(total, order) === 0) continue;
 
-        const final: Record<string, number> = {};
-        for (const w of words) final[w] = mod(start[w] + total, order);
-
         for (const t of turns) {
             premises.push(
                 `the ${shape.name} is turned ${hi(`${degrees(t.steps, order)}° `
                     + (t.clockwise ? "clockwise" : "anticlockwise"))}`);
         }
 
+        /*
+         * Objects that move on their own, on top of the shape's turn.
+         *
+         * Until this rung the shape was the only thing that ever moved, so
+         * every object's answer was one shared addition applied to a different
+         * starting corner — and *"objects turn with the shape"* in the setup was
+         * the whole of the movement model. A solo step is the one offset that
+         * is not shared, so it cannot be folded into the running total: the
+         * reader has to carry the shape's turn for everything and a second
+         * number for one object.
+         *
+         * Never all of them. If every object stepped by its own amount the
+         * shape's turn would be dead weight, and the invariance form below
+         * would have no pair left that the turns genuinely cannot separate.
+         */
+        const own: Record<string, number> = {};
+        for (const w of words) own[w] = 0;
+
+        if (ctx.hasRung(type, "solo-turns") && words.length >= 3) {
+            const movers = shuffle([...words]).slice(0, 1 + Math.floor(Math.random() * 2));
+            if (movers.length >= words.length) movers.length = words.length - 1;
+
+            for (const w of movers) {
+                const steps = 1 + Math.floor(Math.random() * (order - 1));
+                const cw = Math.random() < 0.5;
+                own[w] = cw ? steps : -steps;
+                premises.push(
+                    `${subj(w)} also moves ${hi(`${steps} corner${steps === 1 ? "" : "s"} `
+                        + (cw ? "clockwise" : "anticlockwise"))} round the ${shape.name} on its own`);
+            }
+        }
+
+        const final: Record<string, number> = {};
+        for (const w of words) final[w] = mod(start[w] + total + own[w], order);
+
+        // Two objects on one corner is not wrong, but it is a coincidence the
+        // premises never mention and the reader has to re-check; the loop can
+        // simply draw again.
+        if (new Set(words.map(w => final[w])).size !== words.length) continue;
+
         const question = new Question(type);
         question.bucket = [...words];
         question.premises = premises;
+        const anySolo = words.some(w => own[w] !== 0);
         question.setup = [
             `Corners: ` + shape.corners.map(c => hi(c)).join(", ")
-            + ". Objects turn with the shape.",
+            + (anySolo
+                ? ". Objects turn with the shape, and a premise may move one further on its own."
+                : ". Objects turn with the shape."),
         ];
 
         /*
@@ -197,10 +237,11 @@ export function createShapeRotation(ctx: GeneratorContext, numOfPremises: number
         const invariance = deep ? 0.25 : 0.6;
 
         if (words.length >= 2 && Math.random() < invariance) {
-            if (!fillInvarianceQuestion(question, words, neighbors, start, final, order, shape, deep)) continue;
+            if (!fillInvarianceQuestion(
+                question, words, neighbors, start, final, own, order, shape, deep)) continue;
         } else {
             fillPositionQuestion(
-                ctx, question, words, neighbors, start, final, total, shape, deep);
+                ctx, question, words, neighbors, start, final, total, own, shape, deep);
         }
 
         return question;
@@ -224,6 +265,7 @@ function fillPositionQuestion(
     start: Record<string, number>,
     final: Record<string, number>,
     total: number,
+    own: Record<string, number>,
     shape: { name: string; corners: string[] },
     deep: boolean,
 ) {
@@ -327,11 +369,28 @@ function fillPositionQuestion(
         }));
     }
 
+    /*
+     * A solo step is a second number to add, so it is a second line.
+     *
+     * Folded into the total it would read as a bigger turn, which is the one
+     * thing this rung exists to stop being true: the shape's turn is shared and
+     * the object's step is not, and a reader who lost the item lost it by
+     * treating the second as the first.
+     */
+    const solo = mod(own[asked] ?? 0, sides);
+    const soloCw = solo <= sides / 2;
+    const soloSteps = soloCw ? solo : sides - solo;
+
     question.explanation = [
         `Following the premises, ${subj(asked)} starts on the`
         + ` ${hi(shape.corners[start[asked]])} corner.`,
         `The turns come to ${hi(`${steps} corner${steps === 1 ? "" : "s"} `
             + (cw ? "clockwise" : "anticlockwise"))} in total.`,
+        ...(solo === 0 ? [] : [
+            `${subj(asked)} also moves ${hi(`${soloSteps} corner${soloSteps === 1 ? "" : "s"} `
+                + (soloCw ? "clockwise" : "anticlockwise"))} on its own, which the`
+            + ` shape's turn does not carry.`,
+        ]),
         `so ${subj(asked)} ends on the ${hi(shape.corners[final[asked]])} corner.`,
     ];
 }
@@ -352,6 +411,7 @@ function fillInvarianceQuestion(
     neighbors: Record<string, string[]>,
     start: Record<string, number>,
     final: Record<string, number>,
+    own: Record<string, number>,
     order: number,
     shape: { name: string; corners: string[] },
     deep: boolean,
@@ -376,6 +436,19 @@ function fillInvarianceQuestion(
     for (let i = 0; i < words.length; i++) {
         for (let j = i + 1; j < words.length; j++) {
             const a = words[i], b = words[j];
+            /*
+             * Both must have moved the same way on their own, which for most
+             * pairs means neither did.
+             *
+             * This form's whole claim — and its derivation says so outright —
+             * is that a turn moves everything by the same amount and so cannot
+             * change how two objects sit relative to each other. A solo step
+             * breaks exactly that, so asking it about a pair where one stepped
+             * alone would be a confident derivation of a false statement. The
+             * pair still has to be *checked* for solo steps, which is the work
+             * the rung adds to this form rather than removing it.
+             */
+            if (own[a] !== own[b]) continue;
             // Off, both guards come away: any pair, including one a premise
             // states and one at the separation that is its own reverse.
             if (deep && mod(final[a] - final[b], order) === order / 2) continue;
@@ -404,9 +477,13 @@ function fillInvarianceQuestion(
     question.isValid = claim === truth;
     question.answerMode = "boolean";
 
+    const moved = own[a] !== 0;
     question.explanation = [
-        `A turn moves every object by the same amount, so it cannot change how `
-        + `two of them sit relative to each other.`,
+        moved
+            ? `Both of these moved by the same amount — the shape's turn, and the `
+              + `same step of their own — so the pair is carried along unchanged.`
+            : `A turn moves every object by the same amount, so it cannot change how `
+              + `two of them sit relative to each other.`,
         `${subj(a)} started ${hi(String(mod(start[a] - start[b], order)))} corner(s) `
         + `clockwise of ${subj(b)}, and still is — the turns did not need computing.`,
     ];
