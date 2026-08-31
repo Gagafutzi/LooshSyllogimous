@@ -165,13 +165,36 @@ export const RUNG_COST: Record<string, number> = {
     "solo-turns": 1.2,
     "which-differs": 1.2,
     /*
-     * Costed above naming the odd one out and below counting the changes. The
-     * comparison itself is the base mode's, but neither set can be lined up
-     * against the other until both have been abstracted out of their own
-     * vocabulary — and that step is the one the arrow presentation let people
-     * skip by matching text.
+     * Not a modifier on the base task — a different task with the same answer.
+     *
+     * Priced at 1.3, a tenth above naming the odd group out, on the reasoning
+     * that "the comparison itself is the base mode's". That reasoning skips the
+     * step it names in its own next clause: with the graphs drawn you compare
+     * two pictures, and with them stated as relations you must **build** each
+     * graph in memory before there is anything to compare. Building a structure
+     * out of sentences is the whole of what the composed spaces charge their
+     * weight for.
+     *
+     * Reported from play — *"the progression system overestimates the
+     * difficulty of graph matching, not the linear one which is quite difficult
+     * but the og one"* — and one account's trials say the same thing loudly.
+     * Same mode, same window, two premises apiece:
+     *
+     *     drawn, no rungs        14 answers   93% right   median  10s
+     *     stated as relations     6 answers   33% right   median 131s
+     *
+     * A thirteen-fold gap in time and a sixty-point gap in accuracy, for 1.3
+     * levels. Sharing one estimate between them leaves it parked where the
+     * drawn form is trivial and the relational form is out of reach, which is
+     * exactly where that account sits.
+     *
+     * **Priced by kind rather than fitted.** Six answers cannot carry a
+     * coefficient, and that log spans several versions besides. 2.4 puts it
+     * between `speakers` and `testimony` — the other two rungs that stop the
+     * arrangement being something you read and make it something you have to
+     * reconstruct first. The next export can check it.
      */
-    "as-relations": 1.3,
+    "as-relations": 2.4,
     hierarchy: 1.5,
     distance: 2.0,
     compound: 1.2,

@@ -484,3 +484,75 @@ Two things about it worth knowing, both measured rather than assumed:
   how it is meant to be reached for now. Moving it is not a free edit — a
   profile stores how many rungs it has earned and reads them by position, so an
   insertion renames every rung after it for everyone who already has them.
+
+---
+
+## 6.9 Graph Matching: one estimate over two different tasks — **FIXED**
+
+> I feel like the progression system overestimates the difficulty of graph
+> matching — not the linear graph matching which is quite difficult, but the og
+> one.
+
+The account's own trials say it, and say it loudly. Same mode, same window, two
+premises apiece, the AFK answer dropped:
+
+| form | answers | accuracy | median time | residual |
+| --- | --- | --- | --- | --- |
+| drawn, no rungs | 14 | **93%** | **10s** | +0.099 |
+| stated as relations | 6 | **33%** | **131s** | −0.442 |
+
+A thirteen-fold gap in time and sixty points of accuracy — and the model
+separated them by **1.3 levels**, the cost of the `as-relations` rung.
+
+### Why that lands on the drawn form
+
+The two share one ability estimate, so it parks between them: the drawn form
+becomes trivial and the relational form stays out of reach. That is exactly
+where this account sits — Graph Matching at **3.3**, its lowest mode by four
+levels, serving two-link items answered in ten seconds.
+
+So "overestimates the drawn form" is right twice over. Directly: +0.099 residual
+says the model expects 83% where they get 93%, at level 2.45, which is the floor
+of the whole app. And indirectly, which matters more: the estimate that decides
+what the drawn form is worth keeps being knocked down by a form priced as though
+it were the same task.
+
+### The rung was priced by its comment's first clause
+
+> Costed above naming the odd one out and below counting the changes. The
+> comparison itself is the base mode's, but neither set can be lined up against
+> the other until both have been abstracted out of their own vocabulary.
+
+The second clause is the answer to the first. With the graphs drawn you compare
+two pictures; with them stated as relations you must **build** each graph in
+memory before there is anything to compare, and building a structure out of
+sentences is what the composed spaces charge their entire weight for. It is not
+a modifier on the base task, it is a different task with the same answer.
+
+**1.3 → 2.4**, between `speakers` and `testimony` — the other two rungs that
+stop an arrangement being something you read and make it something you have to
+reconstruct first.
+
+**Priced by kind, not fitted.** Six answers cannot carry a coefficient, and that
+log spans several versions besides. What the data settles is the direction and
+that the gap is large; where exactly it lands is a judgement against the rung
+table, and the next export can check it.
+
+The effect at two premises: the relational form goes from 4.9 to 6.0, so the
+drawn form now has room to climb — 2 to 7 links, level 3.6 to 9.6 — before the
+relational one is claimed at all.
+
+### What this does not fix
+
+The hole already dug. Simulated from the stored state at 90% correct, the
+estimate takes **more than forty answers to move from 3.3 to 4.7**, and it is
+still serving two-link items throughout. That is the model working correctly on
+weak evidence rather than working wrongly: a true/false item well below your
+level is barely informative, so getting it right says almost nothing, and the
+informative item is not served *because* the estimate is low.
+
+The fast way out is Customise: set Graph Matching's premise count to five or so
+for a while, at which point the answers carry real information and the estimate
+moves in a session rather than a week. Which is what the override is for — "a
+player who already works at this level elsewhere and should not have to climb to
+it."
