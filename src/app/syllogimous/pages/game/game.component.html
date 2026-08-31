@@ -11,8 +11,14 @@
     Today's goal done &mdash; see the day
 </button>
 
-<!-- Verdict flashes over the card, then the next question loads itself. -->
-<div class="verdict-box" *ngIf="game.verdict" [attr.data-verdict]="game.verdict">
+<!--
+  Verdict flashes over the card, then the next question loads itself.
+  `feedbackShown` gates the drawing only: `verdict` stays set either way,
+  because it is also what stops a late keypress from answering the next
+  question through the gap.
+-->
+<div class="verdict-box" *ngIf="game.verdict && game.feedbackShown"
+     [attr.data-verdict]="game.verdict">
     <span>{{ game.verdict === 'correct' ? 'Correct' : game.verdict === 'wrong' ? 'Wrong' : 'Timeout' }}</span>
     <!-- One word about three conclusions is a verdict on none of them. -->
     <small class="verdict-box__note" *ngIf="game.verdictNote">{{ game.verdictNote }}</small>

@@ -108,3 +108,27 @@ export const LS_EXPLANATIONS_OFF = "SYL_EXPLANATIONS_OFF";
  * preserve for anybody.
  */
 export const LS_ZEN = "SYL_ZEN";
+
+/**
+ * Silence every sound the app makes.
+ *
+ * There is no audio asset anywhere in the project — the verdict blips and the
+ * daily-goal chime are synthesised on an `AudioContext` — so this is not a
+ * volume control over a mixer, it is whether the oscillator is built at all.
+ *
+ * An *off* switch, like the two below it: absence means the sound plays, which
+ * is what everyone already has.
+ */
+export const LS_SOUND_OFF = "SYL_SOUND_OFF";
+
+/**
+ * Suppress the Correct / Wrong / Timeout flash between questions.
+ *
+ * Separate from the explanation switch because they are separate requests. The
+ * explanation is a panel you read; this is one word telling you how the last
+ * item went, and somebody drilling for volume can want the second gone while
+ * keeping the first, or the other way round.
+ *
+ * An *off* switch, for the reason `LS_EXPLANATIONS_OFF` is.
+ */
+export const LS_FEEDBACK_OFF = "SYL_FEEDBACK_OFF";

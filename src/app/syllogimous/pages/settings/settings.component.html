@@ -46,6 +46,42 @@
         </app-collapsible>
 
         <!--
+          Two switches rather than one: the sound is what the room hears, the
+          flash is what the session feels like. Somebody wants one gone far
+          more often than both.
+        -->
+        <app-collapsible heading="Sound and feedback">
+            <div class="d-grid" style="gap: 0.75rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="soundOn" (change)="setSoundOn($any($event.target).checked)">
+                    <span>Sounds
+                        <small class="d-block text-muted">
+                            The blips after an answer and the chime when the daily
+                            goal is reached. Off is silent &mdash; there is no other
+                            sound in the app.
+                        </small>
+                    </span>
+                </label>
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="feedbackShown"
+                           (change)="setFeedbackShown($any($event.target).checked)">
+                    <span>Show Correct / Wrong
+                        <small class="d-block text-muted">
+                            The word that flashes over the card between questions.
+                            Turned off, one question runs into the next with a
+                            quarter-second gap instead of a beat you read.
+                            Everything is still scored, and <strong>History</strong>
+                            and <strong>Statistics</strong> still show how each item
+                            went.
+                        </small>
+                    </span>
+                </label>
+            </div>
+        </app-collapsible>
+
+        <!--
           The one deliberate interruption on the game screen, and the switch
           that removes it. Here rather than on Customise because it changes
           nothing about what a question asks.

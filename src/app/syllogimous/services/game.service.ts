@@ -27,6 +27,12 @@ import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
 import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
+// Aliased: the service exposes members of the same names, and a call that
+// could be read as either is worth one line of renaming to avoid.
+import {
+    claimFlashMs, feedbackOn as feedbackIsOn, setFeedbackOn as storeFeedbackOn,
+    setSoundOn as storeSoundOn, soundOn as soundIsOn, verdictPause,
+} from "../utils/feedback.utils";
 import { hasNextClaim, judgeItem, takeSeriesAnswer } from "../utils/answer.utils";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
@@ -954,6 +960,30 @@ export class GameService implements GeneratorContext {
     setExplanationsShown(value: boolean) { setExplanationsOn(value); }
 
     /**
+     * Whether the app makes any sound at all.
+     *
+     * Read through the service like the switch above it, so the checkbox on
+     * Display & timer and the oscillator it governs cannot come to different
+     * conclusions. The rule lives in `feedback.utils`.
+     */
+    get soundOn(): boolean { return soundIsOn(); }
+
+    setSoundOn(value: boolean) { storeSoundOn(value); }
+
+    /**
+     * Whether the Correct / Wrong / Timeout flash appears.
+     *
+     * The game screen reads this to decide whether to *draw* the box. It
+     * deliberately does not decide whether `verdict` is *set*: that field is
+     * also what tells the keyboard handler an answer is being resolved, and
+     * clearing it here would let a late keypress fall through onto the question
+     * that follows. What is suppressed is the picture, not the state.
+     */
+    get feedbackShown(): boolean { return feedbackIsOn(); }
+
+    setFeedbackShown(value: boolean) { storeFeedbackOn(value); }
+
+    /**
      * Zen mode: the screen stops offering, and the keyboard does everything.
      *
      * No answer buttons, no explanation panel, and the options answered from
@@ -997,7 +1027,7 @@ export class GameService implements GeneratorContext {
             this.flashTimer = null;
             this.verdict = null;
             this.verdictNote = "";
-        }, 450);
+        }, claimFlashMs());
     }
 
     private showVerdict(kind: "correct" | "wrong" | "timeout") {
@@ -1052,7 +1082,7 @@ export class GameService implements GeneratorContext {
             this.verdictNote = "";
             if (derivation.length) { this.review = derivation; return; }
             this.play(true, true);
-        }, kind === "correct" ? 650 : 900);
+        }, verdictPause(kind));
     }
 
     /**
@@ -1071,6 +1101,9 @@ export class GameService implements GeneratorContext {
     }
 
     private tone(notes: Array<[number, number]>, type: OscillatorType) {
+        // The single point every sound in the app passes through, which is what
+        // makes one switch able to silence all of them.
+        if (!soundIsOn()) return;
         try {
             const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
             if (!Ctx) return;

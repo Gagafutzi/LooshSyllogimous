@@ -89,6 +89,16 @@ export class SettingsComponent {
 
     setZenMode(value: boolean) { this.game.setZenMode(value); }
 
+    /* ---- sound, and the verdict flash ---- */
+
+    get soundOn() { return this.game.soundOn; }
+
+    setSoundOn(value: boolean) { this.game.setSoundOn(value); }
+
+    get feedbackShown() { return this.game.feedbackShown; }
+
+    setFeedbackShown(value: boolean) { this.game.setFeedbackShown(value); }
+
     dailyProgressMinutes = new FormControl(DEFAULT_DAILY_GOAL);
     weeklyProgressMinutes = new FormControl(DEFAULT_WEEKLY_GOAL);
 

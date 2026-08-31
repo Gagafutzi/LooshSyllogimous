@@ -17,6 +17,7 @@ import "./fatigue.test";
 import "./profiles.test";
 import "./keybind.test";
 import "./review.test";
+import "./feedback.test";
 import "./answering.test";
 import "./stimuli.test";
 import "./shape-rotation.test";
