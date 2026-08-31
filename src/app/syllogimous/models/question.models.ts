@@ -238,6 +238,23 @@ export class Question {
     construct: ConstructClaim[] = [];
     /** What the player entered, one direction-and-distance per slot. */
     userConstruct?: Array<Array<{ direction: number; magnitude: number }>>;
+    /**
+     * How the premises were shown, at the moment this was answered.
+     *
+     * "0" is all of them at once, "1" and "2" are the carousels. The sibling of
+     * `timerTypeOnAnswer`, and missing for the same reason it was once missing:
+     * the setting lives in storage and the item never wrote it down, so a
+     * history could say what you answered and not how you were shown it.
+     *
+     * That matters more than it looks. Carousel shows one premise at a time,
+     * which is a straightforwardly harder task at the same premise count — and
+     * `levelOf` has no term for it, so the model reads a change of presentation
+     * as a change in you. Recorded now so the question is answerable from
+     * answered items later, which is the same standing `widthDelta` and `depth`
+     * have: written down, and not yet read for difficulty.
+     */
+    gameModeOnAnswer = "0";
+
     negations = 0;
     metaRelations = 0;
     timerTypeOnAnswer = "0";
