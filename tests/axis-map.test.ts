@@ -12,7 +12,7 @@
  */
 
 import { assert, equal, seeded, test } from "./harness";
-import { applyAxisMap, createAxisMap } from "../src/app/syllogimous/generators/axis-map";
+import { applyAxisMap, createAxisMap, pinsMap } from "../src/app/syllogimous/generators/axis-map";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -524,66 +524,93 @@ test("a multi-group derivation names the group whose change applied", () => {
  * and requires exactly one to fit — if the argument is wrong, this finds a
  * second.
  */
-test("one dense example pins the whole map", () => {
-    const FACTORS = [1, -1, 2, -2, 3, -3];
-
-    /** Every signed permutation of `d` axes, as (perm, factor) pairs. */
-    function* candidates(d: number): Generator<{ perm: number[]; factor: number[] }> {
-        const perms: number[][] = [];
-        const walk = (left: number[], acc: number[]) => {
-            if (!left.length) { perms.push([...acc]); return; }
-            for (let i = 0; i < left.length; i++) {
-                walk([...left.slice(0, i), ...left.slice(i + 1)], [...acc, left[i]]);
-            }
-        };
-        walk(Array.from({ length: d }, (_, i) => i), []);
-
-        for (const perm of perms) {
-            const factors: number[][] = [[]];
-            for (let i = 0; i < d; i++) {
-                const next: number[][] = [];
-                for (const acc of factors) for (const f of FACTORS) next.push([...acc, f]);
-                factors.length = 0;
-                factors.push(...next);
-            }
-            for (const factor of factors) yield { perm, factor };
-        }
-    }
-
+/**
+ * The examples the item actually prints leave exactly one map standing.
+ *
+ * This replaces a test that reimplemented the guarantee: it built its own dense
+ * example from the magnitudes 1, 5, 7, 11, enumerated the signed permutations
+ * and confirmed one fit. Every word of that was true and none of it was about
+ * the shipped card — it tested a copy of the construction rather than the
+ * construction, which is the failure this project keeps finding. So this one
+ * generates real items and checks the lines they carry.
+ */
+test("the examples an item prints determine the map", () => {
     seeded(31415, () => {
-        for (const d of [2, 3, 4]) {
-            for (let rep = 0; rep < 12; rep++) {
-                // A dense example: one distinct magnitude per axis.
-                const marks = [1, 5, 7, 11].slice(0, d);
-                const before = marks.map(m => (Math.random() < 0.5 ? -m : m));
+        // Every rung up to and including the overlapping form, which is what
+        // makes the correspondence something to work out.
+        const ctx = context([...FULL.slice(0, FULL.indexOf("dense-examples") + 1)]);
 
-                const perm = shuffledPerm(d);
-                const factor = Array.from({ length: d }, () =>
-                    FACTORS[Math.floor(Math.random() * FACTORS.length)]);
-                const after = Array(d).fill(0);
-                for (let i = 0; i < d; i++) after[perm[i]] = factor[i] * before[i];
+        for (let rep = 0; rep < 40; rep++) {
+            const q = createAxisMap(ctx, 4);
+            const ev = q.axisEvidence!;
+            assert(!!ev, "an item carried no evidence to check");
+            assert(pinsMap(ev.examples, ev.covered, ev.dims),
+                "an item shipped examples that more than one map fits");
+        }
+    });
+});
 
-                let fits = 0;
-                for (const cand of candidates(d)) {
-                    const got = Array(d).fill(0);
-                    for (let i = 0; i < d; i++) got[cand.perm[i]] = cand.factor[i] * before[i];
-                    if (got.every((v, i) => v === after[i])) fits++;
+/**
+ * The point of the change: the induction is spatial, so no step of it is a
+ * calculation.
+ *
+ * Every example coordinate is a single step, which means no image component
+ * ever has to be divided by its source to find the factor — a source of one
+ * arriving as three states the stretch outright. The old form put 1, 5, 7 and
+ * 11 on one object precisely so that division would be the thing that pinned
+ * it, and that is what made the rung feel arithmetic rather than spatial.
+ */
+test("no example asks for a calculation", () => {
+    seeded(2024, () => {
+        const ctx = context([...FULL.slice(0, FULL.indexOf("dense-examples") + 1)]);
+
+        for (let rep = 0; rep < 40; rep++) {
+            const q = createAxisMap(ctx, 4);
+            for (const ex of q.axisEvidence!.examples) {
+                for (const v of ex.coord) {
+                    assert(Math.abs(v) <= 1,
+                        `an example stood ${Math.abs(v)} steps out, so its factor has to be divided out`);
                 }
-                equal(fits, 1,
-                    `${fits} maps fit one dense example on ${d} axes -- the item has that many answers`);
             }
         }
     });
 });
 
-function shuffledPerm(d: number): number[] {
-    const out = Array.from({ length: d }, (_, i) => i);
-    for (let i = out.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [out[i], out[j]] = [out[j], out[i]];
-    }
-    return out;
-}
+/**
+ * What replaces the divisibility argument, stated as the two ways it can fail.
+ *
+ * An axis is identified by the column it occupies across the examples: which
+ * lines it stands in, and which way it points in each. Two axes are
+ * interchangeable when those columns are **equal** — same lines, same
+ * directions — and, less obviously, when they are exact **opposites**, because
+ * then a reader can swap the two axes and flip both factors and land on the
+ * same card. The first test written here missed the second case and the
+ * generator failed it, which is the only reason it is stated.
+ *
+ * `pinsMap` catches both by searching, so this is not the safety net. It is the
+ * reason: a brute force that passes tells you the item is sound and nothing
+ * about why, and the why is what stops the next change from breaking it.
+ */
+test("no two axes stand in the examples the same way, or in exact opposition", () => {
+    seeded(1123, () => {
+        const ctx = context([...FULL.slice(0, FULL.indexOf("dense-examples") + 1)]);
+
+        for (let rep = 0; rep < 40; rep++) {
+            const { examples, covered } = createAxisMap(ctx, 4).axisEvidence!;
+
+            const columns = covered.map(axis => examples.map(ex => ex.coord[axis]));
+            for (let a = 0; a < columns.length; a++) {
+                if (columns[a].every(v => v === 0)) continue;   // an axis left alone
+                for (let b = a + 1; b < columns.length; b++) {
+                    assert(!columns[a].every((v, i) => v === columns[b][i]),
+                        `axes ${covered[a]} and ${covered[b]} stand in the examples identically`);
+                    assert(!columns[a].every((v, i) => v === -columns[b][i]),
+                        `axes ${covered[a]} and ${covered[b]} are each other's mirror image`);
+                }
+            }
+        }
+    });
+});
 
 /**
  * With an offset it takes two, and the second sits on the marker.

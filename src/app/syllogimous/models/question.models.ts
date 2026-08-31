@@ -282,6 +282,24 @@ export class Question {
      * space — and absent elsewhere, where there is nothing to plot.
      */
     /**
+     * The evidence an Axis Maps item hands over, as data.
+     *
+     * The card states the examples in words, and the property the whole mode
+     * rests on is that those examples leave exactly one map standing. That
+     * property is about coordinates, not about sentences, so checking it
+     * against the rendered text would mean parsing the phrasing back into
+     * numbers — a second implementation of the wording, drifting from the
+     * first. Carried here instead, so the claim can be checked against the item
+     * that actually ships.
+     */
+    axisEvidence?: {
+        examples: Array<{ coord: number[]; after: number[] }>;
+        /** Axis indices the examples speak about; the rest are unchanged. */
+        covered: number[];
+        dims: number;
+    };
+
+    /**
      * Directed graphs to draw, for Relational Web.
      *
      * The only mode whose premises are not sentences: the picture *is* the

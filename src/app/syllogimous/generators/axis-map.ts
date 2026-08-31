@@ -22,6 +22,14 @@
  * along several would leave the reader unable to say which component came from
  * where, and the map underdetermined. Axes the examples do not cover are
  * unchanged, which is stated with the item.
+ *
+ * **And the inductive rung makes that correspondence the work.** Reading one
+ * axis per line hands the map over, so `dense-examples` overlaps them: several
+ * objects, each standing on more than one axis, and no line saying which
+ * component of an image came from which axis. What pins it is *which objects an
+ * axis appears in* — an occupancy pattern, unique per axis — so the reader
+ * eliminates on structure. Every example coordinate is one step, so nothing in
+ * that reasoning is a calculation.
  */
 
 import { GeneratorContext, buildSeries, extendWithSeries, seriesWanted } from "./context";
@@ -242,9 +250,17 @@ function shortLine(name: string, delta: number[], axes: LinearScale[], from?: st
     return `${subj(name)}: ${body}${tail}`;
 }
 
-/** The two halves of one worked example, on one line. */
+/**
+ * The two halves of one worked example, on one line.
+ *
+ * The empty side is worth a word rather than a blank. An object standing *on*
+ * the marker has no clauses to its name, and it is the example a shift is read
+ * from — printing it as "  → 2 below" leaves the most load-bearing line on the
+ * card looking like something failed to render.
+ */
 function exampleLine(name: string, before: number[], after: number[], axes: LinearScale[]): string {
-    return `${subj(name)}: ${clauses(before, axes)} ${hi("→")} ${clauses(after, axes) || hi("nowhere")}`;
+    const from = clauses(before, axes) || hi("at the marker");
+    return `${subj(name)}: ${from} ${hi("→")} ${clauses(after, axes) || hi("nowhere")}`;
 }
 
 const minus = (a: number[], b: number[]) => a.map((v, i) => v - b[i]);
@@ -304,11 +320,18 @@ function features(ctx: GeneratorContext, type: EnumQuestionType) {
      *
      * The default puts each example object on a single axis, which is what
      * makes a map *readable* — "east went to above, tripled" is handed over
-     * with nothing to work out. A dense example carries the same information in
-     * one line and makes the reader solve the correspondence instead, which is
-     * more inductive work rather than less. So it is a rung, and it sits after
-     * substitution: it is only worth asking once direction words can stop
-     * meaning what they say.
+     * with nothing to work out. Overlapping the examples makes the reader solve
+     * the correspondence instead, which is more inductive work rather than
+     * less, so it is a rung.
+     *
+     * **It used to do that arithmetically and no longer does.** The first form
+     * put one object at 1, 5, 7 and 11 steps along the covered axes, so the
+     * correspondence fell out of dividing an image by its source. That is a
+     * correct guarantee and the wrong kind: the reader's act was factorising,
+     * and the axis names were labels on numbers in a mode whose whole claim is
+     * that it is relational. Now every example stands one step out and what
+     * separates the axes is which examples each appears in, so the same work is
+     * done by elimination over a configuration.
      */
     const dense = has("dense-examples");
 
@@ -362,34 +385,109 @@ interface Group {
     trail: AxisMap[];
 }
 
-/**
- * Magnitudes that cannot be confused for one another under any allowed factor.
- *
- * A dense example is only readable if the correspondence is forced, and it is
- * forced when no after-magnitude could have come from two different
- * before-axes. That happens exactly when no ratio between two of these is an
- * allowed factor: with factors capped at three, `p * f = q * g` has no solution
- * in 1..3 for any pair here, so each after-component divides cleanly by exactly
- * one of them.
- *
- * Chosen rather than searched for, which is why the mode does not need to
- * enumerate candidate maps and check them: the item is unambiguous by
- * construction. Four is enough because `covered` is capped at four.
- */
-const MARKS = [1, 5, 7, 11];
+/** What a factor is allowed to be, which bounds what a reader has to consider. */
+const FACTORS = [1, -1, 2, -2, 3, -3];
 
 /**
- * One or two examples that pin the whole map.
+ * Every map the shown examples could conceivably be, visited once.
  *
- * Without an offset, one object carrying a distinct magnitude on every covered
- * axis is enough: each after-component divides by exactly one before-component,
- * so the permutation and the factors fall out together.
+ * Only the covered axes move: the item states outright that anything the
+ * examples leave alone stays as it is, so a reader is not searching the whole
+ * space and neither is this. That makes the search `covered!` permutations by
+ * six factors each — 31,104 at the four-axis ceiling, which is nothing.
  *
- * With an offset it takes two, and the second is placed at the marker itself.
- * A shift and a stretch are indistinguishable on a single object — "2 east
- * becomes 4 east" is twice as far or two further — and an object sitting on the
- * marker maps to the offset alone, which separates them and reads as exactly
- * what it is.
+ * `visit` returns false to stop, which is what lets the caller quit on the
+ * second map that fits rather than counting all of them.
+ */
+function eachCandidate(covered: number[], dims: number, visit: (m: AxisMap) => boolean): void {
+    const m = identity(dims);
+    const taken = new Set<number>();
+    let stop = false;
+
+    const walk = (k: number) => {
+        if (k === covered.length) { if (!visit(m)) stop = true; return; }
+        const src = covered[k];
+        for (const tgt of covered) {
+            if (taken.has(tgt)) continue;
+            taken.add(tgt);
+            m.perm[src] = tgt;
+            for (const f of FACTORS) {
+                m.factor[src] = f;
+                walk(k + 1);
+                if (stop) break;
+            }
+            taken.delete(tgt);
+            if (stop) break;
+        }
+        // Restored on the way out, so a sibling branch starts from the identity.
+        m.perm[src] = src;
+        m.factor[src] = 1;
+    };
+
+    walk(0);
+}
+
+/**
+ * Whether these examples leave exactly one map standing.
+ *
+ * **Searched, not argued.** The dense form used to guarantee uniqueness with a
+ * divisibility trick — one object carrying the magnitudes 1, 5, 7 and 11, no
+ * ratio of which is an allowed factor, so every image component divided cleanly
+ * by exactly one source. It worked, and it made the induction *arithmetic*: the
+ * reader's act was factorising 22 back to 11, and the axis names were labels
+ * hung on numbers. The whole point of the mode is relational, so that was the
+ * wrong guarantee to have chosen even though it was a correct one.
+ *
+ * Checking by search costs a fraction of a millisecond and buys the freedom to
+ * build examples for how they *read*. Coordinates are now single steps and what
+ * separates the axes is which examples each one appears in, so the reasoning is
+ * elimination over a configuration — which is the thing the mode is for.
+ *
+ * The offset is taken from the example standing on the marker, which is what
+ * one is for: it maps to the shift alone. A map that shifts without showing it
+ * cannot be pinned, and says so here rather than shipping.
+ */
+export function pinsMap(
+    shown: Array<{ coord: number[]; after: number[] }>,
+    covered: number[],
+    dims: number,
+): boolean {
+    if (!shown.length) return false;
+
+    const atMarker = shown.find(ex => ex.coord.every(v => v === 0));
+    const offset = atMarker ? atMarker.after : Array(dims).fill(0);
+
+    let fits = 0;
+    const got = Array(dims).fill(0);
+
+    eachCandidate(covered, dims, cand => {
+        for (const ex of shown) {
+            for (let j = 0; j < dims; j++) got[j] = offset[j];
+            for (let i = 0; i < dims; i++) got[cand.perm[i]] += cand.factor[i] * ex.coord[i];
+            for (let j = 0; j < dims; j++) if (got[j] !== ex.after[j]) return true;
+        }
+        return ++fits < 2;
+    });
+
+    return fits === 1;
+}
+
+/**
+ * Overlapping examples: the correspondence is the work, and it is spatial.
+ *
+ * Each covered axis gets its own **occupancy pattern** — which of the examples
+ * it appears in — and the patterns are distinct, which is what pins the map.
+ * An image component that shows up in the first example and not the second must
+ * have come from an axis that does the same, and there is only one. That is the
+ * whole argument, and a reader runs it by looking at which lines mention what.
+ *
+ * Every coordinate is a single step. There is nothing to divide: a source of
+ * one step arriving as three says the stretch outright, so the only number on
+ * the card is the answer to a question nobody had to work at.
+ *
+ * `2^m - 1` patterns exist for `m` examples, so two examples carry three axes
+ * and three carry seven — the four-axis ceiling needs three lines, each naming
+ * one or two axes.
  */
 function denseExamples(
     names: string[],
@@ -397,17 +495,50 @@ function denseExamples(
     dims: number,
     map: AxisMap,
 ): Array<{ name: string; coord: number[]; after: number[] }> {
-    const spread = Array(dims).fill(0);
-    covered.forEach((axis, k) => {
-        spread[axis] = (Math.random() < 0.5 ? -1 : 1) * MARKS[k % MARKS.length];
-    });
+    let lines = 1;
+    while ((1 << lines) - 1 < covered.length) lines++;
 
-    const out = [{ name: names[0], coord: spread, after: applyAxisMap(spread, map) }];
+    const patterns = shuffle(Array.from({ length: (1 << lines) - 1 }, (_, i) => i + 1))
+        .slice(0, covered.length);
 
-    if (map.offset.some(v => v !== 0) && names.length > 1) {
-        const origin = Array(dims).fill(0);
-        out.push({ name: names[1], coord: origin, after: applyAxisMap(origin, map) });
+    /*
+     * Signs, with the first appearance of every axis pointing the same way.
+     *
+     * A distinct occupancy pattern is not quite enough on its own, which a test
+     * caught rather than an argument: two axes standing in the same lines with
+     * exactly opposite signs are each other's mirror image, and a reader can
+     * swap them if they flip the factor to match. Every axis's *first* step
+     * being positive rules that out — two columns can no longer be negatives of
+     * one another — and the patterns being distinct rules out their being equal.
+     * Which is the guarantee, stated in the two ways it can fail.
+     */
+    const sign = covered.map(() => 1);
+    const started = covered.map(() => false);
+
+    const out: Array<{ name: string; coord: number[]; after: number[] }> = [];
+    for (let e = 0; e < lines; e++) {
+        const coord = Array(dims).fill(0);
+        covered.forEach((axis, k) => {
+            if (!(patterns[k] & (1 << e))) return;
+            coord[axis] = started[k] ? (Math.random() < 0.5 ? -1 : 1) : sign[k];
+            started[k] = true;
+        });
+        if (coord.every(v => v === 0)) continue;
+        if (out.length >= names.length) break;
+        out.push({ name: names[out.length], coord, after: applyAxisMap(coord, map) });
     }
+
+    /*
+     * A shift and a stretch are indistinguishable on any one object — "1 east
+     * becomes 3 east" is three times as far or two further — so a map that
+     * shifts shows something standing on the marker, which moves to the shift
+     * and nothing else.
+     */
+    if (map.offset.some(v => v !== 0) && names.length > out.length) {
+        const origin = Array(dims).fill(0);
+        out.push({ name: names[out.length], coord: origin, after: applyAxisMap(origin, map) });
+    }
+
     return out;
 }
 
@@ -440,7 +571,9 @@ function buildGroups(
      * distractors — the characteristic error, offered as an option.
      */
     const target = Math.floor(Math.random() * feat.groups);
-    const need = feat.groups * covered.length + chainLen;
+    // A spare name per group: the overlapping form needs one for the example
+    // standing on the marker, which is what makes a shift readable.
+    const need = feat.groups * (covered.length + 1) + chainLen;
     const names = getRandomSymbols(settings, need);
     if (names.length < need) return null;
 
@@ -453,8 +586,8 @@ function buildGroups(
         if (!map) return null;
 
         const anchor = markers[g].token;
-        const exampleNames = names.slice(cursor, cursor + covered.length);
-        cursor += covered.length;
+        const exampleNames = names.slice(cursor, cursor + covered.length + 1);
+        cursor += covered.length + 1;
 
         const shown = (feat.dense
             ? denseExamples(exampleNames, covered, d, map)
@@ -465,6 +598,17 @@ function buildGroups(
             })
         ).filter(ex => clauses(ex.coord, axes) !== clauses(ex.after, axes));
         if (!shown.length) return null;
+
+        /*
+         * Checked on the examples that survive, which is the only set that
+         * matters: an example showing no change is dropped just above, and a
+         * dropped line takes its axis's occupancy pattern with it. Verifying
+         * the set before the filter would be verifying a card nobody sees.
+         *
+         * Only the overlapping form is gated. The one-axis-per-line form hands
+         * each axis over directly and has never needed a search to know it.
+         */
+        if (feat.dense && !pinsMap(shown, covered, d)) return null;
 
         const chain = g === target ? names.slice(cursor, cursor + chainLen) : [];
         cursor += chain.length;
@@ -508,6 +652,9 @@ function buildGroups(
     ];
 
     const asked = groups[target];
+    // The evidence, as numbers, so the property the mode rests on can be
+    // checked against the shipped item rather than against its phrasing.
+    question.axisEvidence = { examples: asked.shown, covered, dims: d };
 
     const premises: string[] = [];
     for (const g of groups) {

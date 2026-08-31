@@ -142,7 +142,7 @@ export class ModeModifiersComponent {
             "compose-4": "Four changes composed",
             "compose-5": "Five changes composed",
             "offset": "A change that shifts everything",
-            "dense-examples": "More example lines to read",
+            "dense-examples": "Examples share axes, so which went where has to be worked out",
             "dim-3": "Three dimensions",
             "dim-4": "Four dimensions",
             "dim-5": "Five dimensions",

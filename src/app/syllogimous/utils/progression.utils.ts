@@ -366,9 +366,13 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      *               and so adds least on its own
      *   dim-N       the space widens, three axes to seven
      *   compose-N   more changes at once, up to five
-     *   dense-examples  one example covering every axis at once instead of one
-     *               per axis. Fewer lines and *more* work: the correspondence
-     *               has to be solved rather than read off
+     *   dense-examples  examples that overlap instead of one per axis, so an
+     *               axis is identified by which of them it stands in. The
+     *               correspondence has to be solved rather than read off, and
+     *               every coordinate is a single step so the solving is
+     *               elimination rather than arithmetic. (The id predates the
+     *               form; renaming it would retire the rung and take its
+     *               position on the ladder with it.)
      *   groups-N    several groups, each with its own change and its own
      *               marker — the reader keeps two or three dictionaries apart
      *               and applies each to the right chain
