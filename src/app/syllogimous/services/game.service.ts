@@ -71,6 +71,7 @@ import { createShapeRotation } from "../generators/shape-rotation";
 import { createRelationalWeb } from "../generators/relational-web";
 import { createStimulusFunction } from "../generators/stimulus-function";
 import { createAxisMap } from "../generators/axis-map";
+import { createMutualMoves } from "../generators/mutual-moves";
 import { createWidestGroup } from "../generators/widest-group";
 import { createTransformMatch } from "../generators/transform-match";
 import { createKnaves } from "../generators/knaves";
@@ -334,6 +335,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.Analogy]: () => createAnalogy(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
+            [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),
             [EnumQuestionType.Transformation]: () => createTransformation(this, numOfPremises),
             [EnumQuestionType.AnchorSpace]: () => createAnchorSpace(this, numOfPremises),
             [EnumQuestionType.AnchorSpaceV2]: () => createAnchorSpaceV2(this, numOfPremises),

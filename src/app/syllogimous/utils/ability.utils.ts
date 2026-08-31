@@ -122,6 +122,21 @@ export const RUNG_COST: Record<string, number> = {
      */
     "dense-examples": 1.5,
     /*
+     * Mutual Moves. Each of these multiplies the space of rules the reader
+     * has to rule out, and they are priced by how much: an operation or a
+     * role doubles it outright, an axis only widens what each move is
+     * measured in.
+     */
+    "op-join": 1.0,
+    "op-follow": 1.1,
+    "op-mirror": 1.2,
+    "role-next": 1.0,
+    /* Two roles at once, and the only two under which one object stands
+       still while everything else moves against it. */
+    "role-extremes": 1.6,
+    "axes-3": 0.9,
+    "axes-4": 1.0,
+    /*
      * A one-point lead instead of two. The comparison stops being a glance and
      * has to be measured, which is the whole difficulty of the mode in a single
      * rung.

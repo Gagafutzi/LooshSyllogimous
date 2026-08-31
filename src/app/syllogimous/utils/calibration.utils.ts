@@ -204,6 +204,13 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      */
     [EnumQuestionType.AxisMap]: { weight: 1.4, ceiling: 5 },
     /*
+     * Heavier than Axis Maps per premise and capped lower. A premise here is
+     * an object that has to be held *and* updated — under `in-turn` each one
+     * is read after the moves before it, so the state changes underneath the
+     * reader rather than sitting still to be consulted.
+     */
+    [EnumQuestionType.MutualMoves]: { weight: 1.7, ceiling: 4 },
+    /*
      * A member is a row to order, and ordering is most of the work — but the
      * rows are read rather than composed, so a member is worth less than a
      * premise that has to be held against the ones before it.

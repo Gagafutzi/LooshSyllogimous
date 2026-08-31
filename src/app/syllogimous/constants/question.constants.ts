@@ -46,6 +46,12 @@ export enum EnumQuestionType {
     StimulusFunction = "Stimulus Function",
     TransformMatching = "Transformation Matching",
     AxisMap = "Axis Maps",
+    /*
+     * Axis Maps asks what happened to the space; this asks what the objects
+     * did to each other. Different rule, different evidence, different
+     * answer — a mode rather than a rung on that one.
+     */
+    MutualMoves = "Mutual Moves",
     WidestGroup = "Widest Group",
     Knaves = "Knights and Knaves",
     NestedSpaces = "Nested Spaces",

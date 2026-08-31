@@ -30,6 +30,7 @@ import { createShapeRotation } from "../src/app/syllogimous/generators/shape-rot
 import { createRelationalWeb } from "../src/app/syllogimous/generators/relational-web";
 import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
 import { createAxisMap } from "../src/app/syllogimous/generators/axis-map";
+import { createMutualMoves } from "../src/app/syllogimous/generators/mutual-moves";
 import { createWidestGroup } from "../src/app/syllogimous/generators/widest-group";
 import { createTransformMatch } from "../src/app/syllogimous/generators/transform-match";
 import { createKnaves } from "../src/app/syllogimous/generators/knaves";
@@ -70,6 +71,7 @@ export const BUILD: Record<string, Build> = {
     [EnumQuestionType.StimulusFunction]: createStimulusFunction,
     [EnumQuestionType.TransformMatching]: createTransformMatch,
     [EnumQuestionType.AxisMap]: createAxisMap,
+    [EnumQuestionType.MutualMoves]: createMutualMoves,
     [EnumQuestionType.WidestGroup]: createWidestGroup,
     [EnumQuestionType.Knaves]: createKnaves,
     [EnumQuestionType.NestedSpaces]: createNested,

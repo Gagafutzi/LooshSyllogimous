@@ -18,6 +18,7 @@ import "./profiles.test";
 import "./keybind.test";
 import "./review.test";
 import "./feedback.test";
+import "./mutual-moves.test";
 import "./answering.test";
 import "./stimuli.test";
 import "./shape-rotation.test";

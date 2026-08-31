@@ -417,6 +417,17 @@ export const RUNG_LADDERS: Record<string, string[]> = {
         "dim-5", "dense-examples", "compose-4", "retired-groups-3", "dim-6",
         "compose-5", "dim-7",
     ],
+    /*
+     * Both orders are in at the base, because the order is the mode's own
+     * idea — a base without it would be a worse Axis Maps. So the opening
+     * item asks only "all at once, or one after another": two hypotheses,
+     * the whole novel demand, and nothing else to hold while answering it.
+     * The ladder widens what else the rule could have been.
+     */
+    "Mutual Moves":              [
+        "op-join", "role-next", "axes-3", "op-mirror", "op-follow",
+        "role-extremes", "axes-4",
+    ],
     "Knights and Knaves":        ["compound", "undetermined"],
     /*
      * The vocabulary collision is the novel axis, so it is the whole ladder.

@@ -350,6 +350,19 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
      * — and six is the ceiling, past which the item is a longer sort rather
      * than a harder comparison.
      */
+    /*
+     * Premises are objects in a group, and three is the floor: with two, the
+     * next one round and the one before it are the same object, so half the
+     * role vocabulary collapses and the rule stops being identifiable. Six is
+     * the ceiling — past it an `in-turn` sweep is a longer simulation rather
+     * than a harder rule.
+     */
+    [EnumQuestionType.MutualMoves]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 6,
+        basic: false
+    },
     [EnumQuestionType.WidestGroup]: {
         enabled: true,
         minNumOfPremises: 3,

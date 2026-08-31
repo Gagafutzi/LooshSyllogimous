@@ -41,6 +41,7 @@ import { createRelationalWeb } from "../src/app/syllogimous/generators/relationa
 import { createStimulusFunction } from "../src/app/syllogimous/generators/stimulus-function";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createAxisMap } from "../src/app/syllogimous/generators/axis-map";
+import { createMutualMoves } from "../src/app/syllogimous/generators/mutual-moves";
 import { createWidestGroup } from "../src/app/syllogimous/generators/widest-group";
 import { createTransformMatch } from "../src/app/syllogimous/generators/transform-match";
 import { createKnaves } from "../src/app/syllogimous/generators/knaves";
@@ -125,6 +126,7 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.Binary, createBinary],
     [EnumQuestionType.TransformMatching, createTransformMatch],
     [EnumQuestionType.AxisMap, createAxisMap],
+    [EnumQuestionType.MutualMoves, createMutualMoves],
     [EnumQuestionType.WidestGroup, createWidestGroup],
     [EnumQuestionType.Knaves, createKnaves],
     [EnumQuestionType.NestedSpaces, createNested],
