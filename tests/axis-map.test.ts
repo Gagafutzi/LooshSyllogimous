@@ -613,6 +613,39 @@ test("no two axes stand in the examples the same way, or in exact opposition", (
 });
 
 /**
+ * No axis is handed over by a single line.
+ *
+ * An axis standing alone in one example is read straight off that example —
+ * which is the readable form, and the thing the rung exists to stop being. The
+ * patterns used to be drawn from all of them, so whether an item asked for any
+ * cross-referencing came down to the draw, and two items on one rung could want
+ * quite different work. This is as much about the *variance* as the difficulty:
+ * a rung whose demand is a coin flip is a rung the ability model cannot price.
+ */
+test("no axis is settled by one example alone", () => {
+    seeded(8080, () => {
+        const ctx = context([...FULL.slice(0, FULL.indexOf("dense-examples") + 1)]);
+
+        for (let rep = 0; rep < 40; rep++) {
+            const { examples, covered } = createAxisMap(ctx, 4).axisEvidence!;
+
+            for (const axis of covered) {
+                const stands = examples.filter(ex => ex.coord[axis]).length;
+                assert(stands === 0 || stands >= 2,
+                    `axis ${axis} stands in one example, so that line hands it over`);
+            }
+
+            // The same property from the other side: a line naming one axis is
+            // a line that settles it.
+            for (const ex of examples) {
+                const named = covered.filter(a => ex.coord[a]).length;
+                assert(named !== 1, "an example names exactly one axis, which reads it off");
+            }
+        }
+    });
+});
+
+/**
  * With an offset it takes two, and the second sits on the marker.
  *
  * A shift and a stretch are indistinguishable on one object -- "2 east becomes

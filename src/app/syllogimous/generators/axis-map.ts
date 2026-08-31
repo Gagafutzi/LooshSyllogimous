@@ -485,9 +485,9 @@ export function pinsMap(
  * one step arriving as three says the stretch outright, so the only number on
  * the card is the answer to a question nobody had to work at.
  *
- * `2^m - 1` patterns exist for `m` examples, so two examples carry three axes
- * and three carry seven — the four-axis ceiling needs three lines, each naming
- * one or two axes.
+ * No axis stands in fewer than two of them, so none is ever settled by a single
+ * line — which is the same thing as saying every line names two axes or more,
+ * and is what stops an item from handing an axis over for free.
  */
 function denseExamples(
     names: string[],
@@ -495,11 +495,36 @@ function denseExamples(
     dims: number,
     map: AxisMap,
 ): Array<{ name: string; coord: number[]; after: number[] }> {
-    let lines = 1;
-    while ((1 << lines) - 1 < covered.length) lines++;
+    /*
+     * Patterns that put every axis in **at least two** examples.
+     *
+     * The rule this replaces drew from all `2^lines - 1` patterns, which meant
+     * a singleton could come up: an axis standing in one line, alone, is handed
+     * over by that line the way the readable form hands over everything. Whether
+     * an item asked for cross-referencing was then a matter of the draw, and two
+     * items on the same rung could want quite different work — the difficulty
+     * swinging for no reason anybody could see, which is its own complaint.
+     *
+     * Requiring two appearances each makes it consistent, and consistently the
+     * reading that has something to work out: no axis is settled until at least
+     * two lines have been put beside each other. It also lands every *line* with
+     * two or more axes on it, which is the same property seen from the other
+     * side — with `covered` between three and four there is no way to spend two
+     * appearances each without filling every line.
+     *
+     * `2^m - 1 - m` patterns survive the popcount rule, so three lines carry the
+     * four axes that `covered` tops out at.
+     */
+    let lines = 2;
+    while ((1 << lines) - 1 - lines < covered.length) lines++;
 
-    const patterns = shuffle(Array.from({ length: (1 << lines) - 1 }, (_, i) => i + 1))
-        .slice(0, covered.length);
+    const pool = Array.from({ length: (1 << lines) - 1 }, (_, i) => i + 1)
+        .filter(p => {
+            let bits = 0;
+            for (let b = 0; b < lines; b++) if (p & (1 << b)) bits++;
+            return bits >= 2;
+        });
+    const patterns = shuffle(pool).slice(0, covered.length);
 
     /*
      * Signs, with the first appearance of every axis pointing the same way.
@@ -609,6 +634,26 @@ function buildGroups(
          * each axis over directly and has never needed a search to know it.
          */
         if (feat.dense && !pinsMap(shown, covered, d)) return null;
+
+        /*
+         * And no axis left standing in a single line.
+         *
+         * The patterns are built to spend two appearances on every axis, but
+         * the filter above can take one back: a line whose axes the map all
+         * leaves alone reads the same on both sides and is dropped, and the
+         * axes it carried lose an appearance with it. Rare — about one item in
+         * seventy — and cheaper to reject than to prevent, since the retry is
+         * already there and preventing it would mean choosing the patterns
+         * against the map rather than independently of it.
+         */
+        if (feat.dense && !shown.every(ex => {
+            const named = covered.filter(a => ex.coord[a]).length;
+            return named !== 1;
+        })) return null;
+        if (feat.dense && !covered.every(a => {
+            const stands = shown.filter(ex => ex.coord[a]).length;
+            return stands === 0 || stands >= 2;
+        })) return null;
 
         const chain = g === target ? names.slice(cursor, cursor + chainLen) : [];
         cursor += chain.length;
