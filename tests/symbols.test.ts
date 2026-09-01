@@ -22,6 +22,7 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
+import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import {
     rel, setSymbolRelations, subj, symbolFor, symbolise, symbolisedWords, symbolLegend,
     symboliseStatement,
@@ -50,6 +51,29 @@ function everyRelationWord(): Array<{ word: string; from: string }> {
             add(cyclic.direction?.[0], "cyclic.direction[0]");
             add(cyclic.direction?.[1], "cyclic.direction[1]");
             add(cyclic.same, "cyclic.same");
+        }
+
+        /*
+         * Parity, which this test did not read and so did not miss.
+         *
+         * A scale can carry a second vocabulary for composed spaces, where a
+         * run of steps reads as odd or even rather than as a distance —
+         * "opposite kind" exists only here. The table and this check were
+         * written from the same four fields, so the check could not catch what
+         * the table had skipped, and a seven-dimensional card printed the word.
+         * Every field a scale can put on a card belongs in this list.
+         */
+        const parity = (s as {
+            parity?: {
+                same?: string; opposite?: string;
+                sameRelation?: string; oppositeRelation?: string;
+            };
+        }).parity;
+        if (parity) {
+            add(parity.same, "parity.same");
+            add(parity.opposite, "parity.opposite");
+            add(parity.sameRelation, "parity.sameRelation");
+            add(parity.oppositeRelation, "parity.oppositeRelation");
         }
     }
     return out;
@@ -161,12 +185,27 @@ test("no relation word survives on any mode's card", () => {
             const offenders: string[] = [];
 
             for (const [type, build] of Object.entries(BUILD)) {
-                const min = QUESTION_TYPE_SETTING_PARAMS[type as EnumQuestionType]
-                    ?.minNumOfPremises ?? 3;
+                const params = QUESTION_TYPE_SETTING_PARAMS[type as EnumQuestionType];
+                const min = params?.minNumOfPremises ?? 3;
+                const max = params?.maxNumOfPremises ?? min + 2;
 
-                for (let rep = 0; rep < 6; rep++) {
+                /*
+                 * Every length, and both with the ladder and without it.
+                 *
+                 * The version of this that ran six items of one length per mode
+                 * passed while a seven-dimensional card was printing a word:
+                 * the offending axis only appears once a mode is wide enough,
+                 * which is a rung away. A sweep that never earns a rung is a
+                 * sweep of the easy half of the app.
+                 */
+                const settings: Array<[number, string[]]> = [];
+                for (let n = min; n <= max; n++) {
+                    settings.push([n, []], [n, ladderFor(type as EnumQuestionType)]);
+                }
+
+                for (const [n, rungs] of settings) {
                     let q;
-                    try { q = build(context(), min + 1); } catch { continue; }
+                    try { q = build(context(rungs), n); } catch { continue; }
 
                     // Exactly what the service converts before the card sees it.
                     const lines = [
@@ -197,7 +236,7 @@ test("no relation word survives on any mode's card", () => {
     });
 });
 
-function context(): GeneratorContext {
+function context(rungs: string[] = []): GeneratorContext {
     const settings = new Settings();
     for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;
     const ctx: GeneratorContext = {
@@ -209,7 +248,7 @@ function context(): GeneratorContext {
         } as unknown as SettingsOverrideService,
         progressionService: { hasRung: () => false, depthBonusFor: () => 0 } as unknown as ProgressionService,
         forceConstruction: "off",
-        hasRung: () => false,
+        hasRung: (_t: string, r: string) => rungs.includes(r),
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

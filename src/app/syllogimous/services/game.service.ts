@@ -1020,6 +1020,17 @@ export class GameService implements GeneratorContext {
             else localStorage.removeItem(LS_SYMBOL_RELATIONS);
         } catch { /* private mode; the default stands */ }
         pushSymbolRelations(on);
+
+        /*
+         * Throw away the item built under the old setting.
+         *
+         * An item is generated during the previous verdict flash, so the card
+         * waiting when the switch is flipped was converted — or not converted —
+         * before the flip. Turning the setting on and having the very next
+         * question still read in words looks exactly like the feature failing,
+         * and it is a one-line cost to build that item again.
+         */
+        this.prepared = undefined;
     }
 
     /**

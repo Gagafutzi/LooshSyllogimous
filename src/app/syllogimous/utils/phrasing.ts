@@ -91,9 +91,19 @@ const RELATION_SYMBOLS: Record<string, string> = {
     "is on top of": "∧", "is under": "∨", "is at the same height as": "≀",
     "higher": "∧", "lower": "∨", "same height": "≀",
 
-    // Distinction is the one axis with no order, so its marks carry none.
+    /*
+     * Distinction is the one axis with no order, so its marks carry none.
+     *
+     * It also has a second vocabulary — `parity`, for the composed spaces,
+     * where a run of steps is read as odd or even rather than as a distance.
+     * "opposite kind" lives only there, which is why it was the one word left
+     * printing as text on a seven-dimensional card: both the table and the test
+     * that was meant to catch the table read the same four fields and neither
+     * read this one.
+     */
     "is a different kind from": "≠", "is the same kind as": "≐",
     "different kind": "≠", "same kind": "≐",
+    "opposite kind": "≠", "is the opposite kind to": "≠",
 
     // Temperature keeps its degree sign, since nothing else on a card has one.
     "is warmer than": "↑°", "is colder than": "↓°", "is as warm as": "=°",
