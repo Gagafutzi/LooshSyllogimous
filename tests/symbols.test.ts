@@ -19,10 +19,12 @@ import { ProgressionService } from "../src/app/syllogimous/services/progression.
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
 import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
+import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import {
-    rel, setSymbolRelations, symbolFor, symbolise, symbolisedWords, symbolLegend,
+    rel, setSymbolRelations, subj, symbolFor, symbolise, symbolisedWords, symbolLegend,
+    symboliseStatement,
 } from "../src/app/syllogimous/utils/phrasing";
 import { LINEAR_SCALES, SPATIAL_SCALES } from "../src/app/syllogimous/utils/linear.utils";
 
@@ -149,34 +151,46 @@ test("only relation text is touched", () => {
  *
  * So this asserts on the premises of built items rather than on the helper.
  */
-test("no relation word survives on a card with the switch on", () => {
+test("no relation word survives on any mode's card", () => {
     const words = everyRelationWord().map(w => w.word)
         .sort((a, b) => b.length - a.length);
 
     seeded(5150, () => {
         setSymbolRelations(true);
         try {
-            for (const type of [
-                EnumQuestionType.Space4D,
-                EnumQuestionType.Space3D,
-                EnumQuestionType.Direction,
-                EnumQuestionType.AnchorSpace,
-            ]) {
-                const build = BUILD[type];
-                if (!build) continue;
+            const offenders: string[] = [];
+
+            for (const [type, build] of Object.entries(BUILD)) {
+                const min = QUESTION_TYPE_SETTING_PARAMS[type as EnumQuestionType]
+                    ?.minNumOfPremises ?? 3;
 
                 for (let rep = 0; rep < 6; rep++) {
                     let q;
-                    try { q = build(context(), 3); } catch { continue; }
+                    try { q = build(context(), min + 1); } catch { continue; }
 
-                    for (const line of q.premises.map(strip)) {
+                    // Exactly what the service converts before the card sees it.
+                    const lines = [
+                        ...q.premises,
+                        ...(Array.isArray(q.conclusion) ? q.conclusion : [q.conclusion ?? ""]),
+                        ...q.choices,
+                        ...q.series.flatMap(c => [
+                            c.text ?? "", ...(c.premises ?? []), ...(c.choices ?? []),
+                        ]),
+                    ].map(l => strip(symboliseStatement(l)));
+
+                    for (const line of lines) {
                         for (const word of words) {
-                            assert(!new RegExp(`\\b${word}\\b`).test(line),
-                                `${type} still says "${word}": ${line}`);
+                            if (!new RegExp(`\\b${word}\\b`).test(line)) continue;
+                            const note = `${type} still says "${word}"`;
+                            if (!offenders.includes(note)) offenders.push(note);
                         }
                     }
                 }
             }
+
+            assert(offenders.length === 0,
+                `${offenders.length} mode/word pair(s) still print words:\n  `
+                + offenders.slice(0, 12).join("\n  "));
         } finally {
             setSymbolRelations(false);
         }
@@ -247,4 +261,42 @@ test("no key when the switch is off", () => {
     setSymbolRelations(false);
     equal(symbolLegend([strip(rel("3 north"))]).length, 0,
         "a key was offered for a card with no marks on it");
+});
+
+/**
+ * A mark that is also markup disappears off the card.
+ *
+ * Premises are rendered through `[innerHTML]`, so ASCII `<` and `>` are not
+ * characters, they are the start and end of a tag. `<span class="relation"><`
+ * `</span>` has its symbol eaten by the tag that follows it, and the relation
+ * is simply gone — which is what a comparison item reading "Kiwi  Doll" turned
+ * out to be. Fullwidth forms look the same and are text.
+ */
+test("no mark is a character that HTML will read as markup", () => {
+    for (const word of symbolisedWords()) {
+        const mark = symbolFor(word)!;
+        for (const ch of ["<", ">", "&"]) {
+            assert(!mark.includes(ch),
+                `the mark for "${word}" contains ${ch}, which is markup once it`
+                + " reaches innerHTML and takes the relation with it");
+        }
+    }
+});
+
+/** And the whole statement survives the round trip, tags and all. */
+test("a symbolised statement still has exactly its own tags", () => {
+    setSymbolRelations(true);
+    try {
+        const before = `${subj("Gem")} ${rel("is less than")} ${subj("Grass")}`;
+        const after = symboliseStatement(before);
+        equal((after.match(/<span/g) ?? []).length, (before.match(/<span/g) ?? []).length,
+            "a span was lost or invented");
+        equal((after.match(/<\/span>/g) ?? []).length, (before.match(/<\/span>/g) ?? []).length,
+            "a closing tag was lost or invented");
+        assert(strip(after).includes("＜"), `the mark did not survive: ${strip(after)}`);
+        assert(strip(after).includes("Gem") && strip(after).includes("Grass"),
+            "an object name was lost");
+    } finally {
+        setSymbolRelations(false);
+    }
 });

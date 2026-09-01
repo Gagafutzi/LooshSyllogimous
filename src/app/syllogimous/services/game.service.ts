@@ -37,7 +37,7 @@ import { hasNextClaim, judgeItem, takeSeriesAnswer } from "../utils/answer.utils
 // Aliased for the reason the feedback imports are: the service exposes a
 // member of the same name, and a call that could be read as either is worth
 // one line of renaming to avoid.
-import { setSymbolRelations as pushSymbolRelations } from "../utils/phrasing";
+import { setSymbolRelations as pushSymbolRelations, symboliseStatement } from "../utils/phrasing";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
 import { Router } from "@angular/router";
@@ -528,7 +528,7 @@ export class GameService implements GeneratorContext {
             try {
                 const question = make();
                 this.logger.info("Random question", question);
-                return question;
+                return this.asMinimal(question);
             } catch (e) {
                 lastError = e;
                 this.logger.warn("Generator failed, trying another mode", e);
@@ -1020,6 +1020,46 @@ export class GameService implements GeneratorContext {
             else localStorage.removeItem(LS_SYMBOL_RELATIONS);
         } catch { /* private mode; the default stands */ }
         pushSymbolRelations(on);
+    }
+
+    /**
+     * The item's statements as marks, when minimal mode is on.
+     *
+     * Done here, on the finished question, rather than inside the phrasing
+     * helpers. Substituting in `rel` and `hi` covered the modes that build
+     * premises out of them and missed nineteen that write relation text
+     * directly — a comparison card came out with one line reading "Rice <
+     * Beanstalk" and the three around it still saying "is less than". Twice the
+     * funnel turned out not to be one, so this stops guessing where the words
+     * are produced and converts what the card will show.
+     *
+     * **Statements only.** `setup` and `explanation` keep their words: the setup
+     * says things like "every change it makes is shown below", where "below" is
+     * prose and a mark would be nonsense, and the derivation reads better in
+     * words — it becomes the decoder for the card above it, which is worth
+     * having rather than a consistency to enforce.
+     */
+    private asMinimal(question: Question): Question {
+        if (!this.symbolRelations) return question;
+
+        const one = (s: string) => symboliseStatement(s);
+        question.premises = question.premises.map(one);
+        question.conclusion = Array.isArray(question.conclusion)
+            ? question.conclusion.map(one)
+            : one(question.conclusion ?? "");
+        question.choices = question.choices.map(one);
+        question.choicePrompt = one(question.choicePrompt ?? "");
+
+        // The claims a series will swap in later are statements too, and they
+        // are already built by the time the item is handed over.
+        for (const claim of question.series) {
+            claim.text = one(claim.text);
+            if (claim.premises) claim.premises = claim.premises.map(one);
+            if (claim.choices) claim.choices = claim.choices.map(one);
+            if (claim.prompt) claim.prompt = one(claim.prompt);
+        }
+
+        return question;
     }
 
     get feedbackShown(): boolean { return feedbackIsOn(); }

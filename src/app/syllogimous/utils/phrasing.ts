@@ -65,9 +65,17 @@ export const rel = (s: string, extra = "") =>
  * `vertical` are two spellings of one axis that never appear together.
  */
 const RELATION_SYMBOLS: Record<string, string> = {
-    // Quantity — the arithmetic comparisons, which already have marks.
-    "is more than": ">", "is less than": "<", "is equal to": "=",
-    "greater": ">", "smaller": "<", "same amount": "=",
+    /*
+     * Quantity — the comparisons that already have marks, in their fullwidth
+     * forms.
+     *
+     * Not ASCII `<` and `>`. Premises are rendered through `[innerHTML]`, so a
+     * bare angle bracket is markup: `<span class="relation"><</span>` has its
+     * `<` swallowed by whatever follows, and the relation vanishes off the card
+     * entirely. It did, on a comparison item that read "Kiwi  Doll".
+     */
+    "is more than": "＞", "is less than": "＜", "is equal to": "＝",
+    "greater": "＞", "smaller": "＜", "same amount": "＝",
 
     // Time, as chevrons: direction along a line that is not a direction in space.
     "is after": "»", "is before": "«", "is at the same time as": "≈",
@@ -161,6 +169,30 @@ export function symbolLegend(texts: string[]): Array<{ mark: string; word: strin
 
     // The order the card reads in, so the key can be scanned against it.
     return out.sort((a, b) => body.indexOf(a.mark) - body.indexOf(b.mark));
+}
+
+/**
+ * A finished statement, with its relation words turned into marks.
+ *
+ * **Why this exists on top of `rel` and `hi`.** Substituting inside those two
+ * covered the modes that build their premises out of them and missed nineteen
+ * others, which write relation text directly — so minimal mode turned one line
+ * of a comparison card into "Rice < Beanstalk" and left the three around it
+ * saying "is less than". Twice now the funnel has turned out not to be one, and
+ * the answer is to stop guessing where the words come from and convert the
+ * finished string instead.
+ *
+ * **Object names are protected.** Everything inside a `subject` span is left
+ * exactly as it is, so an object called Rice, Left or Contains is never
+ * rewritten into a relation. That is not hypothetical — the noun pool is large
+ * and the relation vocabulary is ordinary English.
+ */
+export function symboliseStatement(html: string): string {
+    if (!symbolRelations) return html;
+    return html
+        .split(/(<span class="subject">[\s\S]*?<\/span>)/)
+        .map((part, i) => (i % 2 ? part : symbolise(part)))
+        .join("");
 }
 
 /** Every word that has a mark, for the test that says every relation does. */
