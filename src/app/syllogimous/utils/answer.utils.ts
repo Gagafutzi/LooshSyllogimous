@@ -42,6 +42,7 @@ export function takeSeriesAnswer(q: Question, value: boolean): boolean {
     q.seriesAnswers[q.seriesAt] = right;
 
     q.seriesAt++;
+    const before = q.premises;
     const next = q.series[q.seriesAt];
     q.conclusion = next.text;
     q.isValid = next.isValid;
@@ -62,6 +63,19 @@ export function takeSeriesAnswer(q: Question, value: boolean): boolean {
      * space's relations. Everything else keeps every premise it had.
      */
     if (next.premises) q.premises = [...next.premises];
+
+    /*
+     * Where the new question is, so the carousel can go there.
+     *
+     * The first premise that differs is the head of the part this claim
+     * replaced — the operator lines, the chain being mapped — and everything
+     * above it is the reading already paid for. A claim that changed no premise
+     * asks its question in the conclusion or the options instead, which is what
+     * -1 means.
+     */
+    q.seriesFocusPremise = next.premises
+        ? q.premises.findIndex((p, i) => p !== before[i])
+        : -1;
 
     return right;
 }

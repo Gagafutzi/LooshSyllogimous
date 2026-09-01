@@ -24,6 +24,8 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
+import { createAxisMap } from "../src/app/syllogimous/generators/axis-map";
+import { takeSeriesAnswer } from "../src/app/syllogimous/utils/answer.utils";
 import { GameTimerService } from "../src/app/syllogimous/services/game-timer.service";
 import { Question } from "../src/app/syllogimous/models/question.models";
 import { isPremiseLikeConclusion } from "../src/app/syllogimous/utils/question.utils";
@@ -504,5 +506,46 @@ test("every claim's derivation is about the claim on the card", () => {
             }
         }
         assert(checked > 0, "no multi-claim inference items were produced to check");
+    });
+});
+
+/**
+ * Answering one conclusion should leave you where the next one is asked.
+ *
+ * Reaching the end of the carousel is what unlocks answering, so an answer
+ * always leaves the card at its last slide — and the next claim then arrives
+ * with its question behind you. The claim records which premise it replaced,
+ * which is the head of the part being asked about: the operator lines in Infer
+ * Relation, the chain in Axis Maps. Everything above it is reading already paid
+ * for.
+ */
+test("a claim that replaces premises says which one to jump to", () => {
+    seeded(4141, () => {
+        const ctx = context();
+        let checked = 0;
+
+        for (const make of [createInferRelation, createAxisMap]) {
+            for (let rep = 0; rep < 30 && checked < 12; rep++) {
+                let q;
+                try { q = make(ctx, 4); } catch { continue; }
+                if (q.series.length < 2) continue;
+
+                const before = [...q.premises];
+                takeSeriesAnswer(q, q.series[0].isValid);
+                const at = q.seriesFocusPremise;
+                if (!q.series[1].premises) continue;
+
+                assert(at >= 0, "a claim replaced the premises and pointed at none of them");
+                assert(at < q.premises.length, `focus ${at} is past the end of the card`);
+                assert(q.premises[at] !== before[at],
+                    "the premise it points at is one that did not change");
+                for (let i = 0; i < at; i++) {
+                    assert(q.premises[i] === before[i],
+                        `premise ${i} changed and is before the one being pointed at`);
+                }
+                checked++;
+            }
+        }
+        assert(checked > 0, "no premise-replacing series items were produced to check");
     });
 });

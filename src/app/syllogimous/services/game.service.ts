@@ -102,6 +102,16 @@ export class GameService implements GeneratorContext {
      */
     questionChanged = new Subject<void>();
 
+    /**
+     * A new claim of the same item is on screen.
+     *
+     * Separate from `questionChanged` because nothing else about the item moved
+     * — the premises above the claim are the reading that was already done, and
+     * re-arming everything would throw away the picks, the timer and the
+     * position for a question that is mostly the same card.
+     */
+    claimChanged = new Subject<void>();
+
     /** Last item's rating value and movement, for display. */
     lastItemDifficulty = 0;
     lastRatingDelta = 0;
@@ -733,6 +743,7 @@ export class GameService implements GeneratorContext {
             const right = takeSeriesAnswer(this.question, value);
             this.gameTimerService.extend(this.seriesBonusSeconds);
             this.flashClaim(right);
+            this.claimChanged.next();
             return;
         }
 

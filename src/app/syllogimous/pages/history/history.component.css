@@ -85,3 +85,28 @@
 /* Two webs side by side, as on the game screen. */
 .webs { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
 .webs__one { display: grid; justify-items: center; gap: 0.15rem; }
+
+/*
+ * Which conclusion went which way, for an item that asked several.
+ * A single true-or-false about a set of three is a verdict on none of them,
+ * which is the reason these are kept at all.
+ */
+.marks {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 6px 0 10px;
+    font-size: 0.85rem;
+}
+
+.marks__name { opacity: 0.65; margin-right: 2px; }
+
+.marks__one {
+    display: inline-block;
+    min-width: 1.3em;
+    text-align: center;
+    opacity: 0.5;
+}
+
+.marks__one.is-right { color: #58d68d; opacity: 1; }
+.marks__one.is-wrong { color: #e8697d; opacity: 1; }

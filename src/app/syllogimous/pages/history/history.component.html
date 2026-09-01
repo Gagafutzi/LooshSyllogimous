@@ -107,6 +107,25 @@
                     </div>
                 </div>
 
+                <!--
+                  Which conclusion went which way, for an item that asked more
+                  than one.
+                  The game screen flashes these under the verdict and then they
+                  were gone: History kept a single true-or-false for the whole
+                  item, so afterwards there was no way to tell which of three
+                  claims lost it — or whether the one you remember answering was
+                  the one you got wrong. That is exactly the question somebody
+                  opens History to settle.
+                -->
+                <div class="marks" *ngIf="(q.series?.length || 0) > 1">
+                    <span class="marks__name">Conclusions</span>
+                    <span *ngFor="let a of q.seriesAnswers; let i = index"
+                          class="marks__one"
+                          [class.is-right]="a === true"
+                          [class.is-wrong]="a === false"
+                          [title]="'Conclusion ' + (i + 1)">{{ a === undefined ? "–" : (a ? "✓" : "✗") }}</span>
+                </div>
+
                 <small class="d-grid" style="grid-template-columns: repeat(4, 1fr);">
                     <div class="bd-left">
                         <div class="fw-bold">Type</div>

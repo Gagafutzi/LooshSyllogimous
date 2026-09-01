@@ -244,6 +244,17 @@ export class GameComponent {
             // The item that just left is the one that may have met the goal.
             this.refreshGoal();
         });
+
+        /*
+         * A new claim of the same item: go to where it is asked.
+         *
+         * Answering leaves the carousel at the end of the card, because reaching
+         * the end is what unlocks answering. The next claim then arrives with
+         * its question somewhere behind you — the operator lines in Infer
+         * Relation, the chain in Axis Maps — and the only way to it was paging
+         * back by hand, past premises that had not changed.
+         */
+        this.claimSub = this.game.claimChanged.subscribe(() => this.showClaimSite());
     }
 
     /**
@@ -256,6 +267,7 @@ export class GameComponent {
 
     ngOnDestroy() {
         this.questionSub?.unsubscribe();
+        this.claimSub?.unsubscribe();
         this.gameTimerService.stop();
         clearInterval(this.carouselTimerHandle);
     }
@@ -369,6 +381,38 @@ export class GameComponent {
     step(delta: number) {
         if (!this.slideOrder.length) return;
         this.show(stepSlide(this.slideOrder, this.activeSlide, delta));
+    }
+
+    private claimSub?: Subscription;
+
+    /**
+     * Land on the slide where the new claim is asked.
+     *
+     * The claim records which premise it replaced, so that is where to go. A
+     * claim that replaced no premise asks in the options or the conclusion
+     * instead, which is the end of the card and is where answering already left
+     * you — so that case moves nothing.
+     *
+     * Only in the carousel modes: all-at-once has the whole card on screen and
+     * there is nowhere to jump to.
+     */
+    private showClaimSite() {
+        if (this.gameMode === "0") return;
+
+        this.buildSlideOrder();
+
+        const at = this.game.question.seriesFocusPremise;
+        const target = at >= 0 ? "premise-" + at
+            : this.game.question.answerMode === "choice" ? "choices"
+            : "conclusion-0";
+
+        if (!this.slideOrder.includes(target)) return;
+        this.show(target);
+        /*
+         * The end has already been reached for this item, so answering stays
+         * unlocked — jumping backwards to re-read is not starting over.
+         */
+        this.reachedEnd = true;
     }
 
     /** All-at-once has no slides to wait for, so the form is there from the start. */

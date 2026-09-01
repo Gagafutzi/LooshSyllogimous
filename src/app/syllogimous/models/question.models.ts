@@ -433,6 +433,17 @@ export class Question {
     series: SeriesClaim[] = [];
     /** Which claim is on screen. */
     seriesAt = 0;
+    /**
+     * The first premise this claim changed, or -1 where it changed none.
+     *
+     * Read by the carousel so that answering one conclusion lands you where the
+     * next one is actually asked. A series claim replaces exactly the part being
+     * asked about — the operator claims in Infer Relation, the chain in Axis
+     * Maps — and everything before it is the reading that was already paid for.
+     * Without this the carousel stays wherever the last answer left it, which is
+     * the end of the card, and the new question is somewhere behind you.
+     */
+    seriesFocusPremise = -1;
     /** What was answered for each, in order. Absent means never reached. */
     seriesAnswers: Array<boolean | undefined> = [];
 
