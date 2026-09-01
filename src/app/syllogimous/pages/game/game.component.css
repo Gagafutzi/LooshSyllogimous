@@ -522,8 +522,14 @@
     margin-bottom: .35rem;
 }
 
+/*
+ * Stacked above the card, which is a later sibling and otherwise paints over
+ * it. The panel hangs *down* out of this row and into the card's area, so
+ * without this it opens behind the premises — which is what happened.
+ */
 .symkey {
     position: relative;
+    z-index: 30;
 }
 
 .symkey__mark {
@@ -545,6 +551,7 @@
 .symkey__panel {
     display: none;
     position: absolute;
+    z-index: 31;
     top: 1.9rem;
     right: 0;
     min-width: 9rem;
