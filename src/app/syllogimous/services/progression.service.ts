@@ -360,7 +360,31 @@ export class ProgressionService {
         const free = pool.filter(t => t.seconds == null);
         const times = (free.length >= 8 ? free : pool).slice(-40).map(t => t.answerSeconds!);
 
-        return { ...base, referenceSeconds: referenceSecondsFrom(times, base.referenceSeconds) };
+        /*
+         * And the timeouts, which are the sharpest evidence about pace there is.
+         *
+         * A timeout is censored: the answer was not finished, so the only thing
+         * known is that it needed *more* than the deadline. Feeding the recorded
+         * time in raw would enter it as if the player had finished exactly at
+         * the buzzer, which is the one reading certainly false — and would drag
+         * the anchor down, making the clock look cheaper, on the very evidence
+         * that it is too tight.
+         *
+         * Entered at half again the deadline instead: a lower bound with the
+         * smallest honest margin over it. The effect is that timing out raises
+         * what an unhurried answer is taken to cost, so the model prices the
+         * clock as dearer and buys the next item more of it. Which is the whole
+         * point — the correction for running out of time is more time.
+         */
+        const timedOut = pool
+            .filter(t => t.timedOut && typeof t.seconds === "number")
+            .slice(-20)
+            .map(t => t.seconds! * 1.5);
+
+        return {
+            ...base,
+            referenceSeconds: referenceSecondsFrom([...times, ...timedOut], base.referenceSeconds),
+        };
     }
 
     /** Config for the ability model, with the user-tunable parts applied. */
@@ -1126,6 +1150,7 @@ export class ProgressionService {
             estimate,
             guess,
             correct,
+            timedOut: outcome === "timeout",
             widthDelta: item?.widthDelta ?? 0,
             depth: item?.depth ?? 0,
             answerSeconds,
@@ -1198,7 +1223,21 @@ export class ProgressionService {
                     this.abilityConfig);
             }
         } else {
-            state = abilityUpdate(state, level, guess, correct, this.abilityConfig);
+            /*
+             * A timeout counts, but not as a whole wrong answer.
+             *
+             * It is one update either way — the per-claim path is skipped for
+             * timeouts, so an item asking five conclusions has never been five
+             * failures — but that one update used to carry an answer's full
+             * weight. What a timeout actually establishes is that the item
+             * needed longer than it got, and the model's remedy for "less able"
+             * is a shorter item, which is no help at all to somebody who ran out
+             * of time. So it says a third as much here, and says the rest to the
+             * clock, in `configForMode`.
+             */
+            state = abilityUpdate(state, level, guess, correct, this.abilityConfig,
+                Date.now(),
+                outcome === "timeout" ? this.abilityConfig.timeoutWeight : 1);
         }
         this.saveAbility(type, state);
 

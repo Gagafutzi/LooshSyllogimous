@@ -156,3 +156,72 @@ test("a fresh slump after a break registers normally", () => {
     answer(p, 12, false);
     assert(p.tired, "a slump built after a break was not detected");
 });
+
+/* ------------------------------------------------------------------ *
+ * What a timeout is worth                                             *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Run something on its own store and report where the level ended up.
+ *
+ * Two services cannot be held side by side: `fresh()` clears storage and every
+ * instance reads and writes the same keys, so interleaving them has each one
+ * reading the other's ability state. The first draft of the test below did
+ * exactly that, compared two numbers that were the same number, and passed —
+ * which is worse than failing.
+ */
+function levelAfter(run: (p: ProgressionService) => void): number {
+    const p = fresh();
+    run(p);
+    return p.estimateFor(TYPE).level;
+}
+
+/**
+ * A timeout is one event, however many conclusions the item asked.
+ *
+ * The per-claim path grades each conclusion separately, which is right for an
+ * answered item and wrong for an unanswered one: nothing was established about
+ * any individual claim, and debiting five of them would make the deadline five
+ * times as expensive on a five-conclusion item as on a one. The generator can
+ * raise the conclusion count at any time, so this is worth holding down rather
+ * than remembering.
+ */
+test("a timeout is one piece of evidence, not one per conclusion", () => {
+    const one = levelAfter(p => p.record(TYPE, "timeout", 10,
+        { claims: [{ correct: false, slots: 1 }] } as any));
+    const five = levelAfter(p => p.record(TYPE, "timeout", 10, {
+        claims: [1, 2, 3, 4, 5].map(() => ({ correct: false, slots: 1 })),
+    } as any));
+
+    assert(Math.abs(one - five) < 1e-9,
+        `a five-conclusion timeout left the level at ${five.toFixed(3)} against`
+        + ` ${one.toFixed(3)} for a one-conclusion timeout`);
+});
+
+/**
+ * And it moves the level less than a wrong answer does.
+ *
+ * Running out of time is not the same event as being wrong — the item may have
+ * been on its way to a right answer, and the only thing established is that it
+ * needed longer than it got. The model's remedy for "less able" is a shorter
+ * item, which is no help to somebody who ran out of time.
+ */
+test("a timeout costs less level than a wrong answer", () => {
+    // Two, not a run: six of either drives the estimate into the floor of the
+    // grid, where both land on the same number and the comparison says nothing.
+    const start = levelAfter(() => {});
+    const afterTimeouts = levelAfter(p => {
+        for (let i = 0; i < 2; i++) p.record(TYPE, "timeout", 10);
+    });
+    const afterWrong = levelAfter(p => {
+        for (let i = 0; i < 2; i++) p.record(TYPE, "wrong", 10);
+    });
+
+    const byTimeout = start - afterTimeouts;
+    const byWrong = start - afterWrong;
+
+    assert(byTimeout > 0, "a timeout said nothing at all about ability");
+    assert(byTimeout < byWrong * 0.75,
+        `a timeout cost ${byTimeout.toFixed(2)} levels against a wrong answer's`
+        + ` ${byWrong.toFixed(2)} — it is meant to say markedly less`);
+});

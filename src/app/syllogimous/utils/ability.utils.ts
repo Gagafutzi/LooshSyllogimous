@@ -442,6 +442,8 @@ export interface AbilityConfig {
     crossModeSd: number;
     /** Posterior widening per day since a mode was last played, in levels. */
     decayPerDay: number;
+    /** How much of a wrong answer a timeout is worth, as evidence about ability. */
+    timeoutWeight: number;
     /** Never widen past this; total ignorance is still bounded. */
     maxDecaySd: number;
 
@@ -516,6 +518,22 @@ export const DEFAULT_ABILITY: AbilityConfig = {
      * the player cannot see.
      */
     decayPerDay: 0.07,
+    /*
+     * A timeout says much more about the clock than about the reasoning.
+     *
+     * Running out of time is not the same event as being wrong: the item may
+     * have been on its way to a right answer, and the only thing certainly
+     * established is that it needed longer than it got. Counted whole, a timed
+     * session teaches the model that the player is *less able*, when what it
+     * observed is that they are slower than the deadline being set — and the
+     * correction for "less able" is a shorter item, which does not help
+     * somebody who ran out of time.
+     *
+     * So a third of an answer's weight here, and the full observation goes to
+     * the clock instead, where it belongs: `configForMode` feeds timeouts into
+     * the reference time as the censored evidence they are.
+     */
+    timeoutWeight: 0.33,
     maxDecaySd: 3.0,
 };
 
@@ -710,12 +728,23 @@ export function abilityUpdate(
     correct: boolean,
     config = DEFAULT_ABILITY,
     now = Date.now(),
+    /**
+     * How much of an observation this is. One is an answer; less is a partial.
+     *
+     * Applied as a power on the likelihood, which is the standard way to take
+     * an observation less than whole and is still a proper update — it widens
+     * the posterior towards the prior rather than shifting it somewhere a
+     * different rule would put it. Fudging the level or the guess rate instead
+     * would move the *mean*, which is the opposite of the intent: a partial
+     * observation should say less, not say something else.
+     */
+    weight = 1,
 ): AbilityState {
     const thetas = abilityGrid(config);
     const logPost = state.logPost.map((lp, i) => {
         const p = pCorrect(config, thetas[i], level, guess);
         const like = correct ? p : 1 - p;
-        return lp * config.forgetting + Math.log(Math.max(1e-12, like));
+        return lp * config.forgetting + weight * Math.log(Math.max(1e-12, like));
     });
     const max = Math.max(...logPost);
     return {
@@ -1081,6 +1110,16 @@ export interface Trial {
     correct: boolean;
     /** How long the answer took, for calibrating the clock to this player. */
     answerSeconds?: number;
+    /**
+     * The clock ran out, rather than an answer being given and being wrong.
+     *
+     * Kept apart because the two are different evidence and want to be read
+     * differently: a wrong answer is about the reasoning, a timeout is mostly
+     * about the pace. Inferring it later from `correct` and the deadline nearly
+     * works and is exactly the kind of nearly that goes wrong on the day
+     * somebody answers on the final tick.
+     */
+    timedOut?: boolean;
     /** Bits wider or narrower than typical for the configuration, or 0. */
     widthDelta?: number;
     /**
