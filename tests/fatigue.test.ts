@@ -99,3 +99,60 @@ test("recovery ends a slump", () => {
     answer(p, 10, true);
     assert(!p.tired, "a full window of right answers did not end the slump");
 });
+
+/* ------------------------------------------------------------------ *
+ * A break ends the slump                                              *
+ * ------------------------------------------------------------------ */
+
+/** A window as it sits in storage, written `minutesAgo` minutes ago. */
+function storedWindow(values: number[], minutesAgo: number) {
+    localStorage.clear();
+    localStorage.setItem("syllogimous-residuals", JSON.stringify({
+        at: Date.now() - minutesAgo * 60_000,
+        values,
+    }));
+}
+
+const SLUMP = Array(12).fill(-0.5);
+
+/**
+ * The bug this fixes: a session could *begin* flagged tired.
+ *
+ * The window is one global list that outlives a session, and it carried no
+ * time at all — so the last few answers of a bad evening were still the reading
+ * the next morning, and the posterior pause landed on fresh, rested answers. A
+ * mechanism built to stop a bad hour setting tomorrow lower was stopping a good
+ * morning from counting.
+ */
+test("a slump does not survive a break", () => {
+    storedWindow(SLUMP, 45);
+    const p = new ProgressionService();
+    assert(p.fatigue === null, "yesterday's slump was still the reading today");
+    assert(!p.tired, "a rested session started out paused");
+});
+
+/** But a pause for coffee is not a break, or the signal would never hold. */
+test("a slump survives the gap between two answers of one sitting", () => {
+    storedWindow(SLUMP, 5);
+    const p = new ProgressionService();
+    assert(p.tired, "a five-minute gap cleared a slump that was still real");
+});
+
+/**
+ * The old format was a bare array with no timestamp, which cannot be told from
+ * a window written last week. An unknown gap is treated as a long one.
+ */
+test("a window from before the format carried a time is not trusted", () => {
+    localStorage.clear();
+    localStorage.setItem("syllogimous-residuals", JSON.stringify(SLUMP));
+    const p = new ProgressionService();
+    assert(p.fatigue === null, "an undateable window was carried over as current");
+});
+
+/** And the reading comes back as soon as there is enough of it again. */
+test("a fresh slump after a break registers normally", () => {
+    storedWindow(SLUMP, 45);
+    const p = new ProgressionService();
+    answer(p, 12, false);
+    assert(p.tired, "a slump built after a break was not detected");
+});

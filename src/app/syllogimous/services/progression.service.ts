@@ -50,6 +50,16 @@ import { MODE_SCALE } from "../utils/calibration.utils";
 const LS_CONFIG = "syllogimous-progression-config";
 /** The rolling residual window behind fatigue detection. */
 const LS_RESIDUALS = "syllogimous-residuals";
+
+/**
+ * A gap this long ends the slump, whatever the window said.
+ *
+ * Half an hour is long enough that nobody crosses it between two answers of one
+ * sitting, and short enough to cover the breaks people actually take. It is not
+ * a claim about recovery physiology — it is the point past which the last
+ * fifteen answers stop describing the person now sitting there.
+ */
+const RESIDUAL_BREAK_MS = 30 * 60_000;
 const LS_ABILITY = "syllogimous-ability:";
 /** Answered items, kept so the rung costs can be measured rather than argued. */
 const LS_TRIALS = "syllogimous-trials";
@@ -846,18 +856,60 @@ export class ProgressionService {
      * bad hour becoming a worse week.
      */
     private residuals: number[] = [];
+    /** When the window was last added to, so a break can end it. */
+    private residualsAt = 0;
 
     private loadResiduals() {
         try {
             const raw = localStorage.getItem(LS_RESIDUALS);
             const parsed = raw ? JSON.parse(raw) : null;
-            if (Array.isArray(parsed)) this.residuals = parsed.filter(v => typeof v === "number");
+            if (parsed && Array.isArray(parsed.values)) {
+                this.residuals = parsed.values.filter((v: unknown) => typeof v === "number");
+                this.residualsAt = typeof parsed.at === "number" ? parsed.at : 0;
+            }
+            /*
+             * A bare array is the old format, which carried no time. It cannot
+             * be told apart from a window written a week ago, and the rule below
+             * is that an unknown gap is a long one — so it is left dropped
+             * rather than trusted. The cost is fifteen answers of re-reading,
+             * once.
+             */
         } catch { this.residuals = []; }
     }
 
-    private pushResidual(value: number) {
-        this.residuals = [...this.residuals, value].slice(-Math.max(4, this.config.fatigueWindow));
-        try { localStorage.setItem(LS_RESIDUALS, JSON.stringify(this.residuals)); } catch { /* private mode */ }
+    /**
+     * The window, with a break taken to have ended it.
+     *
+     * Fatigue had no clock in it at all: the reading was the same fifteen
+     * answers after a night's sleep as before it, so *rest could not clear it*
+     * and only out-performing the model could. Which is backwards — rest is the
+     * thing that actually reverses fatigue — and it had a sharp edge. The window
+     * is one global list that outlives a session, so a session could *begin*
+     * flagged tired, carrying the last few answers of a bad evening, and the
+     * posterior pause then landed on fresh, rested answers. A mechanism meant to
+     * stop a bad hour setting tomorrow lower was stopping a good morning from
+     * counting.
+     *
+     * Checked on read rather than only at startup, because a tab left open over
+     * a lunch break never reloads and that is how the app is actually used.
+     */
+    private currentResiduals(now = Date.now()): number[] {
+        if (this.residuals.length && now - this.residualsAt > RESIDUAL_BREAK_MS) {
+            this.residuals = [];
+            this.residualsAt = 0;
+            try { localStorage.removeItem(LS_RESIDUALS); } catch { /* private mode */ }
+        }
+        return this.residuals;
+    }
+
+    private pushResidual(value: number, now = Date.now()) {
+        this.residuals = [...this.currentResiduals(now), value]
+            .slice(-Math.max(4, this.config.fatigueWindow));
+        this.residualsAt = now;
+        try {
+            localStorage.setItem(LS_RESIDUALS,
+                JSON.stringify({ at: now, values: this.residuals }));
+        } catch { /* private mode */ }
     }
 
     /**
@@ -868,9 +920,10 @@ export class ProgressionService {
      * for everyone who started slowly.
      */
     get fatigue(): number | null {
+        const window = this.currentResiduals();
         const need = Math.max(4, Math.ceil(this.config.fatigueWindow / 2));
-        if (this.residuals.length < need) return null;
-        return this.residuals.reduce((a, c) => a + c, 0) / this.residuals.length;
+        if (window.length < need) return null;
+        return window.reduce((a, c) => a + c, 0) / window.length;
     }
 
     /** Whether the player is currently doing worse than the model expects. */
