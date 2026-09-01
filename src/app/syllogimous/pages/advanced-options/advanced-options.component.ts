@@ -297,6 +297,35 @@ export class AdvancedOptionsComponent {
         this.overrides.setMode(row.type, { enabled }, this.fallback(row));
     }
 
+    /**
+     * One mode on, every other off — in one click rather than thirty-five.
+     *
+     * Drilling a single mode is a thing people do constantly and the page made
+     * it clerical: unticking every other box by hand, and then unticking them
+     * back afterwards, which nobody does, so the setting quietly stays narrow
+     * long after the drill ended. A button that states the intent can also be
+     * undone by the button beside it.
+     */
+    soloMode(row: Row) {
+        for (const other of this.rows) {
+            this.overrides.setMode(other.type,
+                { enabled: other.type === row.type }, this.fallback(other));
+        }
+    }
+
+    /** The way back, which is the half that makes solo safe to press. */
+    allModes(enabled: boolean) {
+        for (const row of this.rows) {
+            this.overrides.setMode(row.type, { enabled }, this.fallback(row));
+        }
+    }
+
+    /** Whether this row is already the only one on, so the button can say so. */
+    isSolo(row: Row) {
+        return this.shownEnabled(row)
+            && this.rows.every(r => r.type === row.type || !this.shownEnabled(r));
+    }
+
     /** Only these two build items out of transformations. */
     hasDepth(row: Row) {
         return row.type === EnumQuestionType.Transformation

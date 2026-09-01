@@ -68,7 +68,21 @@
     </div>
 
     <app-collapsible heading="Question types" [note]="enabledCount() + ' of ' + rows.length + ' on'" [class.is-idle]="!active">
+        <!--
+          Drilling one mode was thirty-five unticks and thirty-five more to undo,
+          which is why nobody undid it. Both halves are one press now.
+        -->
+        <div class="d-flex gap-2 mb-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    [disabled]="!active" (click)="allModes(true)">All on</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    [disabled]="!active" (click)="allModes(false)">All off</button>
+        </div>
         <div class="mode" *ngFor="let row of rows">
+            <button type="button" class="btn btn-sm mode__solo"
+                    [class.is-on]="isSolo(row)"
+                    [disabled]="!active" (click)="soloMode(row)"
+                    title="Turn this one on and every other one off">Only</button>
             <label class="mode__name">
                 <input type="checkbox"
                        class="form-check-input"

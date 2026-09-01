@@ -17,7 +17,8 @@
 
 .mode {
     display: grid;
-    grid-template-columns: 1fr auto;
+    /* Solo button, name, then the row's own controls. */
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 12px;
     padding: 9px 0;
@@ -25,6 +26,28 @@
 }
 
 .mode:first-of-type { border-top: 0; }
+
+/*
+ * Quiet until it is the thing in force. Solo is a big change to what the app
+ * serves, so the row it is holding should say so without the button shouting on
+ * the other thirty-five.
+ */
+.mode__solo {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.35);
+    background: transparent;
+    color: inherit;
+    opacity: 0.65;
+}
+
+.mode__solo:hover:not(:disabled) { opacity: 1; }
+
+.mode__solo.is-on {
+    opacity: 1;
+    background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.18);
+    border-color: rgba(var(--th-accent-rgb, 34, 211, 238), 0.8);
+}
 
 .mode__name {
     display: flex;

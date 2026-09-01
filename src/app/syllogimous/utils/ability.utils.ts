@@ -496,10 +496,26 @@ export const DEFAULT_ABILITY: AbilityConfig = {
     widthPerBit: 0,
     levelsPerUnneededPremise: 0,
     crossModeSd: 2.5,
-    // ~15 days from a settled estimate to knowing very little. The mean is
-    // preserved throughout, so a returning player is served items at the same
-    // difficulty and simply re-measured quickly, rather than demoted.
-    decayPerDay: 0.2,
+    /*
+     * ~5 weeks from a settled estimate to knowing very little. The mean is
+     * preserved throughout, so a returning player is served items at the same
+     * difficulty and simply re-measured, rather than demoted.
+     *
+     * **Slowed from 0.2 because the modes transfer.** Fifteen days was priced
+     * as though a mode not played were a skill not practised, and it is not:
+     * with thirty-odd modes in rotation any one of them surfaces every few
+     * days, while everything adjacent to it is being trained the whole time.
+     * The app already believes this elsewhere — `crossModeSd` sets the prior
+     * for an unplayed mode from the played ones, and `cautionCapAfter` counts
+     * evidence across every mode rather than within one — so decaying each mode
+     * as an island contradicted the two settings either side of it.
+     *
+     * The cost of it being too fast is not a wrong difficulty but a wandering
+     * one: a posterior rewidened between visits is re-measured on arrival, so a
+     * mode seen twice a week never converges and its items swing for reasons
+     * the player cannot see.
+     */
+    decayPerDay: 0.07,
     maxDecaySd: 3.0,
 };
 
