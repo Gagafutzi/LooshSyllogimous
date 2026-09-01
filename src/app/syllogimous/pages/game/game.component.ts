@@ -297,6 +297,10 @@ export class GameComponent {
             return `${keyLabel(b.answerTrue)} true · ${keyLabel(b.answerFalse)} false`;
         }
         if (this.game.question.answerMode === "choice") {
+            // Two options answer outright, so there is no confirm to mention.
+            if (this.choiceCount === 2) {
+                return `${keyLabel(b.answerTrue)} first · ${keyLabel(b.answerFalse)} second`;
+            }
             return `${keyLabel(b.answerTrue)}${keyLabel(b.answerFalse)} choose`
                 + ` · ${keyLabel(b.submit)} answer`;
         }
@@ -586,7 +590,31 @@ export class GameComponent {
             }
 
             /*
-             * Zen mode answers a picking item from the arrows too.
+             * Two options are answered by the arrows outright.
+             *
+             * Move-then-confirm is the right shape for a list you have to walk,
+             * and the wrong one for a pair: with two options the cursor has
+             * nowhere to be that is not the answer, so the confirm keystroke
+             * carries no information — it exists only to repeat what the arrow
+             * already said. Up is the first, down is the second, and that is
+             * the same shape as true and false on a boolean item, which is
+             * most of what gets played.
+             *
+             * Outside zen too, where the arrows were doing nothing on a picking
+             * item at all. Left and right page the carousel; up and down were
+             * free, and a keyboard answer should not depend on which mode the
+             * screen is in.
+             */
+            const twoWay = this.keys.actionFor(event);
+            if (this.choiceCount === 2
+                && (twoWay === "answerTrue" || twoWay === "answerFalse")) {
+                event.preventDefault();
+                this.game.checkChoice(twoWay === "answerTrue" ? 0 : 1);
+                return;
+            }
+
+            /*
+             * Three or more still walk, and still confirm.
              *
              * Up and down move the cursor rather than left and right, because
              * left and right already page the carousel — and an item can be
