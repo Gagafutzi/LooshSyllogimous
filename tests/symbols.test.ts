@@ -12,6 +12,7 @@
  * than a blank on somebody's card.
  */
 
+import { readdirSync, readFileSync } from "fs";
 import { assert, equal, seeded, test } from "./harness";
 import { BUILD } from "./modes";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
@@ -24,7 +25,8 @@ import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import {
-    rel, setSymbolRelations, subj, symbolFor, symbolise, symbolisedWords, symbolLegend,
+    EDGE_WORDS, rel, setSymbolRelations, subj, symbolFor, symbolise, symbolisedWords,
+    symbolLegend,
     symboliseStatement,
 } from "../src/app/syllogimous/utils/phrasing";
 import { LINEAR_SCALES, SPATIAL_SCALES } from "../src/app/syllogimous/utils/linear.utils";
@@ -79,6 +81,43 @@ function everyRelationWord(): Array<{ word: string; from: string }> {
     return out;
 }
 
+/** Not relations: the glue between a relation and its object. */
+const CONNECTIVES = ["from", "is ", "is", "to", "of", "and", ""];
+
+/**
+ * Every relation written straight into a generator, rather than into a scale.
+ *
+ * Hierarchy and Graph Matching state edges — "feeds", "reaches", "goes to" —
+ * and none of those is a scale field. A check that walks only the scales cannot
+ * see them, which is how five of them stayed as words on a card long after
+ * everything else had been converted.
+ */
+function everyRelationLiteral(): string[] {
+    const roots = ["src/app/syllogimous/generators", "src/app/syllogimous/utils"];
+    const found = new Set<string>();
+
+    for (const root of roots) {
+        for (const name of readdirSync(root)) {
+            if (!name.endsWith(".ts")) continue;
+            /*
+             * Comments stripped first. This file's own prose says `rel("…")`
+             * while explaining the scan, and the scan then reported the ellipsis
+             * as a relation with no mark — a check failing on its own
+             * documentation.
+             */
+            const body = readFileSync(root + "/" + name, "utf8")
+                .replace(/\/\*[\s\S]*?\*\//g, "")
+                .replace(/\/\/[^\n]*/g, "");
+            for (const [, word] of body.matchAll(/\brel\("([^"]*)"/g)) found.add(word);
+        }
+    }
+    // Graph Matching states its edges through `EDGE_WORDS` rather than through
+    // a `rel()` literal, so the scan alone would call those marks stale.
+    for (const word of Object.values(EDGE_WORDS)) found.add(word);
+
+    return [...found].filter(w => !CONNECTIVES.includes(w));
+}
+
 test("every relation any scale can state has a mark", () => {
     const missing = everyRelationWord()
         .filter(({ word }) => !symbolFor(word))
@@ -91,7 +130,10 @@ test("every relation any scale can state has a mark", () => {
 
 /** And nothing in the table is for a relation no scale can produce. */
 test("no mark stands for a relation that does not exist", () => {
-    const real = new Set(everyRelationWord().map(w => w.word));
+    const real = new Set([
+        ...everyRelationWord().map(w => w.word),
+        ...everyRelationLiteral(),
+    ]);
     const stale = symbolisedWords().filter(w => !real.has(w));
     assert(stale.length === 0,
         `the table carries words no scale states any more: ${stale.join(", ")}`);
@@ -338,4 +380,32 @@ test("a symbolised statement still has exactly its own tags", () => {
     } finally {
         setSymbolRelations(false);
     }
+});
+
+/* ------------------------------------------------------------------ *
+ * Relations that are not scales                                       *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Not every relation comes from a scale, which is how five of them survived.
+ *
+ * Hierarchy and Graph Matching state *edges* — "feeds", "reaches", "goes to" —
+ * and none of those is a scale field, so the completeness test above walked
+ * every scale and found nothing wrong while a Hierarchy card sat there reading
+ * "Beast feeds Clock". The check could not see the vocabulary because it was
+ * looking at the wrong list.
+ *
+ * So this one looks at the source instead: every literal handed to `rel` has to
+ * have a mark, or be named here as a connective. Adding a relation verb without
+ * a mark is a failing test rather than a word on somebody's card.
+ */
+test("every relation word written into the source has a mark", () => {
+    const literals = everyRelationLiteral();
+    assert(literals.length > 0, "no rel() literals found at all — the scan is broken");
+
+    const missing = literals.filter(w => !symbolFor(w));
+
+    assert(missing.length === 0,
+        `${missing.length} relation(s) are written into the source with no mark: `
+        + missing.map(w => `"${w}"`).join(", "));
 });

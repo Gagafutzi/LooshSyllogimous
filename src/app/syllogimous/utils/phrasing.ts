@@ -125,7 +125,39 @@ const RELATION_SYMBOLS: Record<string, string> = {
     // Height, as hollow arrows: up and down are already spent on north and
     // south, and a space can state both at once.
     "is above": "⇧", "is below": "⇩", "above": "⇧", "below": "⇩",
+
+    /*
+     * The graph modes, whose relations are not scales at all.
+     *
+     * Hierarchy and Graph Matching state edges rather than positions — "feeds",
+     * "reaches", "goes to" — so none of them appears in any scale and the
+     * completeness test, which walks the scales, could not have found them.
+     * They were the words left on a Hierarchy card after everything else had
+     * been converted. `relationLiterals` and the test that reads it exist so
+     * the next relation added outside the scales cannot slip through the same
+     * gap.
+     *
+     * Marks chosen clear of the scale set: a card never mixes the two, but a
+     * player moves between them and a mark that means two things across a
+     * session is a mark that means neither.
+     */
+    "feeds": "⊳", "reaches": "⇒", "comes from": "↤",
+    "goes to": "↦", "is connected to": "⇿",
 };
+
+/**
+ * What Graph Matching calls its three edge directions.
+ *
+ * Exported so the generator reads its wording from the same place the marks are
+ * kept. It used to hold them in a local object, which meant they appeared in no
+ * scale and in no `rel("…")` literal — invisible to both checks, and therefore
+ * the words that stayed on the card.
+ */
+export const EDGE_WORDS = {
+    "→": "goes to",
+    "←": "comes from",
+    "↔": "is connected to",
+} as const;
 
 /** The words, longest first, so "is above" is not matched as "above". */
 const RELATION_PATTERN = new RegExp(

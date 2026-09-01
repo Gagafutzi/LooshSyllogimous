@@ -10,7 +10,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getSymbols, pickUniqueItems, shuffle, areGraphsIsomorphic } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
-import { hi, neg, subj } from "../utils/phrasing";
+import { hi, neg, subj, EDGE_WORDS } from "../utils/phrasing";
 import { LINEAR_SCALES, LinearScale } from "../utils/linear.utils";
 import {
     GraphEdge, MAX_DISTANCE_NODES, editDistance, oddGraphOut, orderConsistent, sameDegrees,
@@ -154,12 +154,11 @@ export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number
     const usedEdges = new Set<string>();
     const readable = (edges: typeof edgeList, edge: typeof edgeList[0], negated = false, meta = false) => {
         const getSubject = (subject: string) => subj(subject);
-        const readMap = {
-            "→": "goes to",
-            "←": "comes from",
-            "↔": "is connected to"
-        };
-        let relationship = readMap[edge[1]];
+        // Read from `phrasing`, which is where their marks live: a wording kept
+        // only here appeared in no scale and in no `rel()` literal, so neither
+        // check that guards minimal mode could see it.
+        const readMap = EDGE_WORDS;
+        let relationship: string = readMap[edge[1]];
         let isMetaRelated = false;
         if (meta) {
             const getEdgeKey = (edge: typeof edgeList[0]) => [...edge].join(";");
