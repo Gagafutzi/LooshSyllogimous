@@ -99,6 +99,29 @@
     </div>
 </ng-template>
 
+<!--
+  The key to the marks, behind a "?".
+  Only in minimal mode, and only the marks this card is using — a key listing an
+  axis the item does not mention is worse than none, and one missing an axis it
+  does is worse still. Hover or focus opens it, so it is reachable from the
+  keyboard as well as the mouse, and it never takes space from the question.
+-->
+<ng-template #symbolKey>
+    <div class="symkey-row" *ngIf="symbolLegend.length">
+      <div class="symkey" tabindex="0" [attr.aria-label]="'What the symbols mean'">
+        <span class="symkey__mark">?</span>
+        <div class="symkey__panel">
+            <div class="symkey__row" *ngFor="let row of symbolLegend">
+                <span class="symkey__sym">{{ row.mark }}</span>
+                <span class="symkey__word">{{ row.word }}</span>
+            </div>
+        </div>
+      </div>
+    </div>
+</ng-template>
+
+<ng-container *ngTemplateOutlet="symbolKey"></ng-container>
+
 <app-card>
     <div body class="battlefield" [ngStyle]="{ width: (gameMode === '1' || gameMode === '2') ? '100%' : 'auto' }">
         <div class="timerbar-wrap">

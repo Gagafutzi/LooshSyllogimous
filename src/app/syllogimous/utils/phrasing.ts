@@ -136,6 +136,33 @@ export function symbolFor(word: string): string | undefined {
     return RELATION_SYMBOLS[word];
 }
 
+/**
+ * The marks a card is actually using, with what each one means.
+ *
+ * Read off the rendered text rather than from the item's axis list, so it
+ * cannot disagree with what is on screen — a legend that lists an axis the card
+ * does not mention is worse than none, and one that misses an axis it does is
+ * worse still. Scanning the finished strings makes both impossible.
+ *
+ * The shortest wording wins as the label: a scale spells the same relation as
+ * "north" and as "is north of", and a key is read in a glance or not at all.
+ */
+export function symbolLegend(texts: string[]): Array<{ mark: string; word: string }> {
+    const body = texts.join(" ");
+    const out: Array<{ mark: string; word: string }> = [];
+
+    for (const mark of new Set(Object.values(RELATION_SYMBOLS))) {
+        if (!body.includes(mark)) continue;
+        const words = Object.keys(RELATION_SYMBOLS)
+            .filter(w => RELATION_SYMBOLS[w] === mark)
+            .sort((a, b) => a.length - b.length);
+        out.push({ mark, word: words[0] });
+    }
+
+    // The order the card reads in, so the key can be scanned against it.
+    return out.sort((a, b) => body.indexOf(a.mark) - body.indexOf(b.mark));
+}
+
 /** Every word that has a mark, for the test that says every relation does. */
 export function symbolisedWords(): string[] { return Object.keys(RELATION_SYMBOLS); }
 

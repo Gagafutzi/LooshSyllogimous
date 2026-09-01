@@ -12,6 +12,7 @@ import { ProgressionService } from '../../services/progression.service';
 import { SlotAnswer, blankPicks, compareConstruction, slotsRemaining } from '../../utils/construct.utils';
 import { KeybindService, keyLabel } from '../../services/keybind.service';
 import { slideNames, stepSlide } from '../../utils/slides.utils';
+import { symbolLegend } from '../../utils/phrasing';
 import { ProgressAndPerformanceService } from '../../services/progress-and-performance.service';
 
 @Component({
@@ -317,6 +318,24 @@ export class GameComponent {
                 + ` · ${keyLabel(b.submit)} answer`;
         }
         return "";
+    }
+
+    /**
+     * What the marks on this card mean, for the key behind the "?".
+     *
+     * Built from the rendered text of the item in front of you, so it lists
+     * exactly the marks that are on it — no more, and never fewer. Only in
+     * minimal mode: with words on the card there is nothing to decode.
+     */
+    get symbolLegend(): Array<{ mark: string; word: string }> {
+        if (!this.game.symbolRelations) return [];
+        const q = this.game.question;
+        return symbolLegend([
+            ...q.setup ?? [],
+            ...q.premises,
+            ...(Array.isArray(q.conclusion) ? q.conclusion : [q.conclusion ?? ""]),
+            ...q.choices,
+        ]);
     }
 
     get skipKeyLabel() {

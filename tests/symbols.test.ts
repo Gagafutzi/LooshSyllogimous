@@ -22,7 +22,7 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import {
-    rel, setSymbolRelations, symbolFor, symbolise, symbolisedWords,
+    rel, setSymbolRelations, symbolFor, symbolise, symbolisedWords, symbolLegend,
 } from "../src/app/syllogimous/utils/phrasing";
 import { LINEAR_SCALES, SPATIAL_SCALES } from "../src/app/syllogimous/utils/linear.utils";
 
@@ -200,3 +200,51 @@ function context(): GeneratorContext {
     };
     return ctx;
 }
+
+/* ------------------------------------------------------------------ *
+ * The key behind the "?"                                              *
+ * ------------------------------------------------------------------ */
+
+/**
+ * A mark you cannot read is worse than the word it replaced, so the key is the
+ * other half of the feature rather than a nicety.
+ *
+ * It is built by scanning the card's own text, which is what makes it unable to
+ * disagree with the card: a key listing an axis the item never mentions is
+ * worse than none, and one missing an axis it does mention is worse still.
+ */
+test("the key lists every mark on the card and none that is not", () => {
+    setSymbolRelations(true);
+    try {
+        const card = [strip(rel("3 north")), strip(rel("2 above, 1 earlier"))];
+        const rows = symbolLegend(card);
+        const marks = rows.map(r => r.mark);
+
+        assert(marks.includes("↑"), "a mark on the card is missing from the key");
+        assert(marks.includes("⇧"), "a mark on the card is missing from the key");
+        assert(marks.includes("«"), "a mark on the card is missing from the key");
+        assert(!marks.includes("→"), "the key explains a mark the card never used");
+        equal(new Set(marks).size, marks.length, "a mark is listed twice");
+    } finally {
+        setSymbolRelations(false);
+    }
+});
+
+/** The short spelling, because a key is read at a glance or not at all. */
+test("the key names the direction, not the sentence", () => {
+    setSymbolRelations(true);
+    try {
+        const rows = symbolLegend([strip(rel("is north of"))]);
+        equal(rows.length, 1, "one mark should have produced one row");
+        equal(rows[0].word, "north", `the key reads "${rows[0].word}"`);
+    } finally {
+        setSymbolRelations(false);
+    }
+});
+
+/** Nothing to decode when the card says words, so nothing is offered. */
+test("no key when the switch is off", () => {
+    setSymbolRelations(false);
+    equal(symbolLegend([strip(rel("3 north"))]).length, 0,
+        "a key was offered for a card with no marks on it");
+});

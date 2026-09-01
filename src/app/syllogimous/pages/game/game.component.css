@@ -501,3 +501,72 @@
 }
 
 .day-done:hover { opacity: 1; }
+
+/* ------------------------------------------------------------------ *
+ * The key to the marks                                                *
+ * ------------------------------------------------------------------ */
+
+/*
+ * Minimal mode trades words for marks, and a mark you cannot read is worse than
+ * the word it replaced. This is the way back, kept out of the way: a "?" in the
+ * corner that costs nothing to ignore and one hover to consult.
+ *
+ * Opened on focus as well as hover, so it is reachable in zen mode, where the
+ * mouse may never be touched.
+ */
+/* In normal flow above the card, right-aligned: no positioned ancestor to
+   depend on, and nothing overlapping the question. */
+.symkey-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: .35rem;
+}
+
+.symkey {
+    position: relative;
+}
+
+.symkey__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.4);
+    font-size: 0.8rem;
+    opacity: 0.5;
+    cursor: help;
+}
+
+.symkey:hover .symkey__mark,
+.symkey:focus .symkey__mark { opacity: 1; }
+
+.symkey__panel {
+    display: none;
+    position: absolute;
+    top: 1.9rem;
+    right: 0;
+    min-width: 9rem;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.35);
+    background: var(--th-card-bg, #14181d);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.symkey:hover .symkey__panel,
+.symkey:focus .symkey__panel,
+.symkey:focus-within .symkey__panel { display: block; }
+
+.symkey__row {
+    display: grid;
+    grid-template-columns: 1.6rem 1fr;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.symkey__sym { text-align: center; opacity: 0.95; }
+.symkey__word { opacity: 0.75; }
