@@ -219,8 +219,23 @@ export function createInferRelation(ctx: GeneratorContext, numOfPremises: number
                 const shown = shuffle([axes[next], rival.axis]);
 
                 return {
-                    text: "",
+                    /*
+                     * Named rather than blank. The claim replaces the premises,
+                     * so History has no conclusion line to show for it and was
+                     * printing the heading over nothing — while the question
+                     * being asked, which is the *symbol*, appeared only in the
+                     * prompt on the play card and nowhere afterwards.
+                     */
+                    text: `Which relation is ${hi(symbol)}?`,
                     isValid: true,
+                    /*
+                     * This claim's own derivation. The item's describes the
+                     * first claim — different objects, different axis, and a
+                     * different symbol — so leaving it in place produced a
+                     * confident explanation of a pair the card does not mention.
+                     */
+                    explanation: explainInference(
+                        layout, axes, colors, drawn, next, [], symbol),
                     premises: [
                         ...mapLines,
                         ...drawn.map(([a, b]) => `${subj(a)} ${hi(symbol)} ${subj(b)}`),
@@ -253,6 +268,15 @@ function explainInference(
     claims: Array<[string, string]>,
     hidden: number,
     _survivors: number[],
+    /*
+     * The symbol this claim was actually printed with.
+     *
+     * It used to be hardcoded to the first one. Every claim after the first
+     * prints a different symbol on purpose — carrying ⊕ over from the last
+     * question would be answering the wrong question with the right method —
+     * so the derivation was talking about ⊕ under a card that said ⊗.
+     */
+    symbol = OPERATOR,
 ): string[] {
     const lines: string[] = [];
 
@@ -262,7 +286,7 @@ function explainInference(
             .filter(({ axis, i }) => !isCircular(axis) && compareOn(layout, i, a, b) !== 1);
         if (!ruled.length) continue;
         lines.push(
-            `${subj(a)} ${hi(OPERATOR)} ${subj(b)} rules out `
+            `${subj(a)} ${hi(symbol)} ${subj(b)} rules out `
             + ruled.map(({ axis, i }) => rel(axis.scale.above, colors[i])).join(", ")
             + " — it does not hold between them.");
     }
@@ -272,7 +296,7 @@ function explainInference(
      * sentence that prefixes anything to them reads "⊕ is is after".
      */
     lines.push(
-        `so ${hi(OPERATOR)} means ${rel(axes[hidden].scale.above, colors[hidden])} — `
+        `so ${hi(symbol)} means ${rel(axes[hidden].scale.above, colors[hidden])} — `
         + "the only relation every claim holds for.");
     return lines;
 }

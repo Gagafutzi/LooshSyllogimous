@@ -53,6 +53,9 @@ export function takeSeriesAnswer(q: Question, value: boolean): boolean {
         q.choicePrompt = next.prompt ?? q.choicePrompt;
         q.userChoice = -1;
     }
+    // A claim that brought its own derivation is a claim the item's own would
+    // have described wrongly.
+    if (next.explanation) q.explanation = [...next.explanation];
     /*
      * Where the claim replaces the premises, the part being asked about is what
      * changed and the part that cost the reading did not — a map's examples, a

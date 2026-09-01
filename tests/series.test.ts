@@ -23,9 +23,12 @@ import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
+import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { GameTimerService } from "../src/app/syllogimous/services/game-timer.service";
 import { Question } from "../src/app/syllogimous/models/question.models";
 import { isPremiseLikeConclusion } from "../src/app/syllogimous/utils/question.utils";
+
+const strip = (h: string) => String(h).replace(/<[^>]+>/g, "");
 
 function context(): GeneratorContext {
     const settings = new Settings();
@@ -428,4 +431,78 @@ test("no claim restates a pair the premises already state", () => {
         equal(restated, 0,
             `${type}: ${restated} of ${claims} claims ask about a pair a premise states`);
     }
+});
+
+/* ------------------------------------------------------------------ *
+ * A claim that replaces the premises replaces the derivation too      *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Reported from play, with a screenshot: the derivation named two objects the
+ * card did not mention, and a symbol the card did not print.
+ *
+ * Infer the Relation asks several questions about one space, and each one
+ * withholds a *different* relation behind a *different* symbol — carrying ⊕
+ * over from the last question would be answering the wrong question with the
+ * right method. But the item's derivation was built once, for the first claim,
+ * and every later claim inherited it. So a card reading "Purple ⊗ Mulch" was
+ * explained by "Phone ⊕ Mulch rules out...", which is not a hard explanation to
+ * follow, it is an explanation of something else.
+ *
+ * Worse than no derivation, because it is confidently wrong, and it defeats the
+ * one thing a derivation is for: checking an answer you believe was right.
+ */
+test("every claim's derivation is about the claim on the card", () => {
+    seeded(6060, () => {
+        const ctx = context();
+        let checked = 0;
+
+        for (let rep = 0; rep < 40; rep++) {
+            let q;
+            try { q = createInferRelation(ctx, 4); } catch { continue; }
+            if (q.series.length < 2) continue;
+
+            for (let i = 0; i < q.series.length; i++) {
+                const claim = q.series[i];
+                if (!claim.premises) continue;
+
+                /*
+                 * Absence is the bug, so it is asserted rather than skipped.
+                 * The first draft of this test read `if (!claim.explanation)
+                 * continue`, which skipped exactly the claims that were broken
+                 * and passed against the unfixed generator.
+                 */
+                assert(!!claim.explanation,
+                    `claim ${i + 1} replaces the premises and carries no derivation,`
+                    + " so the item's own — about another claim — is what shows");
+
+                // The symbol the card prints for this claim, off its own lines.
+                const shown = claim.premises.map(strip).join(" ");
+                const symbol = ["⊕", "⊗", "⊙", "⊘", "⊛"].find(o => shown.includes(o));
+                if (!symbol) continue;
+
+                const said = claim.explanation!.map(strip).join(" ");
+                assert(said.includes(symbol),
+                    `claim ${i + 1} prints ${symbol} and its derivation talks about`
+                    + ` something else: ${said.slice(0, 80)}`);
+
+                // And about the objects the card names, not another claim's.
+                const named = claim.premises
+                    .filter(p => strip(p).includes(symbol))
+                    .flatMap(p => strip(p).split(symbol).map(x => x.trim()));
+                for (const line of claim.explanation!.map(strip)) {
+                    if (!line.includes("rules out")) continue;
+                    const subject = line.split("rules out")[0];
+                    for (const word of subject.split(symbol).map(x => x.trim())) {
+                        if (!word) continue;
+                        assert(named.includes(word),
+                            `the derivation for claim ${i + 1} names "${word}",`
+                            + " which the card does not mention");
+                    }
+                }
+                checked++;
+            }
+        }
+        assert(checked > 0, "no multi-claim inference items were produced to check");
+    });
 });

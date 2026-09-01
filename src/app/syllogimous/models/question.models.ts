@@ -54,6 +54,16 @@ export interface SeriesClaim {
     /** What the picker is being asked, which changes with the claim. */
     prompt?: string;
     /**
+     * How *this* claim follows, where the item's own derivation would not do.
+     *
+     * A series usually asks several questions about one arrangement, so one
+     * derivation covers them all. Where a claim replaces the premises it is a
+     * different question about different material, and the item's derivation
+     * then describes something no longer on the card — which is worse than no
+     * derivation, because it is confidently about the wrong pair of objects.
+     */
+    explanation?: string[];
+    /**
      * The premises shown while this claim is up, where they are not the same
      * ones the last claim had.
      *

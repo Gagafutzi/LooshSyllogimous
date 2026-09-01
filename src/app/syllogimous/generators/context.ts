@@ -189,6 +189,9 @@ export function extendWithSeries(question: Question, extra: SeriesClaim[]): bool
     const first: SeriesClaim = {
         text: Array.isArray(question.conclusion) ? question.conclusion[0] : question.conclusion,
         isValid: question.isValid,
+        // Carried so that a later claim swapping in its own derivation does not
+        // leave the first claim describing the wrong thing on the way back.
+        explanation: question.explanation.length ? [...question.explanation] : undefined,
     };
     // A picking item has no conclusion text; what identifies its first claim is
     // the options and the prompt.
