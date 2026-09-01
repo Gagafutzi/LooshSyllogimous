@@ -132,3 +132,12 @@ export const LS_SOUND_OFF = "SYL_SOUND_OFF";
  * An *off* switch, for the reason `LS_EXPLANATIONS_OFF` is.
  */
 export const LS_FEEDBACK_OFF = "SYL_FEEDBACK_OFF";
+
+/**
+ * Minimal mode: relations printed as marks instead of words.
+ *
+ * An *on* switch — absent means words — because this one did not exist before,
+ * so there is no prior behaviour to preserve for anybody, and words are what
+ * every card has always said.
+ */
+export const LS_SYMBOL_RELATIONS = "SYL_SYMBOL_RELATIONS";

@@ -46,6 +46,31 @@
         </app-collapsible>
 
         <!--
+          A display setting, not a difficulty one: the same facts, said in fewer
+          characters. It sits beside zen because it is the same impulse — less
+          on the card — and it composes with it rather than being part of it.
+        -->
+        <app-collapsible heading="Minimal mode">
+            <div class="d-grid" style="gap: 0.5rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="symbolRelations"
+                           (change)="setSymbolRelations($any($event.target).checked)">
+                    <span>Relations as symbols
+                        <small class="d-block text-muted">
+                            <strong>3 north</strong> becomes <strong>3 ↑</strong>,
+                            <strong>is east of</strong> becomes <strong>&rarr;</strong>,
+                            <strong>same latitude</strong> becomes <strong>&#8597;</strong>.
+                            Every relation has one, and each axis has its own, so a
+                            composed premise still reads apart without colour.
+                            Distances, objects and everything else are unchanged.
+                        </small>
+                    </span>
+                </label>
+            </div>
+        </app-collapsible>
+
+        <!--
           Two switches rather than one: the sound is what the room hears, the
           flash is what the session feels like. Somebody wants one gone far
           more often than both.

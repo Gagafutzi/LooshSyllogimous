@@ -18,6 +18,7 @@ import "./profiles.test";
 import "./keybind.test";
 import "./review.test";
 import "./feedback.test";
+import "./symbols.test";
 import "./mutual-moves.test";
 import "./answering.test";
 import "./stimuli.test";

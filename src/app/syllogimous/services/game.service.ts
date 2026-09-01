@@ -25,7 +25,7 @@ import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils"
 import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
-import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
+import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_SYMBOL_RELATIONS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 // Aliased: the service exposes members of the same names, and a call that
 // could be read as either is worth one line of renaming to avoid.
@@ -34,6 +34,10 @@ import {
     setSoundOn as storeSoundOn, soundOn as soundIsOn, verdictPause,
 } from "../utils/feedback.utils";
 import { hasNextClaim, judgeItem, takeSeriesAnswer } from "../utils/answer.utils";
+// Aliased for the reason the feedback imports are: the service exposes a
+// member of the same name, and a call that could be read as either is worth
+// one line of renaming to avoid.
+import { setSymbolRelations as pushSymbolRelations } from "../utils/phrasing";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
 import { Router } from "@angular/router";
@@ -274,6 +278,9 @@ export class GameService implements GeneratorContext {
         private gameTimerService: GameTimerService,
     ) {
         this.loadScore();
+        // Pushed into `phrasing` once at startup: that module is pure by design
+        // and never reads storage itself, so somebody has to tell it.
+        pushSymbolRelations(this.symbolRelations);
         (window as any).syllogimous = this;
 
         // Create a first dummy question to avoid null pointer etc...
@@ -992,6 +999,29 @@ export class GameService implements GeneratorContext {
      * clearing it here would let a late keypress fall through onto the question
      * that follows. What is suppressed is the picture, not the state.
      */
+    /**
+     * Minimal mode: relations as marks rather than words.
+     *
+     * "3 north" becomes "3 ↑", "is east of" becomes "→". Every relation any
+     * scale can state has one — there is a test that walks the scales and fails
+     * on the first that does not, so this cannot half-apply and leave a card
+     * mixing the two.
+     *
+     * Written through to `phrasing` as well as to storage, because that module
+     * is pure and holds the flag in a variable rather than reading it.
+     */
+    get symbolRelations(): boolean {
+        try { return localStorage.getItem(LS_SYMBOL_RELATIONS) === "1"; } catch { return false; }
+    }
+
+    setSymbolRelations(on: boolean) {
+        try {
+            if (on) localStorage.setItem(LS_SYMBOL_RELATIONS, "1");
+            else localStorage.removeItem(LS_SYMBOL_RELATIONS);
+        } catch { /* private mode; the default stands */ }
+        pushSymbolRelations(on);
+    }
+
     get feedbackShown(): boolean { return feedbackIsOn(); }
 
     setFeedbackShown(value: boolean) { storeFeedbackOn(value); }

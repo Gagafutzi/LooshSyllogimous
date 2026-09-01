@@ -91,6 +91,10 @@ export class SettingsComponent {
 
     /* ---- sound, and the verdict flash ---- */
 
+    get symbolRelations() { return this.game.symbolRelations; }
+
+    setSymbolRelations(value: boolean) { this.game.setSymbolRelations(value); }
+
     get soundOn() { return this.game.soundOn; }
 
     setSoundOn(value: boolean) { this.game.setSoundOn(value); }
