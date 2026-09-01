@@ -293,6 +293,39 @@ export class AdvancedOptionsComponent {
 
     setActive(value: boolean) { this.overrides.setActive(value); }
 
+    /**
+     * What the two master switches actually come to, in one sentence.
+     *
+     * They overlap rather than compose, and the overlap is invisible: fluid
+     * progression owns the premise count, the clock and the modifiers, so an
+     * override of any of those is accepted by the page, stored, and then
+     * ignored. The only way to discover that was to set one, watch it not
+     * happen, and go hunting — which is exactly the report this came from.
+     *
+     * Stating the combination is cheaper than teaching the rule, and it stays
+     * correct if the rule changes.
+     */
+    decidesSummary(): string {
+        const mine = this.active;
+        const fluid = this.prog.enabled;
+
+        if (mine && fluid) {
+            return "You pick which modes come up; fluid progression sets how hard"
+                + " they are. Premise counts, modifiers and the clock you set"
+                + " below are stored but not used until you switch it off.";
+        }
+        if (mine && !fluid) {
+            return "You pick everything. Difficulty stays where you put it, apart"
+                + " from training units nudging the premise count.";
+        }
+        if (!mine && fluid) {
+            return "The app picks everything — your tier decides which modes come"
+                + " up, and fluid progression sets how hard they are.";
+        }
+        return "Your tier picks the modes, and the premise count steps up and"
+            + " down on streaks. Nothing on this page is in force.";
+    }
+
     toggleMode(row: Row, enabled: boolean) {
         this.overrides.setMode(row.type, { enabled }, this.fallback(row));
     }

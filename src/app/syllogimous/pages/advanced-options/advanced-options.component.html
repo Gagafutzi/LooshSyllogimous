@@ -6,55 +6,17 @@
         of it as a profile.
     </p>
 
-    <!-- Profiles: what Free Play became, made durable. -->
-    <app-collapsible heading="Profiles" [note]="profiles.length ? '' : 'none saved yet'">
-        <p class="text-muted small mb-3">
-            Everything on this page, under a name. Edits go into the loaded profile —
-            nothing to press. <strong>Practice</strong> profiles do not count towards
-            score, stats or your level.
-        </p>
+    <!--
+      The two switches that decide everything else, together and in front.
 
-        <div class="profile" *ngFor="let p of profiles" [class.is-on]="applied(p.id)">
-            <span class="profile__name">
-                <input class="form-control form-control-sm" [value]="p.name"
-                       (change)="rename(p.id, $any($event.target).value)"
-                       [attr.aria-label]="'Profile name'">
-                <label class="profile__practice">
-                    <input type="checkbox" class="form-check-input" [checked]="p.practice"
-                           (change)="setPractice(p.id, $any($event.target).checked)">
-                    <small>practice — not scored</small>
-                </label>
-            </span>
-            <span class="profile__acts">
-                <!--
-                  Three states, not two: in force, loaded but switched off, and
-                  not loaded. The middle one used to read "In use" and do
-                  nothing.
-                -->
-                <button type="button" class="btn btn-sm"
-                        [class.is-on]="applied(p.id)"
-                        [disabled]="applied(p.id)"
-                        [attr.title]="applied(p.id) ? 'Already in use' : loadedButOff(p.id)
-                            ? 'Loaded, but Customise is switched off — press to switch it on'
-                            : 'Load these settings and switch Customise on'"
-                        (click)="use(p.id)">{{ applied(p.id) ? "In use" : loadedButOff(p.id) ? "Switched off" : "Use" }}</button>
-                <button type="button" class="btn btn-sm" (click)="duplicate(p.id)">Copy</button>
-                <button type="button" class="btn btn-sm" (click)="remove(p.id)">Delete</button>
-            </span>
-        </div>
-
-        <div class="profile__new">
-            <input class="form-control form-control-sm" placeholder="New profile name"
-                   [value]="newProfileName" (input)="newProfileName = $any($event.target).value"
-                   (keyup.enter)="saveCurrent()">
-            <button type="button" class="btn btn-sm" (click)="saveCurrent()">
-                Save current settings
-            </button>
-            <button type="button" class="btn btn-sm" *ngIf="activeProfileId"
-                    (click)="stopUsing()">Stop using</button>
-        </div>
-    </app-collapsible>
-
+      They used to sit two hundred lines apart — "use my settings" at the top,
+      "use fluid progression" two thirds of the way down — and they overlap: an
+      override of the premise count is silently ignored while progression is on,
+      because progression owns that number. Nothing on the page said so, so the
+      only way to find out was to set a premise count, watch it not happen, and
+      go looking. Side by side, with one line stating what the pair of them comes
+      to, is the whole fix.
+    -->
     <div class="card p-3 mb-3">
         <label class="master">
             <input type="checkbox"
@@ -63,9 +25,31 @@
                    (change)="setActive($any($event.target).checked)">
             <span>
                 <strong>Use my settings instead of the tier</strong>
+                <small class="d-block text-muted">
+                    Which modes appear, and what an item contains.
+                </small>
             </span>
         </label>
+
+        <label class="master mt-2">
+            <input type="checkbox" class="form-check-input"
+                   [checked]="prog.enabled"
+                   (change)="setProg('enabled', $any($event.target).checked)">
+            <span>
+                <strong>Use fluid progression</strong>
+                <small class="d-block text-muted">
+                    One ability estimate per mode, each item built to sit just
+                    below it. Takes over the countdown, the premise count and the
+                    modifiers &mdash; including where you have set them yourself.
+                </small>
+            </span>
+        </label>
+
+        <p class="decides mb-0 mt-3">{{ decidesSummary() }}</p>
     </div>
+
+    <h3 class="adv__group">What you get<small>which modes appear, and what an item contains</small></h3>
+
 
     <app-collapsible heading="Question types" [note]="enabledCount() + ' of ' + rows.length + ' on'" [class.is-idle]="!active">
         <!--
@@ -112,7 +96,15 @@
                 </span>
             </label>
 
-            <span class="mode__premises">
+            <!--
+              Greyed while fluid progression owns the number, rather than taking
+              a premise count and quietly not using it. The value is still stored
+              and still editable — it comes back the moment progression is off —
+              but a control that looks live and is not is what sent somebody
+              hunting through the page in the first place.
+            -->
+            <span class="mode__premises" [class.is-idle]="prog.enabled"
+                  [title]="prog.enabled ? 'Fluid progression is setting this — switch it off to use your own' : ''">
                 <!--
                   Auto is a real state, not the absence of one. Without it a
                   profile can only ever *fix* a premise count, so switching
@@ -263,22 +255,16 @@
             always was and the findings are reported without being acted on.
         </p>
     </app-collapsible>
+    <h3 class="adv__group">How difficulty moves<small>who sets the premise count, the clock and the modifiers</small></h3>
 
-    <app-collapsible heading="Fluid progression" [startClosed]="true">
+
+    <app-collapsible heading="Fluid progression settings" [startClosed]="true"
+                     [class.is-idle]="!prog.enabled">
         <p class="text-muted small mb-2">
             One ability estimate per mode; each item is built to sit just below it.
             Premises, modifiers and the clock all trade against each other.
         </p>
 
-        <label class="master mb-2">
-            <input type="checkbox" class="form-check-input"
-                   [checked]="prog.enabled"
-                   (change)="setProg('enabled', $any($event.target).checked)">
-            <span>
-                <strong>Use fluid progression</strong>
-                <small class="d-block text-muted">Takes over the countdown, the premise count and the modifiers.</small>
-            </span>
-        </label>
 
         <!--
           Fatigue, and what it suppresses.
@@ -550,6 +536,56 @@
                        (change)="setUnit('down', $any($event.target).value)">
                 <small class="text-muted">0.1–0.9</small>
             </span>
+        </div>
+    </app-collapsible>
+    <h3 class="adv__group">Saving, and starting over</h3>
+
+    <!-- Profiles: what Free Play became, made durable. -->
+    <app-collapsible heading="Profiles" [note]="profiles.length ? '' : 'none saved yet'">
+        <p class="text-muted small mb-3">
+            Everything on this page, under a name. Edits go into the loaded profile —
+            nothing to press. <strong>Practice</strong> profiles do not count towards
+            score, stats or your level.
+        </p>
+
+        <div class="profile" *ngFor="let p of profiles" [class.is-on]="applied(p.id)">
+            <span class="profile__name">
+                <input class="form-control form-control-sm" [value]="p.name"
+                       (change)="rename(p.id, $any($event.target).value)"
+                       [attr.aria-label]="'Profile name'">
+                <label class="profile__practice">
+                    <input type="checkbox" class="form-check-input" [checked]="p.practice"
+                           (change)="setPractice(p.id, $any($event.target).checked)">
+                    <small>practice — not scored</small>
+                </label>
+            </span>
+            <span class="profile__acts">
+                <!--
+                  Three states, not two: in force, loaded but switched off, and
+                  not loaded. The middle one used to read "In use" and do
+                  nothing.
+                -->
+                <button type="button" class="btn btn-sm"
+                        [class.is-on]="applied(p.id)"
+                        [disabled]="applied(p.id)"
+                        [attr.title]="applied(p.id) ? 'Already in use' : loadedButOff(p.id)
+                            ? 'Loaded, but Customise is switched off — press to switch it on'
+                            : 'Load these settings and switch Customise on'"
+                        (click)="use(p.id)">{{ applied(p.id) ? "In use" : loadedButOff(p.id) ? "Switched off" : "Use" }}</button>
+                <button type="button" class="btn btn-sm" (click)="duplicate(p.id)">Copy</button>
+                <button type="button" class="btn btn-sm" (click)="remove(p.id)">Delete</button>
+            </span>
+        </div>
+
+        <div class="profile__new">
+            <input class="form-control form-control-sm" placeholder="New profile name"
+                   [value]="newProfileName" (input)="newProfileName = $any($event.target).value"
+                   (keyup.enter)="saveCurrent()">
+            <button type="button" class="btn btn-sm" (click)="saveCurrent()">
+                Save current settings
+            </button>
+            <button type="button" class="btn btn-sm" *ngIf="activeProfileId"
+                    (click)="stopUsing()">Stop using</button>
         </div>
     </app-collapsible>
 

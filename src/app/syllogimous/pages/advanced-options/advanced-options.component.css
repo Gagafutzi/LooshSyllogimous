@@ -327,3 +327,38 @@ input[type="checkbox"]:disabled { cursor: default; }
 }
 
 .mode__auto:disabled { opacity: 0.5; cursor: default; }
+
+/*
+ * Three groups rather than eleven peers.
+ *
+ * The page was a flat list in which "Tutorials" and "Fluid progression" looked
+ * like the same kind of thing, and finding anything meant reading every
+ * heading. What you get, how hard it is, and the housekeeping are three
+ * different questions, and a reader arrives with one of them.
+ */
+.adv__group {
+    margin: 28px 0 10px;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+
+.adv__group:first-of-type { margin-top: 8px; }
+
+.adv__group small {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.78rem;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 0.8;
+}
+
+/* What the two switches above it come to, which is the thing nobody could see. */
+.decides {
+    padding: 8px 10px;
+    border-left: 3px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.6);
+    background: rgba(var(--th-accent-rgb, 34, 211, 238), 0.07);
+    font-size: 0.87rem;
+}
