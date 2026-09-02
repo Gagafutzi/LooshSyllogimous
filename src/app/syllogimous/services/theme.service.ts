@@ -135,62 +135,87 @@ export const THEME_PRESETS: Record<string, Theme> = {
         wallpaper: "radial-gradient(900px 600px at 50% 0%, #062d16 0%, transparent 70%)",
     },
     /*
-     * Devil nobility: crimson, black, and gold.
+     * Pink on near-black, and something is watching.
      *
-     * The palette is forced rather than chosen. A deep Gremory crimson —
-     * #d81e3f, the colour the aesthetic actually wants — measures 3.9:1 against
-     * this panel, and the accent is what *subjects* are painted in, so it would
-     * fail the one job it has. The bright crimson stays as the accent, and the
-     * nobility register is carried by **gold** in the second slot at 9.3:1,
-     * where it drives links, hovers and the card's own sheen.
+     * One hue, from hot pink down to near-black, with the geometry taken out.
      *
-     * The panel is blacker than it was. At #2b0a14 it read mauve, which is a
-     * dusty, faded colour and the opposite of what is wanted; crimson on near-
-     * black is the whole idea, and the panel should be the black half.
+     * What it was: a summoning circle in crimson and gold — concentric rings
+     * and conic tick marks, which is the shape a gradient can make and no
+     * other. Rings, hexagonal answer faces and 8px corners added up to a look
+     * built entirely out of straight edges and circles, and the objection to it
+     * was exactly that.
      *
-     * The backdrop is a summoning circle, drawn in gradients rather than
-     * shipped as an image: two rings — crimson inner, gold outer — over a
-     * conic spoke pattern for the tick marks, and a low crimson wash beneath.
-     * It sits behind a 94%-opaque panel, so it is atmosphere at the edges of
-     * the screen and never something a premise has to be read against.
+     * So the backdrop is drawn now: tendrils that curve, and an eye. Both are
+     * arcs, and an arc is the one thing gradients cannot state. It is still
+     * inline rather than an asset — no file to ship and nothing to break if one
+     * goes missing, which is why gradients were reached for originally.
+     *
+     * The panel stays blacker than the palette suggests. At #2b0a14 it read
+     * mauve, a dusty faded colour and the opposite of what is wanted; pink on
+     * near-black is the whole idea, and the panel is the black half of it.
      */
     "Loosh": {
         ...MOONLIT,
         bg: "#07030a", bg2: "#12060c", panel: "#1b060e",
-        // Crimson leads, gold ennobles. Gold cannot lead: it is what the eye
-        // goes to first, and the thing worth looking at is the question.
-        accent: "#ff2d55", accent2: "#d4af37",
+        /*
+         * One family now, pink through to near-black, and no gold.
+         *
+         * Gold held the second slot because crimson measures 3.9:1 against the
+         * panel and the second accent drives links and hovers, which have to be
+         * legible. It was doing a contrast job, not an aesthetic one — and a
+         * pale pink does the same job at 9.1:1 against gold's 9.3:1 while
+         * staying inside the one hue the look is built on. Nothing legible was
+         * traded for it; the metal simply was not part of this.
+         */
+        accent: "#ff2d6f", accent2: "#ff8fab",
         text: "#f6e6ea", textDim: "#c09aa6",
         // Crimson for yes, dried blood for no: red already means "accent"
         // everywhere here, so a red "false" would read as the emphasis.
-        ok: "#ff2d55", bad: "#3d0a17",
+        ok: "#ff2d6f", bad: "#3d0a17",
         // Dark ink on the bright heart; the pale one on the dark half.
         okInk: "#1a0106", badInk: "#f6e6ea", answerFill: 100,
         /*
-         * A cut gem rather than a pill.
+         * A lens rather than a cut gem.
          *
-         * Applied to an inner face, never the button, so what can be clicked
-         * stays rectangular — these are hit under time pressure.
+         * The hexagon was six straight edges, which is the thing this theme is
+         * moving away from. An ellipse wider than its own box curves only at
+         * the ends, so the shape reads as an eye and the middle — where the
+         * word is — is never clipped. Applied to an inner face and never the
+         * button, so what can be clicked stays rectangular; these are hit under
+         * time pressure.
          */
-        answerShape: "polygon(7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%, 0 50%)",
+        answerShape: "ellipse(62% 50%)",
         // Nearly opaque on purpose: the backdrop is a bright crimson wash, and
         // at the usual translucency it bled through and turned the premise card
         // a washed-out mauve.
-        radius: 8, glow: 20, panelAlpha: 0.94, blur: 10,
+        // Corners well rounded, since the objection to the old look was that it
+        // was rectangular, and a card is the largest rectangle on the screen.
+        radius: 22, glow: 24, panelAlpha: 0.94, blur: 10,
         font: `"Cinzel", "Trajan Pro", Georgia, "Times New Roman", serif`,
         wallpaper:
-            // Tick marks around the circle, faint enough to be texture.
-            "repeating-conic-gradient(from 0deg at calc(50% + var(--nav-offset, 0px)) 46%, " +
-                "rgba(212,175,55,0.13) 0deg 0.5deg, transparent 0.5deg 11.25deg), " +
-            // The circle itself: crimson ring, gold ring, crimson outer.
-            "radial-gradient(circle at calc(50% + var(--nav-offset, 0px)) 46%, " +
-                "transparent 0 31%, rgba(255,45,85,0.34) 31% 31.5%, " +
-                "transparent 31.5% 34%, rgba(212,175,55,0.26) 34% 34.4%, " +
-                "transparent 34.4% 45%, rgba(255,45,85,0.16) 45% 45.4%, transparent 45.4%), " +
-            // The light it is lit by.
-            "radial-gradient(900px 640px at calc(50% + var(--nav-offset, 0px)) 46%, #40091c 0%, transparent 62%), " +
-            "radial-gradient(1200px 800px at 78% -12%, #2a0712 0%, transparent 58%), " +
-            "radial-gradient(700px 700px at 12% 112%, #1a0410 0%, transparent 60%)",
+            /*
+             * Drawn rather than composed out of gradients.
+             *
+             * The circle it replaces was rings and conic ticks, which is all a
+             * gradient can be: concentric and straight-edged. Tendrils curve, and
+             * an eye is two arcs — neither is expressible that way, so the layer
+             * is an inline SVG instead. Still no asset to ship and nothing to
+             * fail if a file is missing, which is why the gradients were chosen
+             * in the first place.
+             *
+             * No width or height on the root: a background SVG with no intrinsic
+             * size is scaled to the area it paints, so it covers the viewport
+             * rather than tiling at some arbitrary pixel size.
+             *
+             * Kept faint on purpose. It sits behind a 94%-opaque panel, so it is
+             * weather at the edges of the screen and never something a premise
+             * has to be read against.
+             */
+            "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900' preserveAspectRatio='xMidYMid slice'> <g fill='none' stroke='%23ff2d6f' stroke-linecap='round'> <g opacity='.5'> <path d='M-40 90 C 210 140 330 260 430 430 C 500 550 560 700 540 950' stroke-width='2.5'/> <path d='M-40 90 C 150 120 240 200 300 300' stroke-width='1.2'/> <path d='M300 300 C 330 250 380 210 470 190' stroke-width='1'/> <path d='M430 430 C 350 470 300 540 280 640' stroke-width='1'/> <path d='M1480 60 C 1240 120 1120 250 1050 420 C 990 570 960 720 990 950' stroke-width='2.5'/> <path d='M1050 420 C 1140 470 1200 540 1230 650' stroke-width='1.2'/> <path d='M1480 300 C 1300 330 1200 420 1160 540' stroke-width='1'/> <path d='M-40 700 C 160 690 300 760 380 900' stroke-width='1.4'/> <path d='M1480 820 C 1300 790 1180 830 1090 900' stroke-width='1.2'/> </g> <g opacity='.34'> <path d='M700 -40 C 660 120 700 240 760 330' stroke-width='1.2'/> <path d='M760 940 C 720 800 740 690 800 600' stroke-width='1.2'/> </g> </g> <g transform='translate(720 430)'> <g fill='none' stroke='%23ff2d6f' opacity='.55'> <path d='M-300 0 C -170 -132 170 -132 300 0 C 170 132 -170 132 -300 0 Z' stroke-width='2'/> <path d='M-232 0 C -130 -96 130 -96 232 0 C 130 96 -130 96 -232 0 Z' stroke-width='.8' opacity='.55'/> <circle r='86' stroke-width='1.6'/> <circle r='54' stroke-width='.8' opacity='.6'/> </g> <circle r='30' fill='%23ff2d6f' opacity='.16'/> <g stroke='%23ff2d6f' stroke-width='.8' opacity='.3'> <path d='M0 -86 V -128'/><path d='M0 86 V 128'/> <path d='M-86 0 H -128'/><path d='M86 0 H 128'/> <path d='M-61 -61 L -92 -92'/><path d='M61 -61 L 92 -92'/> <path d='M-61 61 L -92 92'/><path d='M61 61 L 92 92'/> </g> </g> </svg>\"), " +
+            // The light it is lit by: a low pink wash, close to black at the edges.
+            "radial-gradient(1000px 700px at 50% 44%, #3a0a1e 0%, transparent 64%), " +
+            "radial-gradient(1300px 820px at 82% -14%, #2a0714 0%, transparent 58%), " +
+            "radial-gradient(800px 800px at 8% 110%, #1c0411 0%, transparent 62%)",
     },
 };
 
