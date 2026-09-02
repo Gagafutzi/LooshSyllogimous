@@ -57,6 +57,9 @@ export const STREAM_TYPES = Object.keys(STREAM_SCALES) as EnumQuestionType[];
 /** Default live window, in relations. */
 export const DEFAULT_WINDOW = 3;
 
+/** Questions per run, by default. The setting has no small ceiling. */
+export const DEFAULT_CHECKPOINTS = 4;
+
 const pick = <T>(xs: T[]): T => xs[Math.floor(Math.random() * xs.length)];
 
 /** One axis's clause for a step of `delta`. */
@@ -82,16 +85,47 @@ export function createStream(
     ctx: GeneratorContext,
     type: EnumQuestionType,
     window = DEFAULT_WINDOW,
-    checkpoints = 4,
+    /**
+     * How many questions the run asks before it ends.
+     *
+     * Deliberately not capped at anything small. A stream is the one mode with
+     * no natural stopping point — the next premise arrives while the last
+     * question is still being resolved, so the beats where quitting is a
+     * decision are gone — and the length is therefore the *only* thing that
+     * decides when it ends. That belongs to the player, at four or at four
+     * hundred.
+     */
+    checkpoints = DEFAULT_CHECKPOINTS,
 ): Question {
     const axes = (STREAM_SCALES[type] ?? STREAM_SCALES[EnumQuestionType.ComparisonNumerical])!();
     const n = Math.max(2, Math.min(6, window));
     const step = Math.max(1, Math.floor(n / 2));
 
-    // One object per relation, plus the one the chain starts on.
-    const links = n + step * (checkpoints - 1);
-    const names = getRandomSymbols(ctx.settings, links + 1);
-    if (names.length < links + 1) throw new Error("Cannot generate.");
+    const links = n + step * (Math.max(1, checkpoints) - 1);
+
+    /*
+     * Objects come back, and that is the point rather than a compromise.
+     *
+     * A long stream needs more objects than any symbol pool holds — a hundred
+     * checkpoints is a hundred-odd links — so names have to repeat. Which is
+     * the difficulty that was wanted anyway: an object returning later carrying
+     * a *different* relation puts the stale binding in direct competition with
+     * the live one, and that measures whether you can let go, where a bigger
+     * window only measures how much you can hold.
+     *
+     * The one rule is that a name may not appear twice inside a single window.
+     * Two positions for one object inside the live set makes the chain
+     * ambiguous rather than hard, and there would be no right answer to give.
+     */
+    const pool = getRandomSymbols(ctx.settings, links + 1);
+    if (pool.length < n + 2) throw new Error("Cannot generate.");
+
+    const names: string[] = [];
+    for (let i = 0; i <= links; i++) {
+        const recent = names.slice(-(n + 1));
+        const free = pool.filter(x => recent.indexOf(x) < 0);
+        names.push(pick(free.length ? free : pool));
+    }
 
     /* The chain, as coordinates: every object's position on every axis. */
     const at: number[][] = [axes.map(() => 0)];
@@ -145,7 +179,7 @@ export function createStream(
      * rest of the window is not on the card, which is the whole mode.
      */
     const rest = [];
-    for (let c = 1; c < checkpoints; c++) {
+    for (let c = 1; c < Math.max(1, checkpoints); c++) {
         const endLink = n + step * c;
         const claim = claimAt(endLink);
         rest.push({

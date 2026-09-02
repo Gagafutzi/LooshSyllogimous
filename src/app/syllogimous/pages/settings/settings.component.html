@@ -85,7 +85,24 @@
                     <small class="text-muted">
                         Raising this measures how much you can hold. The harder demand
                         is letting go, and that comes from objects returning later
-                        carrying a different relation &mdash; not from a bigger window.
+                        carrying a different relation &mdash; which a long run
+                        produces on its own, once it outgrows the pool of names.
+                    </small>
+
+                    <label for="stream-length" class="text-muted small mt-2">
+                        Questions per run
+                    </label>
+                    <input id="stream-length" type="number" min="1"
+                           class="form-control form-control-sm" style="max-width: 6rem;"
+                           [disabled]="!streamOn" [value]="streamLength"
+                           (change)="setStreamLength($any($event.target).value)">
+                    <small class="text-muted">
+                        No ceiling. A stream is the one mode with no natural stopping
+                        point &mdash; the next premise arrives while the last question
+                        is still being resolved, so the moments where quitting is a
+                        <em>decision</em> are gone. This number is the only place a stop
+                        comes from, which is why it is yours and not a judgement of
+                        mine about how long anybody should sit there.
                     </small>
                 </div>
             </div>

@@ -112,3 +112,54 @@ test("the setup says the window is all there is", () => {
             "the setup does not promise that older premises are never needed");
     });
 });
+
+/**
+ * A long run is the point, so the length must not be quietly capped.
+ *
+ * The generator draws one object per link, and a hundred questions needs more
+ * links than any symbol pool holds — so a naive version simply fails to build
+ * past a few dozen. Names recur instead, which is the difficulty that was
+ * wanted: a stale binding competing with a live one measures letting go, where
+ * a bigger window only measures holding.
+ */
+test("a run of a hundred questions builds", () => {
+    seeded(555, () => {
+        const q = createStream(context(), EnumQuestionType.ComparisonNumerical, 3, 100);
+        equal(q.series.length, 100, "the run was shortened");
+        for (let i = 1; i < q.series.length; i++) {
+            assert((q.series[i].premises || []).length > 0,
+                `checkpoint ${i + 1} of a long run showed no premises`);
+        }
+    });
+});
+
+/**
+ * A name may repeat across a run, but never inside one window.
+ *
+ * Two positions for one object inside the live set makes the chain ambiguous
+ * rather than hard — there would be no right answer to give.
+ */
+test("no object appears twice inside a single window", () => {
+    seeded(4242, () => {
+        for (const w of [2, 3, 4]) {
+            const q = createStream(context(), EnumQuestionType.Direction, w, 60);
+            const chain = q.bucket as string[];
+
+            for (let i = 0; i + w < chain.length; i++) {
+                const live = chain.slice(i, i + w + 1);
+                equal(new Set(live).size, live.length,
+                    `a window of ${w} at link ${i} names the same object twice`);
+            }
+        }
+    });
+});
+
+/** And over a long run they *do* recur, or the pool would have to be endless. */
+test("a long run brings objects back", () => {
+    seeded(808, () => {
+        const q = createStream(context(), EnumQuestionType.ComparisonNumerical, 3, 120);
+        const chain = q.bucket as string[];
+        assert(new Set(chain).size < chain.length,
+            "a 120-question run used a distinct object every time, which no pool holds");
+    });
+});

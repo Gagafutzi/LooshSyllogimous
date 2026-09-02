@@ -25,7 +25,7 @@ import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils"
 import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
-import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
+import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 // Aliased: the service exposes members of the same names, and a call that
 // could be read as either is worth one line of renaming to avoid.
@@ -76,7 +76,7 @@ import { createRelationalWeb } from "../generators/relational-web";
 import { createStimulusFunction } from "../generators/stimulus-function";
 import { createAxisMap } from "../generators/axis-map";
 import { createMutualMoves } from "../generators/mutual-moves";
-import { createStream, DEFAULT_WINDOW, STREAM_TYPES } from "../generators/stream";
+import { createStream, DEFAULT_CHECKPOINTS, DEFAULT_WINDOW, STREAM_TYPES } from "../generators/stream";
 import { createWidestGroup } from "../generators/widest-group";
 import { createTransformMatch } from "../generators/transform-match";
 import { createKnaves } from "../generators/knaves";
@@ -488,7 +488,7 @@ export class GameService implements GeneratorContext {
          */
         if (this.streamOn) {
             return this.asMinimal(
-                createStream(this, this.streamType, this.streamWindow));
+                createStream(this, this.streamType, this.streamWindow, this.streamLength));
         }
 
         const settings = this.settings;
@@ -1129,6 +1129,29 @@ export class GameService implements GeneratorContext {
         } catch { /* private mode */ }
     }
 
+    /**
+     * How many questions a run asks.
+     *
+     * Bounded only by what a number can be typed as, not by a judgement about
+     * how long anybody should sit there. A stream has no natural stopping point
+     * — that is the whole character of it — so the length is the only place a
+     * stop comes from, and choosing it is the player's.
+     */
+    get streamLength(): number {
+        try {
+            const n = Number(localStorage.getItem(LS_STREAM_LENGTH));
+            if (n >= 1) return Math.floor(n);
+        } catch { /* private mode */ }
+        return DEFAULT_CHECKPOINTS;
+    }
+
+    setStreamLength(n: number) {
+        try {
+            localStorage.setItem(LS_STREAM_LENGTH,
+                String(Math.max(1, Math.floor(Number(n) || DEFAULT_CHECKPOINTS))));
+        } catch { /* private mode */ }
+    }
+
     get feedbackShown(): boolean { return feedbackIsOn(); }
 
     setFeedbackShown(value: boolean) { storeFeedbackOn(value); }
@@ -1193,9 +1216,18 @@ export class GameService implements GeneratorContext {
          * the one the player just answered and may well have got right.
          */
         const marks = this.question.series;
-        this.verdictNote = marks.length > 1
-            ? marks.map((_, i) => this.question.seriesAnswers[i] ? "✓" : "✗").join(" ")
-            : "";
+        /*
+         * Marks while they can be read, a tally once they cannot.
+         *
+         * A hundred-question stream renders a hundred ticks and crosses, which
+         * is a wall rather than a verdict — and the thing worth knowing at that
+         * length is how many, not which.
+         */
+        const right = this.question.seriesAnswers.filter(Boolean).length;
+        this.verdictNote = marks.length <= 1 ? ""
+            : marks.length <= 12
+                ? marks.map((_, i) => this.question.seriesAnswers[i] ? "✓" : "✗").join(" ")
+                : `${right} of ${marks.length} right`;
         this.playVerdictSound(kind);
         this.prepareNext();
 

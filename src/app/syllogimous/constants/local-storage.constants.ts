@@ -153,3 +153,5 @@ export const LS_STREAM = "SYL_STREAM";
 export const LS_STREAM_TYPE = "SYL_STREAM_TYPE";
 /** How many relations stay live, in premises. */
 export const LS_STREAM_WINDOW = "SYL_STREAM_WINDOW";
+/** How many questions a run asks before it ends. No small ceiling. */
+export const LS_STREAM_LENGTH = "SYL_STREAM_LENGTH";
