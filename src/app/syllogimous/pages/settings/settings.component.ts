@@ -5,6 +5,8 @@ import { FormControl } from '@angular/forms';
 import { DEFAULT_DAILY_GOAL, DEFAULT_WEEKLY_GOAL } from '../../services/progress-and-performance.service';
 import { LS_COLOR_BLINDNESS_MODE, LS_DAILY_GOAL, LS_WEEKLY_GOAL } from '../../constants/local-storage.constants';
 import { GameService } from '../../services/game.service';
+import { STREAM_TYPES } from '../../generators/stream';
+import { EnumQuestionType } from '../../constants/question.constants';
 import { ThemeService } from '../../services/theme.service';
 import { LinearFeatureFlags, SettingsOverrideService } from '../../services/settings-override.service';
 
@@ -90,6 +92,22 @@ export class SettingsComponent {
     setZenMode(value: boolean) { this.game.setZenMode(value); }
 
     /* ---- sound, and the verdict flash ---- */
+
+    /* ---- continuous stream ---- */
+
+    streamTypes = STREAM_TYPES;
+
+    get streamOn() { return this.game.streamOn; }
+
+    setStreamOn(value: boolean) { this.game.setStreamOn(value); }
+
+    get streamType() { return this.game.streamType; }
+
+    setStreamType(value: string) { this.game.setStreamType(value as EnumQuestionType); }
+
+    get streamWindow() { return this.game.streamWindow; }
+
+    setStreamWindow(value: string) { this.game.setStreamWindow(Number(value)); }
 
     get symbolRelations() { return this.game.symbolRelations; }
 

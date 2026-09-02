@@ -25,7 +25,7 @@ import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils"
 import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
-import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_SYMBOL_RELATIONS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
+import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 // Aliased: the service exposes members of the same names, and a call that
 // could be read as either is worth one line of renaming to avoid.
@@ -76,6 +76,7 @@ import { createRelationalWeb } from "../generators/relational-web";
 import { createStimulusFunction } from "../generators/stimulus-function";
 import { createAxisMap } from "../generators/axis-map";
 import { createMutualMoves } from "../generators/mutual-moves";
+import { createStream, DEFAULT_WINDOW, STREAM_TYPES } from "../generators/stream";
 import { createWidestGroup } from "../generators/widest-group";
 import { createTransformMatch } from "../generators/transform-match";
 import { createKnaves } from "../generators/knaves";
@@ -474,7 +475,22 @@ export class GameService implements GeneratorContext {
     }
 
     /** Return a random question based on the current settings */
-    createRandomQuestion(numOfPremises?: number, basic?: boolean) {
+    // Annotated because the stream branch returns before the inference has
+    // anything to work from, which makes the type circular otherwise.
+    createRandomQuestion(numOfPremises?: number, basic?: boolean): Question {
+        /*
+         * The stream replaces the draw entirely rather than joining it.
+         *
+         * It is a way of *showing* relations, not a kind of relation, so mixing
+         * stream items in with ordinary ones would mean the same mode name
+         * arriving as two different tasks — and a player who turned it on
+         * getting it a third of the time.
+         */
+        if (this.streamOn) {
+            return this.asMinimal(
+                createStream(this, this.streamType, this.streamWindow));
+        }
+
         const settings = this.settings;
         this.logger.info("Settings", settings);
 
@@ -1071,6 +1087,46 @@ export class GameService implements GeneratorContext {
         }
 
         return question;
+    }
+
+    /* ---- continuous stream ---- */
+
+    get streamOn(): boolean {
+        try { return localStorage.getItem(LS_STREAM) === "1"; } catch { return false; }
+    }
+
+    setStreamOn(on: boolean) {
+        try {
+            if (on) localStorage.setItem(LS_STREAM, "1");
+            else localStorage.removeItem(LS_STREAM);
+        } catch { /* private mode; the default stands */ }
+    }
+
+    get streamType(): EnumQuestionType {
+        try {
+            const stored = localStorage.getItem(LS_STREAM_TYPE) as EnumQuestionType | null;
+            if (stored && STREAM_TYPES.indexOf(stored) >= 0) return stored;
+        } catch { /* private mode */ }
+        return STREAM_TYPES[0];
+    }
+
+    setStreamType(type: EnumQuestionType) {
+        try { localStorage.setItem(LS_STREAM_TYPE, type); } catch { /* private mode */ }
+    }
+
+    get streamWindow(): number {
+        try {
+            const n = Number(localStorage.getItem(LS_STREAM_WINDOW));
+            if (n >= 2 && n <= 6) return n;
+        } catch { /* private mode */ }
+        return DEFAULT_WINDOW;
+    }
+
+    setStreamWindow(n: number) {
+        try {
+            localStorage.setItem(LS_STREAM_WINDOW,
+                String(Math.max(2, Math.min(6, Math.round(n) || DEFAULT_WINDOW))));
+        } catch { /* private mode */ }
     }
 
     get feedbackShown(): boolean { return feedbackIsOn(); }

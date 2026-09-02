@@ -20,6 +20,7 @@ import "./review.test";
 import "./feedback.test";
 import "./symbols.test";
 import "./mutual-moves.test";
+import "./stream.test";
 import "./answering.test";
 import "./stimuli.test";
 import "./shape-rotation.test";

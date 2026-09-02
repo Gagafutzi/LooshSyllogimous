@@ -46,6 +46,52 @@
         </app-collapsible>
 
         <!--
+          A way of *showing* relations rather than a kind of relation, which is
+          why it sits beside the game mode and not among the question types.
+        -->
+        <app-collapsible heading="Continuous stream">
+            <div class="d-grid" style="gap: 0.75rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="streamOn" (change)="setStreamOn($any($event.target).checked)">
+                    <span>Continuous stream
+                        <small class="d-block text-muted">
+                            Premises arrive one at a time and <strong>do not come
+                            back</strong>. Every few of them a question arrives that
+                            follows from the last <em>n</em> &mdash; nothing before
+                            that is ever needed, so there is nothing to keep. Best
+                            with <strong>Carousel</strong> on a timed advance;
+                            stepping by hand lets you rehearse, which is the demand
+                            this removes.
+                        </small>
+                    </span>
+                </label>
+
+                <div class="d-grid" style="gap: 0.35rem;" [class.is-idle]="!streamOn">
+                    <label for="stream-type" class="text-muted small">Relations from</label>
+                    <select id="stream-type" class="form-select form-select-sm"
+                            [disabled]="!streamOn" [value]="streamType"
+                            (change)="setStreamType($any($event.target).value)">
+                        <option *ngFor="let t of streamTypes" [value]="t">{{ t }}</option>
+                    </select>
+
+                    <label for="stream-window" class="text-muted small mt-2">
+                        Relations kept live
+                    </label>
+                    <input id="stream-window" type="number" min="2" max="6"
+                           class="form-control form-control-sm" style="max-width: 6rem;"
+                           [disabled]="!streamOn" [value]="streamWindow"
+                           (change)="setStreamWindow($any($event.target).value)">
+                    <small class="text-muted">
+                        Raising this measures how much you can hold. The harder demand
+                        is letting go, and that comes from objects returning later
+                        carrying a different relation &mdash; not from a bigger window.
+                    </small>
+                </div>
+            </div>
+        </app-collapsible>
+
+        <!--
           A display setting, not a difficulty one: the same facts, said in fewer
           characters. It sits beside zen because it is the same impulse — less
           on the card — and it composes with it rather than being part of it.

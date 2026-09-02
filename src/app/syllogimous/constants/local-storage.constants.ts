@@ -141,3 +141,15 @@ export const LS_FEEDBACK_OFF = "SYL_FEEDBACK_OFF";
  * every card has always said.
  */
 export const LS_SYMBOL_RELATIONS = "SYL_SYMBOL_RELATIONS";
+
+/**
+ * Continuous stream: premises arrive one at a time and old ones expire.
+ *
+ * A way of *showing* an item rather than a kind of item, which is why it lives
+ * beside the game mode on Display & timer and not among the question types. The
+ * relations come from whichever mode `LS_STREAM_TYPE` names.
+ */
+export const LS_STREAM = "SYL_STREAM";
+export const LS_STREAM_TYPE = "SYL_STREAM_TYPE";
+/** How many relations stay live, in premises. */
+export const LS_STREAM_WINDOW = "SYL_STREAM_WINDOW";
