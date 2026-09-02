@@ -539,6 +539,86 @@ app-card-dropdown {
 .progress-bar { background: var(--th-accent); }
 .nav-link { color: var(--th-text-dim); }
 .nav-link.active { color: var(--th-accent) !important; background: rgba(var(--th-accent-rgb), .1) !important; border-radius: 999px; }
+
+/* ------------------------------------------------------------------ *
+ * Tabs and the panel under them                                       *
+ * ------------------------------------------------------------------ */
+
+/*
+ * Bootstrap's tab strip and tab body are light by default, and nothing had
+ * claimed them — so on Statistics the premise tabs sat on a white band with
+ * themed dark rows floating over it, in every theme at once. Everything below
+ * is the same three ideas the rest of this file uses: the surface is the panel,
+ * the rules are the accent at low alpha, the corners are `--th-radius`.
+ */
+.nav-tabs {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(var(--th-accent-rgb), .22) !important;
+    gap: .25rem;
+}
+
+.nav-tabs .nav-link {
+    background: transparent !important;
+    border-color: transparent !important;
+}
+
+.nav-tabs .nav-link.active {
+    border-color: transparent !important;
+}
+
+/*
+ * The body a tab reveals. `ngbNavOutlet` is given `border border-top-0` at the
+ * call site, so it takes Bootstrap's grey; it is themed here rather than at the
+ * call site because every tabbed screen wants the same thing.
+ */
+.tab-pane {
+    background: transparent !important;
+    color: var(--th-text);
+}
+
+/*
+ * Painted, not transparent. A transparent body shows whatever happens to be
+ * behind it, and on Statistics that turned out to be a pale surface — so the
+ * rows read as dark cards floating on white. Claiming the panel colour makes
+ * the result the same on every screen regardless of what it is sitting over,
+ * which is the point of a theme.
+ */
+.tab-content {
+    color: var(--th-text);
+    background: color-mix(in srgb, var(--th-panel) calc(var(--th-panel-alpha) * 100%), transparent) !important;
+    border-color: rgba(var(--th-accent-rgb), .22) !important;
+    border-bottom-left-radius: var(--th-radius);
+    border-bottom-right-radius: var(--th-radius);
+    padding: var(--th-gap);
+}
+
+/*
+ * A flush list is flush on purpose: it is already inside a bordered box, so
+ * giving each row its own panel, border, blur and shadow stacks a card inside a
+ * card — which is what made those rows look like they were floating on
+ * something. Rows are rules here, not cards.
+ */
+.list-group-flush > .list-group-item {
+    background: transparent !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(var(--th-accent-rgb), .14) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    margin-top: 0 !important;
+    padding-inline: 0;
+}
+
+.list-group-flush > .list-group-item:last-child { border-bottom: 0 !important; }
+
+/*
+ * `.list-group` sets `gap` and the rule above adds `margin-top` between items,
+ * which spaced every list twice and pushed the last row past the bottom of any
+ * box with `overflow: hidden` on it.
+ */
+.list-group { row-gap: var(--th-gap); }
+.list-group-item + .list-group-item { margin-top: 0; }
 .table { color: var(--th-text); --bs-table-color: var(--th-text); --bs-table-bg: transparent; }
 .modal-backdrop.show { opacity: .75; }
 
