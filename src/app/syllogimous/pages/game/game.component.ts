@@ -142,6 +142,17 @@ export class GameComponent {
             return;
         }
 
+        /*
+         * A mode the player has taken the clock off stays untimed here too.
+         *
+         * The ladder already knows -- `configFor` builds and scores that mode's
+         * items with no time component -- but the two paths below do not go
+         * through it: a custom or adaptive timer would put a countdown back on
+         * a mode that was explicitly asked to have none, and Free Play would do
+         * it even with progression off entirely.
+         */
+        if (this.game.settingsOverrideService.untimedFor(this.game.question.type)) return;
+
         switch(this.timerType) {
             case '1': {
                 console.log("Custom timer");

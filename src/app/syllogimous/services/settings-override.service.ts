@@ -43,6 +43,20 @@ export interface ModeOverride {
     /** Extra transformations, for the modes that have any. Premise-neutral. */
     transformDepth?: number;
     /**
+     * No clock on this mode, whatever the rest of the app would have armed.
+     *
+     * Undefined means "as the timer settings say". The ladder spends difficulty
+     * on time once a mode has run out of structure to add, so the modes you are
+     * strongest in are exactly the ones that end up timed -- and those can be
+     * the ones you want to sit and think in. A global switch cannot express
+     * that; this can.
+     *
+     * Read by `ProgressionService` as well as by the screen, because the clock
+     * is part of the configuration an item is *scored* at: an item that was
+     * never timed must not be built as though it had been.
+     */
+    untimed?: boolean;
+    /**
      * How often this mode comes up, relative to the others.
      *
      * One is normal and the default; a half means it appears about half as
@@ -238,6 +252,8 @@ export interface OverrideState {
         useText: boolean;
         useEmojis: boolean;
         meaningfulWords: boolean;
+        /** Nonsense letter triples as a kind of their own, mixable with the rest. */
+        randomLetters: boolean;
         visualNoise: boolean;
         junkEmojis: boolean;
         pharmaStimuli: boolean;
@@ -319,7 +335,7 @@ const DEFAULT_STATE: OverrideState = {
     curateSession: true,
     scrambleFactor: 100,
     modes: {},
-    flags: { meta: null, negation: null, useText: true, useEmojis: false, meaningfulWords: true, visualNoise: false, junkEmojis: false, pharmaStimuli: false, stimulusMix: {} },
+    flags: { meta: null, negation: null, useText: true, useEmojis: false, meaningfulWords: true, randomLetters: false, visualNoise: false, junkEmojis: false, pharmaStimuli: false, stimulusMix: {} },
     linear: { ...DEFAULT_LINEAR_FEATURES },
     space: { axes: {}, circularAxes: null, spread: null },
     rungs: {},
@@ -365,6 +381,7 @@ export class SettingsOverrideService {
             settings.setEnable("useText", f.useText);
             settings.setEnable("useEmojis", f.useEmojis);
             settings.setEnable("meaningfulWords", f.meaningfulWords);
+            settings.setEnable("randomLetters", !!f.randomLetters);
             settings.setEnable("visualNoise", f.visualNoise);
             settings.setEnable("junkEmojis", f.junkEmojis);
             settings.setEnable("pharmaStimuli", !!f.pharmaStimuli);
@@ -391,6 +408,7 @@ export class SettingsOverrideService {
          * changes nothing for anyone who has not touched them.
          */
         this.applyPresentation(settings);
+        this.applyModeSwitches(settings);
 
         if (!this.live) return settings;
 
@@ -398,16 +416,10 @@ export class SettingsOverrideService {
             for (const [type, ov] of Object.entries(this.state.modes)) {
                 const qs = settings.question[type as EnumQuestionType];
                 if (!qs || !ov) continue;
-                // Only what was actually chosen; silence means "as it would be".
-                if (ov.enabled !== undefined) qs.enabled = ov.enabled;
                 if (ov.numOfPremises !== undefined) {
                     qs.setNumOfPremises(qs.clampNumOfPremises(ov.numOfPremises));
                 }
             }
-
-            // At least one type must survive or generation has nothing to pick.
-            const anyEnabled = Object.values(settings.question).some(q => q.enabled);
-            if (!anyEnabled) settings.question[EnumQuestionType.Distinction].enabled = true;
 
             // Only when the player has an opinion; otherwise progression keeps
             // deciding, which is what an untouched profile should change least.
@@ -419,6 +431,47 @@ export class SettingsOverrideService {
         }
 
         return settings;
+    }
+
+    /**
+     * Which modes appear at all -- outside the master switch, like presentation.
+     *
+     * Switching a mode off is not a difficulty override. It says what you want
+     * to practise, and "use my settings instead of the tier" is about how hard
+     * an item is built; wiring the two together meant that turning one mode off
+     * during a fluid-progression session also took the premise count, the clock
+     * and the modifiers away from the ladder. Nobody asking for the first wants
+     * the second, so they were routinely turned back on together and the mode
+     * came back with them.
+     *
+     * Silence still means "as the tier and the ladder decide", so a profile
+     * nobody has touched behaves exactly as before -- only an explicit choice
+     * carries, which is the same property the stimulus settings have.
+     */
+    private applyModeSwitches(settings: Settings) {
+        try {
+            for (const [type, ov] of Object.entries(this.state.modes)) {
+                const qs = settings.question[type as EnumQuestionType];
+                if (!qs || !ov || ov.enabled === undefined) continue;
+                qs.enabled = ov.enabled;
+            }
+
+            // At least one type must survive or generation has nothing to pick.
+            const anyEnabled = Object.values(settings.question).some(q => q.enabled);
+            if (!anyEnabled) settings.question[EnumQuestionType.Distinction].enabled = true;
+        } catch { /* leave the incoming settings untouched */ }
+    }
+
+    /**
+     * Whether this mode is played without a clock.
+     *
+     * Outside the master switch for the same reason as the on/off box beside
+     * it: it says how you want to practise the mode, not how hard the item
+     * should be. Absent means no opinion, and the global timer preference
+     * decides as it always did.
+     */
+    untimedFor(type: EnumQuestionType): boolean {
+        return this.state.modes[type]?.untimed === true;
     }
 
     setActive(active: boolean) { this.state.active = active; this.save(); }

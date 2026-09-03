@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { EnumQuestionType } from "../constants/question.constants";
 import { LS_TIMER } from "../constants/local-storage.constants";
+import { SettingsOverrideService } from "./settings-override.service";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { Settings } from "../models/settings.models";
 import {
@@ -247,7 +248,24 @@ export class ProgressionService {
 
     private get live() { return this.config.enabled && !this.suppressed; }
 
-    constructor() { this.loadConfig(); this.loadResiduals(); }
+    /*
+     * The override layer is consulted for one thing only: whether a mode is
+     * played without a clock. It is read here rather than at the screen because
+     * the clock is part of the configuration an item is *scored* at -- `record`
+     * values an answer at the level of the config it was built from, so an item
+     * that was never timed must not be built as though it had been.
+     *
+     * Safe to inject: `SettingsOverrideService` takes no dependencies, so there
+     * is no cycle to make.
+     *
+     * Defaulted rather than required so the headless tests can keep saying
+     * `new ProgressionService()`. Angular always supplies the singleton, so the
+     * default only ever runs under `tests/`, where a fresh instance reads the
+     * same storage and behaves identically.
+     */
+    constructor(private overrides: SettingsOverrideService = new SettingsOverrideService()) {
+        this.loadConfig(); this.loadResiduals();
+    }
 
     /* ---------------- the trial log ---------------- */
 
@@ -652,8 +670,8 @@ export class ProgressionService {
      */
     private configCache: Partial<Record<EnumQuestionType, ConfigChoice>> = {};
 
-    /** The timer preference the cached choices were built under. */
-    private cachedUntimed?: boolean;
+    /** The timer preference each cached choice was built under, per mode. */
+    private cachedUntimed: Partial<Record<EnumQuestionType, boolean>> = {};
 
     /**
      * Whether the player has turned the clock off.
@@ -679,6 +697,21 @@ export class ProgressionService {
     }
 
     /**
+     * Whether this mode in particular is played without a clock.
+     *
+     * Per mode as well as globally, because the ladder only reaches for time
+     * once a mode has no structure left to add -- so the modes that end up
+     * timed are the ones you are strongest in, which are often exactly the ones
+     * worth sitting and thinking in. The global preference still wins when it
+     * is off; a per-mode switch can only take the clock away, never add one the
+     * player did not ask for.
+     */
+    untimedFor(type: EnumQuestionType): boolean {
+        if (this.untimed) return true;
+        try { return this.overrides.untimedFor(type); } catch { return false; }
+    }
+
+    /**
      * Whether the *next* item of this mode is a measurement rather than training.
      *
      * Counted per mode, from that mode's own posterior, so a mode played rarely
@@ -698,10 +731,11 @@ export class ProgressionService {
         // cached one. Nothing else observes that key, and the alternative —
         // having the settings screen call in — leaves the cache stale for
         // anyone who edits storage directly or lands mid-session.
-        const untimed = this.untimed;
-        if (untimed !== this.cachedUntimed) {
-            this.cachedUntimed = untimed;
-            this.configCache = {};
+        const untimed = this.untimedFor(type);
+        if (untimed !== this.cachedUntimed[type]) {
+            this.cachedUntimed[type] = untimed;
+            // Only this mode's choice depended on it, so only this one goes.
+            delete this.configCache[type];
         }
 
         // Only the training configuration is cached. A probe is computed on the

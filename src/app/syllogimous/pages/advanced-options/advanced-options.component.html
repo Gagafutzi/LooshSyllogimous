@@ -51,26 +51,31 @@
     <h3 class="adv__group">What you get<small>which modes appear, and what an item contains</small></h3>
 
 
-    <app-collapsible heading="Question types" [note]="enabledCount() + ' of ' + rows.length + ' on'" [class.is-idle]="!active">
+    <!--
+      Not greyed with the master switch: which modes appear, and whether each is
+      timed, are answers to "what do I want to practise" rather than difficulty
+      overrides, and they apply on their own. The premise column below still
+      belongs to the master switch, and is still greyed with it.
+    -->
+    <app-collapsible heading="Question types" [note]="enabledCount() + ' of ' + rows.length + ' on'">
         <!--
           Drilling one mode was thirty-five unticks and thirty-five more to undo,
           which is why nobody undid it. Both halves are one press now.
         -->
         <div class="d-flex gap-2 mb-2">
             <button type="button" class="btn btn-sm btn-outline-secondary"
-                    [disabled]="!active" (click)="allModes(true)">All on</button>
+                    (click)="allModes(true)">All on</button>
             <button type="button" class="btn btn-sm btn-outline-secondary"
-                    [disabled]="!active" (click)="allModes(false)">All off</button>
+                    (click)="allModes(false)">All off</button>
         </div>
         <div class="mode" *ngFor="let row of rows">
             <button type="button" class="btn btn-sm mode__solo"
                     [class.is-on]="isSolo(row)"
-                    [disabled]="!active" (click)="soloMode(row)"
+                    (click)="soloMode(row)"
                     title="Turn this one on and every other one off">Only</button>
             <label class="mode__name">
                 <input type="checkbox"
                        class="form-check-input"
-                       [disabled]="!active"
                        [checked]="shownEnabled(row)"
                        (change)="toggleMode(row, $any($event.target).checked)">
                 <span>
@@ -127,10 +132,22 @@
                     premises ({{ row.min }}–{{ row.max }})
                     <span *ngIf="enabledSet(row)">
                         · <button type="button" class="mode__auto"
-                                  [disabled]="!active"
                                   (click)="clearEnabled(row)"
                                   title="Let the tier decide whether this mode appears">unset on/off</button>
                     </span>
+                    <!--
+                      Per mode, because the ladder only reaches for the clock
+                      once a mode has run out of structure to add — so the timed
+                      modes are the ones you are strongest in, which are often
+                      the ones worth sitting and thinking in. It can only take a
+                      clock away, never add one.
+                    -->
+                    · <button type="button" class="mode__auto"
+                              [class.is-on]="untimed(row)"
+                              (click)="toggleUntimed(row, !untimed(row))"
+                              [title]="untimed(row)
+                                ? 'This mode is played with no countdown. Click to let the timer settings decide again.'
+                                : 'Play this mode with no countdown, whatever the timer settings say'">no clock</button>
                 </small>
 
                 <!--

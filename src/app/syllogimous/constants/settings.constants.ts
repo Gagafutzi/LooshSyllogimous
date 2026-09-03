@@ -408,6 +408,16 @@ export const DEFAULT_ENABLED_FLAGS = {
      */
     stimulusMix: {} as Record<string, number>,
     meaningfulWords: true,
+    /**
+     * Nonsense letter triples as a stimulus kind in their own right.
+     *
+     * They were already reachable, but only by turning `meaningfulWords` off --
+     * which is a switch on the *text* kind, so it replaced words rather than
+     * joining them. You could have words or letters and never a mix, and the
+     * control read as "make the words worse" rather than as a thing to choose.
+     * Off by default, so nothing changes for anyone who has not asked.
+     */
+    randomLetters: false,
     meta: true,
     negation: true,
     binary: {

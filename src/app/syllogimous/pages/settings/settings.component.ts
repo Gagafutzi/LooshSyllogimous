@@ -61,8 +61,8 @@ export class SettingsComponent {
     get stimulusFlags() { return this.overrides.state.flags; }
 
     setStimulus(
-        key: "useText" | "useEmojis" | "meaningfulWords" | "visualNoise" | "junkEmojis"
-            | "pharmaStimuli",
+        key: "useText" | "useEmojis" | "meaningfulWords" | "randomLetters"
+            | "visualNoise" | "junkEmojis" | "pharmaStimuli",
         value: boolean,
     ) {
         this.overrides.setFlag(key, value);

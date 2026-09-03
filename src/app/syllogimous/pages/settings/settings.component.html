@@ -235,6 +235,23 @@
                     </span>
                 </label>
 
+                <!--
+                  Letters as a kind of their own.
+
+                  They were reachable before only by turning "meaningful words"
+                  off, which is a switch on the text kind rather than a kind —
+                  so it replaced the words instead of joining them, "some words,
+                  some nonsense" could not be asked for at all, and the route to
+                  letters read as making the words worse.
+                -->
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="stimulusFlags.randomLetters" (change)="setStimulus('randomLetters', $any($event.target).checked)">
+                    <span>Random letters
+                        <small class="d-block text-muted">Nonsense letter triples, mixed in alongside whatever else is on — nothing to hang a meaning on</small>
+                    </span>
+                </label>
+
                 <label class="flag">
                     <input type="checkbox" class="form-check-input"
                            [checked]="stimulusFlags.useEmojis" (change)="setStimulus('useEmojis', $any($event.target).checked)">

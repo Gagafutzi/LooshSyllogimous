@@ -211,7 +211,7 @@ export class Settings {
         return this;
     }
 
-    setEnable(prop: "useEmojis" | "meaningfulWords" | "meta" | "negation" | "visualNoise" | "junkEmojis" | "pharmaStimuli" | "useText", value: boolean) {
+    setEnable(prop: "useEmojis" | "meaningfulWords" | "randomLetters" | "meta" | "negation" | "visualNoise" | "junkEmojis" | "pharmaStimuli" | "useText", value: boolean) {
         this.enabled[prop] = value;
         return this;
     }

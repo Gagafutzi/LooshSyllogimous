@@ -96,6 +96,15 @@ export function getSymbols(settings: Settings) {
         if (on && weight > 0) kinds.push({ pool: pool(), weight });
     };
 
+    /*
+     * Letter triples as a kind, not as words-with-the-meaning-removed.
+     *
+     * `meaningfulWords` off already produced these, but as a *replacement* for
+     * the text pool -- so "some words, some nonsense" could not be asked for at
+     * all, and the only route to letters was a switch that reads like a
+     * downgrade. As its own kind it takes a share of the mix like every other.
+     */
+    add(settings.enabled.randomLetters, "randomLetters", getStrings);
     add(settings.enabled.pharmaStimuli, "pharmaStimuli", getPharmaSymbols);
     add(settings.enabled.visualNoise, "visualNoise", getVisualNoiseSymbols);
     add(settings.enabled.junkEmojis, "junkEmojis", getJunkEmojiSymbols);

@@ -309,21 +309,44 @@ export class AdvancedOptionsComponent {
         const mine = this.active;
         const fluid = this.prog.enabled;
 
+        /*
+         * Which modes appear, and whether each is timed, no longer depend on
+         * this switch at all — so every branch says so, and the switch is
+         * described by what is actually left to it.
+         */
+        const modes = "Which modes appear and which run without a clock are"
+            + " always yours, switch or no switch.";
+
         if (mine && fluid) {
-            return "You pick which modes come up; fluid progression sets how hard"
-                + " they are. Premise counts, modifiers and the clock you set"
-                + " below are stored but not used until you switch it off.";
+            return `${modes} Fluid progression sets how hard they are, so the`
+                + " premise counts, modifiers and clock below are stored but not"
+                + " used until you switch it off.";
         }
         if (mine && !fluid) {
-            return "You pick everything. Difficulty stays where you put it, apart"
-                + " from training units nudging the premise count.";
+            return `${modes} You set the rest too — difficulty stays where you`
+                + " put it, apart from training units nudging the premise count.";
         }
         if (!mine && fluid) {
-            return "The app picks everything — your tier decides which modes come"
-                + " up, and fluid progression sets how hard they are.";
+            return `${modes} Fluid progression sets how hard they are; nothing`
+                + " else on this page is in force.";
         }
-        return "Your tier picks the modes, and the premise count steps up and"
-            + " down on streaks. Nothing on this page is in force.";
+        return `${modes} Your tier fills in the modes you have not decided about,`
+            + " and the premise count steps up and down on streaks.";
+    }
+
+    /** Whether this mode is set to run with no countdown. */
+    untimed(row: Row) { return this.overrides.untimedFor(row.type); }
+
+    /*
+     * Written straight through, with no master switch in the way.
+     *
+     * Same reasoning as the on/off box: this says how you want to practise the
+     * mode, not how hard the item should be built, and gating it behind "use my
+     * settings instead of the tier" would hand the premise count, the clock and
+     * the modifiers over to Customise as the price of taking one countdown off.
+     */
+    toggleUntimed(row: Row, untimed: boolean) {
+        this.overrides.setMode(row.type, { untimed: untimed || undefined });
     }
 
     toggleMode(row: Row, enabled: boolean) {
@@ -387,6 +410,7 @@ export class AdvancedOptionsComponent {
 
     mixRows = [
         { key: "useText", label: "Text" },
+        { key: "randomLetters", label: "Random letters" },
         { key: "useEmojis", label: "Emoji" },
         { key: "junkEmojis", label: "Junk shapes" },
         { key: "visualNoise", label: "Visual noise" },
