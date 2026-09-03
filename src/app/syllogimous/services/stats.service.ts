@@ -3,6 +3,7 @@ import { GameService } from "./game.service";
 import { jsonCopy } from "src/app/utils/json";
 import { TypeBasedStats } from "../models/stats.models";
 import { EnumQuestionType } from "../constants/question.constants";
+import { itemTally } from "../utils/answer.utils";
 
 @Injectable({
     providedIn: "root"
@@ -27,7 +28,20 @@ export class StatsService {
             
             tbs.type = type;
             tbs.completed = questionsByType.length;
-            tbs.accuracy = questionsByType.filter(q => q.userAnswer === q.isValid).length / (questionsByType.length || 1);
+            /*
+             * Accuracy is over conclusions, not items.
+             *
+             * `userAnswer === isValid` compared against the *last* conclusion
+             * of a multi-conclusion item, so two of three right scored the same
+             * as three of three, and one of three the same as none. The ability
+             * model has always taken each conclusion as its own evidence; this
+             * is the screen catching up with it.
+             */
+            const totals = questionsByType.reduce((acc, q) => {
+                const { asked, right, timedOut } = itemTally(q);
+                return timedOut ? acc : { asked: acc.asked + asked, right: acc.right + right };
+            }, { asked: 0, right: 0 });
+            tbs.accuracy = totals.right / (totals.asked || 1);
 
             for (const q of questionsByType) {
                 /*
@@ -50,12 +64,13 @@ export class StatsService {
                 tbs.stats[ps].sum += dt;
                 tbs.stats[ps].count++;
 
-                if (q.userAnswer == undefined) {
+                // Conclusions, for the same reason as the accuracy above.
+                const t = itemTally(q);
+                if (t.timedOut) {
                     tbs.stats[ps].timeout++;
-                } else if (q.userAnswer === q.isValid) {
-                    tbs.stats[ps].correct++;
                 } else {
-                    tbs.stats[ps].incorrect++;
+                    tbs.stats[ps].correct += t.right;
+                    tbs.stats[ps].incorrect += t.asked - t.right;
                 }
     
                 if (q.userAnswer !== undefined) {
@@ -72,12 +87,11 @@ export class StatsService {
                     tbs.stats[ps].last10Sum += dt;
                     tbs.stats[ps].last10Count++;
 
-                    if (q.userAnswer == undefined) {
+                    if (t.timedOut) {
                         tbs.stats[ps].last10Timeout++;
-                    } else if (q.userAnswer === q.isValid) {
-                        tbs.stats[ps].last10Correct++;
                     } else {
-                        tbs.stats[ps].last10Incorrect++;
+                        tbs.stats[ps].last10Correct += t.right;
+                        tbs.stats[ps].last10Incorrect += t.asked - t.right;
                     }
         
                     if (q.userAnswer !== undefined) {

@@ -19,6 +19,7 @@
  */
 
 import { DimensionRecord, dimensionBreakdown } from "./construct.utils";
+import { itemWasRight } from "./answer.utils";
 
 /** Just enough of a Question to summarise it; the history holds whole ones. */
 export interface AnsweredItem {
@@ -31,6 +32,9 @@ export interface AnsweredItem {
     answerMode?: string;
     construct?: any[];
     userConstruct?: any[];
+    /* An item that asked several conclusions, and how each of them went. */
+    series?: unknown[];
+    seriesAnswers?: (boolean | undefined)[];
 }
 
 export interface ModeTally {
@@ -109,7 +113,14 @@ export function dayStart(key: string): number {
  */
 const wasAnswered = (q: AnsweredItem) => q.answered !== false && !!q.answeredAt;
 
-const isCorrect = (q: AnsweredItem) => q.userAnswer === q.isValid;
+/*
+ * Every conclusion the item asked, answered right.
+ *
+ * `userAnswer === isValid` reported the *last* conclusion and called it the
+ * item, because `takeSeriesAnswer` moves `isValid` onto each claim as the card
+ * advances. See `itemTally`.
+ */
+const isCorrect = (q: AnsweredItem) => itemWasRight(q);
 const isTimeout = (q: AnsweredItem) => q.userAnswer === undefined;
 
 /** Answered items that fall on the same day as `at`. */

@@ -952,8 +952,29 @@ export class GameService implements GeneratorContext {
             this.dailyGoalReached();
         }
 
+        /*
+         * The word is about the conclusion just answered, not about the item.
+         *
+         * Reported from play: a conclusion answered correctly was shown as
+         * incorrect because an earlier one had been missed. Every conclusion
+         * but the last gets its own flash from `flashClaim`; the last got this
+         * instead, and this said `judgeItem` -- every conclusion or nothing. So
+         * the final conclusion was the one place the card stopped reporting the
+         * answer that had just been given, and it reported it as wrong at
+         * exactly the moment the player had got it right.
+         *
+         * `isQuestionValid` is still what the tier score and the training unit
+         * are told, because clearing an item whole is what those are about. It
+         * is the *word on the screen* that has to mean the same thing after the
+         * last conclusion as it did after every one before it; the tally in the
+         * note is what says how the item went.
+         */
+        const lastRight = this.question.series.length
+            ? this.question.seriesAnswers[this.question.seriesAt] === true
+            : isQuestionValid;
+
         this.showVerdict(
-            value == null ? "timeout" : isQuestionValid ? "correct" : "wrong"
+            value == null ? "timeout" : lastRight ? "correct" : "wrong"
         );
     }
 
@@ -1222,11 +1243,13 @@ export class GameService implements GeneratorContext {
 
         this.verdict = kind;
         /*
-         * An item judged on several conclusions says how each went.
+         * The word is about the conclusion just answered; the note is about the
+         * item.
          *
-         * The word is about the set — two of three is not the item — and on its
-         * own it reads as a verdict on the conclusion still on screen, which is
-         * the one the player just answered and may well have got right.
+         * Both are needed and neither will do on its own. "Correct" alone,
+         * after the third of three, says nothing about the first two — and the
+         * item's own verdict alone was the reported fault: it called a
+         * conclusion wrong that had just been answered right.
          */
         const marks = this.question.series;
         /*

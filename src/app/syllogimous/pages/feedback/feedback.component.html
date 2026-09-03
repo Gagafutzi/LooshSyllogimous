@@ -8,7 +8,7 @@
         <div
             *ngIf="{
                 timeout: game.question.userAnswer === undefined,
-                validity: game.question.userAnswer === game.question.isValid
+                validity: itemWasRight(game.question)
             } as d"
             class="feedback-wrap"
             [class.feedback-timeout]="d.timeout"
@@ -17,6 +17,10 @@
         >
             <div class="fs-1 fw-bold text-uppercase">
                 {{ d.timeout ? "Timeout" : d.validity ? "Correct": "Incorrect" }}
+            </div>
+            <!-- Which of them, for an item that asked more than one. -->
+            <div class="fs-6" *ngIf="tally(game.question).asked > 1">
+                {{ tally(game.question).right }} of {{ tally(game.question).asked }} conclusions right
             </div>
         </div>
     </div>

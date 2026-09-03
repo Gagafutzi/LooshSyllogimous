@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { GameService } from '../../services/game.service';
 import { Question } from '../../models/question.models';
 import { compareConstruction } from '../../utils/construct.utils';
+import { ItemTally, itemTally } from '../../utils/answer.utils';
 import { Router } from '@angular/router';
 import { EnumScreens } from '../../constants/game.constants';
 import { ToastService } from 'src/app/services/toast.service';
@@ -28,6 +29,16 @@ export class HistoryComponent {
         if (q.answerMode !== "construct" || !q.construct.length) return null;
         return compareConstruction(q.construct, q.userConstruct);
     }
+
+    /*
+     * How many of the item's conclusions were right.
+     *
+     * The card used to be coloured by `userAnswer === isValid`, which on a
+     * multi-conclusion item is the *last* conclusion -- so a slip on the first
+     * of three drew the whole card green when the third went well. Three
+     * states now, because two of three is neither of the other two.
+     */
+    tally(q: Question): ItemTally { return itemTally(q); }
 
     allQuestions: Question[] = [];
     questions: Question[] = [];

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Question } from 'src/app/syllogimous/models/question.models';
 import { GameService } from 'src/app/syllogimous/services/game.service';
+import { itemTally } from 'src/app/syllogimous/utils/answer.utils';
 
 @Component({
     selector: 'app-error-analysis',
@@ -19,12 +20,22 @@ export class ErrorAnalysisComponent {
     ngOnInit() {
         this.questions = this.game.questions;
 
+        /*
+         * Mistakes are counted per conclusion missed, not per item.
+         *
+         * `isValid !== userAnswer` compared against the *last* conclusion of a
+         * multi-conclusion item, so a mode whose items ask three questions had
+         * two thirds of its errors invisible here -- and an item missed on all
+         * three counted the same as one missed on one.
+         */
         const typeMistakesCount: Record<string, number> = {};
         this.questions
-            .filter(q => q.isValid !== q.userAnswer)
             .forEach(q => {
-                typeMistakesCount[q.type] = typeMistakesCount[q.type] || 0;
-                typeMistakesCount[q.type]++;
+                const { asked, right, timedOut } = itemTally(q);
+                if (timedOut) return;          // not a mistake; nothing was said
+                const missed = asked - right;
+                if (!missed) return;
+                typeMistakesCount[q.type] = (typeMistakesCount[q.type] || 0) + missed;
             });
         const sorted = Object.entries(typeMistakesCount).sort((a, b) => a[1] - b[1]);
         if (sorted.length) {

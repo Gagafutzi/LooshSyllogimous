@@ -12,8 +12,9 @@
                 class="card mx-md-3"
                 *ngFor="let q of questions"
                 [class.timeout]="q.userAnswer === undefined"
-                [class.correct]="q.userAnswer !== undefined && q.userAnswer === q.isValid"
-                [class.incorrect]="q.userAnswer !== undefined && q.userAnswer !== q.isValid"
+                [class.correct]="tally(q).right === tally(q).asked && !tally(q).timedOut"
+                [class.partial]="tally(q).right > 0 && tally(q).right < tally(q).asked"
+                [class.incorrect]="tally(q).right === 0 && !tally(q).timedOut"
             >
                 <div class="mode-title">{{q.playgroundMode ? "Practice" : "Scored"}}</div>
 

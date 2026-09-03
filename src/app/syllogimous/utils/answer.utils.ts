@@ -99,3 +99,95 @@ export function judgeItem(q: Question, value?: boolean): boolean {
     }
     return value != null && value === q.isValid;
 }
+
+/**
+ * How each conclusion of an item went.
+ *
+ * Reported from play: *"even a correct conclusion was shown as incorrect after
+ * a previous incorrect answer"*. Every conclusion is counted on its own -- the
+ * ability model takes each as its own piece of evidence, which is what
+ * `perClaimCredit` means -- and the screens were the only part that still
+ * collapsed an item to one true-or-false.
+ *
+ * Two different collapses, both wrong:
+ *
+ *   `judgeItem`             every conclusion or nothing. Right for the tier
+ *                           score, which is about clearing the item; wrong as
+ *                           the word shown after the last conclusion, where it
+ *                           reads as a verdict on the one just answered.
+ *   `userAnswer === isValid` the *last* conclusion, because `takeSeriesAnswer`
+ *                           moves `isValid` onto each claim as the card
+ *                           advances. Seven display sites used this, so a slip
+ *                           on the first of three drew the whole card green if
+ *                           the third went well and red if it did not -- in
+ *                           both cases reporting one conclusion as the item.
+ *
+ * A tally is what both were approximating. Anything displaying an answered item
+ * counts conclusions from here rather than deriving its own.
+ *
+ * Reads stored history as well as live questions, where the values are plain
+ * JSON and the arrays may predate the fields -- hence the guards.
+ */
+export interface ItemTally {
+    /** Conclusions the item asked. One, for the modes that ask one. */
+    asked: number;
+    /** How many were answered the way the item asks. */
+    right: number;
+    /**
+     * The clock ran out before the item was finished.
+     *
+     * Kept apart from the tally rather than zeroing it: conclusions answered
+     * before the clock stopped were answered, and were counted.
+     */
+    timedOut: boolean;
+}
+
+/**
+ * Just enough of an answered item to count its conclusions.
+ *
+ * Structural rather than `Question`, so the session summary -- which keeps a
+ * lighter record -- counts with the same function instead of a ninth copy of
+ * the rule.
+ */
+export interface AnsweredView {
+    userAnswer?: boolean;
+    isValid?: boolean;
+    series?: unknown[];
+    seriesAnswers?: (boolean | undefined)[];
+}
+
+export function itemTally(q: AnsweredView): ItemTally {
+    const timedOut = q.userAnswer === undefined;
+    const series = q.series ?? [];
+    if (series.length) {
+        const answers = q.seriesAnswers ?? [];
+        return {
+            asked: series.length,
+            right: series.reduce<number>((n, _, i) => n + (answers[i] === true ? 1 : 0), 0),
+            timedOut,
+        };
+    }
+    return {
+        asked: 1,
+        right: !timedOut && q.userAnswer === q.isValid ? 1 : 0,
+        timedOut,
+    };
+}
+
+/** Every conclusion the item asked, answered right. */
+export function itemWasRight(q: AnsweredView): boolean {
+    const { asked, right, timedOut } = itemTally(q);
+    return !timedOut && right === asked;
+}
+
+/**
+ * The share of an item's conclusions that were right.
+ *
+ * What an accuracy figure should average, now that a three-conclusion item is
+ * three answers. Averaging `itemWasRight` instead would score two-of-three the
+ * same as none-of-three.
+ */
+export function itemCredit(q: AnsweredView): number {
+    const { asked, right } = itemTally(q);
+    return asked ? right / asked : 0;
+}

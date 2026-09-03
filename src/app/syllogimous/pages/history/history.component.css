@@ -39,6 +39,22 @@
     border-color: color-mix(in srgb, var(--th-bad, #fb7185) 45%, transparent) !important;
 }
 
+/*
+ * Some conclusions right and some wrong.
+ *
+ * An item asking three questions can come back two-thirds right, and colouring
+ * that either green or red states something that did not happen -- which is
+ * what the card did while it took its colour from the last conclusion alone.
+ * Half of each state's own colour rather than a fixed amber: no theme defines a
+ * warning token, and blending the two the card already uses keeps it inside
+ * whatever palette is loaded while saying exactly what it means.
+ */
+.partial {
+    --th-part: color-mix(in srgb, var(--th-ok, #4ade80) 50%, var(--th-bad, #fb7185));
+    background: color-mix(in srgb, var(--th-part) 13%, transparent) !important;
+    border-color: color-mix(in srgb, var(--th-part) 45%, transparent) !important;
+}
+
 .timeout {
     background: color-mix(in srgb, var(--th-text-dim, #7d8ca6) 12%, transparent) !important;
     border-color: color-mix(in srgb, var(--th-text-dim, #7d8ca6) 40%, transparent) !important;

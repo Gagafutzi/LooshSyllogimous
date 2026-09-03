@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { GameService } from './game.service';
+import { itemTally } from '../utils/answer.utils';
 
 @Injectable({
     providedIn: 'root'
@@ -8,6 +9,21 @@ export class StatsExportService {
     constructor(
         private game: GameService
     ) {}
+
+    /*
+     * What the item came to, in one cell.
+     *
+     * An item asking three conclusions has three answers, and "Incorrect" for
+     * two of them right is the same collapse the screens were making: the
+     * column used to compare `userAnswer` against `isValid`, which after the
+     * card has advanced is the *last* conclusion rather than the item.
+     */
+    private outcomeOf(q: { userAnswer?: boolean; isValid: boolean; series?: unknown[]; seriesAnswers?: (boolean | undefined)[] }): string {
+        const { asked, right, timedOut } = itemTally(q);
+        if (timedOut) return 'Timeout';
+        if (asked <= 1) return right ? 'Correct' : 'Incorrect';
+        return right === asked ? 'Correct' : `${right} of ${asked}`;
+    }
 
     private formatDateTime(timestamp: number): string {
         return new Date(timestamp).toLocaleDateString("sv") + " " + new Date(timestamp).toLocaleTimeString("sv");
@@ -62,7 +78,7 @@ export class StatsExportService {
                 timeTaken.toFixed(1),
                 q.isValid,
                 q.userAnswer === undefined ? '- - -' : q.userAnswer,
-                q.userAnswer === undefined ? 'Timeout' : (q.userAnswer === q.isValid ? 'Correct' : 'Incorrect'),
+                this.outcomeOf(q),
                 this.getTimerSetting(q.timerTypeOnAnswer),
                 q.playgroundMode ? lastArcadeScore : q.userScore,
                 q.negations > 0 ? 'Yes' : 'No',
