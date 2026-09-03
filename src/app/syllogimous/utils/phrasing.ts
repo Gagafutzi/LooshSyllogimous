@@ -143,6 +143,17 @@ const RELATION_SYMBOLS: Record<string, string> = {
      */
     "feeds": "⊳", "reaches": "⇒", "comes from": "↤",
     "goes to": "↦", "is connected to": "⇿",
+
+    /*
+     * The analogy pairing, in the notation analogies have always used.
+     *
+     * "A is to B as C is to D" becomes "A : B as C : D" — which is not a
+     * translation into marks so much as the form the relation was borrowed
+     * from. `as` is left as a word on purpose: it is a common enough English
+     * connective that a two-letter key would be reaching into sentences it has
+     * no business in.
+     */
+    "is to": ":",
 };
 
 /**

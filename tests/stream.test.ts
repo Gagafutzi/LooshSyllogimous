@@ -163,3 +163,77 @@ test("a long run brings objects back", () => {
             "a 120-question run used a distinct object every time, which no pool holds");
     });
 });
+
+/* ------------------------------------------------------------------ *
+ * Analogy questions                                                   *
+ * ------------------------------------------------------------------ */
+
+const NUMBERS = /(\d+) /g;
+
+/**
+ * A true analogy has to be *made*: two random displacements match about never,
+ * so the newest link is solved backwards from the answer. That construction
+ * compounds if it is left alone — at a window of three the solved link is the
+ * whole second pair, so each checkpoint's target is the previous solution plus
+ * one, and a hundred questions in the card was printing 5 × 10^20.
+ */
+test("an analogy run never prints a number nobody could hold", () => {
+    seeded(1234, () => {
+        for (const w of [2, 3, 4, 5, 6]) {
+            for (const type of STREAM_TYPES) {
+                const q = createStream(context(), type, w, 60, true);
+                for (const claim of q.series) {
+                    for (const premise of claim.premises || []) {
+                        for (const [, n] of strip(premise).matchAll(NUMBERS)) {
+                            assert(Number(n) <= 6,
+                                `${type} at window ${w} printed ${n} — the construction`
+                                + " is compounding");
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+/**
+ * And the answers have to be balanced, which is not free.
+ *
+ * A true analogy is only constructible when the required step is small, which
+ * is not always — so flipping a coin whenever it *was* possible and asking a
+ * false one whenever it was not produced 33% true. At that rate answering
+ * "false" to everything scores 67% and the mode is a coin the player has seen
+ * both sides of.
+ */
+test("neither answer wins an analogy run by itself", () => {
+    seeded(86, () => {
+        for (const w of [2, 3, 4, 5, 6]) {
+            for (const type of STREAM_TYPES) {
+                const q = createStream(context(), type, w, 120, true);
+                const yes = q.series.filter(c => c.isValid).length;
+                const share = yes / q.series.length;
+                assert(share >= 0.35 && share <= 0.65,
+                    `${type} at window ${w} came out ${Math.round(100 * share)}% true,`
+                    + " so one answer beats reading the card");
+            }
+        }
+    });
+});
+
+/** Both halves are built from the live window, not read off one premise. */
+test("an analogy names three objects spanning the window", () => {
+    seeded(31, () => {
+        const q = createStream(context(), EnumQuestionType.Space3D, 4, 20, true);
+        for (const claim of q.series) {
+            const named = [...strip(claim.text).matchAll(/is to (\S+)/g)].length;
+            equal(named, 2, `an analogy did not state two pairs: ${strip(claim.text)}`);
+            for (const premise of claim.premises || []) {
+                const pair = namesIn(premise);
+                const ends = namesIn(claim.text);
+                assert(!(pair.every(x => ends.indexOf(x) >= 0) && pair.length === 2
+                         && ends.length >= 2 && new Set(ends).size === 2),
+                    "an analogy restates a visible premise");
+            }
+        }
+    });
+});

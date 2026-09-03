@@ -105,6 +105,10 @@ export class SettingsComponent {
 
     setStreamType(value: string) { this.game.setStreamType(value as EnumQuestionType); }
 
+    get streamAnalogy() { return this.game.streamAnalogy; }
+
+    setStreamAnalogy(value: boolean) { this.game.setStreamAnalogy(value); }
+
     get streamLength() { return this.game.streamLength; }
 
     setStreamLength(value: string) { this.game.setStreamLength(Number(value)); }

@@ -96,6 +96,16 @@ export function createStream(
      * hundred.
      */
     checkpoints = DEFAULT_CHECKPOINTS,
+    /**
+     * Ask analogies instead of positions, at the same frequency.
+     *
+     * "A is to B as C is to D" over the live window: both halves are
+     * displacements that have to be composed out of the relations still in
+     * mind, and the question is whether they are the same move. It asks more of
+     * the same window rather than a bigger one — you cannot answer it by
+     * recalling a relation, only by comparing two you built.
+     */
+    analogy = false,
 ): Question {
     const axes = (STREAM_SCALES[type] ?? STREAM_SCALES[EnumQuestionType.ComparisonNumerical])!();
     const n = Math.max(2, Math.min(6, window));
@@ -127,14 +137,43 @@ export function createStream(
         names.push(pick(free.length ? free : pool));
     }
 
-    /* The chain, as coordinates: every object's position on every axis. */
+    /*
+     * The chain, as coordinates: every object's position on every axis.
+     *
+     * Built checkpoint by checkpoint rather than all at once, because an
+     * analogy question has to be *made* true rather than found true. Two random
+     * displacements are equal about never, so when a checkpoint wants a true
+     * analogy the newest relations are solved for instead of drawn — and they
+     * can only be solved for if they have not been shown yet, which is why this
+     * walks forward with the run instead of laying the whole chain down first.
+     */
     const at: number[][] = [axes.map(() => 0)];
     const deltas: number[][] = [];
-    for (let i = 0; i < links; i++) {
-        const d = axes.map(() => pick([-3, -2, -1, 1, 2, 3]));
-        deltas.push(d);
-        at.push(at[i].map((v, k) => v + d[k]));
-    }
+    /*
+     * Single steps under an analogy, wider otherwise.
+     *
+     * A true analogy needs the newest link to come out equal to a displacement
+     * built from several earlier ones, and that is only possible when the sum
+     * is small. Drawn from ±3 across four axes it rarely was — the run came out
+     * true 35% of the time at the wide end, which is a mode that rewards
+     * answering "false" and reading nothing. Single steps keep the sums inside
+     * reach, so the balance holds at every width.
+     */
+    const draw = () => axes.map(() => pick(analogy ? [-1, 1] : [-3, -2, -1, 1, 2, 3]));
+
+    const extend = (count: number) => {
+        for (let i = 0; i < count; i++) {
+            deltas.push(draw());
+            at.push(at[at.length - 1].map((v, k) => v + deltas[deltas.length - 1][k]));
+        }
+    };
+
+    /** Re-walk the positions from `from`, after a delta there was rewritten. */
+    const rewalk = (from: number) => {
+        for (let i = from; i < deltas.length; i++) {
+            at[i + 1] = at[i].map((v, k) => v + deltas[i][k]);
+        }
+    };
 
     const question = new Question(type);
     question.bucket = names;
@@ -142,17 +181,21 @@ export function createStream(
         `Premises arrive one at a time and <b>do not come back</b>.`,
         `Every question follows from the <b>last ${n}</b> of them — nothing`
         + ` before that is ever needed, so there is nothing to keep.`,
+        ...(analogy
+            ? [`Each question asks whether one move is <b>the same move</b> as`
+               + ` another, both of them built from the relations still live.`]
+            : []),
     ];
 
     /*
      * A conclusion across the whole live window.
      *
      * From the object the window opens on to the one it ends on, so every live
-     * relation is composed to answer. Half of them are made false by moving one
-     * axis, which is the same near-miss rule the composed spaces use — a wrong
-     * answer that differs everywhere is dismissed without reading.
+     * relation is composed to answer. Half are made false by moving one axis,
+     * which is the same near-miss rule the composed spaces use — a wrong answer
+     * that differs everywhere is dismissed without reading.
      */
-    const claimAt = (endLink: number) => {
+    const positionClaim = (endLink: number) => {
         const from = endLink - n;
         const truth = at[endLink].map((v, k) => v - at[from][k]);
         const wantValid = Math.random() < 0.5;
@@ -162,38 +205,126 @@ export function createStream(
             const axis = Math.floor(Math.random() * axes.length);
             shown[axis] = -shown[axis] || 1;
         }
+        return { text: line(names[from], names[endLink], shown, axes), isValid: wantValid };
+    };
+
+    /*
+     * "A is to B as C is to D", over the same window.
+     *
+     * The split is `n - step` links in, which puts the second pair entirely
+     * inside the relations that have just arrived — and those are the only ones
+     * still free to be rewritten. A true analogy is made, not found: two random
+     * displacements match about never, so the newest deltas are solved backwards
+     * from the answer, and everything after them is re-walked.
+     *
+     * A false one is the same construction moved on one axis, so it cannot be
+     * dismissed on shape. It has to be built and compared like the true one.
+     */
+    /*
+     * The largest step an analogy is allowed to require.
+     *
+     * Without it the construction compounds: at a window of three the solved
+     * link *is* the whole second pair, so each checkpoint's target is the
+     * previous solved link plus one — a doubling, which reached 5 × 10^20 by
+     * the hundredth question. Numbers that size are not a hard item, they are a
+     * broken one.
+     */
+    const STEP_LIMIT = 4;
+
+    /*
+     * How many of the run's analogies have come out true so far.
+     *
+     * The first version flipped a coin whenever a true claim was *possible* and
+     * asked a false one whenever it was not — which sounds fair and is not: a
+     * true analogy has to be constructible, that only holds about two thirds of
+     * the time, so a third of the run went false for free and the answer came
+     * out true 33% of the time. At that rate answering "false" to everything
+     * scores 67%, and the mode is a coin the player has seen both sides of.
+     *
+     * Balanced instead: whenever true is possible and true is behind, take it.
+     * The rate converges on half without ever forcing a claim the chain cannot
+     * actually support.
+     */
+    let madeTrue = 0;
+    let madeFalse = 0;
+
+    const analogyClaim = (endLink: number) => {
+        const from = endLink - n;
+        const split = from + Math.max(1, n - step);
+        const target = at[split].map((v, k) => v - at[from][k]);
+        const before = at[endLink - 1].map((v, k) => v - at[split][k]);
+        const needed = target.map((v, k) => v - before[k]);
+
+        /*
+         * True is *made*, false is drawn — and the asymmetry is what bounds it.
+         *
+         * Two random displacements match about never, so a true analogy has to
+         * be solved for on the newest link. When that solution would be larger
+         * than a reader can hold, the checkpoint simply asks a false one
+         * instead, which needs no construction at all. Half the run stays true
+         * on average and nothing compounds, because a solved link is only ever
+         * accepted while it is small.
+         */
+        const canBeTrue = needed.every(v => Math.abs(v) <= STEP_LIMIT)
+            && needed.some(v => v !== 0);
+
+        if (canBeTrue && (madeTrue <= madeFalse || Math.random() < 0.5)) {
+            deltas[endLink - 1] = needed;
+        } else {
+            // Redrawn until the two halves genuinely differ, rather than assumed
+            // to: on a one-axis scale a random draw lands on the target often
+            // enough to matter.
+            for (let attempt = 0; attempt < 24; attempt++) {
+                deltas[endLink - 1] = draw();
+                rewalk(endLink - 1);
+                const second = at[endLink].map((v, k) => v - at[split][k]);
+                if (!second.every((v, k) => v === target[k])) break;
+            }
+        }
+        rewalk(endLink - 1);
+
+        // Read off the finished chain rather than from the intent, so the label
+        // cannot disagree with the card.
+        const second = at[endLink].map((v, k) => v - at[split][k]);
+        const isValid = second.every((v, k) => v === target[k]);
+        if (isValid) madeTrue++; else madeFalse++;
+
         return {
-            text: line(names[from], names[endLink], shown, axes),
-            isValid: wantValid,
+            text: `${subj(names[from])} ${rel("is to")} ${subj(names[split])}`
+                + ` ${hi("as")} ${subj(names[split])} ${rel("is to")} ${subj(names[endLink])}`,
+            isValid,
         };
     };
 
-    const first = claimAt(n);
-    question.premises = deltas.slice(0, n)
-        .map((d, i) => line(names[i], names[i + 1], d, axes));
-    question.conclusion = first.text;
-    question.isValid = first.isValid;
+    const claimAt = analogy ? analogyClaim : positionClaim;
 
     /*
-     * Each later checkpoint shows only what has arrived since the last one. The
-     * rest of the window is not on the card, which is the whole mode.
+     * Each checkpoint extends the chain, then asks. Later ones show only what
+     * has arrived since the last — the rest of the window is not on the card,
+     * which is the whole mode.
      */
-    const rest = [];
-    for (let c = 1; c < Math.max(1, checkpoints); c++) {
-        const endLink = n + step * c;
+    const runs: Array<{ text: string; isValid: boolean; premises: string[] }> = [];
+    for (let c = 0; c < Math.max(1, checkpoints); c++) {
+        const fresh = c === 0 ? n : step;
+        const shownFrom = deltas.length;
+        extend(fresh);
+        const endLink = deltas.length;
+
         const claim = claimAt(endLink);
-        rest.push({
+        runs.push({
             text: claim.text,
             isValid: claim.isValid,
-            premises: deltas.slice(endLink - step, endLink)
-                .map((d, i) => line(names[endLink - step + i], names[endLink - step + i + 1], d, axes)),
+            premises: deltas.slice(shownFrom, endLink)
+                .map((d, i) => line(names[shownFrom + i], names[shownFrom + i + 1], d, axes)),
         });
     }
 
-    question.series = [
-        { text: first.text, isValid: first.isValid, premises: [...question.premises] },
-        ...rest,
-    ];
+    question.premises = [...runs[0].premises];
+    question.conclusion = runs[0].text;
+    question.isValid = runs[0].isValid;
+    question.series = runs.map(r => ({
+        text: r.text, isValid: r.isValid, premises: [...r.premises],
+    }));
     question.seriesAnswers = [];
     question.seriesAt = 0;
 

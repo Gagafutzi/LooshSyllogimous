@@ -25,7 +25,7 @@ import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils"
 import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
-import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
+import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_ANALOGY, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 // Aliased: the service exposes members of the same names, and a call that
 // could be read as either is worth one line of renaming to avoid.
@@ -488,7 +488,8 @@ export class GameService implements GeneratorContext {
          */
         if (this.streamOn) {
             return this.asMinimal(
-                createStream(this, this.streamType, this.streamWindow, this.streamLength));
+                createStream(this, this.streamType, this.streamWindow, this.streamLength,
+                    this.streamAnalogy));
         }
 
         const settings = this.settings;
@@ -1150,6 +1151,18 @@ export class GameService implements GeneratorContext {
             localStorage.setItem(LS_STREAM_LENGTH,
                 String(Math.max(1, Math.floor(Number(n) || DEFAULT_CHECKPOINTS))));
         } catch { /* private mode */ }
+    }
+
+    /** Whether the run's questions are analogies rather than positions. */
+    get streamAnalogy(): boolean {
+        try { return localStorage.getItem(LS_STREAM_ANALOGY) === "1"; } catch { return false; }
+    }
+
+    setStreamAnalogy(on: boolean) {
+        try {
+            if (on) localStorage.setItem(LS_STREAM_ANALOGY, "1");
+            else localStorage.removeItem(LS_STREAM_ANALOGY);
+        } catch { /* private mode; the default stands */ }
     }
 
     get feedbackShown(): boolean { return feedbackIsOn(); }

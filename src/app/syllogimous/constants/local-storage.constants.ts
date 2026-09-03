@@ -155,3 +155,5 @@ export const LS_STREAM_TYPE = "SYL_STREAM_TYPE";
 export const LS_STREAM_WINDOW = "SYL_STREAM_WINDOW";
 /** How many questions a run asks before it ends. No small ceiling. */
 export const LS_STREAM_LENGTH = "SYL_STREAM_LENGTH";
+/** Ask analogies rather than positions, at the same frequency. */
+export const LS_STREAM_ANALOGY = "SYL_STREAM_ANALOGY";

@@ -89,6 +89,21 @@
                         produces on its own, once it outgrows the pool of names.
                     </small>
 
+                    <label class="flag mt-2">
+                        <input type="checkbox" class="form-check-input"
+                               [disabled]="!streamOn" [checked]="streamAnalogy"
+                               (change)="setStreamAnalogy($any($event.target).checked)">
+                        <span>Analogy questions
+                            <small class="d-block text-muted">
+                                Instead of &ldquo;where is X from Y&rdquo;, each question
+                                asks whether one move is <strong>the same move</strong> as
+                                another &mdash; both built out of the relations still live.
+                                Same window, same frequency; it asks more of what you are
+                                already holding rather than asking you to hold more.
+                            </small>
+                        </span>
+                    </label>
+
                     <label for="stream-length" class="text-muted small mt-2">
                         Questions per run
                     </label>
