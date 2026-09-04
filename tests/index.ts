@@ -39,6 +39,7 @@ import "./coldstart.test";
 import "./indeterminacy.test";
 import "./transform-match.test";
 import "./rungfit.test";
+import "./screen-frame.test";
 import "./facing.test";
 import "./knaves.test";
 import "./nested.test";

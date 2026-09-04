@@ -251,6 +251,11 @@ export class ModeModifiersComponent {
             hint: "How far as well as which way",
         },
         {
+            key: "screenFrame",
+            label: "Screen frame instead of compass",
+            hint: "up / down / left / right rather than north / south / east / west",
+        },
+        {
             key: "facing",
             label: "Left and right",
             hint: "Someone in the layout faces something else, and the claim is judged from there. Composed spaces only",

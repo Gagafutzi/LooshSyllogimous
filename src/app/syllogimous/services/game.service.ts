@@ -39,6 +39,7 @@ import { hasNextClaim, isHoldClaim, judgeItem, takeSeriesAnswer } from "../utils
 // Aliased for the reason the feedback imports are: the service exposes a
 // member of the same name, and a call that could be read as either is worth
 // one line of renaming to avoid.
+import { toScreenFrame } from "../utils/screen-frame";
 import { randomRelationLabels, setSymbolRelations as pushSymbolRelations, symboliseStatement } from "../utils/phrasing";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
@@ -1313,6 +1314,43 @@ export class GameService implements GeneratorContext {
      * words — it becomes the decoder for the card above it, which is worth
      * having rather than a consistency to enforce.
      */
+    /**
+     * The compass as the screen, where the player has asked for that.
+     *
+     * Applied to the finished item and only to the modes whose axes are
+     * cardinal — a Comparison item has no north in it to rewrite, and running
+     * the pass over everything would eventually hit a mode that means something
+     * else by "east".
+     */
+    private applyFrame(question: Question): Question {
+        const CARDINAL = new Set<EnumQuestionType>([
+            EnumQuestionType.Direction,
+            EnumQuestionType.Direction3DSpatial,
+            EnumQuestionType.Direction3DTemporal,
+        ]);
+        if (!CARDINAL.has(question.type)) return question;
+        if (this.settingsOverrideService.linearOverride("screenFrame") !== true) return question;
+
+        const one = (t: string) => toScreenFrame(t);
+        question.premises = question.premises.map(one);
+        question.conclusion = Array.isArray(question.conclusion)
+            ? question.conclusion.map(one)
+            : one(question.conclusion ?? "");
+        question.choices = question.choices.map(one);
+        question.choicePrompt = one(question.choicePrompt ?? "");
+        question.explanation = question.explanation.map(one);
+        question.instructions = question.instructions?.map(one) ?? question.instructions;
+        question.notes = question.notes?.map(one) ?? question.notes;
+        for (const claim of question.series) {
+            claim.text = one(claim.text);
+            if (claim.premises) claim.premises = claim.premises.map(one);
+            if (claim.choices) claim.choices = claim.choices.map(one);
+            if (claim.prompt) claim.prompt = one(claim.prompt);
+            if (claim.explanation) claim.explanation = claim.explanation.map(one);
+        }
+        return question;
+    }
+
     private asMinimal(question: Question): Question {
         /*
          * Two switches, one pass. Fresh labels are a vocabulary invented for
@@ -1321,6 +1359,8 @@ export class GameService implements GeneratorContext {
          * specific answer to the same question, and applying one after the
          * other would try to rewrite marks that are no longer relation words.
          */
+        this.applyFrame(question);
+
         const fresh = this.randomLabels ? randomRelationLabels() : null;
         if (!fresh && !this.symbolRelations) return question;
         if (fresh) question.relationLabels = fresh;
