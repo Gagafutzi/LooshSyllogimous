@@ -23,6 +23,7 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
+import { countNegations } from "../src/app/syllogimous/utils/phrasing";
 
 function ctxOf(): GeneratorContext {
     const settings = new Settings();
@@ -41,32 +42,41 @@ function ctxOf(): GeneratorContext {
     return ctx;
 }
 
-/* The mark negation leaves on the rendered text. */
-const NEGATED = /class="is-negated"|<del\b/;
-
-function textOf(q: Question): string {
+/*
+ * The mark negation leaves on the rendered text, read by the helper that lives
+ * beside the one that writes it.
+ *
+ * This test used to match `class="is-negated"` literally, which is not the only
+ * way that class is written: Analogy's conclusion carries a layout class beside
+ * it. So the one mode whose count this test was reporting on was the one mode
+ * whose negations it could not see.
+ */
+function textsOf(q: Question): string[] {
     return [...q.premises, String(q.conclusion ?? ""), ...q.choices,
-            ...q.series.flatMap(c => [c.text, ...(c.premises ?? [])])].join(" ");
+            ...q.series.flatMap(c => [c.text, ...(c.premises ?? [])])];
 }
+
+const isNegated = (q: Question) => countNegations(textsOf(q)) > 0;
 
 test("a mode that renders a negation counts it", () => {
     const ctx = ctxOf();
     const faults: string[] = [];
     const note = (m: string) => { if (!faults.includes(m)) faults.push(m); };
 
-    for (const type of [EnumQuestionType.LinearArrangement, EnumQuestionType.CircularArrangement]) {
+    for (const type of Object.values(EnumQuestionType)) {
+        if (!BUILD[type]) continue;
         let negatedItems = 0, counted = 0;
         seeded(808, () => {
             const p = QUESTION_TYPE_SETTING_PARAMS[type];
             for (let r = 0; r < 60; r++) {
                 let q: Question;
                 try { q = BUILD[type](ctx, p.minNumOfPremises + (r % 3)); } catch { continue; }
-                if (!NEGATED.test(textOf(q))) continue;
+                if (!isNegated(q)) continue;
                 negatedItems++;
                 if (q.negations > 0) counted++;
             }
         });
-        if (!negatedItems) { note(`${type}: no negated item was produced, so this proves nothing`); continue; }
+        if (!negatedItems) continue;
         if (counted < negatedItems) {
             note(`${type}: ${negatedItems - negatedItems + (negatedItems - counted)} of ${negatedItems} `
                 + `negated items reported no negations`);
@@ -80,12 +90,13 @@ test("an item with no negation does not claim one", () => {
     const ctx = ctxOf();
     const faults: string[] = [];
     seeded(909, () => {
-        for (const type of [EnumQuestionType.LinearArrangement, EnumQuestionType.CircularArrangement]) {
+        for (const type of Object.values(EnumQuestionType)) {
+        if (!BUILD[type]) continue;
             const p = QUESTION_TYPE_SETTING_PARAMS[type];
             for (let r = 0; r < 40; r++) {
                 let q: Question;
                 try { q = BUILD[type](ctx, p.minNumOfPremises); } catch { continue; }
-                if (NEGATED.test(textOf(q))) continue;
+                if (isNegated(q)) continue;
                 if (q.negations > 0) {
                     faults.push(`${type}: counted ${q.negations} with nothing negated on the card`);
                 }

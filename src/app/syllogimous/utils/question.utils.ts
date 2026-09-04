@@ -154,17 +154,21 @@ export function getRandomSymbols(settings: Settings, length: number) {
     return out;
 }
 
-export function getMetaReplacer(settings: Settings, choosenPair: Picked<string>, relations: string[], negations: boolean[]) {
-    const choosenSubjects = [...choosenPair.picked[0].matchAll(/<span class="subject">(.*?)<\/span>/g)];
-    const [a, b] = choosenSubjects.map(m => m[1]);
-
-    const isSameAs = (relations[0] === relations[1]) === (negations[0] === negations[1]);
-    const relation = getRelation(settings, EnumQuestionType.Distinction, isSameAs);
-
-    return `$1 ${relation} (${subj(a)} to ${subj(b)}) to `;
-}
-
-export function getRelation(settings: Settings, type: EnumQuestionType, isPositive: boolean) {
+/**
+ * The relation word for a premise, negated some of the time.
+ *
+ * `onNegate` is how the caller finds out, on the same pattern as
+ * `interpolateArrangementRelationship`. Without it the three modes built on
+ * this helper — Distinction, Analogy, Binary — rendered a struck-through
+ * relation and reported `negations: 0` on every item, which is what the CSV
+ * export carries and what any later reading of the archive would believe.
+ */
+export function getRelation(
+    settings: Settings,
+    type: EnumQuestionType,
+    isPositive: boolean,
+    onNegate?: () => void,
+) {
     let positive = "";
     let negative = "";
 
@@ -188,9 +192,11 @@ export function getRelation(settings: Settings, type: EnumQuestionType, isPositi
         switch (relation) {
             case positive:
                 relation = neg(negative);
+                onNegate?.();
                 break;
             case negative:
                 relation = neg(positive);
+                onNegate?.();
                 break;
         }
     }
@@ -274,12 +280,14 @@ export function createMetaRelationships(settings: Settings, question: Question, 
 
             if (isSame) { // Same
                 if (settings.enabled.negation && coinFlip()) {
+                    question.negations++;
                     newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the <span class="is-negated">opposite</span> way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
                 } else {
                     newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the same way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
                 }
             } else { // Different
                 if (settings.enabled.negation && coinFlip()) {
+                    question.negations++;
                     newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the <span class="is-negated">same</span> way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
                 } else {
                     newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the opposite way that ${subj(c.subject)} relates to ${subj(d.subject)}`);

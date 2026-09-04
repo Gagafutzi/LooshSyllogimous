@@ -133,7 +133,7 @@ export function createComparison(ctx: GeneratorContext, numOfPremises: number, t
 
             const isMoreOrAfter = coinFlip();
             const [first, last] = ((sign === 1) === isMoreOrAfter) ? [next, curr] : [curr, next];
-            const relation = getRelation(settings, type, isMoreOrAfter);
+            const relation = getRelation(settings, type, isMoreOrAfter, () => question.negations++);
 
             question.premises.push(`${subj(first)} is ${relation} ${subj(last)}`);
         }
@@ -147,7 +147,7 @@ export function createComparison(ctx: GeneratorContext, numOfPremises: number, t
         }
 
         const isMoreOrAfter = coinFlip();
-        const relation = getRelation(settings, type, isMoreOrAfter);
+        const relation = getRelation(settings, type, isMoreOrAfter, () => question.negations++);
 
         question.conclusion = `${subj(question.bucket[a])} is ${relation} ${subj(question.bucket[b])}`;
         question.isValid = isMoreOrAfter

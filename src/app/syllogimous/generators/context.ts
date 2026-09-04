@@ -186,6 +186,9 @@ export function buildSeries(
 export function extendWithSeries(question: Question, extra: SeriesClaim[]): boolean {
     if (!extra.length) return false;
 
+    // Counted here, where the claims are known to have survived the draw.
+    question.negations += extra.reduce((n, c) => n + (c.negations ?? 0), 0);
+
     const first: SeriesClaim = {
         text: Array.isArray(question.conclusion) ? question.conclusion[0] : question.conclusion,
         isValid: question.isValid,

@@ -77,6 +77,17 @@ export interface SeriesClaim {
      */
     holdOnly?: boolean;
     /**
+     * How many negations this claim's own text carries.
+     *
+     * Summed into the item by `extendWithSeries`, rather than added by the
+     * generator as it draws. A drawn claim is not a kept claim — `buildSeries`
+     * discards duplicates, and drops the whole batch if it cannot fill the
+     * count — so a generator that counts while drawing reports negations for
+     * text nobody was shown. That is how an arrangement item with a clean card
+     * came to claim three of them.
+     */
+    negations?: number;
+    /**
      * The premises shown while this claim is up, where they are not the same
      * ones the last claim had.
      *

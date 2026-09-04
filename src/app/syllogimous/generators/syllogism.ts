@@ -86,6 +86,16 @@ export function createSyllogismCanyon(ctx: GeneratorContext, numOfPremises: numb
     question.premises = premises.map(p => formatSylPremise(p, negated));
     question.conclusion = formatSylPremise(conclusion, negated);
     /*
+     * One coin for the item, so every premise and the conclusion are struck
+     * through together — unlike the scales, where a flip per premise would be
+     * a uniform relabelling and no harder. Here it is not: All↔No and
+     * Some↔Some-not do not preserve entailment, so each premise still has to
+     * be turned back before anything follows from it.
+     *
+     * Which means the count is every line on the card, and it was zero.
+     */
+    if (negated) question.negations += premises.length + 1;
+    /*
      * A polysyllogism is a chain, and three circles hold one link. Drawn when
      * the load-bearing premises come to a single syllogism — which is every
      * two-premise item, the shape the complaint was about — and skipped when
@@ -212,6 +222,7 @@ function extendSyllogism(
         return {
             text: formatSylPremise(claim, negated),
             isValid: want,
+            negations: negated ? 1 : 0,
             key: `${a}:${kind}:${b}`,
         };
     }));
@@ -360,6 +371,8 @@ function buildSetHierarchy(ctx: GeneratorContext, numOfPremises: number): Questi
         question.bucket = [...words];
         question.premises = shuffle(premises.map(p => formatSylPremise(p, negated)));
         question.conclusion = formatSylPremise(claim, negated);
+        // One coin for the item here too, so the count is every line on it.
+        if (negated) question.negations += premises.length + 1;
         question.isValid = wantTrue;
         /*
          * The premises that actually do the work — already found, for the

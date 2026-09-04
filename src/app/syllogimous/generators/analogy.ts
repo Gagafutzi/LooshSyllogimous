@@ -14,7 +14,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getCircularWays, getLinearWays, pickUniqueItems } from "../utils/question.utils";
 import { canGenerateQuestion } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
-import { subj } from "../utils/phrasing";
+import { countNegations, subj } from "../utils/phrasing";
 
 export function createAnalogy(ctx: GeneratorContext, length: number) {
     ctx.logger.info("createAnalogy");
@@ -310,12 +310,23 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
     const isSameRelationship = coinFlip();
     question.isValid = isSameRelationship ? isValidSame : !isValidSame;
 
-    if (settings.enabled.negation && coinFlip()) {
-        question.negations++;
+    const negated = settings.enabled.negation && coinFlip();
+    if (negated) {
         question.conclusion += `<div class="analogy-conclusion is-negated">is ${isSameRelationship ? 'unlike' : 'alike'}</div>`;
     } else {
         question.conclusion += `<div class="analogy-conclusion">is ${isSameRelationship ? 'alike' : 'unlike'}</div>`;
     }
+
+    /*
+     * Counted from what is on the card, not inherited.
+     *
+     * The item came from another mode and arrived with that mode's count, which
+     * covered a conclusion this one replaces — so an analogy with nothing
+     * struck through was reporting up to three negations. The premises are
+     * kept as they were, so they are read back; the conclusion is this mode's
+     * own and is known here.
+     */
+    question.negations = countNegations(question.premises) + (negated ? 1 : 0);
 
     question.conclusion += `${subj(c)} to ${subj(d)}`;
 

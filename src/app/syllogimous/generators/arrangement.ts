@@ -165,12 +165,8 @@ export function createArrangement(ctx: GeneratorContext, numOfPremises: number, 
             if (!options.length) return null;
 
             const [desc, data] = options[Math.floor(Math.random() * options.length)];
-            /*
-             * Counted into a local first. This builds *candidates* and throws
-             * some away, so incrementing the question directly reports
-             * negations for text nobody ever saw — which is how an item with a
-             * clean card came to claim three of them.
-             */
+            // Reported on the claim, not added here: a drawn claim is not a
+            // kept one. See `SeriesClaim.negations`.
             let negated = 0;
             const text = `${subj(words[x])} `
                 + interpolateArrangementRelationship(
@@ -180,8 +176,7 @@ export function createArrangement(ctx: GeneratorContext, numOfPremises: number, 
             // A pair some premise states outright is read, not worked out.
             if (isPremiseLikeConclusion(question.premises, text)) return null;
 
-            question.negations += negated;
-            return { text, isValid: want, key: `${x}:${y}:${desc}` };
+            return { text, isValid: want, negations: negated, key: `${x}:${y}:${desc}` };
         }));
     }
 

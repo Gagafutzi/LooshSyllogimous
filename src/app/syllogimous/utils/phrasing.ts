@@ -335,7 +335,29 @@ export const hi = (s: string, extra = "") =>
     `<span class="highlight ${extra}">${symbolise(s)}</span>`;
 
 /** The reversal cue: a word that means the opposite of what it says. */
-export const neg = (s: string) => `<span class="is-negated">${symbolise(s)}</span>`;
+export const neg = (s: string) => `<span class="${NEGATED_CLASS}">${symbolise(s)}</span>`;
+
+/**
+ * The class a reversed word is marked with, and the one thing that reads it
+ * back.
+ *
+ * Generators count their own negations as they render, which is right for every
+ * mode that builds its own card. Analogy does not build one: it takes a
+ * finished item from another mode, keeps the premises and throws the conclusion
+ * away — so it inherits a count that includes negations from a line no longer
+ * on the card. Its items claimed up to three with nothing struck through.
+ *
+ * Reading the count back out of the markup is exactly what the difficulty model
+ * refuses to do, and for a good reason. This is the narrow exception: one mode
+ * reconciling what it kept, with the reader living beside the writer so the two
+ * cannot drift.
+ */
+const NEGATED_CLASS = "is-negated";
+
+export function countNegations(texts: string[]): number {
+    const mark = new RegExp(`class="[^"]*\\b${NEGATED_CLASS}\\b`, "g");
+    return texts.reduce((n, t) => n + (t.match(mark)?.length ?? 0), 0);
+}
 
 /* ------------------------------------------------------------------ *
  * Dimension colour                                                    *

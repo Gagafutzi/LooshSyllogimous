@@ -62,7 +62,7 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
             curr = symbols.splice(rnd, 1)[0];
 
             const isSameAs = coinFlip();
-            const relation = getRelation(settings, type, isSameAs);
+            const relation = getRelation(settings, type, isSameAs, () => question.negations++);
 
             question.premises.push(`${subj(prev)} is ${relation} ${subj(curr)}`);
             walk.push({ word: curr, same: isSameAs });
@@ -84,7 +84,7 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
         createMetaRelationships(settings, question, length, modifierOn(ctx, type, "meta", settings.enabled.meta));
 
         const isSameAs = coinFlip();
-        const relation = getRelation(settings, type, isSameAs);
+        const relation = getRelation(settings, type, isSameAs, () => question.negations++);
 
         question.conclusion = `${subj(first)} is ${relation} ${subj(curr)}`;
         question.isValid = isSameAs
@@ -117,7 +117,9 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
             // The claim is what we want it to be; whether it holds is what the
             // buckets say about the words it names.
             const says = want ? same : !same;
-            const text = `${subj(a)} is ${getRelation(settings, type, says)} ${subj(b)}`;
+            // Reported on the claim, not added here. See `SeriesClaim.negations`.
+            let negated = 0;
+            const text = `${subj(a)} is ${getRelation(settings, type, says, () => negated++)} ${subj(b)}`;
             /*
              * The same guard the item's own conclusion is held to.
              *
@@ -128,7 +130,10 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
              */
             if (isPremiseLikeConclusion(question.premises, text)) return null;
 
-            return { text, isValid: says === same, key: [a, b].sort().join("\u0000") };
+            return {
+                text, isValid: says === same, negations: negated,
+                key: [a, b].sort().join("\u0000"),
+            };
         });
         extendWithSeries(question, claims);
     }

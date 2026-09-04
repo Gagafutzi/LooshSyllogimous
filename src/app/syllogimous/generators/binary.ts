@@ -5,7 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { hi } from "../utils/phrasing";
+import { countNegations, hi } from "../utils/phrasing";
 import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, shuffle, fixBinaryInstructions } from "../utils/question.utils";
@@ -89,9 +89,26 @@ export function createBinary(ctx: GeneratorContext, numOfPremises: number) {
         question.premises = [...choices[0].premises, ...choices[1].premises];
         shuffle(question.premises);
 
+
+
         question.conclusion = operandTemplates[operandIndex]
             .replace("$a", Array.isArray(choices[0].conclusion) ? choices[0].conclusion[0] : choices[0].conclusion)
             .replace("$b", Array.isArray(choices[1].conclusion) ? choices[1].conclusion[0] : choices[1].conclusion);
+
+        /*
+         * Counted from what is on the card, as Analogy counts it.
+         *
+         * Both halves arrive with their own tally, and this mode keeps their
+         * premises and their conclusions but not their series — so inheriting
+         * the sum reports negations for claims it never shows. Reading back
+         * what it kept is exact, and it has to be assigned rather than added:
+         * the loop redraws until the item comes out with the truth it wanted,
+         * so anything accumulated belongs to a pair that was thrown away.
+         */
+        question.negations = countNegations([
+            ...question.premises,
+            ...(Array.isArray(question.conclusion) ? question.conclusion : [question.conclusion]),
+        ]);
 
         question.isValid = eval(
             operand
