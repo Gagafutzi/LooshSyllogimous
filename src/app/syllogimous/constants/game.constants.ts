@@ -19,6 +19,7 @@ export enum EnumScreens {
     TiersMatrix = "Tiers Matrix",
     OtherGames = "Other Games",
     Summary = "Summary",
+    Experimental = "Experimental",
 }
 
 /**

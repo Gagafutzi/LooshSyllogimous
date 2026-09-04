@@ -1,0 +1,4 @@
+/* Greyed while the switch above it is off, matching Customise. */
+.is-idle { opacity: 0.45; }
+
+.adv { max-inline-size: 100%; }

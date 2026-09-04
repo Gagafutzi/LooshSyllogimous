@@ -93,29 +93,7 @@ export class SettingsComponent {
 
     /* ---- sound, and the verdict flash ---- */
 
-    /* ---- continuous stream ---- */
-
-    streamTypes = STREAM_TYPES;
-
-    get streamOn() { return this.game.streamOn; }
-
-    setStreamOn(value: boolean) { this.game.setStreamOn(value); }
-
-    get streamType() { return this.game.streamType; }
-
-    setStreamType(value: string) { this.game.setStreamType(value as EnumQuestionType); }
-
-    get streamAnalogy() { return this.game.streamAnalogy; }
-
-    setStreamAnalogy(value: boolean) { this.game.setStreamAnalogy(value); }
-
-    get streamLength() { return this.game.streamLength; }
-
-    setStreamLength(value: string) { this.game.setStreamLength(Number(value)); }
-
-    get streamWindow() { return this.game.streamWindow; }
-
-    setStreamWindow(value: string) { this.game.setStreamWindow(Number(value)); }
+    /* Continuous stream lives on Experimental now, beside the delay line. */
 
     get symbolRelations() { return this.game.symbolRelations; }
 

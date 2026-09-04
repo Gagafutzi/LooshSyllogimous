@@ -157,3 +157,18 @@ export const LS_STREAM_WINDOW = "SYL_STREAM_WINDOW";
 export const LS_STREAM_LENGTH = "SYL_STREAM_LENGTH";
 /** Ask analogies rather than positions, at the same frequency. */
 export const LS_STREAM_ANALOGY = "SYL_STREAM_ANALOGY";
+
+/*
+ * Delay line: read an arrangement now, judge it several screens later.
+ *
+ * Its own keys rather than a variant of the stream's, because the two are
+ * opposite demands and somebody will want them set differently: the stream is
+ * about letting go of what has expired, this is about keeping a whole finished
+ * structure intact while another is built on top of it.
+ */
+export const LS_DELAY = "SYL_DELAY";
+export const LS_DELAY_TYPE = "SYL_DELAY_TYPE";
+/** How many screens back each conclusion reaches. */
+export const LS_DELAY_DEPTH = "SYL_DELAY_DEPTH";
+/** Conclusions asked before the run ends. */
+export const LS_DELAY_ROUNDS = "SYL_DELAY_ROUNDS";

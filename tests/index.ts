@@ -24,6 +24,7 @@ import "./stream.test";
 import "./answering.test";
 import "./verdict.test";
 import "./difficulty.test";
+import "./delay-line.test";
 import "./history-view.test";
 import "./practice-choices.test";
 import "./stimuli.test";

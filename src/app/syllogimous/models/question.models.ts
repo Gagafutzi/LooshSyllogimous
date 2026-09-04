@@ -64,6 +64,19 @@ export interface SeriesClaim {
      */
     explanation?: string[];
     /**
+     * A screen with nothing to answer: read the set and carry it forward.
+     *
+     * The delay mode asks about the arrangement from `n` screens ago, so its
+     * first `n` screens have an arrangement to hold and no question yet — and
+     * its last `n` have a question and no new arrangement. Without a claim that
+     * asks nothing, the delay could only ever be paid for by front-loading
+     * every early set onto one card, which is a span task rather than a delay.
+     *
+     * Excluded from the tally and from the item's verdict: a screen that asked
+     * nothing cannot have been got wrong.
+     */
+    holdOnly?: boolean;
+    /**
      * The premises shown while this claim is up, where they are not the same
      * ones the last claim had.
      *

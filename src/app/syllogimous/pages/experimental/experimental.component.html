@@ -1,0 +1,177 @@
+<div class="adv">
+
+    <h2 class="mb-1">Experimental</h2>
+    <p class="text-muted mb-3">
+        Two ways of <em>spacing</em> an item rather than two kinds of item. Both
+        replace the ordinary draw entirely while they are on, so only one of them
+        runs at a time and the modes you picked elsewhere do not appear beside
+        them.
+    </p>
+
+    <!--
+      Said once, in front, because it is the honest thing to say about both of
+      them and it is not said anywhere else in the app.
+    -->
+    <div class="card p-3 mb-3">
+        <p class="mb-0">
+            <strong>Nothing here is measured.</strong> Every other mode is priced
+            by the ability model &mdash; premises, rungs, the clock &mdash; and
+            these two are not, because their difficulty is mostly a quantity it
+            has no coefficient for. Runs are recorded as practice: they do not
+            move your estimate, your tier or your premise counts. That is a
+            deliberate choice about not corrupting the model with evidence it
+            cannot read, not a claim that these are worth less.
+        </p>
+    </div>
+
+
+    <app-collapsible heading="Delay line">
+        <div class="d-grid" style="gap: 0.75rem;">
+            <label class="flag">
+                <input type="checkbox" class="form-check-input"
+                       [checked]="delayOn" (change)="setDelayOn($any($event.target).checked)">
+                <span>Delay line
+                    <small class="d-block text-muted">
+                        Read an arrangement now, judge it <strong>several screens
+                        later</strong>. Each screen shows a new arrangement and asks
+                        about the one from <em>n</em> screens back, so you are always
+                        building one structure while retrieving a different one &mdash;
+                        and because they are made of the same relations, they interfere.
+                        It is n-back where the thing held is a relational model rather
+                        than a letter.
+                    </small>
+                </span>
+            </label>
+
+            <div class="d-grid" style="gap: 0.35rem;" [class.is-idle]="!delayOn">
+                <label for="delay-type" class="text-muted small">Arrangements from</label>
+                <select id="delay-type" class="form-select form-select-sm"
+                        [disabled]="!delayOn" [value]="delayType"
+                        (change)="setDelayType($any($event.target).value)">
+                    <option *ngFor="let t of delayTypes" [value]="t">{{ t }}</option>
+                </select>
+
+                <label for="delay-depth" class="text-muted small mt-2">
+                    Screens of delay
+                </label>
+                <input id="delay-depth" type="number" min="1" max="6"
+                       class="form-control form-control-sm" style="max-width: 6rem;"
+                       [disabled]="!delayOn" [value]="delayDepth"
+                       (change)="setDelayDepth($any($event.target).value)">
+                <small class="text-muted">
+                    One is the whole demand already: the arrangement you are answering
+                    about is never the one on screen. Past about four this stops being
+                    interference and becomes a queue &mdash; a span test on
+                    structures, which is a different thing from keeping one intact.
+                </small>
+
+                <label for="delay-rounds" class="text-muted small mt-2">
+                    Conclusions per run
+                </label>
+                <input id="delay-rounds" type="number" min="1"
+                       class="form-control form-control-sm" style="max-width: 6rem;"
+                       [disabled]="!delayOn" [value]="delayRounds"
+                       (change)="setDelayRounds($any($event.target).value)">
+                <small class="text-muted">
+                    A run is this many conclusions over
+                    <strong>{{ delayRounds + delayDepth }}</strong> screens: the first
+                    {{ delayDepth }} show an arrangement and ask nothing, because
+                    nothing is old enough yet, and the last {{ delayDepth }} ask
+                    without showing anything new while the queue drains.
+                </small>
+            </div>
+        </div>
+    </app-collapsible>
+
+    <!--
+      A way of *showing* relations rather than a kind of relation, which is
+      why it sits beside the game mode and not among the question types.
+    -->
+    <app-collapsible heading="Continuous stream">
+        <div class="d-grid" style="gap: 0.75rem;">
+            <label class="flag">
+                <input type="checkbox" class="form-check-input"
+                       [checked]="streamOn" (change)="setStreamOn($any($event.target).checked)">
+                <span>Continuous stream
+                    <small class="d-block text-muted">
+                        Premises arrive one at a time and <strong>do not come
+                        back</strong>. Every few of them a question arrives that
+                        follows from the last <em>n</em> &mdash; nothing before
+                        that is ever needed, so there is nothing to keep. Best
+                        with <strong>Carousel</strong> on a timed advance;
+                        stepping by hand lets you rehearse, which is the demand
+                        this removes.
+                    </small>
+                </span>
+            </label>
+
+            <div class="d-grid" style="gap: 0.35rem;" [class.is-idle]="!streamOn">
+                <label for="stream-type" class="text-muted small">Relations from</label>
+                <select id="stream-type" class="form-select form-select-sm"
+                        [disabled]="!streamOn" [value]="streamType"
+                        (change)="setStreamType($any($event.target).value)">
+                    <option *ngFor="let t of streamTypes" [value]="t">{{ t }}</option>
+                </select>
+
+                <label for="stream-window" class="text-muted small mt-2">
+                    Relations kept live
+                </label>
+                <input id="stream-window" type="number" min="2" max="6"
+                       class="form-control form-control-sm" style="max-width: 6rem;"
+                       [disabled]="!streamOn" [value]="streamWindow"
+                       (change)="setStreamWindow($any($event.target).value)">
+                <small class="text-muted">
+                    Raising this measures how much you can hold. The harder demand
+                    is letting go, and that comes from objects returning later
+                    carrying a different relation &mdash; which a long run
+                    produces on its own, once it outgrows the pool of names.
+                </small>
+
+                <label class="flag mt-2">
+                    <input type="checkbox" class="form-check-input"
+                           [disabled]="!streamOn" [checked]="streamAnalogy"
+                           (change)="setStreamAnalogy($any($event.target).checked)">
+                    <span>Analogy questions
+                        <small class="d-block text-muted">
+                            Instead of &ldquo;where is X from Y&rdquo;, each question
+                            asks whether one move is <strong>the same move</strong> as
+                            another &mdash; both built out of the relations still live.
+                            Same window, same frequency; it asks more of what you are
+                            already holding rather than asking you to hold more.
+                        </small>
+                    </span>
+                </label>
+
+                <label for="stream-length" class="text-muted small mt-2">
+                    Questions per run
+                </label>
+                <input id="stream-length" type="number" min="1"
+                       class="form-control form-control-sm" style="max-width: 6rem;"
+                       [disabled]="!streamOn" [value]="streamLength"
+                       (change)="setStreamLength($any($event.target).value)">
+                <small class="text-muted">
+                    No ceiling. A stream is the one mode with no natural stopping
+                    point &mdash; the next premise arrives while the last question
+                    is still being resolved, so the moments where quitting is a
+                    <em>decision</em> are gone. This number is the only place a stop
+                    comes from, which is why it is yours and not a judgement of
+                    mine about how long anybody should sit there.
+                </small>
+            </div>
+        </div>
+    </app-collapsible>
+
+    <div class="playcard-toolbar mt-3">
+        <div>
+            <button class="btn btn-outline-primary"
+                    (click)="router.navigate([EnumScreens.Settings])">
+                <i class="bi bi-arrow-left"></i> Display &amp; timer
+            </button>
+        </div>
+        <div>
+            <button class="btn btn-primary" (click)="game.playArcadeMode()">
+                Play <i class="bi bi-play-fill"></i>
+            </button>
+        </div>
+    </div>
+</div>

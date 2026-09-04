@@ -478,8 +478,18 @@
           fast way to play them; removing them removes the only thing on the
           card that is not the question.
         -->
+        <!--
+          A delay-line screen with nothing to answer yet: one way forward, and
+          the True/False pair withheld so it cannot be answered by accident.
+        -->
+        <div class="d-flex gap-3 justify-content-center" *ngIf="holding">
+            <button class="btn btn-lg answer col-md-5 col-8" (click)="holdOn()">
+                <span class="answer__face">Hold &rarr;</span>
+            </button>
+        </div>
+
         <div class="d-flex gap-3 justify-content-center"
-             *ngIf="game.question.answerMode === 'boolean' && !game.zenMode">
+             *ngIf="!holding && game.question.answerMode === 'boolean' && !game.zenMode">
             <!--
               The face carries the fill and the silhouette; the button stays a
               plain rectangle so the whole area still takes a click. Clipping the

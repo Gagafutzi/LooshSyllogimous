@@ -58,6 +58,10 @@
             >Settings</button>
             <button
                 ngbDropdownItem
+                (click)="router.navigate([EnumScreens.Experimental])"
+            >Experimental</button>
+            <button
+                ngbDropdownItem
                 (click)="router.navigate([EnumScreens.Tutorials])"
             >Tutorials</button>
             <div class="dropdown-divider"></div>

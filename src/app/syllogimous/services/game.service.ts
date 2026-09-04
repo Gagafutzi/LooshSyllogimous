@@ -26,7 +26,8 @@ import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
 import { ladderFor } from "../utils/progression.utils";
-import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_ANALOGY, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
+import { composeDelayLine, DELAY_TYPES, DEFAULT_DELAY, DEFAULT_DELAY_ROUNDS } from "../generators/delay-line";
+import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_ANALOGY, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_DELAY, LS_DELAY_TYPE, LS_DELAY_DEPTH, LS_DELAY_ROUNDS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 // Aliased: the service exposes members of the same names, and a call that
 // could be read as either is worth one line of renaming to avoid.
@@ -597,6 +598,14 @@ export class GameService implements GeneratorContext {
          * arriving as two different tasks — and a player who turned it on
          * getting it a third of the time.
          */
+        /*
+         * The delay line replaces the draw entirely, like the stream and for
+         * the same reason: it is a way of *spacing* items rather than a kind of
+         * item, so mixing it into the ordinary draw would mean the same mode
+         * arriving as two different tasks.
+         */
+        if (this.delayOn) return this.asMinimal(this.createDelayLine());
+
         if (this.streamOn) {
             return this.asMinimal(
                 createStream(this, this.streamType, this.streamWindow, this.streamLength,
@@ -1275,6 +1284,90 @@ export class GameService implements GeneratorContext {
     }
 
     /* ---- continuous stream ---- */
+
+    /* ---------------- delay line ---------------- */
+
+    get delayOn(): boolean {
+        try { return localStorage.getItem(LS_DELAY) === "1"; } catch { return false; }
+    }
+
+    setDelayOn(on: boolean) {
+        try {
+            if (on) localStorage.setItem(LS_DELAY, "1");
+            else localStorage.removeItem(LS_DELAY);
+        } catch { /* private mode; the default stands */ }
+    }
+
+    get delayType(): EnumQuestionType {
+        try {
+            const stored = localStorage.getItem(LS_DELAY_TYPE) as EnumQuestionType | null;
+            if (stored && DELAY_TYPES.indexOf(stored) >= 0) return stored;
+        } catch { /* private mode */ }
+        return DELAY_TYPES[0];
+    }
+
+    setDelayType(type: EnumQuestionType) {
+        try { localStorage.setItem(LS_DELAY_TYPE, type); } catch { /* private mode */ }
+    }
+
+    /**
+     * Screens between reading an arrangement and being asked about it.
+     *
+     * Capped at six for the same reason a window is: past that the run is a
+     * span test on a queue of structures, and the thing being measured stops
+     * being whether you can keep one intact under interference.
+     */
+    get delayDepth(): number {
+        try {
+            const n = Number(localStorage.getItem(LS_DELAY_DEPTH));
+            if (n >= 1 && n <= 6) return n;
+        } catch { /* private mode */ }
+        return DEFAULT_DELAY;
+    }
+
+    setDelayDepth(n: number) {
+        try {
+            localStorage.setItem(LS_DELAY_DEPTH, String(Math.min(6, Math.max(1, Math.floor(Number(n) || DEFAULT_DELAY)))));
+        } catch { /* private mode */ }
+    }
+
+    /** Conclusions the run asks before it ends. The player's, with no ceiling. */
+    get delayRounds(): number {
+        try {
+            const n = Number(localStorage.getItem(LS_DELAY_ROUNDS));
+            if (n >= 1) return Math.floor(n);
+        } catch { /* private mode */ }
+        return DEFAULT_DELAY_ROUNDS;
+    }
+
+    setDelayRounds(n: number) {
+        try {
+            localStorage.setItem(LS_DELAY_ROUNDS, String(Math.max(1, Math.floor(Number(n) || DEFAULT_DELAY_ROUNDS))));
+        } catch { /* private mode */ }
+    }
+
+    /**
+     * Build one delay-line run out of ordinary items of the chosen mode.
+     *
+     * The arrangements are whole generated questions, so the mode's own
+     * difficulty, rungs and phrasing come along unchanged — this only decides
+     * which screen shows which one.
+     */
+    private createDelayLine(): Question {
+        const type = this.delayType;
+        const depth = this.delayDepth;
+        const qs = this.settings.question[type];
+        const premises = qs ? qs.clampNumOfPremises(qs.getNumOfPremises()) : 3;
+        const make = this.getCreateFn(type, premises);
+
+        const sets: Question[] = [];
+        let guard = 0;
+        while (sets.length < this.delayRounds + depth && guard++ < (this.delayRounds + depth) * 6) {
+            try { sets.push(make()); } catch { /* a mode may fail a draw; try again */ }
+        }
+        if (sets.length < depth + 1) throw new Error("Cannot build a delay line.");
+        return composeDelayLine(sets, depth);
+    }
 
     get streamOn(): boolean {
         try { return localStorage.getItem(LS_STREAM) === "1"; } catch { return false; }

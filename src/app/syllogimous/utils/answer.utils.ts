@@ -40,7 +40,28 @@ export function hasNextClaim(q: Question): boolean {
 export function takeSeriesAnswer(q: Question, value: boolean): boolean {
     const right = value === q.series[q.seriesAt].isValid;
     q.seriesAnswers[q.seriesAt] = right;
+    advanceClaim(q);
+    return right;
+}
 
+/** Whether the screen on the card is asking anything, or only showing. */
+export function isHoldClaim(q: Question): boolean {
+    return q.series?.[q.seriesAt]?.holdOnly === true;
+}
+
+/**
+ * Move past a screen that asked nothing.
+ *
+ * Same swap as answering, and no answer recorded — `seriesAnswers` is left
+ * undefined at that index, which is what keeps a held screen out of the tally
+ * and out of the item's verdict.
+ */
+export function advanceHold(q: Question) {
+    advanceClaim(q);
+}
+
+/** The swap itself, shared so answering and holding cannot diverge. */
+function advanceClaim(q: Question) {
     q.seriesAt++;
     const before = q.premises;
     const next = q.series[q.seriesAt];
@@ -76,8 +97,6 @@ export function takeSeriesAnswer(q: Question, value: boolean): boolean {
     q.seriesFocusPremise = next.premises
         ? q.premises.findIndex((p, i) => p !== before[i])
         : -1;
-
-    return right;
 }
 
 /**
@@ -95,7 +114,8 @@ export function judgeItem(q: Question, value?: boolean): boolean {
     if (q.series.length) {
         q.seriesAnswers[q.seriesAt] =
             value != null && value === q.series[q.seriesAt].isValid;
-        return q.series.every((_, i) => q.seriesAnswers[i] === true);
+        // A screen that asked nothing cannot have been got wrong.
+        return q.series.every((c, i) => c.holdOnly || q.seriesAnswers[i] === true);
     }
     return value != null && value === q.isValid;
 }
@@ -161,9 +181,13 @@ export function itemTally(q: AnsweredView): ItemTally {
     const series = q.series ?? [];
     if (series.length) {
         const answers = q.seriesAnswers ?? [];
+        // Held screens are not conclusions; counting them would report an item
+        // as part-right for screens that asked nothing.
+        const asked = series.filter(c => !(c as { holdOnly?: boolean }).holdOnly);
         return {
-            asked: series.length,
-            right: series.reduce<number>((n, _, i) => n + (answers[i] === true ? 1 : 0), 0),
+            asked: asked.length || series.length,
+            right: series.reduce<number>(
+                (n, c, i) => n + (!(c as { holdOnly?: boolean }).holdOnly && answers[i] === true ? 1 : 0), 0),
             timedOut,
         };
     }

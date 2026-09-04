@@ -45,83 +45,29 @@
             </div>
         </app-collapsible>
 
-        <!--
-          A way of *showing* relations rather than a kind of relation, which is
-          why it sits beside the game mode and not among the question types.
-        -->
-        <app-collapsible heading="Continuous stream">
-            <div class="d-grid" style="gap: 0.75rem;">
-                <label class="flag">
-                    <input type="checkbox" class="form-check-input"
-                           [checked]="streamOn" (change)="setStreamOn($any($event.target).checked)">
-                    <span>Continuous stream
-                        <small class="d-block text-muted">
-                            Premises arrive one at a time and <strong>do not come
-                            back</strong>. Every few of them a question arrives that
-                            follows from the last <em>n</em> &mdash; nothing before
-                            that is ever needed, so there is nothing to keep. Best
-                            with <strong>Carousel</strong> on a timed advance;
-                            stepping by hand lets you rehearse, which is the demand
-                            this removes.
-                        </small>
-                    </span>
-                </label>
-
-                <div class="d-grid" style="gap: 0.35rem;" [class.is-idle]="!streamOn">
-                    <label for="stream-type" class="text-muted small">Relations from</label>
-                    <select id="stream-type" class="form-select form-select-sm"
-                            [disabled]="!streamOn" [value]="streamType"
-                            (change)="setStreamType($any($event.target).value)">
-                        <option *ngFor="let t of streamTypes" [value]="t">{{ t }}</option>
-                    </select>
-
-                    <label for="stream-window" class="text-muted small mt-2">
-                        Relations kept live
-                    </label>
-                    <input id="stream-window" type="number" min="2" max="6"
-                           class="form-control form-control-sm" style="max-width: 6rem;"
-                           [disabled]="!streamOn" [value]="streamWindow"
-                           (change)="setStreamWindow($any($event.target).value)">
-                    <small class="text-muted">
-                        Raising this measures how much you can hold. The harder demand
-                        is letting go, and that comes from objects returning later
-                        carrying a different relation &mdash; which a long run
-                        produces on its own, once it outgrows the pool of names.
-                    </small>
-
-                    <label class="flag mt-2">
-                        <input type="checkbox" class="form-check-input"
-                               [disabled]="!streamOn" [checked]="streamAnalogy"
-                               (change)="setStreamAnalogy($any($event.target).checked)">
-                        <span>Analogy questions
-                            <small class="d-block text-muted">
-                                Instead of &ldquo;where is X from Y&rdquo;, each question
-                                asks whether one move is <strong>the same move</strong> as
-                                another &mdash; both built out of the relations still live.
-                                Same window, same frequency; it asks more of what you are
-                                already holding rather than asking you to hold more.
-                            </small>
-                        </span>
-                    </label>
-
-                    <label for="stream-length" class="text-muted small mt-2">
-                        Questions per run
-                    </label>
-                    <input id="stream-length" type="number" min="1"
-                           class="form-control form-control-sm" style="max-width: 6rem;"
-                           [disabled]="!streamOn" [value]="streamLength"
-                           (change)="setStreamLength($any($event.target).value)">
-                    <small class="text-muted">
-                        No ceiling. A stream is the one mode with no natural stopping
-                        point &mdash; the next premise arrives while the last question
-                        is still being resolved, so the moments where quitting is a
-                        <em>decision</em> are gone. This number is the only place a stop
-                        comes from, which is why it is yours and not a judgement of
-                        mine about how long anybody should sit there.
-                    </small>
-                </div>
+        <div class="card p-3 mb-3">
+            <strong>Continuous stream and delay line have moved.</strong>
+            <small class="d-block text-muted mb-2">
+                They decide which items exist rather than how one is shown, they
+                switch every other mode off while they run, and neither is priced
+                by the ability model. That is a different kind of setting from the
+                ones on this page.
+            </small>
+            <div>
+                <button class="btn btn-sm btn-outline-primary"
+                        (click)="router.navigate([EnumScreens.Experimental])">
+                    Open Experimental <i class="bi bi-arrow-right"></i>
+                </button>
             </div>
-        </app-collapsible>
+        </div>
+
+        <!--
+          Continuous stream moved to Experimental, along with the delay line.
+          Both replace the ordinary draw rather than adding to it, and both are
+          new enough that nothing has measured what they do — which is a
+          different kind of setting from the ones on this page and belongs
+          somewhere that says so.
+        -->
 
         <!--
           A display setting, not a difficulty one: the same facts, said in fewer

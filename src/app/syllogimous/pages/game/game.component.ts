@@ -12,6 +12,7 @@ import { ProgressionService } from '../../services/progression.service';
 import { SlotAnswer, blankPicks, compareConstruction, slotsRemaining } from '../../utils/construct.utils';
 import { KeybindService, keyLabel } from '../../services/keybind.service';
 import { slideNames, stepSlide } from '../../utils/slides.utils';
+import { advanceHold, isHoldClaim } from "../../utils/answer.utils";
 import { symbolLegend } from '../../utils/phrasing';
 import { ProgressAndPerformanceService } from '../../services/progress-and-performance.service';
 
@@ -669,6 +670,22 @@ export class GameComponent {
             return;
         }
 
+        /*
+         * A held screen has one thing to do, so every key that means "go on"
+         * does it and nothing that means an answer does anything. Answering by
+         * reflex on a screen that asked nothing is the mistake worth designing
+         * out: the keystroke would otherwise be carried into the next screen,
+         * which is the one that actually asks something.
+         */
+        if (this.holding) {
+            if (this.keys.actionFor(event) === "submit"
+                || event.key === " " || event.key === "Enter") {
+                event.preventDefault();
+                this.holdOn();
+            }
+            return;
+        }
+
         if (this.game.question.answerMode === "choice") {
             const index = Number(event.key) - 1;
             if (Number.isInteger(index) && index >= 0 && index < this.choiceCount) {
@@ -814,6 +831,28 @@ export class GameComponent {
         if (!el) return;
         el.style.transition = 'none';
         el.style.width = getComputedStyle(el).width;
+    }
+
+    /**
+     * A screen of the delay line that is only showing, not asking.
+     *
+     * The first screens of a run have an arrangement to hold and nothing old
+     * enough to ask about yet. The card drops its answer controls for those and
+     * offers one way forward, so a held screen cannot be answered by accident —
+     * and nothing is recorded for it, because a screen that asked nothing
+     * cannot have been got wrong.
+     */
+    get holding(): boolean {
+        return isHoldClaim(this.game.question);
+    }
+
+    holdOn() {
+        if (!this.holding) return;
+        advanceHold(this.game.question);
+        // The clock is the item's, not the screen's: holding buys the same
+        // seconds answering does, or the early screens would eat the run.
+        this.gameTimerService.extend(this.game.seriesBonusSeconds);
+        this.game.claimChanged.next();
     }
 
     kickTimer = async () => {
