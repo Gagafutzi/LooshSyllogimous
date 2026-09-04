@@ -27,6 +27,14 @@ import { COMPACT_NOTE, EDIT_NOTE, INDETERMINATE_NOTE, ND_ANALOGY_NOTE, ND_TRANSF
 /** How many dimensions each composed-space mode asks for. */
 export function dimensionsOf(ctx: GeneratorContext, type: EnumQuestionType): number {
     return {
+        /*
+         * Direction is the two-axis case of the same engine, not a mode of its
+         * own. Written separately it hardcoded north/south/east/west, so the
+         * axes could not be chosen — and choosing them is the point: up/down
+         * and left/right is the same reasoning without the compass mapping in
+         * front of it.
+         */
+        [EnumQuestionType.Direction]: 2,
         [EnumQuestionType.Space3D]: 3,
         [EnumQuestionType.Space4D]: 4,
         [EnumQuestionType.Space5D]: 5,

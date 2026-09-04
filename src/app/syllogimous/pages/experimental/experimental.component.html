@@ -1,9 +1,6 @@
 <div class="adv">
 
     <h2 class="mb-1">Experimental</h2>
-    <p class="text-muted mb-3">
-        Both replace the ordinary draw. One at a time; unscored.
-    </p>
 
 
     <app-collapsible heading="Delay line">
@@ -60,14 +57,7 @@
                        [checked]="streamOn" (change)="setStreamOn($any($event.target).checked)">
                 <span>Continuous stream
                     <small class="d-block text-muted">
-                        Premises arrive one at a time and <strong>do not come
-                        back</strong>. Every few of them a question arrives that
-                        follows from the last <em>n</em> &mdash; nothing before
-                        that is ever needed, so there is nothing to keep. Best
-                        with <strong>Carousel</strong> on a timed advance;
-                        stepping by hand lets you rehearse, which is the demand
-                        this removes.
-                    </small>
+                        Premises arrive one at a time and expire. Questions follow from the last <em>n</em>.</small>
                 </span>
             </label>
 
@@ -86,12 +76,6 @@
                        class="form-control form-control-sm" style="max-width: 6rem;"
                        [disabled]="!streamOn" [value]="streamWindow"
                        (change)="setStreamWindow($any($event.target).value)">
-                <small class="text-muted">
-                    Raising this measures how much you can hold. The harder demand
-                    is letting go, and that comes from objects returning later
-                    carrying a different relation &mdash; which a long run
-                    produces on its own, once it outgrows the pool of names.
-                </small>
 
                 <label class="flag mt-2">
                     <input type="checkbox" class="form-check-input"
@@ -99,12 +83,7 @@
                            (change)="setStreamAnalogy($any($event.target).checked)">
                     <span>Analogy questions
                         <small class="d-block text-muted">
-                            Instead of &ldquo;where is X from Y&rdquo;, each question
-                            asks whether one move is <strong>the same move</strong> as
-                            another &mdash; both built out of the relations still live.
-                            Same window, same frequency; it asks more of what you are
-                            already holding rather than asking you to hold more.
-                        </small>
+                            Questions ask whether one move matches another.</small>
                     </span>
                 </label>
 

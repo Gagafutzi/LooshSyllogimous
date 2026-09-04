@@ -251,11 +251,6 @@ export class ModeModifiersComponent {
             hint: "How far as well as which way",
         },
         {
-            key: "screenFrame",
-            label: "Screen frame instead of compass",
-            hint: "up / down / left / right rather than north / south / east / west",
-        },
-        {
             key: "facing",
             label: "Left and right",
             hint: "Someone in the layout faces something else, and the claim is judged from there. Composed spaces only",
@@ -313,7 +308,9 @@ export class ModeModifiersComponent {
         this.overrides.setLinear(key, value);
     }
 
-    spaceDims = [3, 4, 5, 6];
+    /* 2 is Direction, which is the two-axis case of the same engine. Picking
+       its axes is how up/down and left/right replace the compass. */
+    spaceDims = [2, 3, 4, 5, 6];
 
     axisChoices = AXIS_CHOICES.map(s => ({
         id: s.id,

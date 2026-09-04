@@ -98,16 +98,6 @@ export interface LinearFeatureFlags {
     /** Leave out the axes a pair does not differ on. */
     compact: boolean | null;
     /**
-     * Screen frame instead of the compass: up/down/left/right.
-     *
-     * The compass is an allocentric frame — "north" has to be mapped onto the
-     * layout before the relation can be used — and up/down/left/right is
-     * egocentric, so it lands on the picture directly. Same task, one mapping
-     * step removed, which makes it the way in for anyone the compass version
-     * bounces off.
-     */
-    screenFrame: boolean | null;
-    /**
      * Withhold clauses so the premises no longer pin every relation down.
      *
      * Not the same as `compact`, which omits a clause to *state* that a pair is
@@ -141,7 +131,6 @@ export const DEFAULT_LINEAR_FEATURES: LinearFeatureFlags = {
     constructConclusion: null,
     constructDistance: null,
     compact: null,
-    screenFrame: null,
     facing: null,
     indeterminate: null,
     widePremises: null,

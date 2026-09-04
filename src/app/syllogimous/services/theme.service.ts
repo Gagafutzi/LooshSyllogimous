@@ -93,6 +93,25 @@ const MOONLIT: Theme = {
 /** Presets are plain data — each is just a partial override of the default. */
 export const THEME_PRESETS: Record<string, Theme> = {
     "Moonlit (default)": MOONLIT,
+    /*
+     * Warm, low-blue, for evening sessions. Every other dark preset here is
+     * blue-shifted, which is the wrong end of the spectrum to be staring at
+     * for an hour before bed.
+     *
+     * The true/false pair is the one thing a warm palette can quietly break:
+     * pushing both towards amber leaves them the same colour under a glance.
+     * These are held apart on lightness as well as hue — a pale sand against a
+     * deep rust — so they stay distinguishable without the green.
+     */
+    "Ember (low blue)": {
+        ...MOONLIT,
+        bg: "#120d0a", bg2: "#1a120d", panel: "#241a13",
+        accent: "#e8a44c", accent2: "#d97757",
+        text: "#f0e2d0", textDim: "#a89078",
+        ok: "#f5dcaa", bad: "#a83c22", okInk: "#f5dcaa", badInk: "#a83c22",
+        glow: 4, panelAlpha: 0.85, blur: 8,
+        wallpaper: "radial-gradient(1100px 700px at 75% -5%, #3a2418 0%, transparent 62%)",
+    },
     "Gruvbox": {
         ...MOONLIT,
         bg: "#1d2021", bg2: "#282828", panel: "#32302f",

@@ -91,6 +91,10 @@ export function sameClass(layout: NdLayout, axis: number, a: string, b: string):
  * different kind of relation rather than one more direction.
  */
 export const DIMENSION_AXES: Record<number, LinearScale[]> = {
+    /* The compass, which is what Direction has always been. Swappable for
+       up/down and left/right from the axis picker, which is the whole reason
+       this is a preset rather than a hardcoded pair. */
+    2: [SPATIAL_SCALES["east"], SPATIAL_SCALES["north"]],
     3: [SPATIAL_SCALES["east"], SPATIAL_SCALES["north"], SPATIAL_SCALES["up"]],
     4: [SPATIAL_SCALES["east"], SPATIAL_SCALES["north"], SPATIAL_SCALES["up"],
         LINEAR_SCALES["temporal"]],
