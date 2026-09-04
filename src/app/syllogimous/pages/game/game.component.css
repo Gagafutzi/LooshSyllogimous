@@ -6,6 +6,9 @@
  * deadline. Nothing here animates by default: with no transition set the width
  * is applied instantly, which is what freezing it on an answer needs.
  */
+/* Explicit, so no later `display` on .timerbar can un-hide it. */
+.timerbar[hidden] { display: none !important; }
+
 .timerbar {
     position: relative;
     height: 1.25rem;

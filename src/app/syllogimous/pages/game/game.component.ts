@@ -765,7 +765,15 @@ export class GameComponent {
         }
     }
 
-    @ViewChild('timerFill') timerFill?: ElementRef<HTMLElement>;
+    /*
+     * `static: true`, because the first question is armed from `ngOnInit` and a
+     * dynamic query is not resolved until after the first view check — so the
+     * opening item of every session would have found no element and drawn a bar
+     * that never moved. Legal here only because the bar is no longer behind an
+     * `*ngIf`: a static query needs an element that is unconditionally present,
+     * which is the second reason for keeping it in the tree.
+     */
+    @ViewChild('timerFill', { static: true }) timerFill?: ElementRef<HTMLElement>;
 
     /**
      * Sweep the bar from where it is to empty, over the time that is left.
@@ -780,15 +788,9 @@ export class GameComponent {
      * Called after every change to the clock: starting an item, and answering a
      * conclusion of a series, which buys seconds and so lengthens the bar.
      */
-    private armTimerBar(retry = true) {
+    private armTimerBar() {
         const el = this.timerFill?.nativeElement;
-        if (!el) {
-            // The bar is created by `*ngIf` on the seconds that were just set,
-            // so on the first item of a session it may not exist yet. One more
-            // turn is enough; a loop would be a poll.
-            if (retry) setTimeout(() => this.armTimerBar(false));
-            return;
-        }
+        if (!el) return;
 
         const totalMs = Math.max(1, this.timerTimeSeconds * 1000);
         const leftMs = Math.max(0, this.gameTimerService.remainingMs);
@@ -815,14 +817,13 @@ export class GameComponent {
     }
 
     kickTimer = async () => {
-        // Armed after the clock has a deadline, and on a later turn of the loop
-        // so the bar exists to be armed: `timerRunning` only became true with
-        // the seconds set a moment ago, and the view has not been rendered yet.
-        setTimeout(() => this.armTimerBar());
-
         // Only a clock that actually ran out is a timeout. Stopping it — which
         // answering now does — used to look identical from here.
-        const elapsed = await this.gameTimerService.start(this.timerTimeSeconds);
+        const started = this.gameTimerService.start(this.timerTimeSeconds);
+        // Armed once the clock has a deadline to sweep against, and directly:
+        // the bar is never removed from the tree, so it is always there.
+        this.armTimerBar();
+        const elapsed = await started;
         /*
          * The sweep is a CSS transition, so it carries on draining after the
          * clock stops — through the verdict flash and any review overlay, which

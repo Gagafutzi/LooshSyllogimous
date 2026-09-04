@@ -139,7 +139,18 @@
               The number keeps ticking in whole seconds, which is what it is
               for.
             -->
-            <div *ngIf="timerRunning" class="timerbar" role="progressbar"
+            <!--
+              Hidden, not removed.
+
+              `*ngIf` destroyed and rebuilt this on every question, and the
+              `@ViewChild` that arms the sweep is only updated during change
+              detection — so arming could write to the element that had just
+              been thrown away, leaving the new one at full width with no
+              transition on it. That is a bar that sometimes does not move.
+              Kept in the tree, the reference is always the live element and
+              arming needs no timing at all.
+            -->
+            <div [hidden]="!timerRunning" class="timerbar" role="progressbar"
                  [attr.aria-valuemin]="0"
                  [attr.aria-valuemax]="timerTimeSeconds"
                  [attr.aria-valuenow]="gameTimerService.remainingSeconds"
