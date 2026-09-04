@@ -863,9 +863,16 @@ export class GameComponent {
          * at the moment the item ends.
          */
         const track = el.parentElement?.getBoundingClientRect().width || 0;
-        const scale = track > 0 ? el.getBoundingClientRect().width / track : 0;
+        /*
+         * A hidden bar measures zero, and writing that back would collapse it —
+         * so a freeze that cannot see the bar leaves it exactly as it is. There
+         * is nothing to preserve in that case anyway: the next item places it
+         * before it is shown again.
+         */
+        if (track <= 0) return;
+        const scale = Math.min(1, Math.max(0, el.getBoundingClientRect().width / track));
         el.style.transition = 'none';
-        el.style.transform = `scaleX(${Math.min(1, Math.max(0, scale))})`;
+        el.style.transform = `scaleX(${scale})`;
     }
 
     /**
