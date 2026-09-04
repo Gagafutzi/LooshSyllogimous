@@ -25,6 +25,7 @@ import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils"
 import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
+import { ladderFor } from "../utils/progression.utils";
 import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_ANALOGY, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 // Aliased: the service exposes members of the same names, and a call that
@@ -739,6 +740,57 @@ export class GameService implements GeneratorContext {
             picked.length === answer.length && picked.every((v, i) => v === answer[i]));
     }
 
+    /**
+     * Seconds the clock was actually set to for the item on screen.
+     *
+     * Written by the game screen, which is where the decision is made — the
+     * ladder's limit, a custom one, an adaptive one, or none. Kept here because
+     * the difficulty of an item is not a property of the screen that drew it.
+     */
+    armedSeconds: number | null = null;
+
+    /**
+     * Price the item that was just answered, on the ability model's own scale.
+     *
+     * Deliberately `levelOf` and not a second formula. There is one difficulty
+     * scale in this app; a stored history that reported premise counts while
+     * the model reasoned in levels was two, and the one anything outside could
+     * read was the one that says a 7D space and a linear chain are the same
+     * item when both have seven premises.
+     *
+     * The rungs come from `hasRung`, which is the same combination of the
+     * ladder and the Customise overrides the *generator* was handed — so this
+     * prices the item that was built rather than the one the ladder would build
+     * now. Never throws: a history entry without a difficulty is a reader's
+     * problem to fall back from, an exception here would cost the answer.
+     */
+    private recordDifficulty() {
+        try {
+            const type = this.question.type;
+            const rungs = ladderFor(type).filter(r => this.hasRung(type, r));
+            const carousel = this.question.gameModeOnAnswer !== "0";
+            const seconds = this.armedSeconds != null && this.armedSeconds > 0
+                ? this.armedSeconds
+                : null;
+            const spec = {
+                type,
+                premises: this.question.premises.length,
+                rungs,
+                seconds,
+                carousel,
+                widthDelta: this.question.widthDelta,
+                depth: this.question.depth,
+            };
+            this.question.difficulty = {
+                level: this.progressionService.levelFor(spec),
+                premises: spec.premises,
+                rungs,
+                seconds,
+                carousel,
+            };
+        } catch { /* an unpriced item is still an answered one */ }
+    }
+
     async checkQuestion(value?: boolean) {
         /*
          * Once only, and the clock stops here.
@@ -779,6 +831,7 @@ export class GameService implements GeneratorContext {
         this.question.timerTypeOnAnswer = localStorage.getItem(LS_TIMER) || "0";
         // Its sibling: what the clock was, and what the card looked like.
         this.question.gameModeOnAnswer = localStorage.getItem(LS_GAME_MODE) || "0";
+        this.recordDifficulty();
         /*
          * Unscored, because the active profile says so.
          *

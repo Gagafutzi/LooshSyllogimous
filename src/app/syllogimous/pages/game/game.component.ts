@@ -123,6 +123,12 @@ export class GameComponent {
         // stale value both shows a bar for an untimed item and divides the
         // progress bar by the wrong total.
         this.timerTimeSeconds = 0;
+        /*
+         * And told to the service, which prices the item when it is answered.
+         * The clock is part of what an item was worth, and this is the only
+         * place that knows which of the four rules below armed it.
+         */
+        this.game.armedSeconds = null;
 
         // Progression owns the clock when it is on: the shrinking limit *is* the
         // difficulty, so a fixed or stats-derived timer would fight it. It
@@ -138,6 +144,7 @@ export class GameComponent {
             : this.progressionService.timeLimitFor(this.game.question.type);
         if (ladderSeconds != null) {
             this.timerTimeSeconds = ladderSeconds;
+            this.game.armedSeconds = ladderSeconds;
             this.kickTimer();
             return;
         }
@@ -159,6 +166,7 @@ export class GameComponent {
 
                 const customTimers = JSON.parse(localStorage.getItem(LS_CUSTOM_TIMERS_KEY) || "{}");
                 this.timerTimeSeconds = customTimers[this.game.question.type] || 90;
+                this.game.armedSeconds = this.timerTimeSeconds;
                 this.kickTimer();
                 
                 break;
@@ -228,6 +236,7 @@ export class GameComponent {
                         budget += negationBonus * this.game.question.negations;
                         budget += metaRelationBonus * this.game.question.metaRelations;
                         this.timerTimeSeconds = Math.floor(Math.max(MIN_SECONDS, budget));
+                this.game.armedSeconds = this.timerTimeSeconds;
                     }
                 }
 

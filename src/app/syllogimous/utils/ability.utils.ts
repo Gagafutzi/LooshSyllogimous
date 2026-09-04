@@ -474,6 +474,20 @@ export interface AbilityConfig {
      * deciding it is irrelevant is work.
      */
     levelsPerUnneededPremise: number;
+    /**
+     * What showing the premises one at a time is worth, in levels.
+     *
+     * The third of these, and zero for the same reason as the other two. A
+     * carousel is plainly harder than the whole arrangement on one card — you
+     * have to hold what has scrolled past instead of re-reading it — but *how
+     * much* harder is a number nobody has measured, and inventing one here
+     * would silently rescale every ability estimate in the app against a guess.
+     *
+     * `gameModeOnAnswer` has been recorded on every answered item for exactly
+     * this: the coefficient is meant to be fitted from those, the way
+     * `RUNG_COST` was, and until it is this term is a no-op.
+     */
+    levelsPerCarousel: number;
 }
 
 export const DEFAULT_ABILITY: AbilityConfig = {
@@ -497,6 +511,7 @@ export const DEFAULT_ABILITY: AbilityConfig = {
     cautionCapAfter: 20,
     widthPerBit: 0,
     levelsPerUnneededPremise: 0,
+    levelsPerCarousel: 0,
     crossModeSd: 2.5,
     /*
      * ~5 weeks from a settled estimate to knowing very little. The mean is
@@ -545,6 +560,14 @@ export interface ItemSpec {
     rungs: string[];
     /** Deadline in seconds, or null for untimed. */
     seconds: number | null;
+    /**
+     * How the premises were shown: all at once, or one at a time.
+     *
+     * Absent when choosing a configuration — the display is the player's
+     * setting, not something the ladder picks — and present when scoring, where
+     * it is part of what the item actually was. Same standing as `widthDelta`.
+     */
+    carousel?: boolean;
     /**
      * Bits wider or narrower than typical for this configuration.
      *
@@ -598,7 +621,13 @@ export function levelOf(spec: ItemSpec, config = DEFAULT_ABILITY): number {
      * behaves exactly as it did before this term existed.
      */
     const shortfall = config.levelsPerUnneededPremise * unneededPremises(spec);
-    return structural + width + shortfall + timeCost(spec.seconds, config);
+    /*
+     * And how it was shown. Seven premises read one at a time is not the same
+     * item as seven premises on one card, which is the whole reason difficulty
+     * cannot be a premise count.
+     */
+    const shown = spec.carousel ? config.levelsPerCarousel : 0;
+    return structural + width + shortfall + shown + timeCost(spec.seconds, config);
 }
 
 /**

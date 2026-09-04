@@ -11,7 +11,7 @@ import {
 import { UnlockEvidence } from "../utils/tier.utils";
 import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
-    abilityUpdate, aggregate, cautionPenalty, chooseConfig, guessRateFor, guessRateForRungs, initAbility, levelOf,
+    abilityUpdate, aggregate, cautionPenalty, chooseConfig, guessRateFor, guessRateForRungs, initAbility, ItemSpec, levelOf,
     pCorrect, priorForNewMode, targetLevel,
     DepthFit, DepthReport, Trial, depthReport, fitDepthCoefficient, fitRungCosts,
     fitWidthCoefficient, referenceSecondsFrom,
@@ -862,6 +862,21 @@ export class ProgressionService {
         }
 
         return settings;
+    }
+
+    /**
+     * Price an item on the ability model's scale.
+     *
+     * Public so the history can carry the same number the model reasons in,
+     * without handing out the config it is computed against — a caller with the
+     * config could apply it to a spec the model would never have built, and
+     * then two difficulties would exist under one name.
+     *
+     * Works with the model switched off: the scale is a property of the item,
+     * not of whether anything is currently adapting to it.
+     */
+    levelFor(spec: ItemSpec): number {
+        return levelOf(spec, this.abilityConfig);
     }
 
     /** Rungs the current configuration carries, as a prefix of the mode's ladder. */

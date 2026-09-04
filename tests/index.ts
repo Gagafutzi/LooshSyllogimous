@@ -23,6 +23,7 @@ import "./mutual-moves.test";
 import "./stream.test";
 import "./answering.test";
 import "./verdict.test";
+import "./difficulty.test";
 import "./practice-choices.test";
 import "./stimuli.test";
 import "./shape-rotation.test";

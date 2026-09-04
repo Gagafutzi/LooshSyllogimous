@@ -268,6 +268,36 @@ export class Question {
     negations = 0;
     metaRelations = 0;
     timerTypeOnAnswer = "0";
+
+    /**
+     * What this item was worth, and what made it worth that.
+     *
+     * A premise count is not a difficulty: seven premises of Linear Arrangement
+     * and seven of a 7D space are not the same item, and neither is the same
+     * read one at a time as read all at once. `levelOf` already prices all of
+     * that — the mode's own weight, the rungs it carried, the clock it was
+     * under — and the ability model has been using it all along, while anything
+     * reading the stored history could only see `premises.length`.
+     *
+     * Written here, at answer time, by the code that actually served the item,
+     * with the configuration that was in force. The alternative is for every
+     * reader to rebuild the number from the parts, which means a second copy of
+     * the rule and two answers to the same question.
+     *
+     * The inputs travel with the level so a reader can say *why* an item was
+     * hard, and so a refitted coefficient can be applied to old records without
+     * having to guess what they were built from.
+     */
+    difficulty?: {
+        /** The one number, on the same scale the ability model uses. */
+        level: number;
+        premises: number;
+        rungs: string[];
+        /** Deadline actually armed, or null when the item was untimed. */
+        seconds: number | null;
+        /** True where the premises were shown one at a time. */
+        carousel: boolean;
+    };
     userScore = 0;
     playgroundMode = false;
     // Technical fields
