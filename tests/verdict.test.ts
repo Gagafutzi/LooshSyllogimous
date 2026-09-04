@@ -228,3 +228,50 @@ test("a timeout is not a wrong answer, and does not erase what was answered", ()
     equal(faults.length, 0, `\n  ${faults.slice(0, 8).join("\n  ")}`);
     assert(withEarlier > 40, `only ${withEarlier} timeouts had an earlier conclusion`);
 });
+
+
+/**
+ * The rule stays in one place.
+ *
+ * Seven sites had re-derived "was this right" as `userAnswer === isValid`, and
+ * that expression is the *last* conclusion on a multi-conclusion item rather
+ * than the item. They were replaced with `itemTally`; this is what stops an
+ * eighth appearing, which is how the first seven happened.
+ *
+ * Comments are stripped first — several of those files explain the old rule by
+ * quoting it, and a check that could not tell an explanation from a use would
+ * have to be deleted the first time somebody documented the fix.
+ */
+import { readFileSync, readdirSync, statSync } from "fs";
+
+function sourceFiles(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir)) {
+        const path = `${dir}/${entry}`;
+        if (statSync(path).isDirectory()) out.push(...sourceFiles(path));
+        else if (/\.(ts|html)$/.test(entry) && !entry.endsWith(".spec.ts")) out.push(path);
+    }
+    return out;
+}
+
+const stripComments = (src: string) => src
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/^\s*\/\/.*$/gm, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ");
+
+test("nothing re-derives the verdict from userAnswer and isValid", () => {
+    const pattern =
+        /userAnswer\s*[!=]==?\s*[a-zA-Z.]*\bisValid\b|isValid\s*[!=]==?\s*[a-zA-Z.]*\buserAnswer\b/;
+    const faults: string[] = [];
+
+    for (const file of sourceFiles("src/app/syllogimous")) {
+        // The one place the rule is allowed to live.
+        if (file.endsWith("utils/answer.utils.ts")) continue;
+        const code = stripComments(readFileSync(file, "utf8"));
+        if (pattern.test(code)) {
+            faults.push(`${file.replace("src/app/syllogimous/", "")} re-derives it`);
+        }
+    }
+
+    equal(faults.length, 0, `\n  ${faults.join("\n  ")}`);
+});
