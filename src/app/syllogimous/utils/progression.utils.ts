@@ -454,7 +454,18 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * some pairs are related only through a group they are both in and some are
      * not related at all — a demand a path can never make.
      */
-    "Syllogism":                 ["negation", "meta", "hierarchy"],
+    /*
+     * `meta` is a tombstone here and on the two Direction3D modes: all three
+     * offer it and none of them has ever produced one — the direction
+     * generators still carry the TODO where it would go, and a meta relation
+     * over "All A is B" is not a thing that was ever written.
+     *
+     * It is the dearest of the basic rungs at 1.0, so a player holding it was
+     * having every item priced a whole level above what it was, and answers
+     * credited accordingly. Tombstoned rather than removed, so a stored count
+     * keeps its position.
+     */
+    "Syllogism":                 ["negation", "retired-meta", "hierarchy"],
     "Linear Arrangement":        ["negation", "meta"],
     "Circular Arrangement":      ["negation", "meta"],
     /*
@@ -482,8 +493,8 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * opening with three free rungs already claimed.
      */
     "Direction":                 ND_LADDER,
-    "Direction3D Spatial":       ["negation", "meta"],
-    "Direction3D Temporal":      ["negation", "meta"],
+    "Direction3D Spatial":       ["negation", "retired-meta"],
+    "Direction3D Temporal":      ["negation", "retired-meta"],
     "Space 3D":                  ND_LADDER,
     "Space 4D":                  ND_LADDER,
     "Space 5D":                  ND_LADDER,

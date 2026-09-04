@@ -250,6 +250,7 @@ export const RUNG_COST: Record<string, number> = {
      */
     "retired-wide-premises": 0,
     "retired-compact": 0,
+    "retired-meta": 0,
     "retired-groups-3": 0,
     "retired-groups-4": 0,
     "retired-rank": 0,
