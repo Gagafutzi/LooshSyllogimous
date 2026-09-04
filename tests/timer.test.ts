@@ -118,3 +118,76 @@ test("the clock can be restarted after either ending", async () => {
         equal(afterStopping, true, "could not be restarted after being stopped");
     } finally { restore(); }
 });
+
+/**
+ * The bar is drawn against a deadline, not against the tick.
+ *
+ * Reported from play: *"the timer animation doesn't look fluid"*. It was bound
+ * to `remainingSeconds`, which changes once a second — so on a short limit the
+ * bar moved in eighth-of-the-width jumps. It is now animated from where it is
+ * to empty over `remainingMs`, and these are the properties that has to have:
+ * the number must be a real duration, it must fall continuously rather than in
+ * steps, it must survive the seconds an answered conclusion buys, and it must
+ * not outlive the clock.
+ */
+test("the clock exposes a real duration, not a tick count", async () => {
+    const t = new GameTimerService();
+    const stop = fakeClock();
+    try {
+        t.start(10).catch(() => {});
+        const first = t.remainingMs;
+        assert(first > 9000 && first <= 10000, `remainingMs was ${first} at the start`);
+
+        /*
+         * Real time passes here, and no tick fires — the interval is faked, so
+         * `remainingSeconds` cannot have moved. This is the assertion the whole
+         * change is about: the bar's number falls *between* ticks. Reading it
+         * off the count instead leaves it flat for a whole second at a time,
+         * and passes every other check in this file.
+         */
+        await new Promise(r => setTimeout(r, 60));
+        const later = t.remainingMs;
+        equal(t.remainingSeconds, 10, "the fake clock ticked; this test cannot tell the two apart");
+        assert(first - later >= 40,
+            `remainingMs moved ${first - later}ms over 60ms of real time — it is `
+            + `being read off the once-a-second count, not off a deadline`);
+        t.stop();
+    } finally { stop(); }
+});
+
+test("a bought second lengthens the bar as well as the count", async () => {
+    const t = new GameTimerService();
+    const stop = fakeClock();
+    try {
+        t.start(10).catch(() => {});
+        const before = t.remainingMs;
+        t.extend(5);
+        const after = t.remainingMs;
+        equal(t.remainingSeconds, 15, "the count did not take the extension");
+        assert(after - before > 4000 && after - before <= 5001,
+            `the deadline moved ${after - before}ms for five bought seconds`);
+        t.stop();
+    } finally { stop(); }
+});
+
+test("a stopped clock has no time left to draw", async () => {
+    const t = new GameTimerService();
+    const stop = fakeClock();
+    try {
+        t.start(10).catch(() => {});
+        t.stop();
+        equal(t.remainingMs, 0, "a stopped clock still reported time remaining");
+    } finally { stop(); }
+});
+
+test("a paused clock reports what it was paused with", async () => {
+    const t = new GameTimerService();
+    const stop = fakeClock();
+    try {
+        t.start(10).catch(() => {});
+        t.pause();
+        // Whole seconds, because pausing deliberately leaves the count as the
+        // tick left it rather than snapping it to wall-clock time.
+        equal(t.remainingMs, 10000, "a paused clock lost or invented time");
+    } finally { stop(); }
+});

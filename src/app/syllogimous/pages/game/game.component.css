@@ -1,5 +1,46 @@
-:host ::ng-deep .timerbar .progress-bar {
-    text-align: right;
+/*
+ * The countdown bar.
+ *
+ * The fill carries a `width` transition whose duration is set per item from
+ * the time actually left, so the sweep is continuous and lands on empty at the
+ * deadline. Nothing here animates by default: with no transition set the width
+ * is applied instantly, which is what freezing it on an answer needs.
+ */
+.timerbar {
+    position: relative;
+    height: 1.25rem;
+    overflow: hidden;
+    border-radius: 0.35rem;
+    background: color-mix(in srgb, var(--th-text-dim, #7d8ca6) 22%, transparent);
+}
+
+.timerbar__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 100%;
+    background: var(--th-ok, #4ade80);
+    will-change: width;
+}
+
+.timerbar__label {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--th-text, #e7eaf1);
+    /* Legible over the fill and over the track behind it alike. */
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.65);
+}
+
+/*
+ * A sweep is motion, and somebody asking for less of it should get a bar that
+ * still reports the time without animating across the screen. Stepping once a
+ * second is exactly the old behaviour, which is the right fallback here.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .timerbar__fill { transition: none !important; }
 }
 
 /*
@@ -23,10 +64,6 @@
     width: 100%;
     left: 0;
     top: 0;
-}
-
-.timerbar {
-    height: 1.25rem;
 }
 
 .premises,

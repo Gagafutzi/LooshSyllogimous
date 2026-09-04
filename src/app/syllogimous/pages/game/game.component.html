@@ -125,9 +125,28 @@
 <app-card>
     <div body class="battlefield" [ngStyle]="{ width: (gameMode === '1' || gameMode === '2') ? '100%' : 'auto' }">
         <div class="timerbar-wrap">
-            <ngb-progressbar *ngIf="timerRunning" class="timerbar" type="success" [value]="100 * gameTimerService.remainingSeconds / timerTimeSeconds">
-                <span class="me-2">{{gameTimerService.remainingSeconds}} s</span>
-            </ngb-progressbar>
+            <!--
+              A plain bar, for the same reason the carousel below is one.
+
+              `ngb-progressbar` takes a value and writes a width, so the bar
+              could only move when that value changed — once a second, which on
+              a short limit is a jump of an eighth of the width at a time. The
+              fill is now animated from where it is to empty over exactly the
+              time that is left, which the browser runs on the compositor: no
+              value to re-bind, no change detection per frame, and it arrives at
+              zero when the clock does rather than a second behind it.
+
+              The number keeps ticking in whole seconds, which is what it is
+              for.
+            -->
+            <div *ngIf="timerRunning" class="timerbar" role="progressbar"
+                 [attr.aria-valuemin]="0"
+                 [attr.aria-valuemax]="timerTimeSeconds"
+                 [attr.aria-valuenow]="gameTimerService.remainingSeconds"
+                 [attr.aria-label]="'Time remaining'">
+                <div class="timerbar__fill" #timerFill></div>
+                <span class="timerbar__label">{{gameTimerService.remainingSeconds}} s</span>
+            </div>
         </div>
 
         <!--

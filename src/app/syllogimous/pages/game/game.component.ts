@@ -1,4 +1,4 @@
-import { Component, HostListener, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { GameService } from '../../services/game.service';
 import { StatsService } from '../../services/stats.service';
@@ -266,7 +266,12 @@ export class GameComponent {
          * Relation, the chain in Axis Maps — and the only way to it was paging
          * back by hand, past premises that had not changed.
          */
-        this.claimSub = this.game.claimChanged.subscribe(() => this.showClaimSite());
+        this.claimSub = this.game.claimChanged.subscribe(() => {
+            this.showClaimSite();
+            // Answering a conclusion buys seconds, so the bar has further to
+            // fall than it did a moment ago and its sweep has to be re-armed.
+            this.armTimerBar();
+        });
     }
 
     /**
@@ -751,10 +756,71 @@ export class GameComponent {
         }
     }
 
+    @ViewChild('timerFill') timerFill?: ElementRef<HTMLElement>;
+
+    /**
+     * Sweep the bar from where it is to empty, over the time that is left.
+     *
+     * The width is set by a transition rather than by a binding, so the browser
+     * animates it continuously instead of the bar moving once per tick. The
+     * duration is read from the clock's own deadline, which means it arrives at
+     * empty exactly when the countdown does — a transition of a fixed second
+     * per step would instead trail the clock by a second and still be draining
+     * after the time was up.
+     *
+     * Called after every change to the clock: starting an item, and answering a
+     * conclusion of a series, which buys seconds and so lengthens the bar.
+     */
+    private armTimerBar(retry = true) {
+        const el = this.timerFill?.nativeElement;
+        if (!el) {
+            // The bar is created by `*ngIf` on the seconds that were just set,
+            // so on the first item of a session it may not exist yet. One more
+            // turn is enough; a loop would be a poll.
+            if (retry) setTimeout(() => this.armTimerBar(false));
+            return;
+        }
+
+        const totalMs = Math.max(1, this.timerTimeSeconds * 1000);
+        const leftMs = Math.max(0, this.gameTimerService.remainingMs);
+
+        // Placed with no transition, or it would animate from wherever the last
+        // item left it — including upwards, on the first frame of a new item.
+        el.style.transition = 'none';
+        el.style.width = (100 * Math.min(1, leftMs / totalMs)) + '%';
+        // Read back, so the placement above is a finished layout rather than
+        // something the browser is free to coalesce with the line below it.
+        void el.offsetWidth;
+
+        if (leftMs <= 0) return;
+        el.style.transition = `width ${leftMs}ms linear`;
+        el.style.width = '0%';
+    }
+
+    /** Stop where it is: an answered item's bar should not carry on draining. */
+    private freezeTimerBar() {
+        const el = this.timerFill?.nativeElement;
+        if (!el) return;
+        el.style.transition = 'none';
+        el.style.width = getComputedStyle(el).width;
+    }
+
     kickTimer = async () => {
+        // Armed after the clock has a deadline, and on a later turn of the loop
+        // so the bar exists to be armed: `timerRunning` only became true with
+        // the seconds set a moment ago, and the view has not been rendered yet.
+        setTimeout(() => this.armTimerBar());
+
         // Only a clock that actually ran out is a timeout. Stopping it — which
         // answering now does — used to look identical from here.
         const elapsed = await this.gameTimerService.start(this.timerTimeSeconds);
+        /*
+         * The sweep is a CSS transition, so it carries on draining after the
+         * clock stops — through the verdict flash and any review overlay, which
+         * would say the item was still running. This resolves on both endings,
+         * which makes it the one place that knows the clock is done.
+         */
+        this.freezeTimerBar();
         if (elapsed) this.game.checkQuestion();
     }
 }

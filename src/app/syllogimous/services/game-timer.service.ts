@@ -10,6 +10,24 @@ export class GameTimerService {
     remainingSeconds = 0;
     running = false;
 
+    /**
+     * When the clock is due to reach zero, as a timestamp.
+     *
+     * The countdown itself ticks once a second, which is the right resolution
+     * for the number on screen and the wrong one for the bar beside it: a bar
+     * driven off `remainingSeconds` moves in one-second jumps, and on a short
+     * limit those are eighth-of-the-width steps. Nothing here reads this — it
+     * exists so the bar can be animated against real elapsed time rather than
+     * against the tick.
+     */
+    private endsAt = 0;
+
+    /** Milliseconds left, to whatever resolution the caller wants to draw. */
+    get remainingMs(): number {
+        if (!this.running) return Math.max(0, this.remainingSeconds * 1000);
+        return Math.max(0, this.endsAt - Date.now());
+    }
+
     /** Resolves with whether the clock ran out, rather than merely that it ended. */
     private settle?: (elapsed: boolean) => void;
 
@@ -36,6 +54,7 @@ export class GameTimerService {
             }
     
             this.remainingSeconds = seconds;
+            this.endsAt = Date.now() + seconds * 1000;
             this.running = true;
             this.settle = resolve;
 
@@ -64,6 +83,7 @@ export class GameTimerService {
     extend(seconds: number) {
         if (!this.running || seconds <= 0) return;
         this.remainingSeconds += Math.round(seconds);
+        this.endsAt += Math.round(seconds) * 1000;
     }
 
     pause() {
@@ -71,6 +91,15 @@ export class GameTimerService {
             return console.warn("GameTimerService: Not running");
         }
 
+        /*
+         * `remainingSeconds` is deliberately left as the tick left it.
+         *
+         * Snapping it to wall-clock time here would change what a timeout
+         * means whenever the tab has been throttled — `setInterval` stops
+         * firing in a background tab, so the two diverge — and that is a
+         * decision about scoring, not about drawing a bar. `endsAt` is rebuilt
+         * from this count on the next `start`, so resuming stays consistent.
+         */
         this.running = false;
         clearInterval(this.interval);
     }
@@ -80,6 +109,7 @@ export class GameTimerService {
         this.settle = undefined;
         if (this.running) this.pause();
         this.remainingSeconds = 0;
+        this.endsAt = 0;
         // Ended, but not by running out: whoever is waiting must not read this
         // as a deadline that expired.
         done?.(false);
