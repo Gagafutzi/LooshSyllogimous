@@ -88,7 +88,14 @@ test("every folded section on the settings pages is labelled", () => {
         const opens = [...html.matchAll(/<app-collapsible\b([^>]*)>/g)];
         assert(opens.length > 0, `${file} has no folded sections at all`);
         for (const [, attrs] of opens) {
-            assert(/heading="[^"]+"/.test(attrs), `${file}: a section with no heading`);
+            /*
+             * A bound heading is a heading. The nested mode families take
+             * theirs from the family they render, which is a label the reader
+             * sees — what this is guarding against is a section with no name at
+             * all, not one whose name is computed.
+             */
+            assert(/\bheading="[^"]+"/.test(attrs) || /\[heading\]="[^"]+"/.test(attrs),
+                `${file}: a section with no heading`);
         }
         equal(opens.length, (html.match(/<\/app-collapsible>/g) ?? []).length,
             `${file}: a section is not closed`);

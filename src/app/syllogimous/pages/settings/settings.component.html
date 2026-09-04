@@ -137,7 +137,7 @@
                     <input type="checkbox" class="form-check-input"
                            [checked]="stimulusFlags.junkEmojis" (change)="setStimulus('junkEmojis', $any($event.target).checked)">
                     <span>Junk shapes
-                        <small class="d-block text-muted">Flat coloured shapes with no names — "the orange pentagon" is all there is to hold</small>
+                        <small class="d-block text-muted">Flat coloured shapes with no names</small>
                     </span>
                 </label>
 
@@ -270,13 +270,7 @@
                            (change)="setFeedbackShown($any($event.target).checked)">
                     <span>Show Correct / Wrong
                         <small class="d-block text-muted">
-                            The word that flashes over the card between questions.
-                            Turned off, one question runs into the next with a
-                            quarter-second gap instead of a beat you read.
-                            Everything is still scored, and <strong>History</strong>
-                            and <strong>Statistics</strong> still show how each item
-                            went.
-                        </small>
+                            The word that flashes over the card between questions.</small>
                     </span>
                 </label>
             </div>

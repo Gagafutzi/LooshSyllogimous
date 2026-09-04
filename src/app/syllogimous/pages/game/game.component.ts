@@ -816,19 +816,40 @@ export class GameComponent {
         if (!el) return;
 
         const totalMs = Math.max(1, this.timerTimeSeconds * 1000);
-        const leftMs = Math.max(0, this.gameTimerService.remainingMs);
+        const frac = (ms: number) => Math.min(1, Math.max(0, ms / totalMs));
 
-        // Placed with no transition, or it would animate from wherever the last
-        // item left it — including upwards, on the first frame of a new item.
+        /*
+         * Placed now, swept next frame.
+         *
+         * `startTimerForQuestion` clears the seconds and sets them again, then
+         * calls this in the same synchronous run — so at this point the bar is
+         * still `hidden` from the previous value and change detection has not
+         * caught up. **A transition does not run on a `display:none` element**,
+         * so setting both ends here applied both instantly and left the fill at
+         * zero: an empty track that never moved, which is what it did.
+         *
+         * The placement is safe to do now — a style write lands whether the
+         * element is displayed or not — and it is the half that matters if the
+         * frame never comes, because the bar then shows the right amount of
+         * time instead of none. The sweep waits for a frame, by which point
+         * change detection has run and the element is rendered.
+         */
         el.style.transition = 'none';
-        el.style.transform = `scaleX(${Math.min(1, leftMs / totalMs)})`;
-        // Read back, so the placement above is a finished frame rather than
-        // something the browser is free to coalesce with the line below it.
-        void el.offsetWidth;
+        el.style.transform = `scaleX(${frac(this.gameTimerService.remainingMs)})`;
 
-        if (leftMs <= 0) return;
-        el.style.transition = `transform ${leftMs}ms linear`;
-        el.style.transform = 'scaleX(0)';
+        if (typeof requestAnimationFrame !== 'function') return;
+        requestAnimationFrame(() => {
+            if (!el.isConnected) return;
+            // Re-read: a frame has passed, and on the first item of a session
+            // that frame can be a long one.
+            const leftMs = Math.max(0, this.gameTimerService.remainingMs);
+            if (leftMs <= 0) return;
+            el.style.transition = 'none';
+            el.style.transform = `scaleX(${frac(leftMs)})`;
+            void el.offsetWidth;
+            el.style.transition = `transform ${leftMs}ms linear`;
+            el.style.transform = 'scaleX(0)';
+        });
     }
 
     /** Stop where it is: an answered item's bar should not carry on draining. */

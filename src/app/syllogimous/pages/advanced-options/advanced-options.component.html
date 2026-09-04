@@ -1,10 +1,6 @@
 <div class="adv">
 
     <h2 class="mb-1">Customise</h2>
-    <p class="text-muted mb-3">
-        Which modes appear, how long they are, and how an item is built. Save any
-        of it as a profile.
-    </p>
 
     <!--
       The two switches that decide everything else, together and in front.
@@ -57,7 +53,7 @@
       overrides, and they apply on their own. The premise column below still
       belongs to the master switch, and is still greyed with it.
     -->
-    <app-collapsible heading="Question types" [note]="enabledCount() + ' of ' + rows.length + ' on'">
+    <app-collapsible heading="Question types" [note]="enabledCount() + ' of ' + rows.length + ' on'" [startClosed]="true">
         <!--
           Drilling one mode was thirty-five unticks and thirty-five more to undo,
           which is why nobody undid it. Both halves are one press now.
@@ -68,7 +64,11 @@
             <button type="button" class="btn btn-sm btn-outline-secondary"
                     (click)="allModes(false)">All off</button>
         </div>
-        <div class="mode" *ngFor="let row of rows">
+        <app-collapsible *ngFor="let family of families"
+                         [heading]="family.name"
+                         [note]="family.on + ' of ' + family.rows.length"
+                         [startClosed]="true">
+        <div class="mode" *ngFor="let row of family.rows">
             <button type="button" class="btn btn-sm mode__solo"
                     [class.is-on]="isSolo(row)"
                     (click)="soloMode(row)"
@@ -174,9 +174,10 @@
                 </ng-container>
             </span>
         </div>
+        </app-collapsible>
     </app-collapsible>
 
-    <app-collapsible heading="Transformations &amp; stimuli" [class.is-idle]="!active">
+    <app-collapsible heading="Transformations &amp; stimuli" [class.is-idle]="!active" [startClosed]="true">
         <label class="flag">
             <input type="checkbox" class="form-check-input" [disabled]="!active"
                    [checked]="flags.meta" (change)="setFlag('meta', $any($event.target).checked)">
@@ -234,11 +235,6 @@
         <hr class="my-2">
         <div class="mode">
             <label>Seconds per claim answered
-                <small class="text-muted d-block">
-                    An item with several conclusions asks them one at a time on
-                    the same premises. Answering one hands back this much clock
-                    for the next, rather than resetting the limit.
-                </small>
             </label>
             <span class="mode__premises">
                 <input type="number" class="form-control form-control-sm" min="0" max="60" step="1"
@@ -405,11 +401,6 @@
 
             <div class="mode">
                 <label>Carry-over between modes
-                    <small class="text-muted d-block">
-                        How much being good at one mode says about a new one. Lower
-                        means a mode you have never played starts closer to your
-                        overall level; higher means each is measured from scratch.
-                    </small>
                 </label>
                 <span class="mode__premises">
                     <input type="number" class="form-control form-control-sm" min="0.5" max="8" step="0.5"
@@ -438,12 +429,6 @@
 
             <div class="mode">
                 <label>Recent answers weighed
-                    <small class="text-muted d-block">
-                        How much recent play counts against your history. Lower reacts
-                        faster when you improve; below about 40 the estimate stops
-                        measuring anything and starts serving <em>easier</em> items,
-                        because it reads its own uncertainty as a reason to back off.
-                    </small>
                 </label>
                 <span class="mode__premises">
                     <input type="number" class="form-control form-control-sm" min="40" max="1000" step="10"
@@ -473,10 +458,6 @@
                        [checked]="prog.derivedScore"
                        (change)="setProg('derivedScore', $any($event.target).checked)">
                 <span>Skill points from ability
-                    <small class="d-block text-muted">
-                        Show the estimate itself rather than a running total of answers.
-                        It can fall, and grinding easy items lowers it rather than raising it.
-                    </small>
                 </span>
             </label>
 
@@ -503,10 +484,6 @@
                    (change)="setUnitsOn($any($event.target).checked)">
             <span>
                 <strong>Use training units</strong>
-                <small class="d-block text-muted">
-                    Switch this off as well as fluid progression to have nothing
-                    adapting at all.
-                </small>
             </span>
         </label>
 
@@ -558,12 +535,7 @@
     <h3 class="adv__group">Saving, and starting over</h3>
 
     <!-- Profiles: what Free Play became, made durable. -->
-    <app-collapsible heading="Profiles" [note]="profiles.length ? '' : 'none saved yet'">
-        <p class="text-muted small mb-3">
-            Everything on this page, under a name. Edits go into the loaded profile —
-            nothing to press. <strong>Practice</strong> profiles do not count towards
-            score, stats or your level.
-        </p>
+    <app-collapsible heading="Profiles" [note]="profiles.length ? '' : 'none saved yet'" [startClosed]="true">
 
         <div class="profile" *ngFor="let p of profiles" [class.is-on]="applied(p.id)">
             <span class="profile__name">
@@ -606,7 +578,7 @@
         </div>
     </app-collapsible>
 
-    <app-collapsible heading="Tutorials">
+    <app-collapsible heading="Tutorials" [startClosed]="true">
         <label class="master">
             <input type="checkbox" class="form-check-input"
                    [checked]="game.skipAllTutorials"
@@ -621,7 +593,7 @@
         </label>
     </app-collapsible>
 
-    <app-collapsible heading="Tier cheat">
+    <app-collapsible heading="Tier cheat" [startClosed]="true">
         <p class="text-muted small mb-2">
             For testing. Jumps the score so tier-gated modes can be reached without
             playing to them. Currently <strong>{{ currentTier }}</strong>,
@@ -638,7 +610,7 @@
         </div>
     </app-collapsible>
 
-    <app-collapsible heading="Reset">
+    <app-collapsible heading="Reset" [startClosed]="true">
         <p class="text-muted mb-2">Clears every override and returns to tier-driven settings.</p>
         <button class="btn btn-sm btn-danger" (click)="reset()">Reset advanced options</button>
     </app-collapsible>

@@ -35,6 +35,63 @@ export class AdvancedOptionsComponent {
         };
     });
 
+    /**
+     * Mode families, for the nested lists under Question types.
+     *
+     * Thirty-six checkboxes in one column is a column you scroll rather than a
+     * set you choose from — and the seven dimensional spaces in the middle of
+     * it read as seven unrelated modes rather than one axis of one thing.
+     *
+     * Anything not named here falls into the last group, so adding a mode puts
+     * it somewhere visible rather than dropping it off the page. `families`
+     * checks that.
+     */
+    private static readonly FAMILY: Array<{ name: string; types: string[] }> = [
+        { name: "Spatial", types: [
+            "Direction", "Direction3D Spatial", "Direction3D Temporal",
+            "Space 3D", "Space 4D", "Space 5D", "Space 6D", "Space 7D",
+            "Anchor Space", "Anchor Space v2", "Deictic Relations",
+            "Nested Spaces", "Mutual Moves",
+        ] },
+        { name: "Order and magnitude", types: [
+            "Comparison Numerical", "Comparison Chronological",
+            "Vertical Order", "Horizontal Order", "Containment",
+            "Linear Arrangement", "Circular Arrangement", "Hierarchy",
+            "Widest Group",
+        ] },
+        { name: "Categorical", types: [
+            "Distinction", "Syllogism", "Binary", "Knights and Knaves",
+        ] },
+        { name: "Mapping and analogy", types: [
+            "Analogy", "Graph Matching", "Relational Web", "Infer the Relation",
+            "Oddest Relation", "Stimulus Function", "Transformation",
+            "Transformation Matching", "Axis Maps",
+        ] },
+        { name: "Visual", types: ["Shape and Rotation"] },
+    ];
+
+    /** The rows, partitioned. Empty groups are dropped; nothing is lost. */
+    get families(): Array<{ name: string; rows: Row[]; on: number }> {
+        const left = new Set(this.rows.map(r => String(r.type)));
+        const out: Array<{ name: string; rows: Row[]; on: number }> = [];
+
+        for (const family of AdvancedOptionsComponent.FAMILY) {
+            const rows = family.types
+                .map(t => this.rows.find(r => String(r.type) === t))
+                .filter((r): r is Row => !!r);
+            rows.forEach(r => left.delete(String(r.type)));
+            if (rows.length) out.push({ name: family.name, rows, on: this.onCount(rows) });
+        }
+
+        const rest = this.rows.filter(r => left.has(String(r.type)));
+        if (rest.length) out.push({ name: "Other", rows: rest, on: this.onCount(rest) });
+        return out;
+    }
+
+    private onCount(rows: Row[]) {
+        return rows.filter(r => this.shownEnabled(r)).length;
+    }
+
     constructor(
         public overrides: SettingsOverrideService,
         public progression: ProgressionService,
