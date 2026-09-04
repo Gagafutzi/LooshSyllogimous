@@ -7,75 +7,19 @@
         -->
         <div>
             <h2 class="mb-1">Display &amp; timer</h2>
-            <p class="text-muted small mb-0">
-                How questions look and how long you get. Which questions you get is
-                under <strong>Customise</strong>.
-            </p>
         </div>
 
-        <app-collapsible heading="How premises are shown">
+        <h3 class="settings__group">Presentation<small>how an item is put in front of you</small></h3>
+        <app-collapsible heading="Premise presentation">
                 <app-game-mode-choose></app-game-mode-choose>
         </app-collapsible>
-
-        <app-collapsible heading="Timer mode">
-                <app-timer-choose></app-timer-choose>
-        </app-collapsible>
-
-        <!--
-          One way of playing rather than three settings that happen to combine,
-          which is why it is one switch.
-        -->
-        <app-collapsible heading="Zen mode">
-            <div class="d-grid" style="gap: 0.5rem;">
-                <label class="flag">
-                    <input type="checkbox" class="form-check-input"
-                           [checked]="zenMode" (change)="setZenMode($any($event.target).checked)">
-                    <span>Zen mode
-                        <small class="d-block text-muted">
-                            No answer buttons and no explanation — just the question and
-                            the keys. <strong>↑</strong> and <strong>↓</strong> answer true
-                            and false, and on a picking item they answer the first and the
-                            second option. Number keys and the carousel arrows keep
-                            working. Overrides
-                            <strong>Explain wrong answers</strong> while it is on, and gives
-                            it back when it is off.
-                        </small>
-                    </span>
-                </label>
-            </div>
-        </app-collapsible>
-
-        <div class="card p-3 mb-3">
-            <strong>Looking for continuous stream or the delay line?</strong>
-            <small class="d-block text-muted mb-2">
-                They live under <strong>Experimental</strong>, beside Customise in
-                the menu. They decide which items exist rather than how one is
-                shown, they switch every other mode off while they run, and
-                neither is priced by the ability model &mdash; a different kind of
-                setting from the ones on this page.
-            </small>
-            <div>
-                <button class="btn btn-sm btn-outline-primary"
-                        (click)="router.navigate([EnumScreens.Experimental])">
-                    Open Experimental <i class="bi bi-arrow-right"></i>
-                </button>
-            </div>
-        </div>
-
-        <!--
-          Continuous stream moved to Experimental, along with the delay line.
-          Both replace the ordinary draw rather than adding to it, and both are
-          new enough that nothing has measured what they do — which is a
-          different kind of setting from the ones on this page and belongs
-          somewhere that says so.
-        -->
 
         <!--
           A display setting, not a difficulty one: the same facts, said in fewer
           characters. It sits beside zen because it is the same impulse — less
           on the card — and it composes with it rather than being part of it.
         -->
-        <app-collapsible heading="Minimal mode">
+        <app-collapsible heading="Symbolic notation">
             <div class="d-grid" style="gap: 0.5rem;">
                 <label class="flag">
                     <input type="checkbox" class="form-check-input"
@@ -95,107 +39,46 @@
             </div>
         </app-collapsible>
 
-        <app-collapsible heading="Fresh relation labels">
-            <div class="d-grid" style="gap: 0.5rem;">
-                <label class="flag">
-                    <input type="checkbox" class="form-check-input"
-                           [checked]="randomLabels"
-                           (change)="setRandomLabels($any($event.target).checked)">
-                    <span>Invent the relation words per item
-                        <small class="d-block text-muted">
-                            Every relation gets a two-letter label drawn fresh for
-                            that item &mdash; <em>&ldquo;Kiwi is QF of Doll&rdquo;</em>
-                            &mdash; with the key behind the <strong>?</strong> as
-                            usual. Nothing carries over, so there is no composition
-                            to memorise: what <em>QF then ZR</em> comes to has to be
-                            worked out from the premises every time.
-                        </small>
-                    </span>
-                </label>
-
-                <small class="text-muted">
-                    Minimal mode swaps the words for a <em>fixed</em> table of
-                    marks, and a fixed table gets learned like the words it
-                    replaced &mdash; the cost of losing the meaning is paid and
-                    nothing is collected for it. This is the same idea with the
-                    thing that made it cacheable removed.
-                </small>
-
-                <small class="text-muted">
-                    <strong>Worth mixing rather than leaving on.</strong> The case
-                    for arbitrary labels is variability of practice, and a session
-                    where every item is arbitrary is just a different constant.
-                    Alternating is what that argument actually predicts, and it
-                    keeps you reasoning about relations you understand as well as
-                    ones you have only just been handed.
-                </small>
-
-                <small class="text-muted">
-                    Nothing measures whether this transfers. It will make you
-                    slower and less accurate at first; that cost is real and the
-                    benefit is a prediction.
-                </small>
-            </div>
+        <app-collapsible heading="Novel relation labels">
+            <label class="flag">
+                <input type="checkbox" class="form-check-input"
+                       [checked]="randomLabels"
+                       (change)="setRandomLabels($any($event.target).checked)">
+                <span>Relabel relations each item
+                    <small class="d-block text-muted">
+                        Two-letter labels drawn per item. Key behind the <strong>?</strong>.
+                    </small>
+                </span>
+            </label>
         </app-collapsible>
 
-        <!--
-          Two switches rather than one: the sound is what the room hears, the
-          flash is what the session feels like. Somebody wants one gone far
-          more often than both.
-        -->
-        <app-collapsible heading="Sound and feedback">
+        <app-collapsible heading="Premise wording">
             <div class="d-grid" style="gap: 0.75rem;">
-                <label class="flag">
-                    <input type="checkbox" class="form-check-input"
-                           [checked]="soundOn" (change)="setSoundOn($any($event.target).checked)">
-                    <span>Sounds
-                        <small class="d-block text-muted">
-                            The blips after an answer and the chime when the daily
-                            goal is reached. Off is silent &mdash; there is no other
-                            sound in the app.
-                        </small>
+
+                <div class="phr" *ngFor="let row of phrasingRows">
+                    <span class="phr__name">
+                        {{ row.label }}
+                        <small class="d-block text-muted">{{ row.hint }}</small>
                     </span>
-                </label>
-                <label class="flag">
-                    <input type="checkbox" class="form-check-input"
-                           [checked]="feedbackShown"
-                           (change)="setFeedbackShown($any($event.target).checked)">
-                    <span>Show Correct / Wrong
-                        <small class="d-block text-muted">
-                            The word that flashes over the card between questions.
-                            Turned off, one question runs into the next with a
-                            quarter-second gap instead of a beat you read.
-                            Everything is still scored, and <strong>History</strong>
-                            and <strong>Statistics</strong> still show how each item
-                            went.
-                        </small>
+                    <span class="phr__tri" role="group" [attr.aria-label]="row.label">
+                        <button type="button" class="btn btn-sm"
+                                [class.is-on]="phrasingOf(row.key) === null"
+                                (click)="setPhrasing(row.key, null)">Ladder</button>
+                        <button type="button" class="btn btn-sm"
+                                [class.is-on]="phrasingOf(row.key) === false"
+                                (click)="setPhrasing(row.key, false)">Off</button>
+                        <button type="button" class="btn btn-sm"
+                                [class.is-on]="phrasingOf(row.key) === true"
+                                (click)="setPhrasing(row.key, true)">On</button>
                     </span>
-                </label>
+                </div>
+                <small class="text-muted">
+                    <strong>Ladder</strong> leaves it to progression. Forcing either way
+                    needs <strong>Customise</strong> switched on.
+                </small>
             </div>
         </app-collapsible>
 
-        <!--
-          The one deliberate interruption on the game screen, and the switch
-          that removes it. Here rather than on Customise because it changes
-          nothing about what a question asks.
-        -->
-        <app-collapsible heading="After a wrong answer">
-            <div class="d-grid" style="gap: 0.5rem;">
-                <label class="flag">
-                    <input type="checkbox" class="form-check-input"
-                           [checked]="explanationsShown" (change)="setExplanationsShown($any($event.target).checked)">
-                    <span>Explain wrong answers
-                        <small class="d-block text-muted">
-                            Stops after a wrong answer or a timeout and shows how it
-                            followed — the derivation with the map, diagram or
-                            dimension breakdown that goes with it. Turned off, a wrong
-                            answer runs straight into the next question.
-                            <strong>History</strong> keeps the explanation either way.
-                        </small>
-                    </span>
-                </label>
-            </div>
-        </app-collapsible>
         <!--
           Wording, not difficulty. These two used to sit on Customise beside the
           modifiers that change what has to be worked out; they only change how
@@ -206,7 +89,7 @@
           it changes what you are looking at rather than how hard the reasoning
           is, and it should not have needed an override layer switched on.
         -->
-        <app-collapsible heading="What the stimuli are">
+        <app-collapsible heading="Stimulus set">
             <div class="d-grid" style="gap: 0.5rem;">
 
                 <label class="flag">
@@ -279,34 +162,30 @@
                     </span>
                 </label>
             </div>
-        </app-collapsible>
-
-        <app-collapsible heading="How premises are worded">
-            <div class="d-grid" style="gap: 0.75rem;">
-
-                <div class="phr" *ngFor="let row of phrasingRows">
-                    <span class="phr__name">
-                        {{ row.label }}
-                        <small class="d-block text-muted">{{ row.hint }}</small>
-                    </span>
-                    <span class="phr__tri" role="group" [attr.aria-label]="row.label">
-                        <button type="button" class="btn btn-sm"
-                                [class.is-on]="phrasingOf(row.key) === null"
-                                (click)="setPhrasing(row.key, null)">Ladder</button>
-                        <button type="button" class="btn btn-sm"
-                                [class.is-on]="phrasingOf(row.key) === false"
-                                (click)="setPhrasing(row.key, false)">Off</button>
-                        <button type="button" class="btn btn-sm"
-                                [class.is-on]="phrasingOf(row.key) === true"
-                                (click)="setPhrasing(row.key, true)">On</button>
-                    </span>
+        
+                <!--
+                  The weights, which `getSymbols` has honoured all along with no
+                  control anywhere to set them. Shown only with two kinds on,
+                  because with one there is nothing to balance.
+                -->
+                <div *ngIf="mixMatters" class="mt-2">
+                    <div class="small text-muted mb-1">How much of each</div>
+                    <div *ngFor="let row of mixRows" class="d-flex align-items-center gap-2">
+                        <ng-container *ngIf="$any(stimulusFlags)[row.key]">
+                            <span class="small" style="min-width: 5rem;">{{ row.label }}</span>
+                            <input type="range" min="0" max="3" step="0.5"
+                                   [value]="mixOf(row.key)"
+                                   (input)="setMix(row.key, $any($event.target).value)">
+                            <span class="small text-muted">{{ mixOf(row.key) }}&times;</span>
+                        </ng-container>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        One is a normal share, zero is off. Enabled kinds used to
+                        take equal shares, so turning emoji on made half the
+                        stimuli emoji.
+                    </small>
                 </div>
-                <small class="text-muted">
-                    <strong>Ladder</strong> leaves it to progression. Forcing either way
-                    needs <strong>Customise</strong> switched on.
-                </small>
-            </div>
-        </app-collapsible>
+</app-collapsible>
 
         <app-collapsible heading="Dimension colours">
 
@@ -334,27 +213,12 @@
                 </div>
         </app-collapsible>
 
-        <app-collapsible heading="Keyboard">
-
-                <app-keybind-choose></app-keybind-choose>
+        <h3 class="settings__group">Pacing<small>how long you get, and how long a session runs</small></h3>
+        <app-collapsible heading="Timer mode">
+                <app-timer-choose></app-timer-choose>
         </app-collapsible>
 
-        <app-collapsible heading="Accessibility">
-
-                <div class="d-grid" style="gap: 0.75rem;">
-                    <app-input
-                        type="select"
-                        name="colorBlindnessMode"
-                        label="Color blindness mode"
-                        placeholder="Color blindness mode"
-                        [ngControl]="colorBlindnessMode"
-                        [options]="colorBlindnessChoices"
-                    />
-                    <p class="text-muted small">This changes the color of the <span class="is-negated">inversion cue</span></p>
-                </div>
-        </app-collapsible>
-
-        <app-collapsible heading="Playtime settings">
+        <app-collapsible heading="Session limits">
 
                 <div class="d-grid" style="gap: 0.75rem;">
                     <app-input
@@ -380,6 +244,112 @@
                     ></app-input>
                 </div>
         </app-collapsible>
+
+        <h3 class="settings__group">Feedback<small>what you are told, and when</small></h3>
+        <!--
+          Two switches rather than one: the sound is what the room hears, the
+          flash is what the session feels like. Somebody wants one gone far
+          more often than both.
+        -->
+        <app-collapsible heading="Response feedback">
+            <div class="d-grid" style="gap: 0.75rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="soundOn" (change)="setSoundOn($any($event.target).checked)">
+                    <span>Sounds
+                        <small class="d-block text-muted">
+                            The blips after an answer and the chime when the daily
+                            goal is reached. Off is silent &mdash; there is no other
+                            sound in the app.
+                        </small>
+                    </span>
+                </label>
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="feedbackShown"
+                           (change)="setFeedbackShown($any($event.target).checked)">
+                    <span>Show Correct / Wrong
+                        <small class="d-block text-muted">
+                            The word that flashes over the card between questions.
+                            Turned off, one question runs into the next with a
+                            quarter-second gap instead of a beat you read.
+                            Everything is still scored, and <strong>History</strong>
+                            and <strong>Statistics</strong> still show how each item
+                            went.
+                        </small>
+                    </span>
+                </label>
+            </div>
+        </app-collapsible>
+
+        <!--
+          The one deliberate interruption on the game screen, and the switch
+          that removes it. Here rather than on Customise because it changes
+          nothing about what a question asks.
+        -->
+        <app-collapsible heading="Error feedback">
+            <div class="d-grid" style="gap: 0.5rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="explanationsShown" (change)="setExplanationsShown($any($event.target).checked)">
+                    <span>Explain wrong answers
+                        <small class="d-block text-muted">
+                            Stops after a wrong answer or a timeout and shows how it
+                            followed — the derivation with the map, diagram or
+                            dimension breakdown that goes with it. Turned off, a wrong
+                            answer runs straight into the next question.
+                            <strong>History</strong> keeps the explanation either way.
+                        </small>
+                    </span>
+                </label>
+            </div>
+        </app-collapsible>
+
+        <!--
+          One way of playing rather than three settings that happen to combine,
+          which is why it is one switch.
+        -->
+        <app-collapsible heading="Zen mode">
+            <div class="d-grid" style="gap: 0.5rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="zenMode" (change)="setZenMode($any($event.target).checked)">
+                    <span>Zen mode
+                        <small class="d-block text-muted">
+                            No answer buttons and no explanation — just the question and
+                            the keys. <strong>↑</strong> and <strong>↓</strong> answer true
+                            and false, and on a picking item they answer the first and the
+                            second option. Number keys and the carousel arrows keep
+                            working. Overrides
+                            <strong>Explain wrong answers</strong> while it is on, and gives
+                            it back when it is off.
+                        </small>
+                    </span>
+                </label>
+            </div>
+        </app-collapsible>
+
+        <h3 class="settings__group">Input and access<small>how you answer, and what the page assumes you can see</small></h3>
+        <app-collapsible heading="Keyboard">
+
+                <app-keybind-choose></app-keybind-choose>
+        </app-collapsible>
+
+        <app-collapsible heading="Accessibility">
+
+                <div class="d-grid" style="gap: 0.75rem;">
+                    <app-input
+                        type="select"
+                        name="colorBlindnessMode"
+                        label="Color blindness mode"
+                        placeholder="Color blindness mode"
+                        [ngControl]="colorBlindnessMode"
+                        [options]="colorBlindnessChoices"
+                    />
+                    <p class="text-muted small">This changes the color of the <span class="is-negated">inversion cue</span></p>
+                </div>
+        </app-collapsible>
+
     </div>
 
     <div footer class="playcard-toolbar">

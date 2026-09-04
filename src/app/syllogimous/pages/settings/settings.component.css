@@ -65,3 +65,32 @@
 }
 
 .flag:first-of-type { border-top: 0; }
+
+
+/*
+ * Section groups.
+ *
+ * Thirteen collapsibles in one flat list is a list you scan rather than a page
+ * you navigate: nothing says which of them are about the same thing, so finding
+ * a setting means opening things until it turns up. Four headings, and the
+ * subtitle says what belongs under each so the grouping is checkable rather
+ * than decorative.
+ */
+.settings__group {
+    margin: 28px 0 10px;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+
+.settings__group:first-of-type { margin-top: 4px; }
+
+.settings__group small {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.78rem;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 0.8;
+}

@@ -2,27 +2,8 @@
 
     <h2 class="mb-1">Experimental</h2>
     <p class="text-muted mb-3">
-        Two ways of <em>spacing</em> an item rather than two kinds of item. Both
-        replace the ordinary draw entirely while they are on, so only one of them
-        runs at a time and the modes you picked elsewhere do not appear beside
-        them.
+        Both replace the ordinary draw. One at a time; unscored.
     </p>
-
-    <!--
-      Said once, in front, because it is the honest thing to say about both of
-      them and it is not said anywhere else in the app.
-    -->
-    <div class="card p-3 mb-3">
-        <p class="mb-0">
-            <strong>Nothing here is measured.</strong> Every other mode is priced
-            by the ability model &mdash; premises, rungs, the clock &mdash; and
-            these two are not, because their difficulty is mostly a quantity it
-            has no coefficient for. Runs are recorded as practice: they do not
-            move your estimate, your tier or your premise counts. That is a
-            deliberate choice about not corrupting the model with evidence it
-            cannot read, not a claim that these are worth less.
-        </p>
-    </div>
 
 
     <app-collapsible heading="Delay line">
@@ -32,13 +13,8 @@
                        [checked]="delayOn" (change)="setDelayOn($any($event.target).checked)">
                 <span>Delay line
                     <small class="d-block text-muted">
-                        Read an arrangement now, judge it <strong>several screens
-                        later</strong>. Each screen shows a new arrangement and asks
-                        about the one from <em>n</em> screens back, so you are always
-                        building one structure while retrieving a different one &mdash;
-                        and because they are made of the same relations, they interfere.
-                        It is n-back where the thing held is a relational model rather
-                        than a letter.
+                        Each screen shows a new arrangement and asks about the one
+                        from <em>n</em> screens back.
                     </small>
                 </span>
             </label>
@@ -58,12 +34,6 @@
                        class="form-control form-control-sm" style="max-width: 6rem;"
                        [disabled]="!delayOn" [value]="delayDepth"
                        (change)="setDelayDepth($any($event.target).value)">
-                <small class="text-muted">
-                    One is the whole demand already: the arrangement you are answering
-                    about is never the one on screen. Past about four this stops being
-                    interference and becomes a queue &mdash; a span test on
-                    structures, which is a different thing from keeping one intact.
-                </small>
 
                 <label for="delay-rounds" class="text-muted small mt-2">
                     Conclusions per run
@@ -73,11 +43,7 @@
                        [disabled]="!delayOn" [value]="delayRounds"
                        (change)="setDelayRounds($any($event.target).value)">
                 <small class="text-muted">
-                    A run is this many conclusions over
-                    <strong>{{ delayRounds + delayDepth }}</strong> screens: the first
-                    {{ delayDepth }} show an arrangement and ask nothing, because
-                    nothing is old enough yet, and the last {{ delayDepth }} ask
-                    without showing anything new while the queue drains.
+                    {{ delayRounds }} conclusions over {{ delayRounds + delayDepth }} screens.
                 </small>
             </div>
         </div>
@@ -162,12 +128,7 @@
     </app-collapsible>
 
     <div class="playcard-toolbar mt-3">
-        <div>
-            <button class="btn btn-outline-primary"
-                    (click)="router.navigate([EnumScreens.Settings])">
-                <i class="bi bi-arrow-left"></i> Display &amp; timer
-            </button>
-        </div>
+        <div></div>
         <div>
             <button class="btn btn-primary" (click)="game.playArcadeMode()">
                 Play <i class="bi bi-play-fill"></i>

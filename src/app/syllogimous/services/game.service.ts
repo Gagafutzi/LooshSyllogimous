@@ -35,7 +35,7 @@ import {
     claimFlashMs, feedbackOn as feedbackIsOn, setFeedbackOn as storeFeedbackOn,
     setSoundOn as storeSoundOn, soundOn as soundIsOn, verdictPause,
 } from "../utils/feedback.utils";
-import { hasNextClaim, judgeItem, takeSeriesAnswer } from "../utils/answer.utils";
+import { hasNextClaim, isHoldClaim, judgeItem, takeSeriesAnswer } from "../utils/answer.utils";
 // Aliased for the reason the feedback imports are: the service exposes a
 // member of the same name, and a call that could be read as either is worth
 // one line of renaming to avoid.
@@ -923,6 +923,21 @@ export class GameService implements GeneratorContext {
         if (this.question.answered) return;
 
         /*
+         * A screen that asked nothing cannot be answered.
+         *
+         * The card withholds the controls and the keyboard handler declines,
+         * but both of those are the *screen* refusing, and any later caller
+         * reaches this directly — recording an answer here would score a
+         * conclusion that was never asked.
+         *
+         * A timeout is deliberately let through. The clock belongs to the run,
+         * not to the screen, so running out of it while holding is the run
+         * ending — and blocking that would leave the card sitting on a held
+         * screen with a stopped clock and nothing able to finish it.
+         */
+        if (value != null && isHoldClaim(this.question)) return;
+
+        /*
          * A series is answered one claim at a time, on one arrangement.
          *
          * The premises stay, the countdown keeps running, and answering buys
@@ -950,18 +965,34 @@ export class GameService implements GeneratorContext {
         this.question.timerTypeOnAnswer = localStorage.getItem(LS_TIMER) || "0";
         // Its sibling: what the clock was, and what the card looked like.
         this.question.gameModeOnAnswer = localStorage.getItem(LS_GAME_MODE) || "0";
-        this.recordDifficulty();
         /*
-         * Unscored, because the active profile says so.
+         * Unscored, because the active profile says so — or because the item
+         * itself said so when it was built.
          *
-         * This used to mean "the Free Play page is driving", which is why it
-         * compared object identity against a settings object. The page is gone;
-         * the property it provided — answers that do not teach the model —
-         * belongs to a profile now, and `playgroundSettings` survives only as
-         * the hook Diagnostics uses to force a full settings object.
+         * The assignment used to be unconditional, which silently undid the
+         * generators that set this on themselves: the stream and the delay line
+         * both mark their items unscored precisely so they cannot teach the
+         * ability model, and both were being scored into it anyway. `||`, so
+         * the item's own answer survives.
+         *
+         * The profile half used to mean "the Free Play page is driving", which
+         * is why it compared object identity against a settings object. The
+         * page is gone; `playgroundSettings` survives only as the hook
+         * Diagnostics uses to force a full settings object.
          */
-        this.question.playgroundMode =
-            !!this.playgroundSettings || this.settingsOverrideService.practice;
+        this.question.playgroundMode = this.question.playgroundMode
+            || !!this.playgroundSettings || this.settingsOverrideService.practice;
+
+        /*
+         * Priced after that, and not at all for an unscored item.
+         *
+         * `recordDifficulty` reads `premises.length` off the question as it
+         * stands, and for a stream or a delay line that is whatever the *last*
+         * screen showed — nothing at all, on the screens where the queue is
+         * draining. It would have written a real-looking level computed from
+         * zero premises into a history the archive reads.
+         */
+        if (!this.question.playgroundMode) this.recordDifficulty();
 
         const type = this.question.type;
         // The last claim recorded like the others, and the item judged on all

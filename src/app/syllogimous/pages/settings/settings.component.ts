@@ -97,6 +97,35 @@ export class SettingsComponent {
 
     get symbolRelations() { return this.game.symbolRelations; }
 
+    /**
+     * Relative share of each stimulus kind, when more than one is on.
+     *
+     * `getSymbols` has honoured these weights since they were written and no
+     * screen ever offered them: the controls were built on Customise, that page
+     * lost its stimulus section when these moved here, and the sliders went with
+     * it. So "words with the occasional emoji" was expressible in the model and
+     * unreachable from the app.
+     */
+    mixRows = [
+        { key: "useText", label: "Words" },
+        { key: "randomLetters", label: "Letters" },
+        { key: "useEmojis", label: "Emoji" },
+        { key: "junkEmojis", label: "Shapes" },
+        { key: "visualNoise", label: "Noise" },
+        { key: "pharmaStimuli", label: "Pharmacy" },
+    ];
+
+    /** Only worth showing when there is more than one kind to balance. */
+    get mixMatters() {
+        return this.mixRows.filter(r => (this.stimulusFlags as any)[r.key]).length > 1;
+    }
+
+    mixOf(kind: string) { return this.game.settingsOverrideService.state.flags.stimulusMix?.[kind] ?? 1; }
+
+    setMix(kind: string, raw: string) {
+        this.game.settingsOverrideService.setMix(kind, Math.max(0, Math.min(5, Number(raw) || 0)));
+    }
+
     get randomLabels() { return this.game.randomLabels; }
 
     setRandomLabels(value: boolean) { this.game.setRandomLabels(value); }
