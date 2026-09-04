@@ -260,7 +260,6 @@ export const RUNG_COST: Record<string, number> = {
     // A false direction drawn from ones the item used. It removes a shortcut
     // rather than adding work — measured at 79% against 75% when it went in,
     // which is roughly a quarter of a level.
-    "incorrect-directions": 0.4,
 
     // Every distance rather than the furthest. One in five by luck becomes one
     // in three thousand, and the task changes from an argmax to a measurement.

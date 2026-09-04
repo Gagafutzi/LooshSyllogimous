@@ -457,7 +457,31 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Syllogism":                 ["negation", "meta", "hierarchy"],
     "Linear Arrangement":        ["negation", "meta"],
     "Circular Arrangement":      ["negation", "meta"],
-    "Direction":                 ["negation", "meta", "incorrect-directions"],
+    /*
+     * Direction is served by the composed-space engine now, so it has that
+     * ladder — the same one every other composed space has.
+     *
+     * Its three old rungs are gone rather than tombstoned, which is the one
+     * place this file breaks its own rule about positions, and deliberately.
+     * A tombstone keeps a slot so a stored count keeps its meaning; here the
+     * meaning is unrecoverable either way, because all three rungs are things
+     * the new engine cannot do:
+     *
+     *   `incorrect-directions`  a composed space flips exactly one axis to
+     *                           build a false claim, so near-miss distractors
+     *                           are unconditional rather than bought.
+     *   `negation`, `meta`      no composed space has ever had them. "Not east"
+     *                           is three states rather than two, so a negated
+     *                           clause does not pick out a claim the way it
+     *                           does on a chain.
+     *
+     * Tombstoning them would leave an earned count buying nothing at all —
+     * three inert rungs, and *less* difficulty than the player had. Rebasing
+     * makes the same count buy composed-space rungs instead, which is the
+     * closest thing to keeping what was earned. It also stops a new player
+     * opening with three free rungs already claimed.
+     */
+    "Direction":                 ND_LADDER,
     "Direction3D Spatial":       ["negation", "meta"],
     "Direction3D Temporal":      ["negation", "meta"],
     "Space 3D":                  ND_LADDER,

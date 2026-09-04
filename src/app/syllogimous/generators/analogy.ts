@@ -169,6 +169,21 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
             break;
         case 3:
             while (flip !== isValidSame) {
+                /*
+                 * The 2D generator, deliberately, even though the Direction
+                 * mode itself is served by the composed engine now.
+                 *
+                 * This branch reads `coords` as [word, x, y] tuples and
+                 * describes the pair with `offset2D`, which is a compass
+                 * offset — so it needs a plane with a fixed meaning. A composed
+                 * space hands back a coordinate map over whichever axes are
+                 * configured, and those need not be spatial at all: an analogy
+                 * over a temporal and a quantity axis would be described as a
+                 * direction on a map.
+                 *
+                 * The cost is that an axis chosen in Customise applies to
+                 * Direction and not to an analogy built out of one.
+                 */
                 question = takeOver(createDirection(ctx, length));
                 question.type = topType;
                 question.conclusion = "";

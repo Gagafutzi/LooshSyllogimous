@@ -48,7 +48,7 @@ export const BUILD: Record<string, Build> = {
     [EnumQuestionType.Syllogism]: createSyllogism,
     [EnumQuestionType.LinearArrangement]: (c, n) => createArrangement(c, n, EnumQuestionType.LinearArrangement),
     [EnumQuestionType.CircularArrangement]: (c, n) => createArrangement(c, n, EnumQuestionType.CircularArrangement),
-    [EnumQuestionType.Direction]: createDirection,
+    [EnumQuestionType.Direction]: (c, n) => createNdSpace(c, n, EnumQuestionType.Direction),
     [EnumQuestionType.Direction3DSpatial]: (c, n) => createDirection3D(c, n, EnumQuestionType.Direction3DSpatial),
     [EnumQuestionType.Direction3DTemporal]: (c, n) => createDirection3D(c, n, EnumQuestionType.Direction3DTemporal),
     [EnumQuestionType.Space3D]: (c, n) => createNdSpace(c, n, EnumQuestionType.Space3D),
