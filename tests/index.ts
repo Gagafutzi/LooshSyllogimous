@@ -19,6 +19,7 @@ import "./keybind.test";
 import "./review.test";
 import "./feedback.test";
 import "./symbols.test";
+import "./random-labels.test";
 import "./mutual-moves.test";
 import "./stream.test";
 import "./answering.test";

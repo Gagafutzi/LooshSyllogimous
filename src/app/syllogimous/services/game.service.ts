@@ -27,7 +27,7 @@ import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
 import { ladderFor } from "../utils/progression.utils";
 import { composeDelayLine, DELAY_TYPES, DEFAULT_DELAY, DEFAULT_DELAY_ROUNDS } from "../generators/delay-line";
-import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_ANALOGY, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_DELAY, LS_DELAY_TYPE, LS_DELAY_DEPTH, LS_DELAY_ROUNDS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
+import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_ANALOGY, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_DELAY, LS_DELAY_TYPE, LS_DELAY_DEPTH, LS_DELAY_ROUNDS, LS_RANDOM_LABELS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 // Aliased: the service exposes members of the same names, and a call that
 // could be read as either is worth one line of renaming to avoid.
@@ -39,7 +39,7 @@ import { hasNextClaim, judgeItem, takeSeriesAnswer } from "../utils/answer.utils
 // Aliased for the reason the feedback imports are: the service exposes a
 // member of the same name, and a call that could be read as either is worth
 // one line of renaming to avoid.
-import { setSymbolRelations as pushSymbolRelations, symboliseStatement } from "../utils/phrasing";
+import { randomRelationLabels, setSymbolRelations as pushSymbolRelations, symboliseStatement } from "../utils/phrasing";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
 import { Router } from "@angular/router";
@@ -1220,6 +1220,28 @@ export class GameService implements GeneratorContext {
      * Written through to `phrasing` as well as to storage, because that module
      * is pure and holds the flag in a variable rather than reading it.
      */
+    /**
+     * Relation labels invented per item, rather than read from a fixed table.
+     *
+     * Its own switch beside minimal mode rather than a replacement for it. A
+     * fixed table of marks is learned like the words it replaced — the cost of
+     * stripping the meaning is paid and nothing is collected for it — but if
+     * the case for arbitrary labels is variability of practice, then making
+     * *every* item arbitrary is only a different constant condition. Two
+     * switches let a session mix, which is what that argument actually
+     * predicts.
+     */
+    get randomLabels(): boolean {
+        try { return localStorage.getItem(LS_RANDOM_LABELS) === "1"; } catch { return false; }
+    }
+
+    setRandomLabels(on: boolean) {
+        try {
+            if (on) localStorage.setItem(LS_RANDOM_LABELS, "1");
+            else localStorage.removeItem(LS_RANDOM_LABELS);
+        } catch { /* private mode; the default stands */ }
+    }
+
     get symbolRelations(): boolean {
         try { return localStorage.getItem(LS_SYMBOL_RELATIONS) === "1"; } catch { return false; }
     }
@@ -1261,9 +1283,19 @@ export class GameService implements GeneratorContext {
      * having rather than a consistency to enforce.
      */
     private asMinimal(question: Question): Question {
-        if (!this.symbolRelations) return question;
+        /*
+         * Two switches, one pass. Fresh labels are a vocabulary invented for
+         * this item; minimal mode is the fixed table. Either alone rewrites the
+         * card, and with both on the fresh labels win — they are the more
+         * specific answer to the same question, and applying one after the
+         * other would try to rewrite marks that are no longer relation words.
+         */
+        const fresh = this.randomLabels ? randomRelationLabels() : null;
+        if (!fresh && !this.symbolRelations) return question;
+        if (fresh) question.relationLabels = fresh;
 
-        const one = (s: string) => symboliseStatement(s);
+        const marks = fresh ?? undefined;
+        const one = (s: string) => symboliseStatement(s, marks);
         question.premises = question.premises.map(one);
         question.conclusion = Array.isArray(question.conclusion)
             ? question.conclusion.map(one)

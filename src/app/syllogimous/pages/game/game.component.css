@@ -17,12 +17,25 @@
     background: color-mix(in srgb, var(--th-text-dim, #7d8ca6) 22%, transparent);
 }
 
+/*
+ * The fill is full width and *scaled*, never resized.
+ *
+ * It animated `width` before, which is not a compositor property: every frame
+ * of the sweep forced a layout and a paint on the main thread, where it
+ * collided with the change detection the one-second tick sets off — so the bar
+ * stuttered once a second, which is exactly the thing the sweep replaced a
+ * stepping bar to avoid.
+ *
+ * `transform` is composited. The sweep runs off the main thread entirely and
+ * stays smooth through whatever else the game screen is doing.
+ */
 .timerbar__fill {
     position: absolute;
     inset: 0 auto 0 0;
     width: 100%;
     background: var(--th-ok, #4ade80);
-    will-change: width;
+    transform-origin: left center;
+    will-change: transform;
 }
 
 .timerbar__label {

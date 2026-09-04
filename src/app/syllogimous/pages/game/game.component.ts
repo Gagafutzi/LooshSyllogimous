@@ -354,14 +354,20 @@ export class GameComponent {
      * minimal mode: with words on the card there is nothing to decode.
      */
     get symbolLegend(): Array<{ mark: string; word: string }> {
-        if (!this.game.symbolRelations) return [];
         const q = this.game.question;
+        /*
+         * Decoded with *this item's* key. Items are generated ahead of the one
+         * on screen, so a shared current vocabulary would describe the card
+         * with the next item's labels — and with fresh labels that is not a
+         * cosmetic error, it is a wrong key for an unanswerable card.
+         */
+        if (!this.game.symbolRelations && !q.relationLabels) return [];
         return symbolLegend([
             ...q.setup ?? [],
             ...q.premises,
             ...(Array.isArray(q.conclusion) ? q.conclusion : [q.conclusion ?? ""]),
             ...q.choices,
-        ]);
+        ], q.relationLabels);
     }
 
     get skipKeyLabel() {
@@ -815,22 +821,30 @@ export class GameComponent {
         // Placed with no transition, or it would animate from wherever the last
         // item left it — including upwards, on the first frame of a new item.
         el.style.transition = 'none';
-        el.style.width = (100 * Math.min(1, leftMs / totalMs)) + '%';
-        // Read back, so the placement above is a finished layout rather than
+        el.style.transform = `scaleX(${Math.min(1, leftMs / totalMs)})`;
+        // Read back, so the placement above is a finished frame rather than
         // something the browser is free to coalesce with the line below it.
         void el.offsetWidth;
 
         if (leftMs <= 0) return;
-        el.style.transition = `width ${leftMs}ms linear`;
-        el.style.width = '0%';
+        el.style.transition = `transform ${leftMs}ms linear`;
+        el.style.transform = 'scaleX(0)';
     }
 
     /** Stop where it is: an answered item's bar should not carry on draining. */
     private freezeTimerBar() {
         const el = this.timerFill?.nativeElement;
         if (!el) return;
+        /*
+         * Where it visually is, taken from the rendered box rather than from
+         * the clock — the clock rounds to whole seconds once it has stopped, so
+         * reading the fraction back off it would jump the bar by up to a second
+         * at the moment the item ends.
+         */
+        const track = el.parentElement?.getBoundingClientRect().width || 0;
+        const scale = track > 0 ? el.getBoundingClientRect().width / track : 0;
         el.style.transition = 'none';
-        el.style.width = getComputedStyle(el).width;
+        el.style.transform = `scaleX(${Math.min(1, Math.max(0, scale))})`;
     }
 
     /**

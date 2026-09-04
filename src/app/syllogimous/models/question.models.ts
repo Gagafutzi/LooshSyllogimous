@@ -283,6 +283,18 @@ export class Question {
     timerTypeOnAnswer = "0";
 
     /**
+     * The relation labels this item was written in, when they were invented for
+     * it.
+     *
+     * Kept on the question rather than in a module variable because items are
+     * generated ahead of the one on screen: by the time you are reading item N
+     * the generator has already built N+1, so a shared "current vocabulary"
+     * would decode the card with the *next* item's key. History has the same
+     * need — an item read back a week later has to say what its labels meant.
+     */
+    relationLabels?: Record<string, string>;
+
+    /**
      * What this item was worth, and what made it worth that.
      *
      * A premise count is not a difficulty: seven premises of Linear Arrangement

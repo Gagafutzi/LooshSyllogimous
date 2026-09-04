@@ -46,12 +46,13 @@
         </app-collapsible>
 
         <div class="card p-3 mb-3">
-            <strong>Continuous stream and delay line have moved.</strong>
+            <strong>Looking for continuous stream or the delay line?</strong>
             <small class="d-block text-muted mb-2">
-                They decide which items exist rather than how one is shown, they
-                switch every other mode off while they run, and neither is priced
-                by the ability model. That is a different kind of setting from the
-                ones on this page.
+                They live under <strong>Experimental</strong>, beside Customise in
+                the menu. They decide which items exist rather than how one is
+                shown, they switch every other mode off while they run, and
+                neither is priced by the ability model &mdash; a different kind of
+                setting from the ones on this page.
             </small>
             <div>
                 <button class="btn btn-sm btn-outline-primary"
@@ -91,6 +92,49 @@
                         </small>
                     </span>
                 </label>
+            </div>
+        </app-collapsible>
+
+        <app-collapsible heading="Fresh relation labels">
+            <div class="d-grid" style="gap: 0.5rem;">
+                <label class="flag">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="randomLabels"
+                           (change)="setRandomLabels($any($event.target).checked)">
+                    <span>Invent the relation words per item
+                        <small class="d-block text-muted">
+                            Every relation gets a two-letter label drawn fresh for
+                            that item &mdash; <em>&ldquo;Kiwi is QF of Doll&rdquo;</em>
+                            &mdash; with the key behind the <strong>?</strong> as
+                            usual. Nothing carries over, so there is no composition
+                            to memorise: what <em>QF then ZR</em> comes to has to be
+                            worked out from the premises every time.
+                        </small>
+                    </span>
+                </label>
+
+                <small class="text-muted">
+                    Minimal mode swaps the words for a <em>fixed</em> table of
+                    marks, and a fixed table gets learned like the words it
+                    replaced &mdash; the cost of losing the meaning is paid and
+                    nothing is collected for it. This is the same idea with the
+                    thing that made it cacheable removed.
+                </small>
+
+                <small class="text-muted">
+                    <strong>Worth mixing rather than leaving on.</strong> The case
+                    for arbitrary labels is variability of practice, and a session
+                    where every item is arbitrary is just a different constant.
+                    Alternating is what that argument actually predicts, and it
+                    keeps you reasoning about relations you understand as well as
+                    ones you have only just been handed.
+                </small>
+
+                <small class="text-muted">
+                    Nothing measures whether this transfers. It will make you
+                    slower and less accurate at first; that cost is real and the
+                    benefit is a prediction.
+                </small>
             </div>
         </app-collapsible>
 

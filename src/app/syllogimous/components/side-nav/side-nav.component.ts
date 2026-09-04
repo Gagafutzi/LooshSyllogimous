@@ -108,6 +108,14 @@ export class SideNavComponent {
                 { label: "Display & timer", link: ["/", EnumScreens.Settings] },
                 { label: "Customise",       link: ["/", EnumScreens.AdvancedOptions] },
                 { label: "Appearance",      link: ["/", EnumScreens.Appearance] },
+                /*
+                 * Its own entry rather than a section of Display & timer.
+                 * These modes decide which items exist rather than how one is
+                 * shown, they switch every other mode off while they run, and
+                 * neither is priced by the ability model — reached from inside
+                 * a display page, none of that is discoverable.
+                 */
+                { label: "Experimental",    link: ["/", EnumScreens.Experimental] },
                 // Diagnostics is a generator test rig, not a setting. Still
                 // routed — it is reached by URL when something needs checking —
                 // but off the menu, where it only ever confused.

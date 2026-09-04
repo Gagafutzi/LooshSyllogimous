@@ -97,6 +97,10 @@ export class SettingsComponent {
 
     get symbolRelations() { return this.game.symbolRelations; }
 
+    get randomLabels() { return this.game.randomLabels; }
+
+    setRandomLabels(value: boolean) { this.game.setRandomLabels(value); }
+
     setSymbolRelations(value: boolean) { this.game.setSymbolRelations(value); }
 
     get soundOn() { return this.game.soundOn; }

@@ -64,7 +64,7 @@ export const rel = (s: string, extra = "") =>
  * and "is at the same height as" are one fact said twice, and `up` and
  * `vertical` are two spellings of one axis that never appear together.
  */
-const RELATION_SYMBOLS: Record<string, string> = {
+export const RELATION_SYMBOLS: Record<string, string> = {
     /*
      * Quantity — the comparisons that already have marks, in their fullwidth
      * forms.
@@ -208,14 +208,17 @@ export function symbolFor(word: string): string | undefined {
  * The shortest wording wins as the label: a scale spells the same relation as
  * "north" and as "is north of", and a key is read in a glance or not at all.
  */
-export function symbolLegend(texts: string[]): Array<{ mark: string; word: string }> {
+export function symbolLegend(
+    texts: string[],
+    marks: Record<string, string> = RELATION_SYMBOLS,
+): Array<{ mark: string; word: string }> {
     const body = texts.join(" ");
     const out: Array<{ mark: string; word: string }> = [];
 
-    for (const mark of new Set(Object.values(RELATION_SYMBOLS))) {
+    for (const mark of new Set(Object.values(marks))) {
         if (!body.includes(mark)) continue;
-        const words = Object.keys(RELATION_SYMBOLS)
-            .filter(w => RELATION_SYMBOLS[w] === mark)
+        const words = Object.keys(marks)
+            .filter(w => marks[w] === mark)
             .sort((a, b) => a.length - b.length);
         out.push({ mark, word: words[0] });
     }
@@ -240,11 +243,14 @@ export function symbolLegend(texts: string[]): Array<{ mark: string; word: strin
  * rewritten into a relation. That is not hypothetical — the noun pool is large
  * and the relation vocabulary is ordinary English.
  */
-export function symboliseStatement(html: string): string {
-    if (!symbolRelations) return html;
+export function symboliseStatement(
+    html: string,
+    marks: Record<string, string> = RELATION_SYMBOLS,
+): string {
+    if (!symbolRelations && marks === RELATION_SYMBOLS) return html;
     return html
         .split(/(<span class="subject">[\s\S]*?<\/span>)/)
-        .map((part, i) => (i % 2 ? part : symbolise(part)))
+        .map((part, i) => (i % 2 ? part : symbolise(part, marks)))
         .join("");
 }
 
@@ -258,9 +264,12 @@ export function symbolisedWords(): string[] { return Object.keys(RELATION_SYMBOL
  * names go through `subj`, so a thing called "North" is never touched, and the
  * only strings reaching here are relation phrases the scales produced.
  */
-export function symbolise(s: string): string {
-    if (!symbolRelations) return s;
-    return s.replace(RELATION_PATTERN, m => RELATION_SYMBOLS[m] ?? m);
+export function symbolise(
+    s: string,
+    marks: Record<string, string> = RELATION_SYMBOLS,
+): string {
+    if (!symbolRelations && marks === RELATION_SYMBOLS) return s;
+    return s.replace(RELATION_PATTERN, m => marks[m] ?? m);
 }
 
 /**
@@ -313,3 +322,73 @@ export const dimSlot = (index: number) => (index % DIM_SLOTS) + 1;
 
 /** The class pair for a slot: the generic hook, then the slot itself. */
 export const dimClass = (slot: number) => `dim dim-${slot}`;
+
+
+/* ------------------------------------------------------------------ *
+ * Relation labels drawn fresh for each item                           *
+ * ------------------------------------------------------------------ */
+
+/**
+ * A relation vocabulary invented for one item and thrown away after it.
+ *
+ * Minimal mode replaced the relation words with a *fixed* table of marks, and a
+ * fixed table is learned: after a few hundred items `＜` is retrieved exactly
+ * as fast as "is less than", and so are its compositions. The cost of stripping
+ * the meaning is paid and nothing is collected for it.
+ *
+ * Drawing the labels fresh per item removes the thing that can be cached. There
+ * is no composition table to build, because "QF then ZR" means something
+ * different on the next card, so the arrangement has to be constructed from the
+ * premises every time. That is variability of practice applied to the operator
+ * rather than to the objects — worse to acquire and, on that literature's
+ * prediction, better to retain.
+ *
+ * **Synonyms keep their grouping.** The fixed table maps several wordings onto
+ * one mark — "north" and "is north of" are the same relation — so the fresh
+ * labels are assigned per *equivalence class* of that table, not per key.
+ * Assigning independently would make an item say two different things about the
+ * same relation and be unanswerable.
+ *
+ * Not a replacement for minimal mode, and deliberately a separate switch: if
+ * the argument for this is variability, making every item arbitrary is just a
+ * new constant condition. The two switches let a session mix.
+ */
+const LABEL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";   // no I or O: they read as 1 and 0
+
+export function randomRelationLabels(
+    rand: () => number = Math.random,
+): Record<string, string> {
+    /* Group the fixed table by mark, so synonyms move together. */
+    const classes = new Map<string, string[]>();
+    for (const [word, mark] of Object.entries(RELATION_SYMBOLS)) {
+        const list = classes.get(mark) ?? [];
+        list.push(word);
+        classes.set(mark, list);
+    }
+
+    const used = new Set<string>();
+    const draw = () => {
+        for (let tries = 0; tries < 400; tries++) {
+            const a = LABEL_ALPHABET[Math.floor(rand() * LABEL_ALPHABET.length)];
+            const b = LABEL_ALPHABET[Math.floor(rand() * LABEL_ALPHABET.length)];
+            const token = a + b;
+            if (!used.has(token)) { used.add(token); return token; }
+        }
+        /* The alphabet holds 576 pairs and the table has far fewer classes, so
+           this is unreachable — but a label that repeats would merge two
+           relations, and an item that cannot be answered is worse than one that
+           looks odd. */
+        let n = used.size;
+        let token = "Z" + n;
+        while (used.has(token)) token = "Z" + (++n);
+        used.add(token);
+        return token;
+    };
+
+    const out: Record<string, string> = {};
+    for (const words of classes.values()) {
+        const token = draw();
+        for (const word of words) out[word] = token;
+    }
+    return out;
+}

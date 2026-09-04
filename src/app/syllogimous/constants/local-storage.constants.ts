@@ -172,3 +172,12 @@ export const LS_DELAY_TYPE = "SYL_DELAY_TYPE";
 export const LS_DELAY_DEPTH = "SYL_DELAY_DEPTH";
 /** Conclusions asked before the run ends. */
 export const LS_DELAY_ROUNDS = "SYL_DELAY_ROUNDS";
+
+/**
+ * Relation labels invented per item rather than read from the fixed table.
+ *
+ * Separate from minimal mode on purpose: a fixed arbitrary table is learned
+ * like the words it replaced, and if the case for arbitrary labels is
+ * variability then making every item arbitrary is only a new constant.
+ */
+export const LS_RANDOM_LABELS = "SYL_RANDOM_LABELS";
