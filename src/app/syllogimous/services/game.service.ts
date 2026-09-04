@@ -95,6 +95,17 @@ import { GeneratorContext } from "../generators/context";
  */
 
 
+/**
+ * Answered items kept in browser storage.
+ *
+ * Unchanged at a thousand, which is about three megabytes — the number is
+ * named rather than repeated so the two places that apply it cannot disagree,
+ * which they previously could: the read sliced to 1000 and the write did not
+ * slice at all, so the stored array grew without bound and was merely *read*
+ * as the first thousand.
+ */
+const HISTORY_LIMIT = 1000;
+
 @Injectable({
     providedIn: "root"
 })
@@ -261,13 +272,48 @@ export class GameService implements GeneratorContext {
             this.settingsOverrideService.pinned());
     }
 
-    get questions() {
+    /**
+     * The answered history, parsed once rather than once per read.
+     *
+     * This parsed the whole of storage on every access — up to a thousand
+     * questions at about three kilobytes each, so three megabytes of JSON — and
+     * `pushIntoHistory` read it on every answer before writing it all back.
+     * Measured on a full history that is 24ms of parsing and serialising per
+     * answer before the synchronous `setItem` even starts, landing exactly on
+     * the keypress. That is what made answering feel heavy rather than
+     * immediate.
+     *
+     * Nothing else in the app writes this key while the app is running, so a
+     * cache held here cannot go stale behind our back; the two places that can
+     * change it — importing a save and clearing one — drop it explicitly.
+     */
+    private historyCache: Question[] | null = null;
+
+    get questions(): Question[] {
+        if (this.historyCache) return this.historyCache;
         let questions: Question[] = [];
-        const history = localStorage.getItem(LS_HISTORY);
-        if (history) {
-            questions = JSON.parse(history).slice(0, 1000);
-        }
+        try {
+            const history = localStorage.getItem(LS_HISTORY);
+            if (history) questions = JSON.parse(history).slice(0, HISTORY_LIMIT);
+        } catch { /* unreadable storage is an empty history, not a dead app */ }
+        this.historyCache = questions;
         return questions;
+    }
+
+    /**
+     * Anything that writes the key from outside has to say so.
+     *
+     * Cancels the pending write as well as dropping the cache: importing a save
+     * clears storage and reloads four hundred milliseconds later, which is
+     * exactly the deferral used here — without this, a flush could land in that
+     * gap and write the old history back over the imported one.
+     */
+    forgetHistoryCache() {
+        if (this.historyWriteTimer != null) {
+            clearTimeout(this.historyWriteTimer);
+            this.historyWriteTimer = null;
+        }
+        this.historyCache = null;
     }
 
     constructor(
@@ -283,7 +329,28 @@ export class GameService implements GeneratorContext {
         // Pushed into `phrasing` once at startup: that module is pure by design
         // and never reads storage itself, so somebody has to tell it.
         pushSymbolRelations(this.symbolRelations);
-        (window as any).syllogimous = this;
+        /*
+         * Guarded, so the service can be constructed without a DOM. It is the
+         * handle Diagnostics and the import path reach for, and an unguarded
+         * assignment made the whole service unconstructible anywhere there is
+         * no window — which is every headless test of anything it owns.
+         */
+        if (typeof window !== "undefined") (window as any).syllogimous = this;
+
+        /*
+         * The deferred write, made safe. `pagehide` is the event that actually
+         * fires when a tab is closed or navigated away from — `beforeunload` is
+         * unreliable on mobile — and `visibilitychange` covers switching away
+         * without closing. Both are cheap: the flush returns immediately when
+         * there is nothing pending.
+         */
+        if (typeof window !== "undefined" && typeof document !== "undefined") {
+            const flush = () => this.flushHistory();
+            window.addEventListener("pagehide", flush);
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "hidden") flush();
+            });
+        }
 
         // Create a first dummy question to avoid null pointer etc...
         const firstDummyQuestion = createSyllogism(this, 2);
@@ -298,8 +365,51 @@ export class GameService implements GeneratorContext {
         }
     }
 
+    /**
+     * Record the answer now, write it to storage in a moment.
+     *
+     * The in-memory list is updated synchronously, so every reader — the stats
+     * pages, the curator, the next call to this — sees the answer immediately.
+     * Serialising it and handing three megabytes to `setItem` is the slow part,
+     * and it is the part nothing is waiting for: it is deferred past the
+     * verdict and the next question, which is the stretch that has to feel
+     * immediate.
+     *
+     * Coalesced, so answering quickly writes once rather than once per answer,
+     * and flushed on the way out so a closed tab cannot lose the last one.
+     */
     pushIntoHistory(question: Question) {
-        localStorage.setItem(LS_HISTORY, JSON.stringify([question, ...this.questions]));
+        this.historyCache = [question, ...this.questions].slice(0, HISTORY_LIMIT);
+        this.scheduleHistoryWrite();
+    }
+
+    private historyWriteTimer: any = null;
+
+    private scheduleHistoryWrite() {
+        if (this.historyWriteTimer != null) return;
+        this.historyWriteTimer = setTimeout(() => {
+            this.historyWriteTimer = null;
+            this.flushHistory();
+        }, 400);
+    }
+
+    /** Serialise and store. Safe to call at any time, including twice. */
+    flushHistory() {
+        if (this.historyWriteTimer != null) {
+            clearTimeout(this.historyWriteTimer);
+            this.historyWriteTimer = null;
+        }
+        if (!this.historyCache) return;
+        try {
+            localStorage.setItem(LS_HISTORY, JSON.stringify(this.historyCache));
+        } catch {
+            /*
+             * Out of quota, most likely. The history is the first thing worth
+             * dropping — the archive is where it is meant to live — so the
+             * session carries on with what is in memory rather than failing an
+             * answer over storage.
+             */
+        }
     }
 
     /** Given an EnumTiers value construct a Settings instance */

@@ -77,7 +77,64 @@
                   Shown for right answers too: "why was that right" is a fair
                   question, and the item is already open.
                 -->
-                <div *ngIf="q.explanation?.length" class="mb-2">
+                <!--
+                  One derivation per conclusion, not one per item.
+
+                  `takeSeriesAnswer` overwrites `question.explanation` as the
+                  card advances, so a three-conclusion item reached storage
+                  carrying only the third one's — and the first two, which are
+                  the ones somebody opens History to understand, were never
+                  shown even though `series[i].explanation` had them all along.
+                -->
+                <div *ngIf="claims(q) as list" class="mb-2 claims-step">
+                    <div class="claims-step__bar">
+                        <button type="button" class="claims-step__nav"
+                                (click)="stepClaim(q, -1)" aria-label="Previous conclusion">&lsaquo;</button>
+                        <span class="claims-step__dots">
+                            <button type="button" *ngFor="let c of list"
+                                    class="claims-step__dot"
+                                    [class.is-on]="c.index === claimIndex(q)"
+                                    [class.is-right]="c.answered === true"
+                                    [class.is-wrong]="c.answered === false"
+                                    (click)="showClaim(q, c.index)"
+                                    [title]="'Conclusion ' + (c.index + 1)">{{ c.index + 1 }}</button>
+                        </span>
+                        <button type="button" class="claims-step__nav"
+                                (click)="stepClaim(q, 1)" aria-label="Next conclusion">&rsaquo;</button>
+                        <span class="claims-step__count">
+                            Conclusion {{ claimIndex(q) + 1 }} of {{ list.length }}
+                        </span>
+                    </div>
+
+                    <ng-container *ngFor="let c of list">
+                        <div *ngIf="c.index === claimIndex(q)">
+                            <div class="small text-muted mb-1">Premises</div>
+                            <div class="premises">
+                                <div *ngFor="let p of c.premises" [innerHTML]="p"></div>
+                            </div>
+                            <div class="small text-muted mb-1 mt-2">Conclusion</div>
+                            <div [innerHTML]="c.text"></div>
+                            <!-- Where the answer was a pick, the options are the question. -->
+                            <div *ngIf="c.choices?.length" class="claims-step__choices">
+                                <span *ngFor="let choice of c.choices; let ci = index"
+                                      class="claims-step__choice"
+                                      [class.is-answer]="ci === c.correctChoice"
+                                      [innerHTML]="choice"></span>
+                            </div>
+                            <div *ngIf="c.explanation?.length">
+                                <div class="small text-muted mb-1 mt-2">How it follows</div>
+                                <ol class="ps-3 mb-1">
+                                    <li *ngFor="let step of c.explanation" [innerHTML]="step"></li>
+                                </ol>
+                            </div>
+                        </div>
+                    </ng-container>
+                    <app-venn *ngIf="q.venn" [diagram]="q.venn"></app-venn>
+                    <app-stages [question]="q"></app-stages>
+                </div>
+
+                <!-- An item that asked one conclusion has one derivation. -->
+                <div *ngIf="!claims(q) && q.explanation?.length" class="mb-2">
                     <div class="small text-muted mb-1">How it follows</div>
                     <ol class="ps-3 mb-1">
                         <li *ngFor="let step of q.explanation" [innerHTML]="step"></li>

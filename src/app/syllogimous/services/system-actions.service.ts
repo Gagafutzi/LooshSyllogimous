@@ -134,6 +134,13 @@ export class SystemActionsService {
          *
          * Cleared first, then written, and only over keys this app owns.
          */
+        /*
+         * The history is written on a short delay, so a pending write has to be
+         * abandoned before storage is cleared — otherwise it lands between the
+         * clear and the reload and puts the old answers back.
+         */
+        (window as unknown as { syllogimous?: { forgetHistoryCache?: () => void } })
+            .syllogimous?.forgetHistoryCache?.();
         for (const key of allStorageKeys()) localStorage.removeItem(key);
         for (const [key, value] of plan.entries) {
             try { localStorage.setItem(key, value); } catch { /* quota */ }

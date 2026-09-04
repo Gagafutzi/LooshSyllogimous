@@ -126,3 +126,63 @@
 
 .marks__one.is-right { color: #58d68d; opacity: 1; }
 .marks__one.is-wrong { color: #e8697d; opacity: 1; }
+
+
+/*
+ * The conclusion stepper.
+ *
+ * Dots rather than only arrows, because the thing you usually want is a
+ * specific conclusion — the one you got wrong — and they carry that mark, so
+ * the control and the result are the same object.
+ */
+.claims-step__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.claims-step__nav,
+.claims-step__dot {
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.35);
+    background: transparent;
+    color: inherit;
+    border-radius: 0.3rem;
+    line-height: 1;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.claims-step__dots { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+
+.claims-step__dot.is-right {
+    border-color: color-mix(in srgb, var(--th-ok, #4ade80) 55%, transparent);
+}
+
+.claims-step__dot.is-wrong {
+    border-color: color-mix(in srgb, var(--th-bad, #fb7185) 55%, transparent);
+}
+
+.claims-step__dot.is-on {
+    background: color-mix(in srgb, var(--th-accent, #22d3ee) 22%, transparent);
+    font-weight: 700;
+}
+
+.claims-step__count { font-size: 0.75rem; opacity: 0.7; margin-left: auto; }
+
+.claims-step__choices { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem; }
+
+.claims-step__choice {
+    border: 1px solid rgba(var(--th-accent-rgb, 34, 211, 238), 0.25);
+    border-radius: 0.3rem;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.85rem;
+}
+
+/* The one that was right, so the card answers the question it is showing. */
+.claims-step__choice.is-answer {
+    border-color: color-mix(in srgb, var(--th-ok, #4ade80) 60%, transparent);
+    background: color-mix(in srgb, var(--th-ok, #4ade80) 12%, transparent);
+}
