@@ -475,7 +475,20 @@ export function getCircularWays(
     return ways;
 };
 
-export function interpolateArrangementRelationship(relationship: IArrangementRelationship, settings: Settings) {
+/**
+ * `onNegate` is called once for each negation this applies.
+ *
+ * The count is what the export reports and what an analysis of negation would
+ * read, and this was the one place that negated a premise without telling
+ * anybody: Linear and Circular Arrangement items came out with negated
+ * relations and a negation count of zero. Every other generator increments its
+ * own, which is why nothing noticed.
+ */
+export function interpolateArrangementRelationship(
+    relationship: IArrangementRelationship,
+    settings: Settings,
+    onNegate?: () => void,
+) {
     const numWord = NUMBER_WORDS[relationship.steps];
 
     const interpolatedWithSteps = relationship.description.replace(/# steps/, () =>
@@ -485,10 +498,10 @@ export function interpolateArrangementRelationship(relationship: IArrangementRel
     );
 
     if (settings.enabled.negation && coinFlip()) {
-        // TODO: This method should return the number of negations applied
-        return interpolatedWithSteps.replaceAll(/(left|right)/gi, substr =>
-            neg((substr === "left") ? "right" : "left")
-        );
+        return interpolatedWithSteps.replaceAll(/(left|right)/gi, substr => {
+            onNegate?.();
+            return neg((substr === "left") ? "right" : "left");
+        });
     }
 
     return interpolatedWithSteps;

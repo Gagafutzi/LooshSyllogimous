@@ -109,7 +109,7 @@ export function createArrangement(ctx: GeneratorContext, numOfPremises: number, 
     const picked = pickUniqueItems(conclusions, 1).picked[0];
     const description = picked[0] as EnumArrangements;
     const steps = picked[1].steps;
-    const interpolated = interpolateArrangementRelationship({ description, steps }, settings);
+    const interpolated = interpolateArrangementRelationship({ description, steps }, settings, () => question.negations++);
     question.conclusion = `${subj(a)} ${interpolated} ${subj(b)}`;
 
     // Next to relationship with 3 elements are useless, in that case regenerate
@@ -143,7 +143,7 @@ export function createArrangement(ctx: GeneratorContext, numOfPremises: number, 
         }
 
         const { description, steps } = relationship;
-        const interpolated = interpolateArrangementRelationship({ description, steps }, settings);
+        const interpolated = interpolateArrangementRelationship({ description, steps }, settings, () => question.negations++);
         return `${subj(a)} ${interpolated} ${subj(b)}`;
     });
 
@@ -165,13 +165,22 @@ export function createArrangement(ctx: GeneratorContext, numOfPremises: number, 
             if (!options.length) return null;
 
             const [desc, data] = options[Math.floor(Math.random() * options.length)];
+            /*
+             * Counted into a local first. This builds *candidates* and throws
+             * some away, so incrementing the question directly reports
+             * negations for text nobody ever saw — which is how an item with a
+             * clean card came to claim three of them.
+             */
+            let negated = 0;
             const text = `${subj(words[x])} `
                 + interpolateArrangementRelationship(
-                    { description: desc as EnumArrangements, steps: data.steps }, settings)
+                    { description: desc as EnumArrangements, steps: data.steps }, settings,
+                    () => negated++)
                 + ` ${subj(words[y])}`;
             // A pair some premise states outright is read, not worked out.
             if (isPremiseLikeConclusion(question.premises, text)) return null;
 
+            question.negations += negated;
             return { text, isValid: want, key: `${x}:${y}:${desc}` };
         }));
     }
