@@ -25,6 +25,7 @@ import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import {
+    DIRECTION3D_WORDS,
     EDGE_WORDS, rel, setSymbolRelations, subj, symbolFor, symbolise, symbolisedWords,
     symbolLegend,
     symboliseStatement,
@@ -112,8 +113,11 @@ function everyRelationLiteral(): string[] {
         }
     }
     // Graph Matching states its edges through `EDGE_WORDS` rather than through
-    // a `rel()` literal, so the scan alone would call those marks stale.
+    // a `rel()` literal, so the scan alone would call those marks stale. Both
+    // Direction3D modes state theirs through `DIRECTION3D_WORDS` for the same
+    // reason — they belong to no scale and reach the card as plain strings.
     for (const word of Object.values(EDGE_WORDS)) found.add(word);
+    for (const word of Object.values(DIRECTION3D_WORDS)) found.add(word);
 
     return [...found].filter(w => !CONNECTIVES.includes(w));
 }

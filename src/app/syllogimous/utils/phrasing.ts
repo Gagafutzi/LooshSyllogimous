@@ -127,6 +127,17 @@ export const RELATION_SYMBOLS: Record<string, string> = {
     "is above": "⇧", "is below": "⇩", "above": "⇧", "below": "⇩",
 
     /*
+     * Direction3D's own wording, which belongs to no scale.
+     *
+     * Its ties take the mark of the tie they are: "on the same level" is the
+     * same fact as "same height", and "in the same cardinal position" says both
+     * compass axes tie at once, which is what "same place" means. Its poles are
+     * spelled as the scales spell them, so they needed no marks of their own.
+     */
+    "at the same time": "≈",
+    "on the same level": "≀", "in the same cardinal position": "≍",
+
+    /*
      * The graph modes, whose relations are not scales at all.
      *
      * Hierarchy and Graph Matching state edges rather than positions — "feeds",
@@ -155,6 +166,40 @@ export const RELATION_SYMBOLS: Record<string, string> = {
      */
     "is to": ":",
 };
+
+/**
+ * The words Direction3D states its own three axes with.
+ *
+ * Not a scale. Both Direction3D modes build their premises out of literals in
+ * the generator, so the completeness check — which walks the scales, then the
+ * `rel("…")` literals — could see none of them. The compass words were
+ * capitalised there and lower case everywhere else, which is how a card came to
+ * read "one level ⇧ and two steps North": half the premise in marks and half in
+ * words, in minimal mode and under randomised labels alike.
+ *
+ * Exported so the generator and the table read the same strings, on the
+ * `EDGE_WORDS` precedent, and so the check can count them as real.
+ *
+ * The two ties are worded per mode — a spatial third axis is a stack of levels
+ * and a temporal one is a clock — and both mean "no difference on this axis".
+ */
+export const DIRECTION3D_WORDS = {
+    /** The vertical axis, spatial. */
+    above: "above", below: "below", sameLevel: "on the same level",
+    /**
+     * The same axis, temporal — in the chronological scale's own words.
+     *
+     * It said "one hour before" until the two modes were compared side by side,
+     * where Comparison Chronological says "earlier" for the identical relation.
+     * One relation with two names across modes is a thing to carry for no
+     * reason, and "before" is a word Transformation Matching uses as a panel
+     * caption, so the marks would have had to tell a relation from a heading by
+     * its capital letter — which is the distinction that had just failed.
+     */
+    later: "later", earlier: "earlier", sameTime: "at the same time",
+    /** Both compass axes at once, which is the only way they tie. */
+    sameCardinal: "in the same cardinal position",
+} as const;
 
 /**
  * What Graph Matching calls its three edge directions.

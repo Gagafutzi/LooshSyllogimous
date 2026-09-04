@@ -12,7 +12,7 @@ import { NUMBER_WORDS } from "../constants/question.constants";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { guid } from "src/app/utils/uuid";
 import { EnumQuestionType } from "../constants/question.constants";
-import { neg, subj } from "../utils/phrasing";
+import { DIRECTION3D_WORDS as W, neg, subj } from "../utils/phrasing";
 
 export function createDirection(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createDirection");
@@ -35,10 +35,10 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
     const sideSize = 1 + Math.round(Math.sqrt(numOfEls));
 
     const cardinalOppositeMap: Record<string, string> = {
-        "North": "South",
-        "South": "North",
-        "East": "West",
-        "West": "East"
+        "north": "south",
+        "south": "north",
+        "east": "west",
+        "west": "east"
     };
 
     // Give random coords to each subject
@@ -142,15 +142,15 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
         const absdiffx = Math.abs(diffx);
 
         if (diffy > 0) {
-            cardinals.push(["North", absdiffy]);
+            cardinals.push(["north", absdiffy]);
         } else if (diffy < 0) {
-            cardinals.push(["South", absdiffy]);
+            cardinals.push(["south", absdiffy]);
         }
 
         if (diffx > 0) {
-            cardinals.push(["East", absdiffx]);
+            cardinals.push(["east", absdiffx]);
         } else if (diffx < 0) {
-            cardinals.push(["West", absdiffx]);
+            cardinals.push(["west", absdiffx]);
         }
 
         premises.push({
@@ -212,7 +212,7 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
         /*
          * A replacement direction stays on its own axis.
          *
-         * The cardinals are one entry per axis, so putting "East" where the
+         * The cardinals are one entry per axis, so putting "east" where the
          * north/south entry goes produces "two steps east and three steps
          * east", or worse a claim naming both poles of one axis. That is not a
          * hard item, it is a malformed one — the first version of this did
@@ -261,8 +261,19 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
     conclusion.relationship = getRelationship(conclusion.cardinals, tweaked);
     ctx.logger.info("Conclusion", conclusion);
 
+    /*
+     * Case-sensitive, now that the cardinals are written in lower case.
+     *
+     * They used to be capitalised here and nowhere else, which put "two steps
+     * North" beside "one level above" on the same card and left the compass
+     * word untouched in minimal mode and under randomised labels — both tables
+     * are lower case. With the flag on, a stray capital would have matched here
+     * and then missed the opposite map, printing "undefined" where a direction
+     * belongs; without it, one that ever comes back is left alone and the
+     * symbol test says so.
+     */
     const negateRelationship = (relationship: string) => {
-        return relationship.replaceAll(/(north|south|east|west)/gi, substr => {
+        return relationship.replaceAll(/(north|south|east|west)/g, substr => {
             if (coinFlip()) {
                 question.negations++;
                 return neg(cardinalOppositeMap[substr]);
@@ -325,8 +336,8 @@ export function createDirection(ctx: GeneratorContext, numOfPremises: number): Q
     /** Cardinal pairs for a displacement, in the order the premises state them. */
     const cardinalsFor = (dx: number, dy: number): [string, number][] => {
         const out: [string, number][] = [];
-        if (dy > 0) out.push(["North", dy]); else if (dy < 0) out.push(["South", -dy]);
-        if (dx > 0) out.push(["East", dx]); else if (dx < 0) out.push(["West", -dx]);
+        if (dy > 0) out.push(["north", dy]); else if (dy < 0) out.push(["south", -dy]);
+        if (dx > 0) out.push(["east", dx]); else if (dx < 0) out.push(["west", -dx]);
         return out;
     };
 
@@ -415,16 +426,16 @@ export function createDirection3D(ctx: GeneratorContext, numOfPremises: number, 
     const sideSize = 1 + Math.round(Math.cbrt(numOfEls));
 
     const trasversalOpposite: Record<string, string> = {
-        "before": "after",
-        "after": "before",
+        "earlier": "later",
+        "later": "earlier",
         "below": "above",
         "above": "below"
     };
     const cardinalOppositeMap: Record<string, string> = {
-        "North": "South",
-        "South": "North",
-        "East": "West",
-        "West": "East"
+        "north": "south",
+        "south": "north",
+        "east": "west",
+        "west": "east"
     };
 
     // Give random coords to each subject
@@ -508,24 +519,24 @@ export function createDirection3D(ctx: GeneratorContext, numOfPremises: number, 
         const n = NUMBER_WORDS[absdiff] || absdiff;
         if (isSpatial) {
             if (tdiff === 0) {
-                return "on the same level";
+                return W.sameLevel;
             } else if (tdiff < 0) {
-                return `${n} level${s} below`;
+                return `${n} level${s} ${W.below}`;
             } else {
-                return `${n} level${s} above`;
+                return `${n} level${s} ${W.above}`;
             }
         } else {
             if (tdiff === 0) {
-                return "at the same time";
+                return W.sameTime;
             } else if (tdiff < 0) {
-                return `${n} hour${s} before`;
+                return `${n} hour${s} ${W.earlier}`;
             } else {
-                return `${n} hour${s} after`;
+                return `${n} hour${s} ${W.later}`;
             }
         }
     };
 
-    const SAME_CARDINAL_DIRECTION = "in the same cardinal position";
+    const SAME_CARDINAL_DIRECTION = W.sameCardinal;
     const getCardinalRelationship = (_cardinals: [string, number][]) => {
         if (_cardinals.every(c => c[1] === 0)) {
             return SAME_CARDINAL_DIRECTION;
@@ -563,17 +574,17 @@ export function createDirection3D(ctx: GeneratorContext, numOfPremises: number, 
         const absdiffx = Math.abs(diffx);
 
         if (diffy > 0) {
-            cardinals.push(["North", absdiffy]);
+            cardinals.push(["north", absdiffy]);
         } else if (diffy < 0) {
-            cardinals.push(["South", absdiffy]);
+            cardinals.push(["south", absdiffy]);
         } else {
             cardinals.push(["!", 0]);
         }
 
         if (diffx > 0) {
-            cardinals.push(["East", absdiffx]);
+            cardinals.push(["east", absdiffx]);
         } else if (diffx < 0) {
-            cardinals.push(["West", absdiffx]);
+            cardinals.push(["west", absdiffx]);
         } else {
             cardinals.push(["!", 0]);
         }
@@ -638,14 +649,14 @@ export function createDirection3D(ctx: GeneratorContext, numOfPremises: number, 
 
     const negateRelationship = (relationship: string) => {
         return relationship
-            .replaceAll(/(before|after|below|above)/gi, substr => {
+            .replaceAll(/(earlier|later|below|above)/g, substr => {
                 if (coinFlip()) {
                     question.negations++;
                     return neg(trasversalOpposite[substr]);
                 }
                 return substr;
             })
-            .replaceAll(/(north|south|east|west)/gi, substr => {
+            .replaceAll(/(north|south|east|west)/g, substr => {
                 if (coinFlip()) {
                     question.negations++;
                     return neg(cardinalOppositeMap[substr]);
@@ -705,8 +716,8 @@ export function createDirection3D(ctx: GeneratorContext, numOfPremises: number, 
     /** Both clauses for a displacement, worded as the premises word them. */
     const phrase3 = (dx: number, dy: number, dt: number) => {
         const cardinals: [string, number][] = [
-            dy > 0 ? ["North", dy] : dy < 0 ? ["South", -dy] : ["!", 0],
-            dx > 0 ? ["East", dx] : dx < 0 ? ["West", -dx] : ["!", 0],
+            dy > 0 ? ["north", dy] : dy < 0 ? ["south", -dy] : ["!", 0],
+            dx > 0 ? ["east", dx] : dx < 0 ? ["west", -dx] : ["!", 0],
         ];
         const cardinal = getCardinalRelationship(cardinals);
         const connector = cardinal === SAME_CARDINAL_DIRECTION ? " and "
