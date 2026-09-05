@@ -39,7 +39,7 @@ import { hasNextClaim, isHoldClaim, judgeItem, takeSeriesAnswer } from "../utils
 // Aliased for the reason the feedback imports are: the service exposes a
 // member of the same name, and a call that could be read as either is worth
 // one line of renaming to avoid.
-import { randomRelationLabels, setSymbolRelations as pushSymbolRelations, symboliseStatement } from "../utils/phrasing";
+import { LabelScheme, randomRelationLabels, setSymbolRelations as pushSymbolRelations, symboliseStatement } from "../utils/phrasing";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
 import { Router } from "@angular/router";
@@ -106,6 +106,15 @@ import { GeneratorContext } from "../generators/context";
  * as the first thousand.
  */
 const HISTORY_LIMIT = 1000;
+
+/** The four ways a drawn label can be read, and what an old flag meant. */
+export function labelSchemeFrom(raw: string | null): LabelScheme | null {
+    if (raw === "mapped" || raw === "red" || raw === "anagram" || raw === "colour") {
+        return raw;
+    }
+    // What the on/off flag wrote. It behaved as `mapped`: a key was available.
+    return raw === "1" ? "mapped" : null;
+}
 
 /** Seconds a claim buys when nothing has been chosen. */
 export const DEFAULT_SERIES_BONUS = 5;
@@ -1287,14 +1296,30 @@ export class GameService implements GeneratorContext {
      * predicts.
      */
     get randomLabels(): boolean {
-        try { return localStorage.getItem(LS_RANDOM_LABELS) === "1"; } catch { return false; }
+        return this.labelScheme != null;
+    }
+
+    /**
+     * Which scheme is drawing the labels, or null for none.
+     *
+     * Stored as the scheme itself rather than as a flag beside one. `"1"` is
+     * what the flag wrote and reads as `mapped`, which is what it behaved like:
+     * a key was available.
+     */
+    get labelScheme(): LabelScheme | null {
+        try { return labelSchemeFrom(localStorage.getItem(LS_RANDOM_LABELS)); }
+        catch { return null; }
+    }
+
+    setLabelScheme(scheme: LabelScheme | null) {
+        try {
+            if (scheme) localStorage.setItem(LS_RANDOM_LABELS, scheme);
+            else localStorage.removeItem(LS_RANDOM_LABELS);
+        } catch { /* private mode; the default stands */ }
     }
 
     setRandomLabels(on: boolean) {
-        try {
-            if (on) localStorage.setItem(LS_RANDOM_LABELS, "1");
-            else localStorage.removeItem(LS_RANDOM_LABELS);
-        } catch { /* private mode; the default stands */ }
+        this.setLabelScheme(on ? (this.labelScheme ?? "mapped") : null);
     }
 
     get symbolRelations(): boolean {
@@ -1346,9 +1371,18 @@ export class GameService implements GeneratorContext {
          * specific answer to the same question, and applying one after the
          * other would try to rewrite marks that are no longer relation words.
          */
-        const fresh = this.randomLabels ? randomRelationLabels() : null;
+        const scheme = this.labelScheme;
+        const fresh = scheme ? randomRelationLabels(Math.random, scheme) : null;
         if (!fresh && !this.symbolRelations) return question;
-        if (fresh) question.relationLabels = fresh;
+        /*
+         * Kept only where there is a key to show.
+         *
+         * The three standalone schemes hand the reader the pairing in the
+         * labels themselves and carry no key at all, and the card says so by
+         * arriving without one — the screen reads this field and nothing else
+         * to decide whether `v` has anything behind it.
+         */
+        if (fresh && scheme === "mapped") question.relationLabels = fresh;
 
         const marks = fresh ?? undefined;
         const one = (s: string) => symboliseStatement(s, marks);

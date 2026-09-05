@@ -13,6 +13,7 @@ import { LinearFeatureFlags, SettingsOverrideService } from '../../services/sett
 /** The boolean members of the linear flags; the other two are counts. */
 type LinearToggle = Exclude<keyof LinearFeatureFlags, "transforms" | "edits">;
 import { Subscription } from 'rxjs';
+import { LabelScheme } from "src/app/syllogimous/utils/phrasing";
 
 export const loadColorBlindnessMode = () => {
     const blindnessModeColor = localStorage.getItem(LS_COLOR_BLINDNESS_MODE);
@@ -129,6 +130,30 @@ export class SettingsComponent {
     get randomLabels() { return this.game.randomLabels; }
 
     setRandomLabels(value: boolean) { this.game.setRandomLabels(value); }
+
+    get labelScheme() { return this.game.labelScheme ?? "mapped"; }
+
+    setLabelScheme(value: string) {
+        this.game.setLabelScheme(value as LabelScheme);
+    }
+
+    /**
+     * How a reader is meant to tell one pole of a drawn label from the other.
+     *
+     * A label is arbitrary, which is the point, and that leaves a problem the
+     * fixed marks never posed: `＞` says on its face that it is the opposite of
+     * `＜`, and "QF" says nothing at all about "ZK".
+     */
+    readonly labelSchemes: Array<{ id: LabelScheme; name: string; note: string }> = [
+        { id: "mapped", name: "Key on V",
+          note: "V shows the key, over the card. Reading it costs the premises." },
+        { id: "red", name: "Red inverts",
+          note: "One label per axis, red where it is inverted." },
+        { id: "anagram", name: "Anagram inverts",
+          note: "One label per axis, letters turned round where it is inverted." },
+        { id: "colour", name: "Axis colour only",
+          note: "Two labels, paired by colour. Nothing says which is which." },
+    ];
 
     setSymbolRelations(value: boolean) { this.game.setSymbolRelations(value); }
 

@@ -101,13 +101,17 @@
 
 <!--
   The key to the marks, behind a "?".
-  Only in minimal mode, and only the marks this card is using — a key listing an
-  axis the item does not mention is worse than none, and one missing an axis it
-  does is worse still. Hover or focus opens it, so it is reachable from the
+  Only for the fixed marks, and only the ones this card is using — a key listing
+  an axis the item does not mention is worse than none, and one missing an axis
+  it does is worse still. Hover or focus opens it, so it is reachable from the
   keyboard as well as the mouse, and it never takes space from the question.
+
+  Drawn labels do not get it. A fixed mark is learned once and the chip is a
+  reminder; a label drawn for this item alone is the exercise, and a key beside
+  the card would make reading it free.
 -->
 <ng-template #symbolKey>
-    <div class="symkey-row" *ngIf="symbolLegend.length">
+    <div class="symkey-row" *ngIf="symbolLegend.length && !mappedLabels">
       <div class="symkey" tabindex="0" [attr.aria-label]="'What the symbols mean'">
         <span class="symkey__mark">?</span>
         <div class="symkey__panel">
@@ -118,7 +122,23 @@
         </div>
       </div>
     </div>
+
+    <!--
+      And the key to this item's own labels, which costs the card to read.
+      `v` opens it over everything; any other key puts the card back.
+    -->
+    <div class="labelkey-hint" *ngIf="mappedLabels && !labelKeyOpen">v — key</div>
 </ng-template>
+
+<div class="labelkey" *ngIf="labelKeyOpen" (click)="labelKeyOpen = false">
+    <div class="labelkey__grid">
+        <ng-container *ngFor="let row of symbolLegend">
+            <span class="labelkey__sym">{{ row.mark }}</span>
+            <span class="labelkey__word">{{ row.word }}</span>
+        </ng-container>
+    </div>
+    <div class="labelkey__foot">any key to go back</div>
+</div>
 
 <ng-container *ngTemplateOutlet="symbolKey"></ng-container>
 

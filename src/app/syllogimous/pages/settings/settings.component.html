@@ -46,10 +46,21 @@
                        (change)="setRandomLabels($any($event.target).checked)">
                 <span>Relabel relations each item
                     <small class="d-block text-muted">
-                        Two-letter labels drawn per item. Key behind the <strong>?</strong>.
+                        Two-letter labels drawn per item.
                     </small>
                 </span>
             </label>
+
+            <div class="d-grid mt-2" style="gap: 0.4rem;" *ngIf="randomLabels">
+                <label class="flag" *ngFor="let s of labelSchemes">
+                    <input type="radio" class="form-check-input" name="labelScheme"
+                           [value]="s.id" [checked]="labelScheme === s.id"
+                           (change)="setLabelScheme(s.id)">
+                    <span>{{ s.name }}
+                        <small class="d-block text-muted">{{ s.note }}</small>
+                    </span>
+                </label>
+            </div>
         </app-collapsible>
 
         <app-collapsible heading="Premise wording">

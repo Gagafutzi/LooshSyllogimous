@@ -481,8 +481,64 @@ export const dimClass = (slot: number) => `dim dim-${slot}`;
  */
 const LABEL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";   // no I or O: they read as 1 and 0
 
+/**
+ * How an item lets you tell one pole of a relation from the other.
+ *
+ * A label is arbitrary by design, which leaves the reader with a problem the
+ * fixed marks never posed: `＞` and `＜` say on their face that they are
+ * opposites, and "QF" and "ZK" say nothing at all. There are two honest answers
+ * to that and they are different exercises.
+ *
+ * `mapped` keeps a key, and makes reading it cost something — it is behind a
+ * key press and it covers the card, so consulting it means giving up the
+ * premises while you do. A key you can read beside the item is a lookup; a key
+ * you have to swap the item out for is a rehearsal.
+ *
+ * The other three carry no key at all, and instead let the pairing be inferred:
+ *
+ *   `red`      one label for the axis, drawn red where it is inverted —
+ *              "QF" and "QF" in red, so the pairing is given and the polarity
+ *              is the thing to read.
+ *   `anagram`  one label for the axis, its letters turned round where it is
+ *              inverted — "QF" and "FQ". The same information as red, carried
+ *              by the token rather than beside it, so it survives a reader who
+ *              cannot use the colour.
+ *   `colour`   two unrelated labels, painted in the axis's own colour, which is
+ *              the only thing saying they belong together. Nothing says which
+ *              is which — that is left to the item.
+ */
+export type LabelScheme = "mapped" | "red" | "anagram" | "colour";
+
+/** The class an inverted label is drawn with under the `red` scheme. */
+export const INVERTED_LABEL_CLASS = "label-inverted";
+
+/**
+ * Which marks are the two poles of one relation, base first.
+ *
+ * Written here rather than derived, because this file cannot import the scales
+ * — `linear.utils` imports it. So the completeness is a test, as it is for the
+ * marks themselves: `symbols.test.ts` walks every scale and fails if a scale's
+ * two directions are not a pair here.
+ *
+ * Which of the two counts as inverted is arbitrary and only has to be stable,
+ * since a label is redrawn per item anyway. The ties and the relations with no
+ * opposite — "next to", "connected to", the graph edges — are absent, and get a
+ * label of their own under every scheme.
+ */
+const MARK_PAIRS: ReadonlyArray<readonly [string, string]> = [
+    ["＞", "＜"], ["»", "«"], ["↻", "↺"], ["⊃", "⊂"], ["∧", "∨"],
+    ["≠", "≐"], ["↑°", "↓°"], ["▶", "◀"], ["→", "←"], ["↑", "↓"],
+    ["⇧", "⇩"], ["↤", "↦"], ["∷", "∺"], ["◁", "▷"],
+];
+
+/** Every mark that is one half of a pair, and the half it is. */
+export function markPairs(): ReadonlyArray<readonly [string, string]> {
+    return MARK_PAIRS;
+}
+
 export function randomRelationLabels(
     rand: () => number = Math.random,
+    scheme: LabelScheme = "mapped",
 ): Record<string, string> {
     /* Group the fixed table by mark, so synonyms move together. */
     const classes = new Map<string, string[]>();
@@ -493,12 +549,21 @@ export function randomRelationLabels(
     }
 
     const used = new Set<string>();
-    const draw = () => {
+    /*
+     * `reserve` is what the anagram scheme needs: a token whose reversal is
+     * spoken for as well, and whose two letters differ — "QQ" reversed is "QQ",
+     * which would say a relation and its opposite are the same thing.
+     */
+    const draw = (reserve = false) => {
         for (let tries = 0; tries < 400; tries++) {
             const a = LABEL_ALPHABET[Math.floor(rand() * LABEL_ALPHABET.length)];
             const b = LABEL_ALPHABET[Math.floor(rand() * LABEL_ALPHABET.length)];
             const token = a + b;
-            if (!used.has(token)) { used.add(token); return token; }
+            const back = b + a;
+            if (used.has(token) || (reserve && (a === b || used.has(back)))) continue;
+            used.add(token);
+            if (reserve) used.add(back);
+            return token;
         }
         /* The alphabet holds 576 pairs and the table has far fewer classes, so
            this is unreachable — but a label that repeats would merge two
@@ -512,9 +577,35 @@ export function randomRelationLabels(
     };
 
     const out: Record<string, string> = {};
-    for (const words of classes.values()) {
-        const token = draw();
-        for (const word of words) out[word] = token;
+    const label = (mark: string, text: string) => {
+        for (const word of classes.get(mark) ?? []) out[word] = text;
+    };
+
+    /*
+     * One label for both poles under `red` and `anagram`, so the pairing is
+     * given and only the polarity has to be read. `mapped` and `colour` draw
+     * the poles independently — the first has a key to settle them and the
+     * second deliberately says nothing beyond the axis colour.
+     */
+    const paired = scheme === "red" || scheme === "anagram";
+    const done = new Set<string>();
+
+    if (paired) {
+        for (const [base, inverted] of MARK_PAIRS) {
+            if (!classes.has(base) && !classes.has(inverted)) continue;
+            const token = draw(scheme === "anagram");
+            label(base, token);
+            label(inverted, scheme === "anagram"
+                ? token[1] + token[0]
+                : `<span class="${INVERTED_LABEL_CLASS}">${token}</span>`);
+            done.add(base);
+            done.add(inverted);
+        }
+    }
+
+    for (const mark of classes.keys()) {
+        if (done.has(mark)) continue;
+        label(mark, draw());
     }
     return out;
 }

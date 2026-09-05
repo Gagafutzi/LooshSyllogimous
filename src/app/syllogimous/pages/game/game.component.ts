@@ -259,6 +259,7 @@ export class GameComponent {
         // Auto-advance replaces the question in place, so the screen has to
         // re-arm itself rather than relying on a fresh component.
         this.questionSub = this.game.questionChanged.subscribe(() => {
+            this.closeLabelKey();
             this.gameTimerService.stop();
             this.trueButtonToTheRight = Math.random() > 0.5;
             this.resetPicks();
@@ -388,6 +389,21 @@ export class GameComponent {
      * exactly the marks that are on it — no more, and never fewer. Only in
      * minimal mode: with words on the card there is nothing to decode.
      */
+    /**
+     * Whether this item's labels come with a key at all.
+     *
+     * The three standalone schemes hand the reader the pairing in the labels
+     * themselves — red for the inverted pole, its letters turned round, or the
+     * axis colour and nothing else — and carry no key, which the item says by
+     * arriving without one.
+     */
+    get mappedLabels(): boolean {
+        return !!this.game.question.relationLabels;
+    }
+
+    /** Closed whenever the card underneath it changes. */
+    private closeLabelKey() { this.labelKeyOpen = false; }
+
     get symbolLegend(): Array<{ mark: string; word: string }> {
         const q = this.game.question;
         /*
@@ -692,15 +708,46 @@ export class GameComponent {
             : (this.choiceFocus + by + n) % n;
     }
 
+    /**
+     * Whether the key to this item's labels is being held open.
+     *
+     * Drawn labels are arbitrary, so a key beside the card is a lookup and
+     * costs nothing — read the label, read the premise, carry neither. `v`
+     * swaps the card for the key instead: while it is open the premises are not
+     * on screen, so consulting it means holding what you had read.
+     */
+    labelKeyOpen = false;
+
     @HostListener("document:keydown", ["$event"])
     onKey(event: KeyboardEvent) {
-        // Never while a verdict is up: a late keypress would answer the next
-        // question before it has been read.
-        if (this.game.verdict) return;
-
         // Typing in the conclusion builder is typing, not playing.
         const target = event.target as HTMLElement | null;
         if (target?.closest("input, select, textarea")) return;
+
+        /*
+         * The key, before anything else looks at the keystroke.
+         *
+         * Above the verdict guard on purpose: an item is worth looking up after
+         * it has been answered as much as before, and that is where a reader
+         * checks what they had wrong.
+         */
+        if (event.key === "v" || event.key === "V") {
+            if (!this.labelKeyOpen && !this.mappedLabels) return;
+            event.preventDefault();
+            this.labelKeyOpen = !this.labelKeyOpen;
+            return;
+        }
+        if (this.labelKeyOpen) {
+            // Anything else puts the card back, rather than acting on a screen
+            // the player cannot see.
+            event.preventDefault();
+            this.labelKeyOpen = false;
+            return;
+        }
+
+        // Never while a verdict is up: a late keypress would answer the next
+        // question before it has been read.
+        if (this.game.verdict) return;
 
         if (this.game.review.length) {
             // The one thing worth doing while the explanation is up.
