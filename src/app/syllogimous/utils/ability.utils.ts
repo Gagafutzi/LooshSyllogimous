@@ -379,6 +379,20 @@ export interface Dial {
      * higher. Absent where the premise count is the only limit.
      */
     max?: number;
+    /**
+     * A budget this dial draws from along with others.
+     *
+     * Edits and transformations both come out of the object count — the
+     * generator computes `editCount` first and then allows transformations only
+     * `premises - 3 - editCount` turns, so between them they can have
+     * `premises - 3` and no more. Capped separately, the model asked for six of
+     * each on a nine-premise item: the generator builds six edits and *no*
+     * transformations, and the item is priced seven levels above what it is.
+     *
+     * Named rather than a boolean so a second shared budget can exist without
+     * silently joining this one.
+     */
+    shares?: string;
     /** The ladder entries this replaces, in order. */
     was: string[];
 }
@@ -395,9 +409,13 @@ export const DIALS: Record<string, Dial> = {
         steps: [1.2, 0.8], needs: [0, 0], max: 3, was: ["circular", "circular-2"],
     },
     transforms: {
-        steps: [1.5, 1.2], needs: [4, 5], was: ["transform-1", "transform-2"],
+        steps: [1.5, 1.2], needs: [4, 5], shares: "objects",
+        was: ["transform-1", "transform-2"],
     },
-    edits: { steps: [1.5, 1.2], needs: [4, 5], was: ["edit-1", "edit-2"] },
+    edits: {
+        steps: [1.5, 1.2], needs: [4, 5], shares: "objects",
+        was: ["edit-1", "edit-2"],
+    },
     "transform-depth": {
         steps: [1.2, 1.0], needs: [4, 5],
         was: ["transform-depth-1", "transform-depth-2"],
@@ -465,8 +483,9 @@ export function allocateDials(
     if (!names.length || budget <= 0) return out;
 
     let left = budget;
+    const drawn: Record<string, number> = {};
     for (let round = 0; round < 64; round++) {
-        let spent = false;
+        let anySpent = false;
         for (const name of names) {
             const dial = DIALS[name];
             if (!dial) continue;
@@ -474,23 +493,41 @@ export function allocateDials(
             // What the item can carry, before what the budget can pay for.
             if (dial.max != null && turns >= dial.max) continue;
             if (needsAt(dial, turns) > premises) continue;
+            if (sharedLeft(dial, premises, drawn) <= 0) continue;
 
             const next = dialCost(name, turns + 1) - dialCost(name, turns);
             if (next > left) continue;
             out[name] = turns + 1;
+            if (dial.shares) drawn[dial.shares] = (drawn[dial.shares] ?? 0) + 1;
             left -= next;
-            spent = true;
+            anySpent = true;
         }
-        if (!spent) break;
+        if (!anySpent) break;
     }
     return out;
 }
 
 /** The same allocation, with any step the premise count cannot support removed. */
+/**
+ * Turns still available on a shared budget.
+ *
+ * The budget is what the premise count leaves once the first turn's floor is
+ * met: a dial whose first turn wants four premises leaves `premises - 3` turns
+ * between everything drawing on the same pool.
+ */
+function sharedLeft(
+    dial: Dial, premises: number, spent: Record<string, number>,
+): number {
+    if (!dial.shares) return Infinity;
+    const budget = Math.max(0, premises - ((dial.needs[0] ?? 1) - 1));
+    return budget - (spent[dial.shares] ?? 0);
+}
+
 export function capDials(
     dials: Record<string, number>, premises: number,
 ): Record<string, number> {
     const out: Record<string, number> = {};
+    const spent: Record<string, number> = {};
     for (const [name, n] of Object.entries(dials)) {
         const dial = DIALS[name];
         if (!dial) continue;
@@ -498,6 +535,8 @@ export function capDials(
         for (let i = 0; i < n; i++) {
             if (dial.max != null && i >= dial.max) break;
             if (needsAt(dial, i) > premises) break;
+            if (sharedLeft(dial, premises, spent) <= 0) break;
+            if (dial.shares) spent[dial.shares] = (spent[dial.shares] ?? 0) + 1;
             kept++;
         }
         if (kept > 0) out[name] = kept;
