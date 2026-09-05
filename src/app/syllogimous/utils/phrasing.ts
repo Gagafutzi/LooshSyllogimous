@@ -393,6 +393,29 @@ export function symbolise(
 export const hi = (s: string, extra = "") =>
     `<span class="highlight ${extra}">${symbolise(s)}</span>`;
 
+/**
+ * The join in a premise that states two relations rather than one.
+ *
+ * "A is above B, which is above C" names three objects and states two binary
+ * relations sharing a middle term. It reads as one sentence and it is not one
+ * relation, and nothing downstream can tell the difference from the text: a
+ * genuinely ternary premise — "B is between A and C" — names three objects too,
+ * and is a single relation that does not come apart.
+ *
+ * The distinction matters to what the item is *worth*: two binary steps and one
+ * ternary step are different demands, and a measure that cannot tell them apart
+ * reports a wide item as though every reader held three things at once.
+ *
+ * So the writer marks the join and the reader splits on it, the way `subj` and
+ * `extractSubjects` already work, and `neg` and `countNegations`. A class rather
+ * than the wording, so rephrasing the connective cannot silently change what an
+ * item is measured as.
+ */
+export const CHAIN_CLASS = "chained";
+
+export const chainJoin = (text: string) =>
+    `<span class="${CHAIN_CLASS}">${text}</span>`;
+
 /** The reversal cue: a word that means the opposite of what it says. */
 export const neg = (s: string) => `<span class="${NEGATED_CLASS}">${symbolise(s)}</span>`;
 

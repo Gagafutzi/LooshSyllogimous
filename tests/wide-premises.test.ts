@@ -16,6 +16,7 @@
 import { assert, equal, seeded, test } from "./harness";
 import { LINEAR_SCALES, buildBranching, buildChain, renderPremises }
     from "../src/app/syllogimous/utils/linear.utils";
+import { integrationLoad } from "../src/app/syllogimous/utils/integration.utils";
 
 const SCALE = LINEAR_SCALES["quantity"];
 const WORDS = ["Kiwi", "Doll", "Rice", "Beanstalk", "Anchor", "Cobweb", "Tunnel"];
@@ -113,5 +114,43 @@ test("negations in both halves are counted", () => {
             if (struck >= 2) sawBoth = true;
         }
         assert(sawBoth, "no item negated twice, so the joined halves were not both tested");
+    });
+});
+
+/**
+ * What the item is measured as, from the premises the mode actually renders.
+ *
+ * A joined sentence names three objects and states two binary relations sharing
+ * a middle term. Read as one relation it reports the player as having held
+ * three things at once, which is what separates it from a genuinely ternary
+ * premise — and the arity number is meant to be fitted against answers, so an
+ * overstatement here becomes a coefficient later.
+ *
+ * The reader splits on a marker the writer puts there. This is the half that
+ * checks the writer: everything else passes just as well when the join goes out
+ * unmarked.
+ */
+test("a rendered wide item measures as the two binary steps it is", () => {
+    seeded(17, () => {
+        for (let i = 0; i < 20; i++) {
+            const layout = buildChain(WORDS.slice(0, 6));
+            const wide = renderPremises(SCALE, layout, { wide: true });
+            if (!merged(wide.premises)) continue;
+            equal(integrationLoad(wide.premises).arity, 2,
+                "a joined sentence was measured as one relation over three objects:\n  "
+                + wide.premises.find(p => p.includes(", which "))!.replace(/<[^>]+>/g, ""));
+        }
+    });
+});
+
+test("and a branching one too, where every link is joined", () => {
+    seeded(404, () => {
+        for (let i = 0; i < 20; i++) {
+            const layout = buildBranching(WORDS);
+            const wide = renderPremises(SCALE, layout, { wide: true });
+            if (!merged(wide.premises)) continue;
+            equal(integrationLoad(wide.premises).arity, 2,
+                "a branching item's joined sentences were measured as ternary");
+        }
     });
 });

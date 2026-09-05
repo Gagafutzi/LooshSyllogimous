@@ -16,6 +16,7 @@
 
 import { assert, equal, test } from "./harness";
 import { integrationLoad, subjectsOf } from "../src/app/syllogimous/utils/integration.utils";
+import { chainJoin } from "../src/app/syllogimous/utils/phrasing";
 import { pricedPremises } from "../src/app/syllogimous/utils/ability.utils";
 
 const s = (name: string) => `<span class="subject">${name}</span>`;
@@ -192,4 +193,47 @@ test("a premise that settles nothing new counts nothing", () => {
     const load = integrationLoad([p("A", "B"), p("B", "C"), p("A", "C")]);
     equal(load.pairsSettled, 2,
         "the closing premise settles nothing, so the peak stays where it was");
+});
+
+/* ------------------------------------------------------------------ *
+ * A sentence is not always a relation                                 *
+ * ------------------------------------------------------------------ */
+
+/** "A is above B, which is above C" — one sentence, two binary relations. */
+const chained = (a: string, b: string, c: string) =>
+    `${s(a)} <span class="relation">is above</span> ${s(b)}`
+    + chainJoin(", which ")
+    + `<span class="relation">is above</span> ${s(c)}`;
+
+/**
+ * The distinction the marker exists for, and it is not cosmetic. Both name
+ * three objects; only one of them is a relation over three.
+ */
+test("a chained premise is two binary steps, not one ternary one", () => {
+    const wide = integrationLoad([chained("A", "B", "C")]);
+    equal(wide.arity, 2,
+        "two relations sharing a middle term were read as one over three objects");
+
+    const ternary = integrationLoad([p("A", "B", "C")]);
+    equal(ternary.arity, 3,
+        "a premise that does not come apart should still count as three");
+});
+
+test("and it settles what two binary steps settle, not what three at once do", () => {
+    const wide = integrationLoad([chained("A", "B", "C")]);
+    const ternary = integrationLoad([p("A", "B", "C")]);
+    assert(wide.pairsSettled < ternary.pairsSettled,
+        `a chain of two settled ${wide.pairsSettled} against ${ternary.pairsSettled}`
+        + " for a relation over three — they should not be the same");
+});
+
+test("a chained premise still joins what it names", () => {
+    // Two structures held apart, then bridged by a chained sentence.
+    const load = integrationLoad([
+        p("A", "B"), p("X", "Y"),
+        chained("B", "M", "X"),
+    ]);
+    equal(load.arity, 2, "each half of the chain joins two groups");
+    assert(load.pairsSettled > 0, "the bridge settled nothing");
+    equal(load.openGroups, 2, "two structures were open before it");
 });

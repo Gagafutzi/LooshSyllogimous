@@ -1,3 +1,4 @@
+import { CHAIN_CLASS } from "./phrasing";
 /**
  * How much of an item has to be held together at once.
  *
@@ -98,13 +99,11 @@ export function integrationLoad(premises: string[]): IntegrationLoad {
     let arity = 0, integration = 0, openGroups = 0, pairsSettled = 0;
     const pairs = (n: number) => (n * (n - 1)) / 2;
 
-    for (const premise of premises) {
-        const names = subjectsOf(premise);
-        if (names.length < 2) continue;
-
+    /** One relation being stated: everything it names is joined at once. */
+    const step = (names: string[]) => {
         const roots = [...new Set(names.map(find))];
-        // Nothing is welded when a premise restates a pair already connected.
-        if (roots.length < 2) continue;
+        // Nothing is welded when a relation restates a pair already connected.
+        if (roots.length < 2) return;
 
         arity = Math.max(arity, roots.length);
         integration = Math.max(integration,
@@ -126,6 +125,27 @@ export function integrationLoad(premises: string[]): IntegrationLoad {
             if (node === root && (size.get(root) ?? 1) > 1) open++;
         }
         openGroups = Math.max(openGroups, open);
+    };
+
+    for (const premise of premises) {
+        const names = subjectsOf(premise);
+        if (names.length < 2) continue;
+
+        /*
+         * A sentence is not always a relation.
+         *
+         * "A is above B, which is above C" names three objects and states two
+         * binary relations sharing a middle term — two steps, each joining two
+         * groups. Treating the sentence as one step reports the reader as
+         * having held three things at once, which is the thing that separates
+         * it from a genuinely ternary premise like "B is between A and C". The
+         * writer marks the join; nothing here reads the wording.
+         */
+        if (premise.includes(`class="${CHAIN_CLASS}"`)) {
+            for (let i = 0; i + 1 < names.length; i++) step([names[i], names[i + 1]]);
+        } else {
+            step(names);
+        }
     }
 
     return { arity, integration, pairsSettled, openGroups };

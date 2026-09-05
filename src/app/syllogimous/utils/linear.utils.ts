@@ -28,7 +28,7 @@
 
 import { ConstructClaim } from "../models/question.models";
 import { TransformVocab } from "./transformations.utils";
-import { neg, subj } from "./phrasing";
+import { chainJoin, neg, subj } from "./phrasing";
 
 /* ------------------------------------------------------------------ *
  * Scales                                                              *
@@ -739,7 +739,9 @@ export function renderPremises(
         if (head.negated) negations++;
         if (tail.negated) negations++;
 
-        premises.push(`${head.text}, which ${tail.text}`);
+        // Marked as two relations rather than one, so what it costs to read is
+        // not measured as though three things were held at once.
+        premises.push(`${head.text}${chainJoin(", which ")}${tail.text}`);
     }
 
     return { premises, negations };
