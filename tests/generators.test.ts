@@ -70,11 +70,13 @@ function context(settings: Settings): GeneratorContext {
         progressionService: {
             hasRung: () => false,
             dialFor: () => 0,
+            mergeTarget: () => null,
             depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: () => false,
         dialFor: () => 0,
+        mergeTarget: () => null,
         /*
          * Binary wraps another mode's item and asks which half of it failed, so
          * it cannot be built without one. This used to throw, which is why

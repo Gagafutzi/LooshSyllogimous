@@ -53,6 +53,15 @@ export interface GeneratorContext {
      * the layout can carry.
      */
     dialFor(type: string, name: string): number;
+    /**
+     * How hard to schedule the merges, or null to grade the adjacencies instead.
+     *
+     * Null with the whole card visible, where order is a search cost and the
+     * reader sets their own; a number when the premises arrive one at a time,
+     * where the order *is* the memory schedule and what it decides is how much
+     * of the map any one premise settles.
+     */
+    mergeTarget(): number | null;
 
     /**
      * Another question, built from the same settings.

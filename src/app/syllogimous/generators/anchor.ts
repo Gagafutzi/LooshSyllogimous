@@ -12,7 +12,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { CoordMap, SPATIAL_VOCAB, Transform, TransformKind, describeConclusion, describeWideConclusion, describeOffset, describeTransform, replay } from "../utils/transformations.utils";
 import { ANCHORS, anchorCoordMap } from "../utils/anchor.utils";
-import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
+import { orderPremises, scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
 
@@ -116,10 +116,8 @@ export function createAnchorSpace(ctx: GeneratorContext, numOfPremises: number) 
         const inverted = invertedPremises(negate, objectCount);
 
         question.bucket = names;
-        question.premises = scrambleByFactor(
-            names.map((n, i) => describeOffset(
-                parentOf[n], n, coords[parentOf[n]], coords[n], SPATIAL_VOCAB, inverted.has(i))),
-            ctx.settingsOverrideService.scramble);
+        question.premises = orderPremises(names.map((n, i) => describeOffset(
+                parentOf[n], n, coords[parentOf[n]], coords[n], SPATIAL_VOCAB, inverted.has(i))), ctx.settingsOverrideService.scramble, ctx.mergeTarget());
         /*
          * Counted from the decision rather than from the rendered text, which is
          * what `renderRelation` returns its flag for: the rating scale charges

@@ -25,7 +25,7 @@ import { Question } from "../models/question.models";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { hi, rel, subj } from "../utils/phrasing";
-import { scrambleByFactor } from "../utils/premise-order.utils";
+import { orderPremises, scrambleByFactor } from "../utils/premise-order.utils";
 import {
     AxisSpec, axesForDimensions, buildNdLayout, compareOn, isCircular, ndAxisColors,
     renderNdPremises,
@@ -123,7 +123,7 @@ export function createInferRelation(ctx: GeneratorContext, numOfPremises: number
         const question = new Question(type);
         question.bucket = [...words];
         question.premises = [
-            ...scrambleByFactor(renderNdPremises(layout), ctx.settingsOverrideService.scramble),
+            ...orderPremises(renderNdPremises(layout), ctx.settingsOverrideService.scramble, ctx.mergeTarget()),
             ...claims.map(([a, b]) => `${subj(a)} ${hi(OPERATOR)} ${subj(b)}`),
         ];
 

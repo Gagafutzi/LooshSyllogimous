@@ -11,7 +11,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, pickUniqueItems, shuffle } from "../utils/question.utils";
 import { describeTransform } from "../utils/transformations.utils";
 import { AxisSpec, NdConclusion, NdLayout, applyNdEdits, applyNdTransforms, axesForDimensions, buildNdAnalogy, buildNdAnalogySet, buildNdConclusion, buildNdConclusionSet, buildNdWideConclusion, buildNdConstructClaim, NdEdge, buildNdLayout, describeNdAxes, determinedOn, graphDistance, ndPrefixLayout, ndWidth, pickByWidth, displacementOn, drawNdEdits, drawNdTransforms, explainNdAxis, indeterminatePairs, isCircular, mod, ndTransformVocab, pickDistantPair as pickDistantPairNd, renderNdEdit, renderNdPremise, renderNdPremises, withholdClauses } from "../utils/ndspace.utils";
-import { scrambleBlocks, scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
+import { orderPremises, scrambleBlocks, scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
@@ -311,7 +311,7 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
                 [...stated, ...mutations],
                 stated.length,
                 ctx.settingsOverrideService.scramble)
-            : scrambleByFactor(stated, ctx.settingsOverrideService.scramble);
+            : orderPremises(stated, ctx.settingsOverrideService.scramble, ctx.mergeTarget());
         /*
          * Who was lying comes first in the derivation, because it comes first
          * in the work: the arrangement cannot be read at all until the false

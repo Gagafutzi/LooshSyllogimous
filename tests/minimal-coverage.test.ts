@@ -46,6 +46,7 @@ function ctxOf(): GeneratorContext {
         progressionService: { hasRung: () => false, depthBonusFor: () => 0 } as unknown as ProgressionService,
         forceConstruction: "off", hasRung: () => false,
         dialFor: () => 0,
+        mergeTarget: () => null,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

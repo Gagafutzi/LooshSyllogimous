@@ -40,6 +40,7 @@ function context(): GeneratorContext {
         progressionService: { hasRung: () => true, depthBonusFor: () => 0 } as unknown as ProgressionService,
         forceConstruction: "off", hasRung: () => true,
         dialFor: () => 2,
+        mergeTarget: () => null,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

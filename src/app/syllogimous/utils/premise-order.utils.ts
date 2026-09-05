@@ -1,3 +1,4 @@
+import { integrationLoad } from "./integration.utils";
 /**
  * Graded premise scrambling — ported in concept from Syllogimous v3
  * (`js/generators/premise-reorder.js`).
@@ -104,4 +105,83 @@ export function scrambleBlocks<T>(premises: T[], boundary: number, factor: numbe
         ...scrambleByFactor(premises.slice(0, boundary), factor),
         ...scrambleByFactor(premises.slice(boundary), factor),
     ];
+}
+
+/* ------------------------------------------------------------------ *
+ * Ordering for the merge, rather than against the adjacency           *
+ * ------------------------------------------------------------------ */
+
+/**
+ * An order chosen for how much of the map one premise settles.
+ *
+ * `scrambleByFactor` grades the load by how many adjacent pairs survive, which
+ * is a proxy for how many unjoined fragments have to be carried. That is
+ * storage — how many partial results you hold — and maximising it is a way of
+ * reading working memory at full stretch rather than of asking a harder
+ * question. At a hundred it is already at its maximum and says nothing about
+ * what any single premise has to do.
+ *
+ * The demand worth grading is the seam: an item that builds two or more
+ * substantial structures apart and then folds them into one map settles every
+ * pair across the join at once, and both sides have to be held entire while it
+ * happens. `pairsSettled` counts exactly that, and it is almost entirely a
+ * function of the order — the same premises read in sequence never settle more
+ * than the chain's own length, and read as two halves that meet can settle
+ * several times that.
+ *
+ * **Sampled rather than solved.** The orderings are `n!` and the score is not
+ * separable, so this draws candidates and keeps the one nearest the wanted
+ * point of the range it found. A few hundred draws on a handful of premises is
+ * nothing, and the alternative — a partitioning heuristic — would be a second
+ * implementation of a quantity that is already measured.
+ *
+ * `target` is 0–100 of the range *this item can reach*, not an absolute: what
+ * counts as a big merge depends on how many objects there are, and a fixed
+ * number would mean something different in every mode.
+ */
+export function scheduleForMerge<T>(
+    premises: T[],
+    target: number,
+    score: (order: T[]) => number,
+    draws = 240,
+): T[] {
+    if (premises.length < 3) return premises.slice();
+
+    const candidates: Array<{ order: T[]; value: number }> = [];
+    // The order it came in, which is the low end of the range by construction.
+    candidates.push({ order: premises.slice(), value: score(premises) });
+    for (let i = 0; i < draws; i++) {
+        const order = shuffled(premises);
+        candidates.push({ order, value: score(order) });
+    }
+
+    const values = candidates.map(c => c.value);
+    const low = Math.min(...values);
+    const high = Math.max(...values);
+    if (high === low) return candidates[0].order;
+
+    const wanted = low + (high - low) * Math.max(0, Math.min(100, target)) / 100;
+    let best = candidates[0];
+    for (const c of candidates) {
+        if (Math.abs(c.value - wanted) < Math.abs(best.value - wanted)) best = c;
+    }
+    return best.order;
+}
+
+/**
+ * The order a mode's premises are shown in, whichever rule applies.
+ *
+ * One place, so no generator has to know which it is. With the whole card
+ * visible the adjacency grading is right — order there is a search cost, and
+ * the reader can re-read in whatever order they like. One premise at a time is
+ * a memory schedule, and then the seam is what to grade.
+ */
+export function orderPremises(
+    premises: string[],
+    factor: number,
+    mergeTarget: number | null,
+): string[] {
+    if (mergeTarget == null) return scrambleByFactor(premises, factor);
+    return scheduleForMerge(premises, mergeTarget,
+        order => integrationLoad(order).pairsSettled);
 }

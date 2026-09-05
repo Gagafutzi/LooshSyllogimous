@@ -36,6 +36,7 @@ function context(): GeneratorContext {
         forceConstruction: "off",
         hasRung: () => false,
         dialFor: () => 0,
+        mergeTarget: () => null,
         random: () => { throw new Error("not needed"); },
     };
 }

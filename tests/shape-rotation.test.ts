@@ -42,10 +42,12 @@ function context(solo: boolean): GeneratorContext {
         progressionService: {
             hasRung: () => solo, depthBonusFor: () => 0,
             dialFor: () => 0,
+            mergeTarget: () => null,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: (_t: unknown, rung: string) => solo && rung === "solo-turns",
         dialFor: () => 0,
+        mergeTarget: () => null,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

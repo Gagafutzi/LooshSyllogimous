@@ -12,7 +12,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
 import { CoordMap, Transform, describeTransform, drawTransforms, replay } from "../utils/transformations.utils";
 import { LINEAR_SCALES, LinearLayout, LinearScale, buildBranching, buildChain, buildConclusion, buildConclusionSet, buildConstructClaim, compare, explainLinear, graphDistance, hasTies, pickDistantPair, prefixLayout, renderPremises, vocabFor } from "../utils/linear.utils";
-import { scrambleBlocks, scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
+import { orderPremises, scrambleBlocks, scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
@@ -359,7 +359,7 @@ export function createLinear(ctx: GeneratorContext, numOfPremises: number, type:
                 [...question.premises, ...transforms.map(t => describeTransform(t, vocab))],
                 question.premises.length,
                 ctx.settingsOverrideService.scramble)
-            : scrambleByFactor(question.premises, ctx.settingsOverrideService.scramble);
+            : orderPremises(question.premises, ctx.settingsOverrideService.scramble, ctx.mergeTarget());
 
         question.wordCoordMap = coordMapFromPositions(finalLayout.pos);
         question.axisNames = [scale.name];

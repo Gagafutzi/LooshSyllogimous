@@ -60,10 +60,12 @@ function ndContext(deep = true, loops = 0): GeneratorContext {
         progressionService: {
             hasRung: () => false, depthBonusFor: () => 0,
             dialFor: () => 0,
+            mergeTarget: () => null,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: () => false,
         dialFor: () => 0,
+        mergeTarget: () => null,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;
@@ -1032,6 +1034,7 @@ function ndCheckpointCtx(): GeneratorContext {
         ...ndContext(),
         hasRung: (_t: string, r: string) => r === "checkpoint",
         dialFor: () => 0,
+        mergeTarget: () => null,
     } as GeneratorContext;
 }
 
@@ -1118,6 +1121,7 @@ test("a mutated or reported composed space carries no checkpoint", () => {
             ...base,
             hasRung: (_t: string, r: string) => r === "checkpoint" || r === rung,
             dialFor: () => 0,
+            mergeTarget: () => null,
         } as GeneratorContext;
 
         let checkpoints = 0;
@@ -1330,6 +1334,7 @@ test("an under-specified item still builds when several claims cannot", () => {
         ...base,
         hasRung: (_t: string, r: string) => r === "indeterminate",
         dialFor: () => 0,
+        mergeTarget: () => null,
     } as GeneratorContext;
 
     let built = 0;

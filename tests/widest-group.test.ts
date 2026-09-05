@@ -38,6 +38,7 @@ function context(rungs: string[]): GeneratorContext {
         forceConstruction: "off",
         hasRung: (_t: string, r: string) => rungs.includes(r),
         dialFor: () => 0,
+        mergeTarget: () => null,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

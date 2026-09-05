@@ -164,10 +164,12 @@ function context(rung: string): GeneratorContext {
         progressionService: {
             hasRung: () => false, depthBonusFor: () => 0,
             dialFor: () => 0,
+            mergeTarget: () => null,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: (_t: EnumQuestionType, r: string) => r === rung,
         dialFor: () => 0,
+        mergeTarget: () => null,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

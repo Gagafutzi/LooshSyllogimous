@@ -45,11 +45,13 @@ function context(rungs: boolean | string[] = false): GeneratorContext {
         progressionService: {
             hasRung: has,
             dialFor: () => 0,
+            mergeTarget: () => null,
             depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: has,
         dialFor: () => 0,
+        mergeTarget: () => null,
         random: () => { throw new Error("not needed"); },
     };
 }

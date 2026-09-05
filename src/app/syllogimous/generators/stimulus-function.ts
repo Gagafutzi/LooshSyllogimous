@@ -28,7 +28,7 @@ import { Question } from "../models/question.models";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { getRandomSymbols, isPremiseLikeConclusion, shuffle } from "../utils/question.utils";
 import { hi, rel, subj } from "../utils/phrasing";
-import { scrambleByFactor } from "../utils/premise-order.utils";
+import { orderPremises } from "../utils/premise-order.utils";
 import { LINEAR_SCALES, LinearScale, buildChain, compare, renderPremises } from "../utils/linear.utils";
 import { coordMapFromPositions } from "../utils/map.utils";
 import { GeneratorContext } from "./context";
@@ -97,7 +97,8 @@ export function createStimulusFunction(ctx: GeneratorContext, numOfPremises: num
         if (most === anchor || least === anchor) continue;
 
         const question = new Question(type);
-        question.premises = scrambleByFactor(rendered.premises, ctx.settingsOverrideService.scramble);
+        question.premises = orderPremises(
+            rendered.premises, ctx.settingsOverrideService.scramble, ctx.mergeTarget());
         question.negations = rendered.negations;
         question.bucket = byPosition;
         question.wordCoordMap = coordMapFromPositions(layout.pos);

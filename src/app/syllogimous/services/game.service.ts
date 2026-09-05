@@ -621,6 +621,20 @@ export class GameService implements GeneratorContext {
     }
 
     /**
+     * How hard to schedule the merges, or null to grade the adjacencies.
+     *
+     * The scramble setting is reused rather than a second slider: it has always
+     * meant "how much harder to make the order", and this is what that should
+     * mean where the order is a memory schedule rather than a search cost.
+     */
+    mergeTarget(): number | null {
+        try {
+            if ((localStorage.getItem(LS_GAME_MODE) || "0") === "0") return null;
+        } catch { return null; }
+        return this.settingsOverrideService.scramble;
+    }
+
+    /**
      * The dial's turn count, with the same precedence a gate has.
      *
      * An override that names the rungs this dial replaced still wins: someone
