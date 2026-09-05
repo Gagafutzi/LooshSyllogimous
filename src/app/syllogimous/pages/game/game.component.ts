@@ -738,8 +738,12 @@ export class GameComponent {
             return;
         }
         if (this.labelKeyOpen) {
-            // Anything else puts the card back, rather than acting on a screen
-            // the player cannot see.
+            /*
+             * Anything else puts the card back, rather than acting on a screen
+             * the player cannot see. Bare modifiers do not count: holding shift
+             * to reach a key would otherwise close the thing on the way to it.
+             */
+            if (["Shift", "Control", "Alt", "Meta"].includes(event.key)) return;
             event.preventDefault();
             this.labelKeyOpen = false;
             return;
