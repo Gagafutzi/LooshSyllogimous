@@ -55,11 +55,36 @@ count falls from 7 to 4. That is a trade, and it is the right way round.
 Fluid progression keeps working on every other mode; this combination is what it
 should be tuned around.
 
-**Open question this raises.** Scramble is pinned at 100, which maximises exactly
-the quantity we have just said not to maximise — and with no going back its
-anti-strategy value is largely spent, since the premises cannot be re-read in any
-order anyway. Whether the default should come down from 100 is undecided and
-worth measuring rather than arguing.
+**Scramble is the instrument, and it is currently blunt.**
+
+It is pinned at 100, which maximises the quantity we have just said not to
+maximise, and does nothing at all for the one we do. That is not a setting to
+turn down — it is the wrong shape of control for the new default.
+
+*Order decides whether a multi-object premise introduces or integrates.* A
+premise naming three objects welds three groups if all three are new, and welds
+three *held structures* if they are not. Those are the same premise doing two
+completely different jobs, and which one happens is decided entirely by where the
+shuffle puts it. At scramble 100 the app gets whichever comes up.
+
+So scramble has to become the schedule of merges rather than a percentage of
+surviving adjacencies:
+
+- **All-premise mode keeps what it has.** With the whole card visible, order is a
+  search cost, not a memory schedule, and the adjacency percentage expresses that
+  correctly.
+- **The carousel default gets a chosen order.** Search permutations for one that
+  hits a target profile — maximum merge arity at or above *m*, peak concurrent
+  groups at or below *f* — rather than shuffling and accepting the result. Two
+  targets, independently set, which a single percentage cannot express: today
+  turning it up raises *f* and leaves *m* alone.
+
+**This also corrects the arity measurement.** Counting distinct groups welded
+conflates the introduction with the integration: three fresh singletons score the
+same as three held fragments, and only the second is the thing worth training.
+The measure should count only groups that were already non-trivial, or weight by
+the size of what is merged. Worth fixing before arity becomes a dial, because a
+dial that targets the wrong number will be hit by scheduling the easy case.
 
 ---
 
@@ -130,6 +155,52 @@ to give it range, in order of cost:
 **Peak concurrent groups, measured but not targeted.** Worth recording for the
 same reason as arity — the fitters need it, and it says how much of the current
 level spread the model cannot see. Explicitly not something to maximise.
+
+---
+
+## Open: dials, or a branching graph with carry-over
+
+Dials beat linear gates, and that much is settled. Whether they should be
+arranged in a graph rather than a flat set is not.
+
+**What already carries over.** Three mechanisms exist, and they cover more ground
+than the question assumes:
+
+- `RUNG_COST` and `RUNG_MIN_PREMISES` are **global**, keyed by lever name and
+  shared by every mode. What a lever *costs* is already learned from everybody's
+  items everywhere, not re-learned per mode.
+- `priorForNewMode` gives a mode never played the aggregate as its prior at
+  `crossModeSd: 2.5`, so ability carries into unplayed modes.
+- `MODE_FAMILIES` puts the five scale modes on one ledger.
+
+**What does not carry over is availability.** A lever earned on Comparison says
+nothing about the same lever on Space 4D, because the ladder is a per-mode list.
+That is the real gap, and it is narrower than "the progression model is the wrong
+shape" — pricing already carries, ability already carries, only the unlock does
+not.
+
+**The case for a graph.** One thing dials cannot express: prerequisites. Some
+levers genuinely require others — a checkpoint needs no mutations, indeterminacy
+needs enough premises, `premisesNeededFor` is a partial version of this already —
+and today those live ad hoc inside generators as feature gating. A DAG states
+them once.
+
+**The case against.** A graph has edges, edges have order, and order is precisely
+what made `checkpoint` unreachable and `meta` undeliverable. It is a more
+elaborate structure to get wrong and it has to earn that. And a full capability
+model means many latents per player rather than one per mode, which one person's
+answer volume will not determine — the current model's whole virtue is that it
+estimates a single number from sparse evidence.
+
+**Where this leans.** A DAG over *constraints* rather than over *ordering*: it
+says what is buildable, not what comes next. What comes next stays "whatever the
+posterior wants", which is the thing that must not be capped. Plus lever-level
+carry-over, which is the one piece genuinely missing — earning arity 3 on a scale
+mode should be worth something towards arity 3 in a composed space, in the same
+way ability already carries.
+
+Undecided. Worth trying the cheap half first: make dials carry across modes the
+way cost already does, and see whether the graph is still wanted afterwards.
 
 ---
 
