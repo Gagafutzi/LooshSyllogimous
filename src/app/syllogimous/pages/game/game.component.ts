@@ -192,6 +192,8 @@ export class GameComponent {
                  */
                 const HEADROOM = 1.6;
                 const MIN_SECONDS = 12;
+                /* What the ladder itself will never exceed. */
+                const MAX_SECONDS = this.progressionService.config.ceilingSeconds;
                 /* Fractions of the budget, not seconds. */
                 const correctTighten = 0.25;
                 const incorrectLoosen = 0.3;
@@ -236,8 +238,20 @@ export class GameComponent {
                     if (budget != null) {
                         budget += negationBonus * this.game.question.negations;
                         budget += metaRelationBonus * this.game.question.metaRelations;
-                        this.timerTimeSeconds = Math.floor(Math.max(MIN_SECONDS, budget));
-                this.game.armedSeconds = this.timerTimeSeconds;
+                        /*
+                         * And a ceiling, which this never had.
+                         *
+                         * The budget is a measured mean multiplied by headroom,
+                         * so anything that inflates the mean inflates it without
+                         * limit — a single walk-away armed a seventeen-minute
+                         * deadline. The floor was there from the start; the cap
+                         * is the same one the ladder holds itself to, because a
+                         * deadline longer than the longest the ladder will ever
+                         * set is not a deadline.
+                         */
+                        this.timerTimeSeconds = Math.floor(
+                            Math.min(MAX_SECONDS, Math.max(MIN_SECONDS, budget)));
+                        this.game.armedSeconds = this.timerTimeSeconds;
                     }
                 }
 

@@ -5,6 +5,15 @@ import { TypeBasedStats } from "../models/stats.models";
 import { EnumQuestionType } from "../constants/question.constants";
 import { itemTally } from "../utils/answer.utils";
 
+/**
+ * The longest a single answer may claim to have taken, in milliseconds.
+ *
+ * Five minutes, matching `MAX_REFERENCE_SECONDS` in the ability model. Anything
+ * beyond it is a tab left open rather than a question being thought about, and
+ * letting it through moves every timing figure that reads these stats.
+ */
+const MAX_ANSWER_MS = 300_000;
+
 @Injectable({
     providedIn: "root"
 })
@@ -60,8 +69,27 @@ export class StatsService {
                 const ps = (n < 6 ? String(n) : "6+") as "2" | "3" | "4" | "5" | "6+";
     
                 const dt = q.answeredAt - q.createdAt;
+                /*
+                 * What one answer may claim to have taken.
+                 *
+                 * `dt` is wall-clock from the item appearing to it being
+                 * answered, so a tab left open for twenty minutes logs twenty
+                 * minutes. The adaptive timer takes the mean of the last ten
+                 * and multiplies it — one walk-away therefore armed a
+                 * seventeen-minute deadline, and kept arming it for the next ten
+                 * items of that length, which is what a timer bar sitting at 8%
+                 * with eighty seconds on the clock actually was.
+                 *
+                 * Five minutes is the same bound `MAX_REFERENCE_SECONDS` puts on
+                 * the ability model's own anchor, and for the same stated
+                 * reason: past it the tab was open and nobody was reading.
+                 *
+                 * `fastest` and `slowest` keep the raw figure — they are there to
+                 * report what happened, not to decide anything.
+                 */
+                const spent = Math.min(dt, MAX_ANSWER_MS);
     
-                tbs.stats[ps].sum += dt;
+                tbs.stats[ps].sum += spent;
                 tbs.stats[ps].count++;
 
                 // Conclusions, for the same reason as the accuracy above.
@@ -84,7 +112,7 @@ export class StatsService {
 
                 // Calculate last 10 questions stats
                 if (tbs.stats[ps].last10Count < 10) {
-                    tbs.stats[ps].last10Sum += dt;
+                    tbs.stats[ps].last10Sum += spent;
                     tbs.stats[ps].last10Count++;
 
                     if (t.timedOut) {
