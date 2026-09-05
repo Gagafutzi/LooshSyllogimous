@@ -361,22 +361,29 @@ test("a per-mode modifier override outranks the global one", () => {
  * Removing a rung without giving its feature a control would delete the
  * feature by accident — it was only ever reachable by climbing.
  */
-test("the retired rungs keep their slot and their controls", () => {
+test("a retired rung keeps its slot and its control", () => {
     for (const ladder of ORDERED_QUESTION_TYPES.map(t => ladderFor(t))) {
-        assert(!ladder.includes("wide-premises"), "wide premises are still handed out");
         assert(!ladder.includes("compact"), "compact relations are still handed out");
     }
 
+    /*
+     * `wide-premises` is back in this slot, and it is the same slot: it was
+     * retired for merging only consecutive stored edges — which a branching
+     * layout almost never has, so the rung was claimed and the item did not
+     * honour it — and it returns now that the merge pairs any two links sharing
+     * an object. Position five either way, so no existing profile's later rungs
+     * were renamed by its going or its coming back.
+     */
     const linear = ladderFor(EnumQuestionType.ComparisonNumerical);
-    equal(linear.indexOf("retired-wide-premises"), 4,
-        "the tombstone moved, so every rung after it renamed itself for existing profiles");
+    equal(linear.indexOf("wide-premises"), 4,
+        "the slot moved, so every rung after it renamed itself for existing profiles");
     equal(linear.indexOf("negation"), 0, "the rungs before it moved too");
 
     const component = readFileSync(
         "src/app/syllogimous/components/mode-modifiers/mode-modifiers.component.ts", "utf8");
     for (const key of ["widePremises", "compact"]) {
         assert(new RegExp(`key: "${key}"`).test(component),
-            `${key} left the ladder with no control, so it is now unreachable`);
+            `${key} has no control, so it is unreachable when the ladder does not grant it`);
     }
 });
 

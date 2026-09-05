@@ -235,7 +235,7 @@ const LINEAR_LADDER = [
     // by position — so removing an entry renames every rung after it for every
     // existing player, silently. The tombstone holds the slot, matches no
     // `hasRung` call, and is filtered out of the settings UI. See fixes/6.
-    "negation", "branching", "meta", "overlap", "retired-wide-premises",
+    "negation", "branching", "meta", "overlap", "wide-premises",
     "retired-transform-1", "retired-transform-2", "retired-multi-conclusion", "choose-conclusion",
     "construct-conclusion", "construct-distance", "checkpoint",
 ];

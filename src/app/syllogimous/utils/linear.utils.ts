@@ -592,17 +592,26 @@ export interface RenderOptions {
  * scale charges for negations and counting them back out of the HTML would tie
  * the difficulty model to the markup.
  */
-export function renderRelation(
+/**
+ * The relation and its object: everything a premise says after its subject.
+ *
+ * Built rather than recovered. The wide form used to strip the second half's
+ * subject back off with a regex whose object class was `[^<]`, which cannot
+ * match a subject whose content contains markup — and a stimulus that
+ * nested a span inside one would have produced "A is above B, which B is above
+ * C" with no error anywhere. Handing the tail back directly means there is
+ * nothing to strip.
+ */
+export function renderTail(
     scale: LinearScale,
-    a: string,
-    b: string,
     truth: Comparison,
+    to: string,
     options: RenderOptions = {},
 ): { text: string; negated: boolean } {
     // `negate` is now a decision, not a chance: the caller picks which links
     // are negated so it can control how many. See `renderPremises`.
     if (!options.negate) {
-        return { text: `${subj(a)} ${rel(wordFor(scale, truth))} ${subj(b)}`, negated: false };
+        return { text: `${rel(wordFor(scale, truth))} ${subj(to)}`, negated: false };
     }
 
     const alternatives: Comparison[] = ([-1, 0, 1] as Comparison[])
@@ -610,9 +619,20 @@ export function renderRelation(
         .filter(c => c !== 0 || options.allowTies);
 
     return {
-        text: `${subj(a)} ${negated(wordFor(scale, pick(alternatives)))} ${subj(b)}`,
+        text: `${negated(wordFor(scale, pick(alternatives)))} ${subj(to)}`,
         negated: true,
     };
+}
+
+export function renderRelation(
+    scale: LinearScale,
+    a: string,
+    b: string,
+    truth: Comparison,
+    options: RenderOptions = {},
+): { text: string; negated: boolean } {
+    const tail = renderTail(scale, truth, b, options);
+    return { text: `${subj(a)} ${tail.text}`, negated: tail.negated };
 }
 
 /** Every stated pair, rendered, with a count of how many came out negated. */
@@ -662,33 +682,64 @@ export function renderPremises(
     }
 
     /*
-     * Merge consecutive links that share an object.
+     * Merge any two links that share an object, wherever they sit.
      *
      * Said in one direction only when merged: "A is above B, which is above C"
      * has to run through B, so the halves cannot be independently reversed the
-     * way a lone premise can. Anything that does not chain onto its neighbour
-     * is left as an ordinary premise rather than forced.
+     * way a lone premise can. A link with no unused partner is left as an
+     * ordinary premise rather than forced.
+     *
+     * **Not consecutive stored pairs**, which is why this feature was retired.
+     * The old rule merged edge `i` with edge `i+1` only when they shared `i`'s
+     * *second* endpoint in stored order. On a plain chain that is every pair and
+     * the rung did what it said; on a branching layout consecutive stored edges
+     * rarely touch at all, so most items merged nothing and rendered exactly as
+     * an item without it. And `branching` sits two rungs earlier, so by the time
+     * this was earned every item had it — the rung was claimed and the item did
+     * not honour it, for everyone who ever reached it.
+     *
+     * Pairing over the whole edge set instead means the merge happens on the
+     * layouts the mode actually builds. Greedy rather than maximum-matching: one
+     * pass leaves at most a few links unpaired, and an exact matching would be a
+     * page of code to save a sentence.
      */
     const premises: string[] = [];
     const edges = [...layout.edges];
+    const used = new Array(edges.length).fill(false);
+
+    /** The first unused link sharing an endpoint with this one. */
+    const partnerFor = (i: number) => {
+        const [a, b] = edges[i];
+        for (let j = 0; j < edges.length; j++) {
+            if (j === i || used[j]) continue;
+            const [c, d] = edges[j];
+            if (c === a || c === b || d === a || d === b) return j;
+        }
+        return -1;
+    };
 
     for (let i = 0; i < edges.length; i++) {
+        if (used[i]) continue;
+        used[i] = true;
+
+        const j = partnerFor(i);
+        if (j < 0) { premises.push(one(edges[i][0], edges[i][1], i)); continue; }
+        used[j] = true;
+
+        // Orient both halves around the object they share, which becomes the
+        // middle: "first ▸ shared, which ▸ last".
         const [a, b] = edges[i];
-        const next = edges[i + 1];
-        const shared = next && (next[0] === b || next[1] === b);
+        const [c, d] = edges[j];
+        const shared = c === a || d === a ? a : b;
+        const first = shared === a ? b : a;
+        const last = c === shared ? d : c;
 
-        if (!shared) { premises.push(one(a, b, i)); continue; }
+        const head = renderRelation(scale, first, shared, compare(layout, first, shared), at(i));
+        const tail = renderTail(scale, compare(layout, shared, last), last, at(j));
+        if (head.negated) negations++;
+        if (tail.negated) negations++;
 
-        const c = next[0] === b ? next[1] : next[0];
-        const first = renderRelation(scale, a, b, compare(layout, a, b), at(i));
-        const second = renderRelation(scale, b, c, compare(layout, b, c), at(i + 1));
-        if (first.negated) negations++;
-        if (second.negated) negations++;
-
-        // The second half drops its subject: "…, which is above C".
-        const tail = second.text.replace(/^<span class="subject">[^<]*<\/span>\s*/, "");
-        premises.push(`${first.text}, which ${tail}`);
-        i++;
+        premises.push(`${head.text}, which ${tail.text}`);
     }
 
     return { premises, negations };

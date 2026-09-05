@@ -224,21 +224,37 @@ export const RUNG_COST: Record<string, number> = {
      * now-empty ladder in `progression.utils.ts`.
      */
 
+    /**
+     * Two links in one sentence: "A is above B, which is above C".
+     *
+     * Off the ladder for a while, and rightly: the merge only fired on
+     * *consecutive stored* edges sharing the first one's second endpoint, which
+     * a branching layout almost never has — and `branching` is earned two rungs
+     * earlier, so by the time this was reached every item had it and most
+     * merged nothing. A rung claimed and not honoured, which is the fault this
+     * project keeps finding.
+     *
+     * Back at the price it had, now that the merge pairs any two links sharing
+     * an object. It is not an increase in what has to be integrated at once —
+     * two binary relations sharing a middle term decompose without loss — but
+     * it is fewer screens to carry, which is most of what a carousel costs.
+     */
+    "wide-premises": 0.7,
+
     /*
      * Tombstones, priced at zero and priced deliberately.
      *
-     * These held the ladder slots that `wide-premises` (0.7) and `compact`
-     * (0.5) used to occupy, and the prices went with the names — see fixes/6
-     * for why both features left the ladder. The slots stay filled so existing
-     * profiles keep their earned rungs aligned by position; the price is zero
-     * because the item no longer carries the feature. Falling through to the
-     * 0.8 fallback would charge every player who had climbed past that slot for
-     * a difficulty their items do not contain.
+     * This held the ladder slot `compact` (0.5) used to occupy, and the price
+     * went with the name — see fixes/6 for why the feature left the ladder. The
+     * slot stays filled so existing profiles keep their earned rungs aligned by
+     * position; the price is zero because the item no longer carries the
+     * feature. Falling through to the 0.8 fallback would charge every player
+     * who had climbed past that slot for a difficulty their items do not
+     * contain.
      *
-     * Both features are still reachable from Customise, and — like every other
-     * forced flag — are not priced when forced.
+     * Still reachable from Customise, and — like every other forced flag — not
+     * priced when forced.
      */
-    "retired-wide-premises": 0,
     "retired-compact": 0,
     "retired-meta": 0,
     /*

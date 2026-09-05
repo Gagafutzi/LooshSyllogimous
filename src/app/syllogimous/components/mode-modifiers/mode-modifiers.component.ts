@@ -44,7 +44,7 @@ export class ModeModifiersComponent {
         // earned rungs lined up, and no generator asks for them — so showing a
         // control would be offering a switch wired to nothing. The features
         // themselves are still reachable, as ordinary rows above.
-        "retired-wide-premises", "retired-compact",
+        "retired-compact",
         "branching", "overlap", "compact", "indeterminate", "facing", "analogy",
         "multi-conclusion", "choose-conclusion", "construct-conclusion",
         "construct-distance", "wide-premises", "incorrect-directions",
@@ -107,6 +107,7 @@ export class ModeModifiersComponent {
 
             /* --- shape of the premise network --- */
             "branching": "Branching premises, not a single chain",
+            "wide-premises": "Two links in one sentence — “A is above B, which is above C”",
             "overlap": "Ties allowed — two things can share a place",
             "min-span-3": "Longer routes",
             "cycles": "Cycles in the hierarchy",

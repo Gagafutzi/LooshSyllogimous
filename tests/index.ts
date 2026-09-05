@@ -59,6 +59,7 @@ import "./axis-map.test";
 import "./widest-group.test";
 import "./collapsible.test";
 import "./hierarchy-syllogism.test";
+import "./wide-premises.test";
 import "./merge-schedule.test";
 import "./reading-floor.test";
 import "./recency.test";

@@ -281,7 +281,7 @@ worse, and say so.
 
 ---
 
-## Betweenness needs a determinacy check first
+## Betweenness — deferred, not rejected
 
 The ternary premise form the arity dial depends on, and it is not as simple as
 the plan implies.
@@ -303,8 +303,14 @@ The composed spaces have the machinery for exactly this question —
 to build the equivalent for the scales, or to put betweenness on the composed
 spaces where the check already exists, is undecided.
 
-Un-retiring wide premises is unaffected and still the cheap first move: arity 3,
-code intact, decomposable and therefore weaker, but real.
+**Not being built for now.** The design question above is real and the answer is
+not obvious, and nothing else is waiting on it — the arity dial is the only thing
+it unblocks, and arity is measured and priced at nothing either way.
+
+Un-retiring wide premises is unaffected and is what step 5 leaves behind. It is
+not an arity gain — "A is above B, which is above C" decomposes into two binary
+relations read in sequence — so its case is the carousel one: two links on one
+screen, integrated while both are visible, and fewer screens to carry.
 
 ---
 
