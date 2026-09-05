@@ -152,6 +152,16 @@ to give it range, in order of cost:
    a new mode.
 3. Meta — four objects, as above.
 
+**A dial has no ceiling on the ladder and always has one on the item.** The
+plan said feasibility "stays in the generator, where it belongs; the difficulty
+scale simply prices whatever was asked for". That was half right and the missing
+half is expensive: aiming past what structure could reach, `chooseConfig` asked
+for fifty-six transformations on a five-premise item and priced the ask, which
+the generator clamps to one. The model must not ask for what cannot be built, or
+it prices a fiction and no mode ever runs out. Feasibility now travels with the
+dial as a premise cost per turn that continues rising, and as a hard cap where
+more premises cannot help.
+
 **Peak concurrent groups, measured but not targeted.** Worth recording for the
 same reason as arity — the fitters need it, and it says how much of the current
 level spread the model cannot see. Explicitly not something to maximise.
@@ -249,6 +259,33 @@ built.
 
 Both are guarded rather than fixed: the tests assert the numbers do not get
 worse, and say so.
+
+---
+
+## Betweenness needs a determinacy check first
+
+The ternary premise form the arity dial depends on, and it is not as simple as
+the plan implies.
+
+"B is between A and C" withholds the direction, which is what makes it
+non-decomposable and worth having. In a chain it also destroys the only
+information about how A stands to C: replace the links A–B and B–C with the
+between-form and both `A > B > C` and `C > B > A` satisfy every remaining
+premise. The item becomes under-determined, which is a different mode's rung
+(`indeterminate`) rather than a harder version of this one.
+
+So the form is only sound where **another path already orders the two outer
+objects** — which a chain never has and a branching network sometimes does. That
+makes it conditional on `branching` and on a per-item check, not a premise form
+that can simply be switched on.
+
+The composed spaces have the machinery for exactly this question —
+`determinedOn` and `indeterminatePairs` — and the scale family does not. Whether
+to build the equivalent for the scales, or to put betweenness on the composed
+spaces where the check already exists, is undecided.
+
+Un-retiring wide premises is unaffected and still the cheap first move: arity 3,
+code intact, decomposable and therefore weaker, but real.
 
 ---
 
