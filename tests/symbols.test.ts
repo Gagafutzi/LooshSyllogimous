@@ -25,12 +25,14 @@ import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import {
-    DIRECTION3D_WORDS,
+    ARRANGEMENT_WORDS, DIRECTION3D_WORDS, META_WORDS,
     EDGE_WORDS, rel, setSymbolRelations, subj, symbolFor, symbolise, symbolisedWords,
     symbolLegend,
     symboliseStatement,
 } from "../src/app/syllogimous/utils/phrasing";
 import { LINEAR_SCALES, SPATIAL_SCALES } from "../src/app/syllogimous/utils/linear.utils";
+import { EnumArrangements, NUMBER_WORDS } from "../src/app/syllogimous/constants/question.constants";
+import { interpolateArrangementRelationship } from "../src/app/syllogimous/utils/question.utils";
 
 const strip = (h: string) => h.replace(/<[^>]+>/g, "");
 const SCALES = { ...LINEAR_SCALES, ...SPATIAL_SCALES };
@@ -118,6 +120,10 @@ function everyRelationLiteral(): string[] {
     // reason — they belong to no scale and reach the card as plain strings.
     for (const word of Object.values(EDGE_WORDS)) found.add(word);
     for (const word of Object.values(DIRECTION3D_WORDS)) found.add(word);
+    // The arrangements and the meta relation, for the same reason: enum values
+    // and inline strings, in no scale and in no `rel()` literal.
+    for (const word of ARRANGEMENT_WORDS) found.add(word);
+    for (const word of Object.values(META_WORDS)) found.add(word);
 
     return [...found].filter(w => !CONNECTIVES.includes(w));
 }
@@ -412,4 +418,46 @@ test("every relation word written into the source has a mark", () => {
     assert(missing.length === 0,
         `${missing.length} relation(s) are written into the source with no mark: `
         + missing.map(w => `"${w}"`).join(", "));
+});
+
+/**
+ * An arrangement relation converts whole, or the mode says it in two languages.
+ *
+ * `ARRANGEMENT_WORDS` mirrors `EnumArrangements`, and a mirror is the failure
+ * this project keeps finding — so nothing here reads the mirror. Every enum
+ * value is rendered the way the generator renders it and then converted, and
+ * what may be left is a number, "is" and "of". Anything else is a relation word
+ * still in English beside a mark, which is what put "is adjacent and ◀ of" on
+ * the card for as long as the mode has existed.
+ */
+test("an arrangement relation leaves no word of its own behind", () => {
+    setSymbolRelations(true);
+    const allowed = new Set(["is", "of", ...NUMBER_WORDS]);
+    const faults: string[] = [];
+
+    // Negation on and repeated, so the struck-through wording is covered too:
+    // it is a coin flip per call, and it is the form that used to split the
+    // relation into fragments.
+    const settings = new Settings();
+    settings.setEnable("negation", true);
+
+    try {
+        seeded(4242, () => {
+            for (const description of Object.values(EnumArrangements)) {
+                for (const steps of [1, 2, 3]) {
+                    for (let r = 0; r < 8; r++) {
+                        const text = strip(rel(interpolateArrangementRelationship(
+                            { description, steps }, settings)));
+                        const left = (text.toLowerCase().match(/[a-z]+/g) ?? [])
+                            .filter(w => !allowed.has(w));
+                        if (left.length) {
+                            faults.push(`"${description}" at ${steps}: ${text.trim()}`);
+                        }
+                    }
+                }
+            }
+        });
+    } finally { setSymbolRelations(false); }
+
+    equal(faults.length, 0, `\n  ${faults.join("\n  ")}`);
 });

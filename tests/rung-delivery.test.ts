@@ -50,7 +50,13 @@ function ctxOf(): GeneratorContext {
 
 /** What each rung leaves on a finished card. */
 const MARK: Record<string, RegExp> = {
-    meta: /relates to .*? in the (same|opposite) way|has the same relation as|is to .*? as .*? is to/i,
+    /*
+     * Written to step over markup. The first version wanted a space after
+     * "relates to", and the meta premise puts a closing tag there — so the
+     * check reported that five modes had stopped producing a relation they were
+     * producing all along, the moment the wording moved into a span.
+     */
+    meta: /relates to[\s\S]*?in the (same|opposite) way|has the same relation as|is to[\s\S]*?as[\s\S]*?is to/i,
     negation: /class="is-negated"|<del\b/,
 };
 

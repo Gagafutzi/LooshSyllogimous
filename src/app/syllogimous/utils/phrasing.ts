@@ -156,6 +156,36 @@ export const RELATION_SYMBOLS: Record<string, string> = {
     "goes to": "↦", "is connected to": "⇿",
 
     /*
+     * The arrangements, which are positions along a path rather than a scale.
+     *
+     * Both arrangement modes wrote their relations as enum values, so they
+     * appeared in no scale and in no `rel("…")` literal — the two things the
+     * completeness check reads. Only the bare "left" and "right" inside them
+     * matched anything, which put "is adjacent and ◀ of" on the card: the
+     * direction in marks and the relation it qualifies still in words.
+     *
+     * Hollow triangles for the adjacent pair and solid for the loose one, since
+     * that is the distinction the mode is made of — "immediately left" against
+     * "somewhere left". The loose pair shares the left/right scale's marks
+     * because it is the same relation.
+     */
+    "is adjacent and left of": "◁", "is adjacent and right of": "▷",
+    "steps left of": "◀", "steps right of": "▶",
+    "is at the left of": "◀", "is at the right of": "▶",
+    "is next to": "◇", "is diametrically opposite to": "⊗",
+
+    /*
+     * The meta relation, which is an analogy and now reads as one.
+     *
+     * "A relates to B in the same way that C relates to D" is "A : B ∷ C : D",
+     * and it was the last relation still printed entirely in English on every
+     * mode that offers it — five of them. It shares ":" with the analogy
+     * pairing because it is the same relation stated at length.
+     */
+    "relates to": ":", "in the same way that": "∷",
+    "in the opposite way that": "∺",
+
+    /*
      * The analogy pairing, in the notation analogies have always used.
      *
      * "A is to B as C is to D" becomes "A : B as C : D" — which is not a
@@ -166,6 +196,35 @@ export const RELATION_SYMBOLS: Record<string, string> = {
      */
     "is to": ":",
 };
+
+/**
+ * How the two arrangement modes word a position along their path.
+ *
+ * The enum in `question.constants` is the source; these are the strings it
+ * renders to, which is what the card carries and therefore what needs a mark.
+ * They differ in one place: the step count is interpolated in, so the keyable
+ * part of that wording is the tail.
+ */
+export const ARRANGEMENT_WORDS = [
+    "is adjacent and left of", "is adjacent and right of",
+    "steps left of", "steps right of",
+    "is at the left of", "is at the right of",
+    "is next to", "is diametrically opposite to",
+] as const;
+
+/**
+ * The meta relation, which says two pairs stand the same way to each other.
+ *
+ * Held here so the premise is built from the same strings the marks are keyed
+ * on. It used to be written inline with the negation wrapped round the single
+ * word "opposite", which split the phrase in two with markup and put it beyond
+ * anything that reads whole relations.
+ */
+export const META_WORDS = {
+    relatesTo: "relates to",
+    same: "in the same way that",
+    opposite: "in the opposite way that",
+} as const;
 
 /**
  * The words Direction3D states its own three axes with.

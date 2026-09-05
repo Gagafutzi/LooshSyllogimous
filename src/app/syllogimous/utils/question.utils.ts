@@ -5,7 +5,7 @@ import { Settings, Picked } from "../models/settings.models";
 import { getVisualNoiseSymbols } from "./visual-noise.utils";
 import { getPharmaSymbols } from "./pharma.utils";
 import { getJunkEmojiSymbols } from "./junk-emoji.utils";
-import { neg, subj } from "./phrasing";
+import { META_WORDS, hi, neg, rel, subj } from "./phrasing";
 
 export const b2n = (b: boolean) => +b as number;
 
@@ -278,21 +278,22 @@ export function createMetaRelationships(settings: Settings, question: Question, 
                 isSame = (a.value < b.value) === (c.value < d.value);
             }
 
-            if (isSame) { // Same
-                if (settings.enabled.negation && coinFlip()) {
-                    question.negations++;
-                    newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the <span class="is-negated">opposite</span> way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
-                } else {
-                    newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the same way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
-                }
-            } else { // Different
-                if (settings.enabled.negation && coinFlip()) {
-                    question.negations++;
-                    newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the <span class="is-negated">same</span> way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
-                } else {
-                    newPremises.push(`${subj(a.subject)} relates to ${subj(b.subject)} in the opposite way that ${subj(c.subject)} relates to ${subj(d.subject)}`);
-                }
-            }
+            /*
+             * The whole comparison is one relation, so the whole phrase is
+             * struck through when it is negated — not the single word inside
+             * it. Splitting the phrase with markup put it beyond anything that
+             * matches relations whole, which is how the one relation five modes
+             * share stayed in English while everything around it became marks.
+             */
+            const stated = isSame ? META_WORDS.same : META_WORDS.opposite;
+            const reversed = isSame ? META_WORDS.opposite : META_WORDS.same;
+            const negate = settings.enabled.negation && coinFlip();
+            if (negate) question.negations++;
+
+            const link = negate ? neg(reversed) : hi(stated);
+            newPremises.push(
+                `${subj(a.subject)} ${rel(META_WORDS.relatesTo)} ${subj(b.subject)} `
+                + `${link} ${subj(c.subject)} ${rel(META_WORDS.relatesTo)} ${subj(d.subject)}`);
         }
 
         newPremises.push(...remainingPremises);
@@ -492,27 +493,61 @@ export function getCircularWays(
  * relations and a negation count of zero. Every other generator increments its
  * own, which is why nothing noticed.
  */
+/** The four wordings that have an opposite; the other two are symmetric. */
+const ARRANGEMENT_OPPOSITE: Partial<Record<EnumArrangements, EnumArrangements>> = {
+    [EnumArrangements.AdjacentLeft]: EnumArrangements.AdjacentRight,
+    [EnumArrangements.AdjacentRight]: EnumArrangements.AdjacentLeft,
+    [EnumArrangements.NStepsLeft]: EnumArrangements.NStepsRight,
+    [EnumArrangements.NStepsRight]: EnumArrangements.NStepsLeft,
+    [EnumArrangements.Left]: EnumArrangements.Right,
+    [EnumArrangements.Right]: EnumArrangements.Left,
+};
+
 export function interpolateArrangementRelationship(
     relationship: IArrangementRelationship,
     settings: Settings,
     onNegate?: () => void,
-) {
+): string {
     const numWord = NUMBER_WORDS[relationship.steps];
 
-    const interpolatedWithSteps = relationship.description.replace(/# steps/, () =>
+    /*
+     * Negated whole, not word by word.
+     *
+     * It used to swap "left" for "right" inside the finished phrase and strike
+     * through that one word, which split the relation in two with markup: "is
+     * adjacent and <del>right</del> of" is one relation written as three
+     * fragments, and nothing that matches relations whole can see it. That is
+     * why the arrangements were the modes still printing English beside marks.
+     *
+     * Stating the opposite relation entire and striking that through says the
+     * same thing. Only the four directional wordings have an opposite; "next
+     * to" and "diametrically opposite" are symmetric, and were never negated
+     * here either — the old regex had no left or right to find in them.
+     */
+    const opposite = ARRANGEMENT_OPPOSITE[relationship.description];
+    const negate = settings.enabled.negation && !!opposite && coinFlip();
+    const description = negate ? opposite! : relationship.description;
+
+    /*
+     * The trailing space goes with the placeholder.
+     *
+     * Replacing "# steps" alone with " adjacent and" left "is  adjacent and
+     * left of" with two spaces — invisible once HTML collapses it, and a
+     * different string from the one the enum spells, which is enough to put it
+     * past anything matching whole relations.
+     */
+    const text = description.replace(/# steps /, () =>
         relationship.steps === 1
-            ? " adjacent and"
-            : ((numWord || relationship.steps) + " steps")
+            ? "adjacent and "
+            : ((numWord || relationship.steps) + " steps ")
     );
 
-    if (settings.enabled.negation && coinFlip()) {
-        return interpolatedWithSteps.replaceAll(/(left|right)/gi, substr => {
-            onNegate?.();
-            return neg((substr === "left") ? "right" : "left");
-        });
+    if (negate) {
+        onNegate?.();
+        return neg(text);
     }
 
-    return interpolatedWithSteps;
+    return text;
 }
 
 export function fixBinaryInstructions(q: Question) {
