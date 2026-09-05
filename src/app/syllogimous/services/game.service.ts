@@ -40,6 +40,8 @@ import { hasNextClaim, isHoldClaim, judgeItem, takeSeriesAnswer } from "../utils
 // member of the same name, and a call that could be read as either is worth
 // one line of renaming to avoid.
 import { LabelScheme, randomRelationLabels, setSymbolRelations as pushSymbolRelations, symboliseStatement } from "../utils/phrasing";
+import { integrationLoad } from "../utils/integration.utils";
+import { pricedPremises } from "../utils/ability.utils";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
 import { Router } from "@angular/router";
@@ -526,7 +528,15 @@ export class GameService implements GeneratorContext {
         return () => {
             this.progressionService.scopeTo(questionType);
             try {
-                return creator();
+                const question = creator();
+                /*
+                 * What was asked for, recorded here because this is the only
+                 * place that knows it. The generator may print fewer sentences
+                 * than it was built from — wide premises merge two links into
+                 * one — and pricing the printed count prices the wrong item.
+                 */
+                question.builtPremises = numOfPremises;
+                return question;
             } finally {
                 this.progressionService.scopeTo(undefined);
             }
@@ -927,7 +937,9 @@ export class GameService implements GeneratorContext {
                 : null;
             const spec = {
                 type,
-                premises: this.question.premises.length,
+                // What the configuration asked for, not what got printed.
+                // Falls back for items built before the field existed.
+                premises: this.question.builtPremises || this.question.premises.length,
                 rungs,
                 seconds,
                 carousel,
@@ -1060,6 +1072,13 @@ export class GameService implements GeneratorContext {
                     // Logged so the bits-to-levels coefficient can be fitted
                     // rather than guessed; nothing reads it for difficulty yet.
                     widthDelta: this.question.widthDelta,
+                    // Order-dependent load, on the same standing as width: how
+                    // many groups the heaviest premise welded, how many of them
+                    // were structures already held, and how many part-built
+                    // structures were carried at the peak.
+                    arity: this.question.arity,
+                    integration: this.question.integration,
+                    openGroups: this.question.openGroups,
                     // Same standing: recorded now so that whether depth
                     // predicts accuracy can later be answered from answered
                     // items rather than from a screenshot.
@@ -1364,6 +1383,17 @@ export class GameService implements GeneratorContext {
      */
 
     private asMinimal(question: Question): Question {
+        /*
+         * Measured here because every path returns through this one, including
+         * the delay line and the stream, which do not go through `getCreateFn`.
+         * Before the labels are applied, so the walk reads object names rather
+         * than whatever they were rewritten into.
+         */
+        const load = integrationLoad(question.premises);
+        question.arity = load.arity;
+        question.integration = load.integration;
+        question.openGroups = load.openGroups;
+
         /*
          * Two switches, one pass. Fresh labels are a vocabulary invented for
          * this item; minimal mode is the fixed table. Either alone rewrites the

@@ -602,6 +602,24 @@ export function unneededPremises(spec: { premises: number; depth?: number }): nu
     return Math.max(0, spec.premises - spec.depth);
 }
 
+/**
+ * Which premise count describes the item: the one asked for, not the one shown.
+ *
+ * Wide premises merge two consecutive links into one sentence, so a seven-link
+ * item prints about four. Pricing the printed count prices a different item —
+ * and because the posterior and the next configuration both read the same
+ * number, the error does not show up as a wrong answer. It settles at roughly
+ * half true ability and serves items to match, quietly, for as long as it runs.
+ *
+ * Falls back to the printed count for items built before this was recorded,
+ * which is what every reader used to do.
+ */
+export function pricedPremises(
+    item: { builtPremises?: number; premises: unknown[] },
+): number {
+    return item.builtPremises || item.premises.length;
+}
+
 export function levelOf(spec: ItemSpec, config = DEFAULT_ABILITY): number {
     const weight = MODE_SCALE[spec.type]?.weight ?? 1;
     const structural = weight * spec.premises
@@ -1151,6 +1169,18 @@ export interface Trial {
     timedOut?: boolean;
     /** Bits wider or narrower than typical for the configuration, or 0. */
     widthDelta?: number;
+    /**
+     * How much had to be held at once, and how much one premise joined.
+     *
+     * Logged so the coefficients can be fitted rather than guessed; nothing
+     * reads them for difficulty yet. `arity` says what the premise form
+     * allowed, `integration` how much of that was joining structures already
+     * held rather than introducing names, and `openGroups` how many part-built
+     * structures were carried at the peak.
+     */
+    arity?: number;
+    integration?: number;
+    openGroups?: number;
     /**
      * Relations the conclusion needed, or 0 where the mode does not measure it.
      *

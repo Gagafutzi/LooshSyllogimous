@@ -1131,6 +1131,7 @@ export class ProgressionService {
         item?: {
             answerMode?: string; slots?: number; choices?: number; options?: number;
             widthDelta?: number; depth?: number;
+            arity?: number; integration?: number; openGroups?: number;
             /**
              * How each claim of a graded item went, when there was more than
              * one. Read only with `perClaimCredit` on.
@@ -1202,6 +1203,9 @@ export class ProgressionService {
             timedOut: outcome === "timeout",
             widthDelta: item?.widthDelta ?? 0,
             depth: item?.depth ?? 0,
+            arity: item?.arity ?? 0,
+            integration: item?.integration ?? 0,
+            openGroups: item?.openGroups ?? 0,
             answerSeconds,
         });
 

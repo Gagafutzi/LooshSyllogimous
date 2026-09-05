@@ -481,6 +481,39 @@ export class Question {
     depth = 0;
 
     /**
+     * The premise count the configuration asked for, which is not always the
+     * number of sentences printed.
+     *
+     * Wide premises merge two consecutive links into one sentence, so a
+     * seven-link item shows about four. The difficulty model was reading
+     * `premises.length` — the printed count — and both sides of the loop read
+     * that number, so the posterior would settle at roughly half true ability
+     * and the next configuration would be chosen to match. It converges quietly
+     * to too easy, and every archived level is wrong by the same factor.
+     *
+     * Zero means the item was built before this was recorded; readers fall back
+     * to the printed count, which is what they used to use.
+     */
+    builtPremises = 0;
+
+    /**
+     * How much has to be held together at once, and how much one premise joins.
+     *
+     * Three numbers from `integrationLoad`, taken off the rendered card: the
+     * groups the heaviest premise welds, how many of those were already
+     * structures rather than fresh names, and the peak number of part-built
+     * structures carried. All three are properties of the order the premises
+     * are shown in, which scramble decides and has never measured.
+     *
+     * Recorded rather than charged, as `widthDelta` and `depth` are: the
+     * coefficients have to be fitted against answered items, and that needs the
+     * items logged first.
+     */
+    arity = 0;
+    integration = 0;
+    openGroups = 0;
+
+    /**
      * Several claims about one arrangement, asked one at a time.
      *
      * The form this replaces put every claim on the card at once and scored
