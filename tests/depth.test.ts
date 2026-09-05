@@ -1103,24 +1103,46 @@ test("a short composed space gets no checkpoint", () => {
 test("a mutated or reported composed space carries no checkpoint", () => {
     const base = ndContext();
 
+    /*
+     * The four premise kinds a checkpoint cannot survive, by the wording each
+     * one reaches the card with. An ordinary premise of a composed space places
+     * one object relative to another and says none of this.
+     */
+    const MUTATION = /says:|the relation|the relations|the premise about|becomes|is mirrored|-mirrored|-rotated|-scaled|is set to|is moved|moves |swap places|stays where it is/;
+
     for (const rung of ["edit-1", "transform-1", "speakers", "testimony"]) {
         const ctx = {
             ...base,
             hasRung: (_t: string, r: string) => r === "checkpoint" || r === rung,
         } as GeneratorContext;
 
+        let checkpoints = 0;
         seeded(7171, () => {
             for (let n = 5; n <= 8; n++) {
                 for (let rep = 0; rep < 15; rep++) {
                     let q;
                     try { q = createNdSpace(ctx, n, EnumQuestionType.Space3D); } catch { continue; }
-                    assert(q.construct.length < 2,
-                        `${rung} and a checkpoint came out together, and a`
-                        + " checkpoint the reader cannot answer at the checkpoint"
-                        + " is not one");
+                    if (q.construct.length < 2) continue;
+                    checkpoints++;
+                    const mutated = q.premises.filter(p => MUTATION.test(p));
+                    assert(mutated.length === 0,
+                        `a checkpoint came out beside ${rung}: "${mutated[0]}" —`
+                        + " and a checkpoint the reader cannot answer at the"
+                        + " checkpoint is not one");
                 }
             }
         });
+
+        /*
+         * And it does still happen. The rung sits at the end of this ladder,
+         * past both mutation rungs and both liar rungs, so a player reaches it
+         * only by holding what rules it out — it fired for nobody until an item
+         * that means to carry one began setting those aside for itself. A test
+         * that only asserts the two never co-occur passes perfectly on a rung
+         * that does nothing, which is what it did.
+         */
+        assert(checkpoints > 0,
+            `holding checkpoint and ${rung}, no item carried a checkpoint`);
     }
 });
 

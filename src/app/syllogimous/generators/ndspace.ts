@@ -75,7 +75,34 @@ export function createNdSpace(ctx: GeneratorContext, numOfPremises: number, type
 
     const dims = dimensionsOf(ctx, type);
     const scales = ctx.settingsOverrideService.axesFor(dims) ?? axesForDimensions(dims);
-    const feat = ndFeatures(ctx, type);
+    const base = ndFeatures(ctx, type);
+
+    /*
+     * A checkpoint item is built without mutations, because otherwise it is
+     * never built at all.
+     *
+     * A checkpoint asks a question the first half of the premises already
+     * settles, so it needs a prefix that stays true — and an edit, a
+     * transformation, a report or a piece of testimony is exactly what breaks
+     * one. `canCheckpoint` rules all four out, correctly.
+     *
+     * The rung was appended to the end of the ladder, which is the right way to
+     * add one: positions are stored, so inserting renames every rung after it.
+     * But the end of this ladder is past both transformation rungs, both edit
+     * rungs, speakers and testimony — so a player can only reach the checkpoint
+     * rung by first holding everything that makes a checkpoint impossible. It
+     * has never fired on any of the six space modes, for anyone.
+     *
+     * So an item that means to carry a checkpoint sets those aside for itself.
+     * The alternative was to move the rung earlier, which renames the four
+     * rungs behind it for everybody who already has them, and to retire it,
+     * which would delete a form of item that works — it is the scale family's
+     * top rung and fires there.
+     */
+    const wantCheckpoint = base.checkpoint && numOfPremises > 4 && coinFlip();
+    const feat = wantCheckpoint
+        ? { ...base, edits: 0, transforms: 0, speakers: false, testimony: false }
+        : base;
 
     /*
      * Loops are applied to the axes that have cyclic wording — a ring of
