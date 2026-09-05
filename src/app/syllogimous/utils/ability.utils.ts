@@ -1194,6 +1194,17 @@ export interface ChooseOptions {
     untimed?: boolean;
     /** The counted levers this mode has, from `dialsFor`. */
     dials?: string[];
+    /**
+     * How many of the recent items carried each lever, by name.
+     *
+     * Used only to break ties, and only between candidates that are equal on
+     * difficulty and equal on how much structure they carry. A settled
+     * posterior asks for the same difficulty every time and the search is
+     * deterministic, so it returns the same configuration every time — and the
+     * argument for drawing the labels fresh per item is the argument against
+     * that. Absent means no preference, which is what a fresh session has.
+     */
+    recent?: Record<string, number>;
 }
 
 /**
@@ -1285,7 +1296,7 @@ export function chooseConfig(
             const level = structural + timeCost(seconds, config);
 
             const candidate: ConfigChoice = { premises: p, rungs, dials, seconds, level };
-            if (!best || better(candidate, best, opts.target)) best = candidate;
+            if (!best || better(candidate, best, opts)) best = candidate;
         }
     }
 
@@ -1295,7 +1306,30 @@ export function chooseConfig(
 /** Difficulties this close are treated as equal, letting the preference decide. */
 const TOLERANCE = 0.5;
 
-function better(a: ConfigChoice, b: ConfigChoice, target: number) {
+/** Every lever a configuration carries, gates and dials alike, by name. */
+export function leversOf(choice: ConfigChoice, ladder: string[]): string[] {
+    return [
+        ...ladder.slice(0, choice.rungs).filter(r => !r.startsWith("retired-")),
+        ...Object.keys(choice.dials ?? {}).filter(name => (choice.dials![name] ?? 0) > 0),
+    ];
+}
+
+/**
+ * How much of this configuration the player has just had.
+ *
+ * The mean rather than the sum, so a candidate is not penalised for carrying
+ * more levers — how much structure it has was already decided, and this is only
+ * choosing between arrangements of the same amount.
+ */
+function staleness(choice: ConfigChoice, opts: ChooseOptions): number {
+    if (!opts.recent) return 0;
+    const levers = leversOf(choice, opts.ladder);
+    if (!levers.length) return 0;
+    return levers.reduce((a, l) => a + (opts.recent![l] ?? 0), 0) / levers.length;
+}
+
+function better(a: ConfigChoice, b: ConfigChoice, opts: ChooseOptions) {
+    const target = opts.target;
     const da = Math.abs(a.level - target);
     const db = Math.abs(b.level - target);
     /*
@@ -1312,6 +1346,20 @@ function better(a: ConfigChoice, b: ConfigChoice, target: number) {
     const sa = a.rungs + dialSteps(a.dials);
     const sb = b.rungs + dialSteps(b.dials);
     if (sa !== sb) return sa > sb;
+    /*
+     * Then the one made of levers the last few items did not use.
+     *
+     * Below structure and above everything else, because it is a choice between
+     * arrangements of the *same* amount of structure — never a reason to serve
+     * less of it, and never a reason to move the difficulty. A settled
+     * posterior asks for the same target every time and the search is
+     * deterministic, so without this the same configuration comes back until
+     * the estimate moves; variability of practice is the argument the drawn
+     * labels were built on and it applies to the shape of the item too.
+     */
+    const ra = staleness(a, opts);
+    const rb = staleness(b, opts);
+    if (Math.abs(ra - rb) > 1e-9) return ra < rb;
     /*
      * Equal rungs: take the closer to target, not the shorter.
      *

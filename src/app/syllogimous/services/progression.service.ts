@@ -11,7 +11,7 @@ import {
 import { UnlockEvidence } from "../utils/tier.utils";
 import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
-    abilityUpdate, aggregate, cautionPenalty, chooseConfig, densityAt, dialSteps, guessRateFor, guessRateForRungs, initAbility, ItemSpec, levelOf,
+    abilityUpdate, aggregate, cautionPenalty, chooseConfig, densityAt, dialSteps, leversOf, guessRateFor, guessRateForRungs, initAbility, ItemSpec, levelOf,
     pCorrect, priorForNewMode, targetLevel,
     DepthFit, DepthReport, Trial, depthReport, fitDepthCoefficient, fitRungCosts,
     fitWidthCoefficient, referenceSecondsFrom,
@@ -794,6 +794,7 @@ export class ProgressionService {
             structureBefore: this.config.structureBefore,
             untimed,
             dials: dialsFor(type),
+            recent: this.recencyFor(type),
         };
 
         /*
@@ -897,6 +898,36 @@ export class ProgressionService {
      */
     levelFor(spec: ItemSpec): number {
         return levelOf(spec, this.abilityConfig);
+    }
+
+    /**
+     * Levers the last few items of each mode carried.
+     *
+     * Held in memory rather than saved. It exists to stop a settled posterior
+     * serving the same arrangement over and over, and a session is the span
+     * over which that is felt — persisting it would add a save format for a
+     * preference that costs nothing to rebuild and means nothing a day later.
+     */
+    private recentLevers: Partial<Record<EnumQuestionType, string[][]>> = {};
+
+    /** How many of the recent items of this mode carried each lever. */
+    private recencyFor(type: EnumQuestionType): Record<string, number> {
+        const out: Record<string, number> = {};
+        for (const levers of this.recentLevers[type] ?? []) {
+            for (const lever of levers) out[lever] = (out[lever] ?? 0) + 1;
+        }
+        return out;
+    }
+
+    /** How many items back the preference looks. Short: it is a nudge, not a rule. */
+    private static readonly RECENT_WINDOW = 6;
+
+    private noteLevers(type: EnumQuestionType, choice: ConfigChoice) {
+        const list = this.recentLevers[type] ?? (this.recentLevers[type] = []);
+        list.push(leversOf(choice, ladderFor(type)));
+        while (list.length > ProgressionService.RECENT_WINDOW) list.shift();
+        // The choice for this mode was made under the old window.
+        delete this.configCache[type];
     }
 
     /** Rungs the current configuration carries, as a prefix of the mode's ladder. */
@@ -1334,6 +1365,9 @@ export class ProgressionService {
 
         // Announce only a change the player would notice in the next item, and
         // judged at the same probe state as `before` — see `wasProbe`.
+        // What this item was made of, before the next choice is computed.
+        this.noteLevers(type, before);
+
         const after = this.configFor(type, wasProbe);
         const events: LadderEvent[] = [];
         /*

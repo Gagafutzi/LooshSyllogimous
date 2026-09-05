@@ -89,9 +89,35 @@ export function seeded<T>(seed: number, fn: () => T): T {
     try { return fn(); } finally { Math.random = original; }
 }
 
+/**
+ * Run only the cases whose name matches, for iterating on one thing.
+ *
+ * `TEST_FILTER=dials npm run test:utils`. The whole suite is a hundred and
+ * twenty-five seconds, which is the right price to pay before a commit and the
+ * wrong one to pay after every edit — and paying it after every edit is what
+ * actually happens without this.
+ *
+ * Substring, case-insensitive. Nothing is skipped without saying so, so a
+ * filtered run cannot be mistaken for a clean one.
+ */
+function filter(): { re: RegExp | null; text: string } {
+    const raw = typeof process !== "undefined" ? process.env?.TEST_FILTER : undefined;
+    if (!raw) return { re: null, text: "" };
+    return { re: new RegExp(raw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), text: raw };
+}
+
 export async function run() {
     let failed = 0;
-    for (const c of cases) {
+    const took: Array<{ name: string; ms: number }> = [];
+    const { re, text } = filter();
+    const chosen = re ? cases.filter(c => re.test(c.name)) : cases;
+
+    if (re) {
+        console.log(`  filter "${text}": ${chosen.length} of ${cases.length} cases\n`);
+    }
+
+    for (const c of chosen) {
+        const started = Date.now();
         try {
             await c.fn();
             console.log(`  ok   ${c.name}`);
@@ -100,8 +126,26 @@ export async function run() {
             console.log(`  FAIL ${c.name}`);
             console.log(`       ${(e as Error).message.split("\n").join("\n       ")}`);
         }
+        took.push({ name: c.name, ms: Date.now() - started });
     }
-    console.log(`\n${cases.length - failed}/${cases.length} passed`);
+
+    const total = took.reduce((a, t) => a + t.ms, 0);
+    const skipped = re ? ` (${cases.length - chosen.length} skipped by filter)` : "";
+    console.log(`\n${chosen.length - failed}/${chosen.length} passed`
+        + ` in ${(total / 1000).toFixed(1)}s${skipped}`);
+
+    /*
+     * The handful worth knowing about, because this suite is run on every
+     * change and a slow one is paid for many times a day. Only the ones over a
+     * second, so a healthy run says nothing.
+     */
+    const slow = took.filter(t => t.ms >= 1000).sort((a, b) => b.ms - a.ms).slice(0, 8);
+    if (slow.length) {
+        console.log("  slowest:");
+        for (const t of slow) {
+            console.log(`    ${(t.ms / 1000).toFixed(1)}s  ${t.name}`);
+        }
+    }
     if (failed) process.exit(1);
 }
 
