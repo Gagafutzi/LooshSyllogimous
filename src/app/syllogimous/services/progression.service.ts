@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { EnumQuestionType } from "../constants/question.constants";
-import { LS_TIMER } from "../constants/local-storage.constants";
+import { LS_CAROUSEL_ADVANCE, LS_CAROUSEL_SECONDS, LS_GAME_MODE, LS_TIMER } from "../constants/local-storage.constants";
 import { SettingsOverrideService } from "./settings-override.service";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { Settings } from "../models/settings.models";
@@ -49,6 +49,10 @@ import { MODE_SCALE } from "../utils/calibration.utils";
  */
 
 const LS_CONFIG = "syllogimous-progression-config";
+/** Long enough to read one premise and move on, when the player is paging. */
+const MANUAL_SCREEN_SECONDS = 2;
+/** What the carousel advances at when nothing is stored; see the game screen. */
+const DEFAULT_CAROUSEL_SECONDS = 4;
 /** The rolling residual window behind fatigue detection. */
 const LS_RESIDUALS = "syllogimous-residuals";
 
@@ -795,6 +799,7 @@ export class ProgressionService {
             untimed,
             dials: dialsFor(type),
             recent: this.recencyFor(type),
+            secondsPerPremise: this.secondsPerPremise(),
         };
 
         /*
@@ -928,6 +933,25 @@ export class ProgressionService {
         while (list.length > ProgressionService.RECENT_WINDOW) list.shift();
         // The choice for this mode was made under the old window.
         delete this.configCache[type];
+    }
+
+    /**
+     * How long one premise takes to reach, given how they are being shown.
+     *
+     * Read here rather than passed in, because the deadline is chosen here and
+     * the display is the only other thing that decides whether the deadline is
+     * reachable. A carousel that advances on its own imposes its interval on
+     * every screen; one advanced by hand still needs long enough to read the
+     * premise and press. The whole card at once imposes nothing.
+     */
+    private secondsPerPremise(): number {
+        try {
+            if ((localStorage.getItem(LS_GAME_MODE) || "0") === "0") return 0;
+            const advance = localStorage.getItem(LS_CAROUSEL_ADVANCE) || "manual";
+            if (advance !== "timer") return MANUAL_SCREEN_SECONDS;
+            const each = Number(localStorage.getItem(LS_CAROUSEL_SECONDS));
+            return Number.isFinite(each) && each > 0 ? each : DEFAULT_CAROUSEL_SECONDS;
+        } catch { return 0; }
     }
 
     /** Rungs the current configuration carries, as a prefix of the mode's ladder. */

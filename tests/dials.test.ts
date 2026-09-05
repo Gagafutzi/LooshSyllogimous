@@ -15,7 +15,7 @@
 import { assert, equal, test } from "./harness";
 import {
     DEFAULT_ABILITY, DIALS, allocateDials, capDials, chooseConfig, dialCost,
-    dialSteps, levelOf,
+    dialSteps, levelOf, needsAt,
 } from "../src/app/syllogimous/utils/ability.utils";
 import { dialsFor, ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
@@ -180,4 +180,55 @@ test("a prefix never stops on a tombstone", () => {
         assert(!ladder[choice.rungs - 1].startsWith("retired-"),
             `${type} claimed up to ${ladder[choice.rungs - 1]}, which is wired to nothing`);
     }
+});
+
+/* ------------------------------------------------------------------ *
+ * What the item can actually carry                                    *
+ * ------------------------------------------------------------------ */
+
+/**
+ * A dial has no ceiling on the *ladder*, which is what the split was for. It
+ * still has one on the item: `editCount = min(feat.edits, premises - 3)` in the
+ * generator, so the fourth turn wants a seventh premise.
+ *
+ * Repeating the last value instead of continuing the last increment let the
+ * model turn a dial as far as it liked on a fixed premise count. Aiming past
+ * what structure could reach, it asked for fifty-six transformations on a
+ * five-premise item and priced the ask — the generator would have clamped that
+ * to one, so the level was a fiction and the mode could never run out.
+ */
+test("each further turn wants one more premise, as the generator does", () => {
+    const edits = DIALS.edits;
+    equal(needsAt(edits, 0), 4, "the first turn's premise floor moved");
+    equal(needsAt(edits, 1), 5, "the second turn's premise floor moved");
+    equal(needsAt(edits, 2), 6, "the third turn repeats instead of continuing");
+    equal(needsAt(edits, 5), 9, "and the sixth");
+});
+
+test("a budget cannot buy a turn the premises cannot carry", () => {
+    // A budget large enough for many turns, against five premises.
+    const spread = allocateDials(["edits"], 100, 5);
+    equal(spread.edits, 2, `five premises should carry two edits, got ${spread.edits}`);
+    equal(allocateDials(["edits"], 100, 3).edits, undefined,
+        "three premises should carry no edits at all");
+});
+
+test("loops stop at the axes that can loop, however many premises there are", () => {
+    const many = allocateDials(["circular"], 100, 40);
+    equal(many.circular, DIALS.circular.max,
+        `loops should stop at ${DIALS.circular.max}, got ${many.circular}`);
+    equal(capDials({ circular: 9 }, 40).circular, DIALS.circular.max,
+        "a hand-built configuration was not trimmed to the cap");
+});
+
+test("a mode reaches a ceiling again, so running out means something", () => {
+    const type = EnumQuestionType.LinearVertical;
+    const opts = {
+        minPremises: 3, maxPremises: 7, ladder: ladderFor(type),
+        structureBefore: 5, dials: dialsFor(type),
+    };
+    const far = chooseConfig(type, { ...opts, target: 200 }, DEFAULT_ABILITY);
+    assert(far.level < 60,
+        `aiming at 200 produced a level of ${far.level.toFixed(1)} — the dial went`
+        + " as far as the target asked rather than as far as the item allows");
 });

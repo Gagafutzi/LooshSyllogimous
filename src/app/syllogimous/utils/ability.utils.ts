@@ -342,17 +342,42 @@ export interface Dial {
      * Premises each step needs before it can mean anything.
      *
      * The feasibility constraint the ladder carried as `RUNG_MIN_PREMISES`, kept
-     * with the dial it belongs to. Steps past the end need what the last one
-     * did: an operation that needs four premises to be worth stating does not
-     * stop needing them at the third turn of the dial.
+     * with the dial it belongs to. Steps past the end **continue the last
+     * increment** rather than repeating the last value: `[4, 5]` means the
+     * third turn needs six premises and the fourth seven, which is exactly what
+     * the generators do — `editCount = min(feat.edits, premises - 3)`.
+     *
+     * Repeating the value instead let the model turn a dial as far as it liked
+     * on a fixed premise count: aiming at a target no structure could reach, it
+     * asked for fifty-six transformations on a five-premise item and priced the
+     * ask. The generator would have clamped that to one, so the model would
+     * have been pricing a fiction — and would never conclude that a mode had
+     * run out of anything.
      */
     needs: number[];
+    /**
+     * A hard limit on turns where more premises cannot buy more.
+     *
+     * Loops go on axes, and a space has as many as it has: asking for a fourth
+     * on a three-axis stack is not a harder item, it is the same item priced
+     * higher. Absent where the premise count is the only limit.
+     */
+    max?: number;
     /** The ladder entries this replaces, in order. */
     was: string[];
 }
 
 export const DIALS: Record<string, Dial> = {
-    circular: { steps: [1.2, 0.8], needs: [0, 0], was: ["circular", "circular-2"] },
+    /*
+     * Capped at three, which is how many of the axis scales have cyclic wording
+     * — east-west, left-right and time. `circularCapable` in the generator is
+     * the authority and takes whichever of them the stack actually has; this is
+     * the ceiling across every stack, so the model never asks for a loop that
+     * no configuration of axes could carry.
+     */
+    circular: {
+        steps: [1.2, 0.8], needs: [0, 0], max: 3, was: ["circular", "circular-2"],
+    },
     transforms: {
         steps: [1.5, 1.2], needs: [4, 5], was: ["transform-1", "transform-2"],
     },
@@ -363,6 +388,19 @@ export const DIALS: Record<string, Dial> = {
     },
 };
 
+/**
+ * Premises the `i`-th turn of a dial needs, counting from zero.
+ *
+ * Past the priced list the last increment continues, so a dial whose first two
+ * turns want four and five premises wants six for the third.
+ */
+export function needsAt(dial: Dial, i: number): number {
+    const last = dial.needs.length - 1;
+    if (i <= last) return dial.needs[i] ?? 0;
+    const step = last > 0 ? dial.needs[last] - dial.needs[last - 1] : 0;
+    return dial.needs[last] + step * (i - last);
+}
+
 /** Premises a dial turned this far needs, which is what its last step needs. */
 export function dialNeeds(dials: Record<string, number> | undefined): number {
     if (!dials) return 0;
@@ -370,7 +408,7 @@ export function dialNeeds(dials: Record<string, number> | undefined): number {
     for (const [name, n] of Object.entries(dials)) {
         const dial = DIALS[name];
         if (!dial || n <= 0) continue;
-        most = Math.max(most, dial.needs[Math.min(n - 1, dial.needs.length - 1)] ?? 0);
+        most = Math.max(most, needsAt(dial, n - 1));
     }
     return most;
 }
@@ -404,7 +442,9 @@ export function dialsCost(dials: Record<string, number> | undefined): number {
  * Stops when no dial's next step fits what is left, rather than when a list runs
  * out.
  */
-export function allocateDials(names: string[], budget: number): Record<string, number> {
+export function allocateDials(
+    names: string[], budget: number, premises = Infinity,
+): Record<string, number> {
     const out: Record<string, number> = {};
     if (!names.length || budget <= 0) return out;
 
@@ -412,9 +452,16 @@ export function allocateDials(names: string[], budget: number): Record<string, n
     for (let round = 0; round < 64; round++) {
         let spent = false;
         for (const name of names) {
-            const next = dialCost(name, (out[name] ?? 0) + 1) - dialCost(name, out[name] ?? 0);
+            const dial = DIALS[name];
+            if (!dial) continue;
+            const turns = out[name] ?? 0;
+            // What the item can carry, before what the budget can pay for.
+            if (dial.max != null && turns >= dial.max) continue;
+            if (needsAt(dial, turns) > premises) continue;
+
+            const next = dialCost(name, turns + 1) - dialCost(name, turns);
             if (next > left) continue;
-            out[name] = (out[name] ?? 0) + 1;
+            out[name] = turns + 1;
             left -= next;
             spent = true;
         }
@@ -433,7 +480,8 @@ export function capDials(
         if (!dial) continue;
         let kept = 0;
         for (let i = 0; i < n; i++) {
-            if ((dial.needs[Math.min(i, dial.needs.length - 1)] ?? 0) > premises) break;
+            if (dial.max != null && i >= dial.max) break;
+            if (needsAt(dial, i) > premises) break;
             kept++;
         }
         if (kept > 0) out[name] = kept;
@@ -1195,6 +1243,21 @@ export interface ChooseOptions {
     /** The counted levers this mode has, from `dialsFor`. */
     dials?: string[];
     /**
+     * Seconds one premise needs just to be *read*, when they arrive one at a
+     * time.
+     *
+     * The deadline is chosen to fill whatever gap structure could not, and it
+     * bottoms out at `minSeconds` — eight, a single number with no idea how much
+     * there is to get through. A carousel shows one premise per screen, so a
+     * seven-premise item at four seconds a screen needs twenty-eight seconds of
+     * paging before an answer is even possible, against a deadline that can be
+     * eight. That item is not hard, it is unanswerable by construction.
+     *
+     * Zero when the whole card is visible, where reading order is the player's
+     * own business and the deadline is pressure rather than a wall.
+     */
+    secondsPerPremise?: number;
+    /**
      * How many of the recent items carried each lever, by name.
      *
      * Used only to break ties, and only between candidates that are equal on
@@ -1286,13 +1349,21 @@ export function chooseConfig(
              * needing them at the third turn of the dial.
              */
             const dials = capDials(
-                allocateDials(opts.dials ?? [], Math.max(0, opts.target - gates)), p);
+                allocateDials(opts.dials ?? [], Math.max(0, opts.target - gates), p), p);
             const structural = gates + dialsCost(dials);
             const gap = opts.target - structural;
 
             // The clock can only add difficulty, never remove it, so a
             // configuration already past the target is judged as it stands.
-            const seconds = opts.untimed || gap <= 0 ? null : secondsForCost(gap, config);
+            const wanted = opts.untimed || gap <= 0 ? null : secondsForCost(gap, config);
+            /*
+             * Never tighter than the item takes to read. A floored clock is a
+             * looser clock, so this makes the candidate *easier* than the target
+             * — which is the honest outcome, and lets the selection prefer a
+             * different candidate that reaches the target some other way.
+             */
+            const floor = p * (opts.secondsPerPremise ?? 0);
+            const seconds = wanted == null ? null : Math.max(wanted, Math.ceil(floor));
             const level = structural + timeCost(seconds, config);
 
             const candidate: ConfigChoice = { premises: p, rungs, dials, seconds, level };
