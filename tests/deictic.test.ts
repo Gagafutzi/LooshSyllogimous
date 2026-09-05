@@ -55,9 +55,11 @@ function context(granted: boolean, deep = true): GeneratorContext {
         } as unknown as SettingsOverrideService,
         progressionService: {
             hasRung: () => granted, depthBonusFor: () => 0,
+            dialFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: () => granted,
+        dialFor: () => 0,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

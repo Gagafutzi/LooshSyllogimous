@@ -1,3 +1,4 @@
+import { DIALS } from "./ability.utils";
 /**
  * Fluid progression ladder — pure state machine (see ROADMAP.md).
  *
@@ -235,7 +236,7 @@ const LINEAR_LADDER = [
     // existing player, silently. The tombstone holds the slot, matches no
     // `hasRung` call, and is filtered out of the settings UI. See fixes/6.
     "negation", "branching", "meta", "overlap", "retired-wide-premises",
-    "transform-1", "transform-2", "retired-multi-conclusion", "choose-conclusion",
+    "retired-transform-1", "retired-transform-2", "retired-multi-conclusion", "choose-conclusion",
     "construct-conclusion", "construct-distance", "checkpoint",
 ];
 
@@ -270,8 +271,9 @@ const LINEAR_LADDER = [
  */
 const ND_LADDER = [
     // "compact" is retired rather than removed; see the note on LINEAR_LADDER.
-    "branching", "retired-compact", "circular", "indeterminate", "facing", "speakers", "testimony", "transform-1", "edit-1",
-    "circular-2", "transform-2", "edit-2", "analogy",
+    "branching", "retired-compact", "retired-circular", "indeterminate", "facing", "speakers", "testimony",
+    "retired-transform-1", "retired-edit-1",
+    "retired-circular-2", "retired-transform-2", "retired-edit-2", "analogy",
     "retired-multi-conclusion", "choose-conclusion", "construct-conclusion", "construct-distance",
     // Appended, never inserted: a profile stores how many rungs it has earned
     // and reads them by position, so a new rung anywhere but the end renames
@@ -578,10 +580,23 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * nothing for anybody.
      */
     "Deictic Relations":         [],
-    "Transformation":            ["transform-depth-1", "transform-depth-2"],
+    "Transformation":            ["retired-transform-depth-1", "retired-transform-depth-2"],
     "Anchor Space":              ["negation"],
-    "Anchor Space v2":           ["transform-depth-1", "transform-depth-2"],
+    "Anchor Space v2":           ["retired-transform-depth-1", "retired-transform-depth-2"],
 };
+
+/**
+ * Which dials a mode can turn.
+ *
+ * Read off the tombstones the split left behind rather than from a table beside
+ * the ladders. A parallel list is the failure this project keeps finding: the
+ * ladder is the only statement of what a mode has, and this derives from it.
+ */
+export function dialsFor(type: string): string[] {
+    const ladder = ladderFor(type);
+    return Object.keys(DIALS).filter(name =>
+        DIALS[name].was.some(was => ladder.includes("retired-" + was)));
+}
 
 export function ladderFor(type: string) {
     return RUNG_LADDERS[type] ?? [];

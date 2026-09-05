@@ -59,7 +59,7 @@ export function linearFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
 
     const forcedTransforms = forced("transforms");
     const transforms = forcedTransforms === null
-        ? (ladder("transform-1") ? 1 : 0) + (ladder("transform-2") ? 1 : 0)
+        ? ctx.dialFor(type, "transforms")
         : Math.max(0, Math.min(4, forcedTransforms));
 
     const branching = pick("branching", "branching");

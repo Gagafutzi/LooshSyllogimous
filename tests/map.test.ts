@@ -35,6 +35,7 @@ function context(): GeneratorContext {
         progressionService: { hasRung: () => false, depthBonusFor: () => 0 } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: () => false,
+        dialFor: () => 0,
         random: () => { throw new Error("not needed"); },
     };
 }

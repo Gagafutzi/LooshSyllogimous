@@ -10,7 +10,7 @@
 import { readFileSync } from "fs";
 import { assert, equal, seeded, test } from "./harness";
 import {
-    RUNG_COST, chooseConfig, DEFAULT_ABILITY, levelOf, pCorrect, referenceSecondsFrom, timeCost, MAX_REFERENCE_SECONDS,
+    DEFAULT_ABILITY, MAX_REFERENCE_SECONDS, RUNG_COST, chooseConfig, levelOf, pCorrect, referenceSecondsFrom, timeCost,
 } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 import { RUNG_LADDERS, ladderFor, settableRungsFor } from "../src/app/syllogimous/utils/progression.utils";
@@ -147,7 +147,7 @@ test("a mode only serves easy items when it has actually run out", () => {
                 const c = service.configFor(type);
                 const level = levelOf({
                     type, premises: c.premises,
-                    rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds,
+                    rungs: ladderFor(type).slice(0, c.rungs), dials: c.dials, seconds: c.seconds,
                 }, DEFAULT_ABILITY);
                 const p = pCorrect(DEFAULT_ABILITY, ABLE, level, 0.5);
                 service.record(type, Math.random() < p ? "right" : "wrong", 8);
@@ -156,7 +156,7 @@ test("a mode only serves easy items when it has actually run out", () => {
             const c = service.configFor(type);
             const level = levelOf({
                 type, premises: c.premises,
-                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds,
+                rungs: ladderFor(type).slice(0, c.rungs), dials: c.dials, seconds: c.seconds,
             }, DEFAULT_ABILITY);
             return { c, served: pCorrect(DEFAULT_ABILITY, ABLE, level, 0.5) };
         });
@@ -179,11 +179,21 @@ test("a mode only serves easy items when it has actually run out", () => {
          * draw does not yet drop a mode nobody can be stretched by.
          */
         const ceiling = lengthCapFor(type, QUESTION_TYPE_SETTING_PARAMS[type]);
-        const exhausted = outcome.c.rungs >= ladder.length && outcome.c.premises >= ceiling;
+        /*
+         * The last position worth claiming, not the raw length.
+         *
+         * Retired entries hold their slot and cost nothing, so a ladder ending
+         * in tombstones can never reach its own length — and two of them do,
+         * since the counted entries became dials. What a mode has left to give
+         * is the last entry that costs something.
+         */
+        const claimable = ladder.reduce(
+            (last, r, i) => ((RUNG_COST[r] ?? 0.8) > 0 ? i + 1 : last), 0);
+        const exhausted = outcome.c.rungs >= claimable && outcome.c.premises >= ceiling;
 
         if (!exhausted) {
             complaints.push(`${type}: serves ${(100 * outcome.served).toFixed(0)}% items at`
-                + ` ${outcome.c.premises}/${ceiling} premises and ${outcome.c.rungs}/${ladder.length}`
+                + ` ${outcome.c.premises}/${ceiling} premises and ${outcome.c.rungs}/${claimable}`
                 + ` rungs — it has more to give and is not giving it`);
         }
     }
@@ -398,7 +408,7 @@ test("a probe is harder than the item it replaces, and arrives on schedule", () 
         for (let i = 0; i < 120; i++) {
             const c = service.configFor(type);
             const lvl = levelOf({ type, premises: c.premises,
-                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+                rungs: ladderFor(type).slice(0, c.rungs), dials: c.dials, seconds: c.seconds }, DEFAULT_ABILITY);
             service.record(type, Math.random() < pCorrect(DEFAULT_ABILITY, 10, lvl, 0.5) ? "right" : "wrong", 8);
         }
 
@@ -408,7 +418,7 @@ test("a probe is harder than the item it replaces, and arrives on schedule", () 
             const isProbe = service.isProbeTurn(type);
             const c = service.configFor(type);
             const lvl = levelOf({ type, premises: c.premises,
-                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+                rungs: ladderFor(type).slice(0, c.rungs), dials: c.dials, seconds: c.seconds }, DEFAULT_ABILITY);
             if (isProbe) { probes++; probeLevel += lvl; } else { trainingLevel += lvl; }
             service.record(type, Math.random() < pCorrect(DEFAULT_ABILITY, 10, lvl, 0.5) ? "right" : "wrong", 8);
         }
@@ -436,7 +446,7 @@ test("a probe is not announced as a promotion", () => {
         for (let i = 0; i < 120; i++) {
             const c = service.configFor(type);
             const lvl = levelOf({ type, premises: c.premises,
-                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+                rungs: ladderFor(type).slice(0, c.rungs), dials: c.dials, seconds: c.seconds }, DEFAULT_ABILITY);
             service.record(type, Math.random() < pCorrect(DEFAULT_ABILITY, 10, lvl, 0.5) ? "right" : "wrong", 8);
         }
 
@@ -447,7 +457,7 @@ test("a probe is not announced as a promotion", () => {
             const isProbe = service.isProbeTurn(type);
             const c = service.configFor(type);
             const lvl = levelOf({ type, premises: c.premises,
-                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+                rungs: ladderFor(type).slice(0, c.rungs), dials: c.dials, seconds: c.seconds }, DEFAULT_ABILITY);
             const events = service.record(type, Math.random() < pCorrect(DEFAULT_ABILITY, 10, lvl, 0.5) ? "right" : "wrong", 8);
             if (isProbe && events.length) onProbeTurn++;
         }
@@ -467,7 +477,7 @@ test("probes can be switched off", () => {
             assert(!service.isProbeTurn(type), "a probe turn came up with probes off");
             const c = service.configFor(type);
             const lvl = levelOf({ type, premises: c.premises,
-                rungs: ladderFor(type).slice(0, c.rungs), seconds: c.seconds }, DEFAULT_ABILITY);
+                rungs: ladderFor(type).slice(0, c.rungs), dials: c.dials, seconds: c.seconds }, DEFAULT_ABILITY);
             service.record(type, "right", 8);
         }
     });

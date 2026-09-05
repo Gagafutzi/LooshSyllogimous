@@ -406,19 +406,19 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
 
     const forcedLoops = ctx.settingsOverrideService.circularAxes();
     const circular = forcedLoops === null
-        ? (ladder("circular") ? 1 : 0) + (ladder("circular-2") ? 1 : 0)
+        ? ctx.dialFor(type, "circular")
         : forcedLoops;
 
     const forcedEdits = ctx.settingsOverrideService.linearOverride("edits");
     const edits = forcedEdits === null
-        ? (ladder("edit-1") ? 1 : 0) + (ladder("edit-2") ? 1 : 0)
+        ? ctx.dialFor(type, "edits")
         : Math.max(0, Math.min(4, forcedEdits));
 
     const forcedCompact = ctx.settingsOverrideService.linearOverride("compact");
 
     const forcedTransforms = forced("transforms");
     const transforms = forcedTransforms === null
-        ? (ladder("transform-1") ? 1 : 0) + (ladder("transform-2") ? 1 : 0)
+        ? ctx.dialFor(type, "transforms")
         : Math.max(0, Math.min(4, forcedTransforms));
 
     const forcedOpen = ctx.settingsOverrideService.linearOverride("indeterminate");

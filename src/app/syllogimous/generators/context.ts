@@ -43,6 +43,16 @@ export interface GeneratorContext {
      * modifiers existed that no amount of configuring could switch on.
      */
     hasRung(type: string, rung: string): boolean;
+    /**
+     * How far a counted lever is turned for this mode.
+     *
+     * `hasRung`'s sibling and deliberately a second call: a gate is a yes or a
+     * no and a dial is a number with no ceiling. What a mode can actually build
+     * at a given turn is a feasibility limit and stays here in the generator —
+     * the difficulty model prices whatever was asked for and does not know what
+     * the layout can carry.
+     */
+    dialFor(type: string, name: string): number;
 
     /**
      * Another question, built from the same settings.

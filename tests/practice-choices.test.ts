@@ -152,13 +152,25 @@ test("an untimed mode is built and scored without a time component", () => {
     const before = prog.timeLimitFor(A);
     assert(before != null && before > 0,
         `nothing to take away: the ladder armed no clock on ${A} to begin with`);
-    const other = prog.timeLimitFor(B);
-    assert(other != null, `nothing to compare against: ${B} was untimed too`);
+    /*
+     * Any other mode the ladder does put a clock on, found rather than named.
+     *
+     * `Direction` was named here and stopped being timed the day its counted
+     * rungs became dials: the dials absorb the gap that used to be handed to the
+     * clock. Which mode has a clock is a property of the ladders and moves with
+     * them; what this test is about is that one mode's setting does not reach
+     * another's.
+     */
+    const timed = Object.values(EnumQuestionType)
+        .filter(t => t !== A)
+        .find(t => prog.timeLimitFor(t) != null);
+    assert(timed != null, "nothing to compare against: no other mode was timed");
+    const other = prog.timeLimitFor(timed!);
 
     ov.setMode(A, { untimed: true });
     equal(prog.timeLimitFor(A), null,
         "the ladder still armed a countdown on a mode set to have none");
-    equal(prog.timeLimitFor(B), other, "one mode's clock setting changed another's");
+    equal(prog.timeLimitFor(timed!), other, "one mode's clock setting changed another's");
 });
 
 test("the cached configuration notices the clock going away", () => {

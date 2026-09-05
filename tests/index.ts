@@ -59,6 +59,7 @@ import "./axis-map.test";
 import "./widest-group.test";
 import "./collapsible.test";
 import "./hierarchy-syllogism.test";
+import "./dials.test";
 import "./player-sim.test";
 import "./integration-load.test";
 import "./minimal-coverage.test";

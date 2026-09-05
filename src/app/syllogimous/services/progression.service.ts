@@ -6,12 +6,12 @@ import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
 import { Settings } from "../models/settings.models";
 import {
     FLOOR_START_MODES,
-    LadderEvent, LadderState, Outcome, familyMembers, familyOf, ladderFor,
+    LadderEvent, LadderState, Outcome, dialsFor, familyMembers, familyOf, ladderFor,
 } from "../utils/progression.utils";
 import { UnlockEvidence } from "../utils/tier.utils";
 import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
-    abilityUpdate, aggregate, cautionPenalty, chooseConfig, guessRateFor, guessRateForRungs, initAbility, ItemSpec, levelOf,
+    abilityUpdate, aggregate, cautionPenalty, chooseConfig, dialSteps, guessRateFor, guessRateForRungs, initAbility, ItemSpec, levelOf,
     pCorrect, priorForNewMode, targetLevel,
     DepthFit, DepthReport, Trial, depthReport, fitDepthCoefficient, fitRungCosts,
     fitWidthCoefficient, referenceSecondsFrom,
@@ -774,6 +774,7 @@ export class ProgressionService {
             target: 0,
             structureBefore: this.config.structureBefore,
             untimed,
+            dials: dialsFor(type),
         };
 
         /*
@@ -889,9 +890,20 @@ export class ProgressionService {
         return this.rungsFor(type).includes(rung);
     }
 
-    depthBonusFor(type: EnumQuestionType): number {
+    /**
+     * How far a counted lever is turned for this mode, right now.
+     *
+     * `hasRung`'s sibling, and the reason the two are different calls: a gate is
+     * a yes or a no and a dial is a number with no ceiling. Zero when
+     * progression is off, so an override or a default decides instead.
+     */
+    dialFor(type: EnumQuestionType, name: string): number {
         if (!this.live) return 0;
-        return this.rungsFor(type).filter(r => r.startsWith("transform-depth")).length;
+        try { return this.configFor(type).dials?.[name] ?? 0; } catch { return 0; }
+    }
+
+    depthBonusFor(type: EnumQuestionType): number {
+        return this.dialFor(type, "transform-depth");
     }
 
     /**
@@ -1162,6 +1174,11 @@ export class ProgressionService {
         const level = levelOf({
             type, premises: before.premises,
             rungs: ladderFor(type).slice(0, before.rungs),
+            // The dials are part of the configuration, so they are part of what
+            // the item was worth. Leaving them out under-prices every item that
+            // turned one, which is the same fault as pricing the printed
+            // premise count instead of the built one.
+            dials: before.dials,
             seconds: before.seconds,
             widthDelta: item?.widthDelta ?? 0,
             // How much of the item the answer needed. Zero, and so no
@@ -1196,6 +1213,7 @@ export class ProgressionService {
             type,
             premises: before.premises,
             rungs: ladderFor(type).slice(0, before.rungs),
+            dials: before.dials,
             seconds: before.seconds,
             estimate,
             guess,
@@ -1259,6 +1277,7 @@ export class ProgressionService {
                         type,
                         premises: claim.fromPremises ?? before.premises,
                         rungs: ladderFor(type).slice(0, before.rungs),
+                        dials: before.dials,
                         seconds: before.seconds,
                         widthDelta: item?.widthDelta ?? 0,
                         /*
@@ -1298,10 +1317,29 @@ export class ProgressionService {
         // judged at the same probe state as `before` — see `wasProbe`.
         const after = this.configFor(type, wasProbe);
         const events: LadderEvent[] = [];
-        if (after.rungs > before.rungs) events.push("rung-up");
-        else if (after.rungs < before.rungs) events.push("rung-down");
-        if (after.premises > before.premises) events.push("premise-up");
-        else if (after.premises < before.premises) events.push("premise-down");
+        /*
+         * Gates opened plus dials turned. A dial turning up is the same news to
+         * the player as a gate opening — the item gained structure — and
+         * counting only gates would have gone quiet on the modes whose whole
+         * ladder is dials now.
+         *
+         * Nothing is announced on a probe turn. A probe aims at the estimate
+         * with no caution, so its configuration is not the one the player has
+         * earned — and dials made that matter: they move on far smaller changes
+         * in the estimate than a rung count could, so what used to be a rare
+         * coincidence became a promotion announced every few probes. The
+         * posterior still moves; the news simply waits for a turn the player
+         * owns.
+         */
+        const structure = (c: ConfigChoice) => c.rungs + dialSteps(c.dials);
+        if (!wasProbe) {
+            if (structure(after) > structure(before)) events.push("rung-up");
+            else if (structure(after) < structure(before)) events.push("rung-down");
+        }
+        if (!wasProbe) {
+            if (after.premises > before.premises) events.push("premise-up");
+            else if (after.premises < before.premises) events.push("premise-down");
+        }
 
         this.lastEvents = events;
         return events;

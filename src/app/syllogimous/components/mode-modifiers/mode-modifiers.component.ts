@@ -49,6 +49,13 @@ export class ModeModifiersComponent {
         "multi-conclusion", "choose-conclusion", "construct-conclusion",
         "construct-distance", "wide-premises", "incorrect-directions",
         "transform-1", "transform-2", "edit-1", "edit-2", "circular", "circular-2",
+        // The same six after the split, plus the two that went with them. They
+        // are dials now, reached by the controls above rather than by a rung
+        // switch, and the tombstones they left behind are wired to nothing.
+        "retired-transform-1", "retired-transform-2",
+        "retired-edit-1", "retired-edit-2",
+        "retired-circular", "retired-circular-2",
+        "retired-transform-depth-1", "retired-transform-depth-2",
     ]);
 
     /** Every mode that has a rung worth showing, with those rungs. */

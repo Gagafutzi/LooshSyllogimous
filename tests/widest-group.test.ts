@@ -37,6 +37,7 @@ function context(rungs: string[]): GeneratorContext {
         progressionService: { hasRung: () => false, depthBonusFor: () => 0 } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: (_t: string, r: string) => rungs.includes(r),
+        dialFor: () => 0,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

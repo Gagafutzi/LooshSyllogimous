@@ -43,6 +43,7 @@ function ctxOf(): GeneratorContext {
         } as unknown as SettingsOverrideService,
         progressionService: { hasRung: () => true, depthBonusFor: () => 0 } as unknown as ProgressionService,
         forceConstruction: "off", hasRung: () => true,
+        dialFor: () => 2,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

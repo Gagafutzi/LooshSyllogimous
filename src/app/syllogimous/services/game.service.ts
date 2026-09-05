@@ -25,7 +25,7 @@ import { scrambleByFactor, scrambleLeading } from "../utils/premise-order.utils"
 import { Finding, findings, sessionWeights } from "../utils/insight.utils";
 import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
-import { ladderFor } from "../utils/progression.utils";
+import { dialsFor, ladderFor } from "../utils/progression.utils";
 import { composeDelayLine, DELAY_TYPES, DEFAULT_DELAY, DEFAULT_DELAY_ROUNDS } from "../generators/delay-line";
 import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_ANALOGY, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_DELAY, LS_DELAY_TYPE, LS_DELAY_DEPTH, LS_DELAY_ROUNDS, LS_RANDOM_LABELS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
@@ -41,7 +41,7 @@ import { hasNextClaim, isHoldClaim, judgeItem, takeSeriesAnswer } from "../utils
 // one line of renaming to avoid.
 import { LabelScheme, randomRelationLabels, setSymbolRelations as pushSymbolRelations, symboliseStatement } from "../utils/phrasing";
 import { integrationLoad } from "../utils/integration.utils";
-import { pricedPremises } from "../utils/ability.utils";
+import { DIALS, pricedPremises } from "../utils/ability.utils";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import { ModalLevelChangeComponent } from "../components/modal-level-change/modal-level-change.component";
 import { Router } from "@angular/router";
@@ -620,6 +620,29 @@ export class GameService implements GeneratorContext {
             ?? this.progressionService.hasRung(type as EnumQuestionType, rung);
     }
 
+    /**
+     * The dial's turn count, with the same precedence a gate has.
+     *
+     * An override that names the rungs this dial replaced still wins: someone
+     * who set `edit-2` in Customise asked for two edits and should get two, so
+     * the old names are read as steps of the new dial rather than being
+     * silently dropped.
+     */
+    dialFor(type: string, name: string): number {
+        const dial = DIALS[name];
+        if (dial) {
+            let forced = 0, sawOverride = false;
+            for (const was of dial.was) {
+                const override = this.settingsOverrideService.rungOverride(type, was);
+                if (override == null) continue;
+                sawOverride = true;
+                if (override) forced++;
+            }
+            if (sawOverride) return forced;
+        }
+        return this.progressionService.dialFor(type as EnumQuestionType, name);
+    }
+
     /** The GeneratorContext setting; read here so no generator touches storage. */
 
     /**
@@ -931,16 +954,25 @@ export class GameService implements GeneratorContext {
         try {
             const type = this.question.type;
             const rungs = ladderFor(type).filter(r => this.hasRung(type, r));
+            /*
+             * And the dials, on the same footing. Same combination of ladder and
+             * overrides the generator was handed, so this prices the item that
+             * was built rather than the one the ladder would build now.
+             */
+            const dials: Record<string, number> = {};
+            for (const name of dialsFor(type)) {
+                const turns = this.progressionService.dialFor(type, name);
+                if (turns > 0) dials[name] = turns;
+            }
             const carousel = this.question.gameModeOnAnswer !== "0";
             const seconds = this.armedSeconds != null && this.armedSeconds > 0
                 ? this.armedSeconds
                 : null;
             const spec = {
                 type,
-                // What the configuration asked for, not what got printed.
-                // Falls back for items built before the field existed.
-                premises: this.question.builtPremises || this.question.premises.length,
+                premises: pricedPremises(this.question),
                 rungs,
+                dials,
                 seconds,
                 carousel,
                 widthDelta: this.question.widthDelta,

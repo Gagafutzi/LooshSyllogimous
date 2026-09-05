@@ -112,7 +112,8 @@ function run(player: Player, seed: number, items = 400): Run {
 
         const rungs = LADDER.slice(0, choice.rungs);
         const level = levelOf(
-            { type: TYPE, premises: choice.premises, rungs, seconds: choice.seconds }, cfg);
+            { type: TYPE, premises: choice.premises, rungs, dials: choice.dials,
+              seconds: choice.seconds }, cfg);
 
         // What the player brings to this item.
         if (slumpLeft > 0) slumpLeft--;
@@ -233,17 +234,22 @@ test("known defect: one weak modifier costs the whole-mode estimate", () => {
  * sit at 4–6 indefinitely. Guarded on the share that ends wide.
  */
 test("known defect: a widened posterior can fail to recover", () => {
-    const wide: string[] = [];
+    /*
+     * Guarded on how wide it ends rather than on how often, because the share
+     * saturates: at five seeds it is already four or five out of five, and a
+     * threshold there measures nothing. The width is a real quantity and moves.
+     */
+    let anyWide = false;
     for (const name of ["slow learner", "erratic"]) {
         const player = PLAYERS.find(p => p.name === name)!;
         const rs = runs(player);
-        const share = rs.filter(r => r.sd > 2).length / rs.length;
-        if (share > 0) wide.push(`${name} ${(share * 100).toFixed(0)}%`);
-        assert(share <= 0.8,
-            `${name}: ${(share * 100).toFixed(0)}% of runs ended with a posterior that`
-            + " never settled — worse than when measured");
+        const sd = mean(rs.map(r => r.sd));
+        if (rs.some(r => r.sd > 2)) anyWide = true;
+        assert(sd < 5.5,
+            `${name}: the posterior ended at sd ${sd.toFixed(2)} — wider than when`
+            + " measured, so the trap has got worse rather than better");
     }
-    assert(wide.length > 0,
+    assert(anyWide,
         "no run ended wide, so the caution trap may be fixed and this guard is stale");
 });
 

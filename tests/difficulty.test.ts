@@ -18,7 +18,7 @@
 import { assert, equal, test } from "./harness";
 import { levelOf, DEFAULT_ABILITY } from "../src/app/syllogimous/utils/ability.utils";
 import { MODE_SCALE } from "../src/app/syllogimous/utils/calibration.utils";
-import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
+import { dialsFor, ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
 
 const spec = (over: Partial<Parameters<typeof levelOf>[0]> = {}) => ({
@@ -43,18 +43,43 @@ test("every mode carries a weight, so none of them is priced as generic", () => 
         `modes with no weight, priced at 1 by default: ${missing.join(", ")}`);
 });
 
-test("rungs cost something, so a modified item outranks a plain one", () => {
+/**
+ * Every lever a mode has costs something — whichever kind it is.
+ *
+ * Gates and dials are priced from different tables, and a mode may have either
+ * or both: two modes' ladders are now entirely tombstones, their whole
+ * structure having become a dial. What has to hold is that turning on
+ * everything a mode offers is harder than turning on none of it.
+ */
+test("every lever a mode has costs something", () => {
     const faults: string[] = [];
     for (const type of Object.values(EnumQuestionType)) {
         const ladder = ladderFor(type);
-        if (!ladder.length) continue;
+        const dials = dialsFor(type);
+        if (!ladder.length && !dials.length) continue;
+
         const plain = levelOf(spec({ type }));
-        const loaded = levelOf(spec({ type, rungs: ladder.slice() }));
+        const turned: Record<string, number> = {};
+        for (const name of dials) turned[name] = 1;
+        const loaded = levelOf(spec({ type, rungs: ladder.slice(), dials: turned }));
+
         if (!(loaded > plain)) {
-            faults.push(`${type}: ${ladder.length} rungs added nothing (${plain} -> ${loaded})`);
+            faults.push(`${type}: ${ladder.length} rungs and ${dials.length} dials`
+                + ` added nothing (${plain} -> ${loaded})`);
         }
     }
     equal(faults.length, 0, `\n  ${faults.join("\n  ")}`);
+});
+
+/** And a dial keeps costing as it is turned, past where the ladder used to stop. */
+test("a dial goes on costing past the two steps the ladder allowed", () => {
+    const type = EnumQuestionType.Space4D;
+    const at = (n: number) => levelOf(spec({ type, dials: { edits: n } }));
+    assert(at(1) > at(0), "the first turn cost nothing");
+    assert(at(2) > at(1), "the second turn cost nothing");
+    assert(at(3) > at(2),
+        "the third turn cost nothing — the dial still stops where the ladder did");
+    assert(at(4) > at(3), "and the fourth");
 });
 
 test("a clock costs something, and a looser one costs less", () => {

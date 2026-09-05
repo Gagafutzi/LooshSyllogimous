@@ -92,7 +92,6 @@ export const RUNG_COST: Record<string, number> = {
      */
     testimony: 2.6,
 
-    circular: 1.2,
 
     /*
      * Axis Maps. Marginal costs over a prefix, like the transform pair above:
@@ -148,15 +147,6 @@ export const RUNG_COST: Record<string, number> = {
      * it says *where* a reader lost the thread, which a single verdict cannot.
      */
     checkpoint: 0.5,
-    "circular-2": 0.8,
-
-    "transform-1": 1.5,
-    "transform-2": 1.2,
-    "transform-depth-1": 1.2,
-    "transform-depth-2": 1.0,
-
-    "edit-1": 1.5,
-    "edit-2": 1.2,
 
     analogy: 2.0,
 
@@ -251,6 +241,15 @@ export const RUNG_COST: Record<string, number> = {
     "retired-wide-premises": 0,
     "retired-compact": 0,
     "retired-meta": 0,
+    /*
+     * The counted entries, which are dials now. Held at nothing rather than
+     * removed so a ladder keeps its length and its later entries keep meaning
+     * what they meant.
+     */
+    "retired-circular": 0, "retired-circular-2": 0,
+    "retired-transform-1": 0, "retired-transform-2": 0,
+    "retired-edit-1": 0, "retired-edit-2": 0,
+    "retired-transform-depth-1": 0, "retired-transform-depth-2": 0,
     "retired-groups-3": 0,
     "retired-groups-4": 0,
     "retired-rank": 0,
@@ -295,12 +294,6 @@ export const RUNG_COST: Record<string, number> = {
 export const RUNG_MIN_PREMISES: Record<string, number> = {
     branching: 4,
     overlap: 4,
-    "transform-1": 4,
-    "transform-2": 5,
-    "transform-depth-1": 4,
-    "transform-depth-2": 5,
-    "edit-1": 4,
-    "edit-2": 5,
     analogy: 5,
     "choose-conclusion": 5,
     "construct-conclusion": 4,
@@ -318,6 +311,141 @@ export const RUNG_MIN_PREMISES: Record<string, number> = {
 };
 
 /** Fewest premises at which a prefix of the ladder is all meaningful. */
+/* ------------------------------------------------------------------ *
+ * Dials                                                               *
+ * ------------------------------------------------------------------ */
+
+/**
+ * A lever that counts rather than one that opens.
+ *
+ * Eight ladder entries were never eight unlocks. `circular` and `circular-2`
+ * are one integer allowed to reach two, and so are the transform, edit and
+ * transform-depth pairs — two, because two is how many list positions were
+ * spent on them. Nothing stopped edits at two except that nobody wrote
+ * `edit-3`.
+ *
+ * As a dial the same quantity has no ceiling in the model. What a mode can
+ * actually build is a feasibility limit and stays in the generator, where it
+ * belongs; the difficulty scale simply prices whatever was asked for.
+ *
+ * **Steps are priced individually and the last price repeats.** Each of these
+ * costs less than the one before it — 1.5 then 1.2, 1.6 then 1.2 then 1.0 —
+ * which is a real property of them and would be lost by a flat `cost × n`.
+ * Keeping the priced list and extending it at the last value means every
+ * configuration the ladder could reach costs exactly what it used to, and the
+ * ones past it are priced by the most recent evidence rather than by a guess.
+ */
+export interface Dial {
+    /** What each step costs, in levels. Steps past the end cost the last one. */
+    steps: number[];
+    /**
+     * Premises each step needs before it can mean anything.
+     *
+     * The feasibility constraint the ladder carried as `RUNG_MIN_PREMISES`, kept
+     * with the dial it belongs to. Steps past the end need what the last one
+     * did: an operation that needs four premises to be worth stating does not
+     * stop needing them at the third turn of the dial.
+     */
+    needs: number[];
+    /** The ladder entries this replaces, in order. */
+    was: string[];
+}
+
+export const DIALS: Record<string, Dial> = {
+    circular: { steps: [1.2, 0.8], needs: [0, 0], was: ["circular", "circular-2"] },
+    transforms: {
+        steps: [1.5, 1.2], needs: [4, 5], was: ["transform-1", "transform-2"],
+    },
+    edits: { steps: [1.5, 1.2], needs: [4, 5], was: ["edit-1", "edit-2"] },
+    "transform-depth": {
+        steps: [1.2, 1.0], needs: [4, 5],
+        was: ["transform-depth-1", "transform-depth-2"],
+    },
+};
+
+/** Premises a dial turned this far needs, which is what its last step needs. */
+export function dialNeeds(dials: Record<string, number> | undefined): number {
+    if (!dials) return 0;
+    let most = 0;
+    for (const [name, n] of Object.entries(dials)) {
+        const dial = DIALS[name];
+        if (!dial || n <= 0) continue;
+        most = Math.max(most, dial.needs[Math.min(n - 1, dial.needs.length - 1)] ?? 0);
+    }
+    return most;
+}
+
+/** What `steps` turns of a dial cost, together. */
+export function dialCost(name: string, steps: number): number {
+    const dial = DIALS[name];
+    if (!dial || steps <= 0) return 0;
+    let total = 0;
+    for (let i = 0; i < steps; i++) {
+        total += dial.steps[Math.min(i, dial.steps.length - 1)];
+    }
+    return total;
+}
+
+export function dialsCost(dials: Record<string, number> | undefined): number {
+    if (!dials) return 0;
+    return Object.entries(dials).reduce((a, [name, n]) => a + dialCost(name, n), 0);
+}
+
+/**
+ * Spend a level budget across the dials a mode has, one step at a time.
+ *
+ * Round-robin, and that is not arbitrary: the ladder these came from
+ * interleaved them — `circular`, `transform-1`, `edit-1`, then `circular-2`,
+ * `transform-2`, `edit-2` — so taking one step of each before a second of any
+ * reproduces the order a player used to climb them in. What changes is that a
+ * dial can now be turned without its neighbours, and that none of them stops at
+ * two.
+ *
+ * Stops when no dial's next step fits what is left, rather than when a list runs
+ * out.
+ */
+export function allocateDials(names: string[], budget: number): Record<string, number> {
+    const out: Record<string, number> = {};
+    if (!names.length || budget <= 0) return out;
+
+    let left = budget;
+    for (let round = 0; round < 64; round++) {
+        let spent = false;
+        for (const name of names) {
+            const next = dialCost(name, (out[name] ?? 0) + 1) - dialCost(name, out[name] ?? 0);
+            if (next > left) continue;
+            out[name] = (out[name] ?? 0) + 1;
+            left -= next;
+            spent = true;
+        }
+        if (!spent) break;
+    }
+    return out;
+}
+
+/** The same allocation, with any step the premise count cannot support removed. */
+export function capDials(
+    dials: Record<string, number>, premises: number,
+): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const [name, n] of Object.entries(dials)) {
+        const dial = DIALS[name];
+        if (!dial) continue;
+        let kept = 0;
+        for (let i = 0; i < n; i++) {
+            if ((dial.needs[Math.min(i, dial.needs.length - 1)] ?? 0) > premises) break;
+            kept++;
+        }
+        if (kept > 0) out[name] = kept;
+    }
+    return out;
+}
+
+/** Total turns across every dial, which is structure the same way a gate is. */
+export function dialSteps(dials: Record<string, number> | undefined): number {
+    return dials ? Object.values(dials).reduce((a, n) => a + n, 0) : 0;
+}
+
 export function premisesNeededFor(rungs: string[]): number {
     return rungs.reduce((a, r) => Math.max(a, RUNG_MIN_PREMISES[r] ?? 0), 0);
 }
@@ -558,6 +686,8 @@ export interface ItemSpec {
     premises: number;
     /** Claimed rungs, as a prefix of the mode's ladder. */
     rungs: string[];
+    /** How far each counted lever is turned, priced by `DIALS`. */
+    dials?: Record<string, number>;
     /** Deadline in seconds, or null for untimed. */
     seconds: number | null;
     /**
@@ -623,7 +753,8 @@ export function pricedPremises(
 export function levelOf(spec: ItemSpec, config = DEFAULT_ABILITY): number {
     const weight = MODE_SCALE[spec.type]?.weight ?? 1;
     const structural = weight * spec.premises
-        + spec.rungs.reduce((a, r) => a + (RUNG_COST[r] ?? 0.8), 0);
+        + spec.rungs.reduce((a, r) => a + (RUNG_COST[r] ?? 0.8), 0)
+        + dialsCost(spec.dials);
     /*
      * Width, once it has been measured. Zero until then, and zero for every
      * mode that has no such quantity, so this is a no-op rather than a guess
@@ -939,6 +1070,16 @@ export function priorForNewMode(
 export interface ConfigChoice {
     premises: number;
     rungs: number;
+    /**
+     * How far each counted lever is turned.
+     *
+     * Separate from `rungs` because they are a different kind of thing: a gate
+     * opens and a dial counts. A gate's order encodes a teaching sequence, so it
+     * stays a prefix; a dial has no ceiling in the model and can be turned
+     * without its neighbours — which is the whole point, since a player weak at
+     * one lever could not previously be given the others without it.
+     */
+    dials: Record<string, number>;
     seconds: number | null;
     level: number;
 }
@@ -954,6 +1095,8 @@ export interface ChooseOptions {
     structureBefore: number;
     /** Leave the clock off entirely. */
     untimed?: boolean;
+    /** The counted levers this mode has, from `dialsFor`. */
+    dials?: string[];
 }
 
 /**
@@ -978,7 +1121,32 @@ export function chooseConfig(
 
     let best: ConfigChoice | null = null;
 
+    /*
+     * The last position worth claiming.
+     *
+     * Tombstones cost nothing, so a ladder ending in them can never reach its
+     * own length — and "length may not stand in for structure while structure
+     * remains" was reading the raw length, which left two modes refusing to add
+     * a premise on the strength of structure that had been retired.
+     */
+    const claimable = opts.ladder.reduce(
+        (last, r, i) => ((RUNG_COST[r] ?? 0.8) > 0 ? i + 1 : last), 0);
+
     for (let rungs = 0; rungs <= opts.ladder.length; rungs++) {
+        /*
+         * A prefix never ends on a tombstone.
+         *
+         * Retired entries hold their slot and cost nothing, so claiming one adds
+         * no difficulty — and `better` prefers more rungs, which made a free
+         * rung strictly better than not having it. A new player was handed the
+         * whole of `Transformation`'s ladder before answering anything, because
+         * every entry on it had become free.
+         *
+         * Skipping those counts does not skip the entries: a prefix reaching
+         * past them still contains them, which is what holding the slot is for.
+         */
+        if (rungs > 0 && (RUNG_COST[opts.ladder[rungs - 1]] ?? 0.8) === 0) continue;
+
         const claimed = opts.ladder.slice(0, rungs);
         const rungCost = claimed.reduce((a, r) => a + (RUNG_COST[r] ?? 0.8), 0);
         const floor = Math.max(opts.minPremises, premisesNeededFor(claimed));
@@ -998,9 +1166,20 @@ export function chooseConfig(
         for (let p = floor; p <= opts.maxPremises; p++) {
             // Length may not stand in for structure past the cap unless there is
             // no structure left to add.
-            if (p > lengthCap && rungs < opts.ladder.length) continue;
+            if (p > lengthCap && rungs < claimable) continue;
 
-            const structural = weight * p + rungCost;
+            const gates = weight * p + rungCost;
+
+            /*
+             * Dials before the clock, because they are structure and the clock
+             * is not. Allocated to whatever the gates left of the target, then
+             * trimmed to what this many premises can actually carry — an
+             * operation that needs four premises to mean anything does not stop
+             * needing them at the third turn of the dial.
+             */
+            const dials = capDials(
+                allocateDials(opts.dials ?? [], Math.max(0, opts.target - gates)), p);
+            const structural = gates + dialsCost(dials);
             const gap = opts.target - structural;
 
             // The clock can only add difficulty, never remove it, so a
@@ -1008,12 +1187,12 @@ export function chooseConfig(
             const seconds = opts.untimed || gap <= 0 ? null : secondsForCost(gap, config);
             const level = structural + timeCost(seconds, config);
 
-            const candidate: ConfigChoice = { premises: p, rungs, seconds, level };
+            const candidate: ConfigChoice = { premises: p, rungs, dials, seconds, level };
             if (!best || better(candidate, best, opts.target)) best = candidate;
         }
     }
 
-    return best ?? { premises: opts.minPremises, rungs: 0, seconds: null, level: 0 };
+    return best ?? { premises: opts.minPremises, rungs: 0, dials: {}, seconds: null, level: 0 };
 }
 
 /** Difficulties this close are treated as equal, letting the preference decide. */
@@ -1031,7 +1210,11 @@ function better(a: ConfigChoice, b: ConfigChoice, target: number) {
      * an exact match by clock pressure beats a near match with real structure.
      */
     if (Math.abs(da - db) > TOLERANCE) return da < db;
-    if (a.rungs !== b.rungs) return a.rungs > b.rungs;
+    // Structure is gates opened plus dials turned: both are the item being a
+    // different shape, where length and the clock are the same item stretched.
+    const sa = a.rungs + dialSteps(a.dials);
+    const sb = b.rungs + dialSteps(b.dials);
+    if (sa !== sb) return sa > sb;
     /*
      * Equal rungs: take the closer to target, not the shorter.
      *
@@ -1151,6 +1334,8 @@ export interface Trial {
     type: EnumQuestionType;
     premises: number;
     rungs: string[];
+    /** How far each counted lever was turned, priced by `DIALS`. */
+    dials?: Record<string, number>;
     seconds: number | null;
     estimate: number;
     guess: number;

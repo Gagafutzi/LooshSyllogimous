@@ -255,6 +255,7 @@ test("every rung a ladder offers is one its generator reads", () => {
                 } as unknown as SettingsOverrideService,
                 progressionService: {
                     hasRung: see,
+                    dialFor: () => 0,
                     depthBonusFor: () => {
                         for (const r of full) if (r.startsWith("transform-depth")) asked.add(r);
                         return full.filter(r => r.startsWith("transform-depth") && held.has(r)).length;
@@ -262,6 +263,7 @@ test("every rung a ladder offers is one its generator reads", () => {
                 } as unknown as ProgressionService,
                 forceConstruction: "off",
                 hasRung: (_t: string, rung: string) => see(rung),
+                dialFor: () => 0,
                 random: (n?: number) => createDistinction(ctx, n ?? 2),
             };
 
@@ -323,9 +325,11 @@ test("a mode that explains itself does so at every length", () => {
             } as unknown as SettingsOverrideService,
             progressionService: {
                 hasRung: () => false, depthBonusFor: () => 0,
+                dialFor: () => 0,
             } as unknown as ProgressionService,
             forceConstruction: "off",
             hasRung: () => false,
+            dialFor: () => 0,
             random: (n?: number) => createDistinction(ctx, n ?? 2),
         };
 
@@ -398,9 +402,11 @@ test("a mode that offers negation actually negates", () => {
                 } as unknown as SettingsOverrideService,
                 progressionService: {
                     hasRung: () => false, depthBonusFor: () => 0,
+                    dialFor: () => 0,
                 } as unknown as ProgressionService,
                 forceConstruction: "off",
                 hasRung: () => false,
+                dialFor: () => 0,
                 random: (n?: number) => createDistinction(ctx, n ?? 2),
             };
 
@@ -462,9 +468,11 @@ test("a series starts with the conclusion the card is showing", () => {
         } as unknown as SettingsOverrideService,
         progressionService: {
             hasRung: () => false, depthBonusFor: () => 0,
+            dialFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: () => false,
+        dialFor: () => 0,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
 
@@ -543,9 +551,11 @@ test("no item offers more than two options", () => {
             } as unknown as SettingsOverrideService,
             progressionService: {
                 hasRung: () => false, depthBonusFor: () => 0,
+                dialFor: () => 0,
             } as unknown as ProgressionService,
             forceConstruction: "off",
             hasRung: (_t: string, r: string) => held.includes(r),
+            dialFor: () => 0,
             random: (n?: number) => createDistinction(ctx, n ?? 2),
         };
 

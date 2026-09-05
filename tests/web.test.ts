@@ -44,10 +44,12 @@ function context(rungs: boolean | string[] = false): GeneratorContext {
         } as unknown as SettingsOverrideService,
         progressionService: {
             hasRung: has,
+            dialFor: () => 0,
             depthBonusFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: has,
+        dialFor: () => 0,
         random: () => { throw new Error("not needed"); },
     };
 }

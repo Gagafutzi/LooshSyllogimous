@@ -55,9 +55,13 @@ function context(everyRung: boolean): GeneratorContext {
         } as unknown as SettingsOverrideService,
         progressionService: {
             hasRung: () => everyRung, depthBonusFor: () => 0,
+            dialFor: () => (everyRung ? 2 : 0),
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: () => everyRung,
+        // "Every rung" meant every dial too, back when they were rungs: two
+        // turns each, which is as far as the ladder ever allowed.
+        dialFor: () => (everyRung ? 2 : 0),
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;

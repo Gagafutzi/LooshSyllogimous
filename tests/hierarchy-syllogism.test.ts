@@ -45,9 +45,11 @@ function context(): GeneratorContext {
         } as unknown as SettingsOverrideService,
         progressionService: {
             hasRung: () => false, depthBonusFor: () => 0,
+            dialFor: () => 0,
         } as unknown as ProgressionService,
         forceConstruction: "off",
         hasRung: (_t: EnumQuestionType, r: string) => r === "hierarchy",
+        dialFor: () => 0,
         random: (n?: number) => createDistinction(ctx, n ?? 2),
     };
     return ctx;
