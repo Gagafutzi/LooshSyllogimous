@@ -204,6 +204,54 @@ way cost already does, and see whether the graph is still wanted afterwards.
 
 ---
 
+## Found by simulation
+
+`tests/player-sim.test.ts` runs the real `chooseConfig` / `levelOf` /
+`abilityUpdate` loop against players the model will actually meet: improving,
+erratic, prone to slumps, and strong everywhere except one modifier. Five seeds
+each, four hundred items.
+
+**What holds.** A steady player is tracked to within a level wherever they sit —
+3.0 → 3.3, 8.0 → 8.1, 15.0 → 15.2, with the posterior settling at sd ≈ 0.4 and
+realised accuracy within a few points of the 80% aim. A learner is followed to
+where they got to. The model does its designed job well.
+
+**Defect: one weak modifier costs the whole-mode estimate.** A player at level 10
+who finds `negation` four levels harder is estimated at **6.3**. One at level 12
+weak at `meta` is estimated at **7.2**. Rungs are a prefix, so the weak one lands
+on 99% and 89% of items respectively and cannot be dropped without dropping
+everything after it — and `chooseConfig` prefers *more* rungs on a tie, so it
+never tries. They are then served items three to five levels too easy on
+everything else as well.
+
+This is the gates-and-dials split, measured: a dial can be turned down on its own
+and a prefix cannot.
+
+**Defect: a widened posterior does not always recover.** The aim is
+`estimate − caution × sd`, and further below for the success target. When sd is
+large the item served is far below the player, who answers it correctly — and a
+correct answer well below your ability is almost no evidence, so sd stays large
+and the aim stays low. The loop sustains itself.
+
+Traced on one run: the served level sat at the mode's floor of 3.0 from item 50
+to item 200 while true ability rose 4.5 → 6.0 and p(correct) climbed to 0.94. The
+outcome is bimodal rather than average — most seeds settle at sd 0.4, some sit at
+4–6 indefinitely. Reached by anything that legitimately widens the posterior: a
+moving ability, or a noisy one.
+
+Setting `caution` to 0 makes it go away, which confirms the mechanism rather than
+being the fix — caution exists so a new player is not over-served on a wide
+prior. A fix has to keep that and break the loop, probably by requiring the
+served item to carry a minimum of information rather than only a maximum of
+risk. **Not in the plan, and outside what the plan said it decides** — it is
+adjacent to "what `targetP` should be". Wants a decision before anything is
+built.
+
+Both are guarded rather than fixed: the tests assert the numbers do not get
+worse, and say so.
+
+---
+
 ## Known and accepted
 
 - **`levelsPerCarousel` loses its contrast** if the carousel becomes universal.
