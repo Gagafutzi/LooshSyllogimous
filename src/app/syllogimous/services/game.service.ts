@@ -107,6 +107,31 @@ import { GeneratorContext } from "../generators/context";
  */
 const HISTORY_LIMIT = 1000;
 
+/** Seconds a claim buys when nothing has been chosen. */
+export const DEFAULT_SERIES_BONUS = 5;
+
+/**
+ * What a stored series bonus means, including the case of nothing stored.
+ *
+ * `Number(null)` is `0`, not `NaN`. The read was `Number(getItem(...))` behind
+ * a `Number.isFinite(raw) && raw >= 0` guard, and an empty slot satisfies both
+ * — so the documented default of five never applied to anybody who had not set
+ * the value, and the `: 5` branch could only be reached by storing a word.
+ *
+ * The bonus is what makes a series of conclusions one timed unit rather than
+ * one deadline shared by three questions: each answered claim buys time for the
+ * next. At zero it buys nothing, so a three-conclusion item had exactly the
+ * clock a one-conclusion item had, and answering appeared to do nothing to it.
+ *
+ * Zero is still a legitimate choice — it is the "no extra time" setting — which
+ * is why the absent case has to be told apart from it rather than clamped away.
+ */
+export function seriesBonusFrom(raw: string | null): number {
+    if (raw == null || raw === "") return DEFAULT_SERIES_BONUS;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? Math.min(60, n) : DEFAULT_SERIES_BONUS;
+}
+
 @Injectable({
     providedIn: "root"
 })
@@ -1197,9 +1222,8 @@ export class GameService implements GeneratorContext {
      */
     get seriesBonusSeconds(): number {
         try {
-            const raw = Number(localStorage.getItem(LS_SERIES_BONUS));
-            return Number.isFinite(raw) && raw >= 0 ? Math.min(60, raw) : 5;
-        } catch { return 5; }
+            return seriesBonusFrom(localStorage.getItem(LS_SERIES_BONUS));
+        } catch { return DEFAULT_SERIES_BONUS; }
     }
 
     setSeriesBonusSeconds(value: number) {

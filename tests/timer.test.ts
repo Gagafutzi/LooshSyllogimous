@@ -14,6 +14,7 @@
 
 import { assert, equal, flush, test } from "./harness";
 import { GameTimerService } from "../src/app/syllogimous/services/game-timer.service";
+import { DEFAULT_SERIES_BONUS, seriesBonusFrom } from "../src/app/syllogimous/services/game.service";
 
 /*
  * Only the one-second interval is faked. `flush` still uses a real timeout, so
@@ -190,4 +191,82 @@ test("a paused clock reports what it was paused with", async () => {
         // tick left it rather than snapping it to wall-clock time.
         equal(t.remainingMs, 10000, "a paused clock lost or invented time");
     } finally { stop(); }
+});
+
+/* ------------------------------------------------------------------ *
+ * The bonus a claim buys                                              *
+ * ------------------------------------------------------------------ */
+
+/**
+ * `Number(null)` is `0`, not `NaN`, and that is the whole bug.
+ *
+ * The read was `Number(getItem(...))` behind `isFinite(raw) && raw >= 0`. An
+ * empty slot satisfies both, so the documented default of five never applied to
+ * anyone who had not set the value — and the fallback could only be reached by
+ * storing a word.
+ *
+ * The bonus is what makes a series one timed unit rather than one deadline
+ * shared between three questions. At zero a three-conclusion item has exactly
+ * the clock a one-conclusion item has, and answering a conclusion visibly does
+ * nothing to it, which is what it did.
+ */
+test("an unset series bonus is the documented default, not nothing", () => {
+    equal(seriesBonusFrom(null), DEFAULT_SERIES_BONUS,
+        "nothing stored read as a bonus of zero");
+    equal(seriesBonusFrom(""), DEFAULT_SERIES_BONUS,
+        "an empty value read as a bonus of zero");
+});
+
+/** And a chosen zero is still a choice: "no extra time" has to survive. */
+test("a stored zero is kept, and a stored value is honoured", () => {
+    equal(seriesBonusFrom("0"), 0, "a deliberate zero was replaced by the default");
+    equal(seriesBonusFrom("12"), 12, "a stored bonus was not read back");
+    equal(seriesBonusFrom("900"), 60, "a stored bonus was not capped");
+    equal(seriesBonusFrom("later"), DEFAULT_SERIES_BONUS,
+        "an unreadable value did not fall back");
+});
+
+/* ------------------------------------------------------------------ *
+ * A tab that was not in front                                         *
+ * ------------------------------------------------------------------ */
+
+/**
+ * The count and the deadline are two clocks, and a hidden tab separates them.
+ *
+ * `setInterval` is throttled to a crawl in a background tab, so the countdown
+ * barely moves while its deadline goes on passing in real time. `remainingMs`
+ * then reports nought against a count that still reads most of a minute — the
+ * bar has nothing to sweep against and sits empty at the left for the rest of
+ * the item, beside a number counting down as if nothing had happened.
+ *
+ * Simulated by moving the deadline into the past, which is what the throttle
+ * amounts to.
+ */
+test("a clock throttled in the background still has time to draw", async () => {
+    const t = new GameTimerService();
+    const run = t.start(30);
+
+    // What a hidden tab leaves behind: the count barely moved, the deadline
+    // passed. Reached through the same door `extend` uses, so nothing here
+    // depends on the field being private.
+    (t as unknown as { endsAt: number }).endsAt = Date.now() - 5000;
+
+    equal(t.remainingMs, 0, "the deadline should have passed for this to prove anything");
+    equal(t.remainingSeconds, 30, "the count should not have moved");
+
+    t.resync();
+    assert(t.remainingMs > 29000,
+        `the clock still had ${t.remainingSeconds}s on it and nothing to draw`);
+    equal(t.remainingSeconds, 30,
+        "resyncing changed the count, which decides when the item times out");
+
+    t.stop();
+    await run;
+});
+
+/** And it is inert on a clock that is not running, so a stopped bar stays put. */
+test("resyncing a stopped clock does nothing", () => {
+    const t = new GameTimerService();
+    t.resync();
+    equal(t.remainingMs, 0, "a stopped clock was given time by a resync");
 });

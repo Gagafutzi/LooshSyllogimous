@@ -282,6 +282,24 @@ export class GameComponent {
             // fall than it did a moment ago and its sweep has to be re-armed.
             this.armTimerBar();
         });
+
+        /*
+         * Coming back to the tab: put the deadline back under the count.
+         *
+         * A hidden tab throttles `setInterval` to a crawl, so the countdown
+         * barely moves while its deadline goes on passing in real time. The
+         * clock then has eighty seconds on it and nothing left to draw, which
+         * leaves the bar sitting empty at the left for the rest of the item —
+         * it looks like a bar that has broken rather than one that agrees with
+         * a number nobody was watching.
+         *
+         * `resync` hands the count back to the deadline, and the bar is re-armed
+         * against it. Neither the seconds nor the scoring change: this is the
+         * drawing catching up with the clock, not the clock being reset.
+         */
+        if (typeof document !== "undefined") {
+            document.addEventListener("visibilitychange", this.onVisible);
+        }
     }
 
     /**
@@ -292,9 +310,26 @@ export class GameComponent {
      */
     picks: SlotAnswer[][] = [];
 
+    /**
+     * Bound once, so it is the same reference to remove.
+     *
+     * An arrow property rather than a method: `removeEventListener` compares by
+     * identity, and a bound method handed straight to `addEventListener` cannot
+     * be taken off again — the listener would then outlive the screen and arm a
+     * bar belonging to a component that had gone.
+     */
+    private onVisible = () => {
+        if (document.visibilityState !== "visible") return;
+        this.gameTimerService.resync();
+        this.armTimerBar();
+    };
+
     ngOnDestroy() {
         this.questionSub?.unsubscribe();
         this.claimSub?.unsubscribe();
+        if (typeof document !== "undefined") {
+            document.removeEventListener("visibilitychange", this.onVisible);
+        }
         this.gameTimerService.stop();
         clearInterval(this.carouselTimerHandle);
     }

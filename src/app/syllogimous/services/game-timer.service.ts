@@ -86,6 +86,27 @@ export class GameTimerService {
         this.endsAt += Math.round(seconds) * 1000;
     }
 
+    /**
+     * Put the deadline back where the tick says it should be.
+     *
+     * The count and the deadline are two clocks, and a hidden tab separates
+     * them: `setInterval` is throttled to a crawl or stopped outright, so
+     * `remainingSeconds` barely moves while `endsAt` goes on passing in real
+     * time. Come back and `remainingMs` reports nought against a count that
+     * still reads eighty — the bar sits empty at the left for the rest of the
+     * item, since `armTimerBar` has no time left to sweep against, while the
+     * number beside it counts down as if nothing had happened.
+     *
+     * The count wins, deliberately, and that is the same decision `pause`
+     * documents: time a throttled tab did not tick is time the player was not
+     * given, so charging them for it would make a timeout mean something
+     * different depending on whether the window was in front.
+     */
+    resync() {
+        if (!this.running) return;
+        this.endsAt = Date.now() + this.remainingSeconds * 1000;
+    }
+
     pause() {
         if (!this.running) {
             return console.warn("GameTimerService: Not running");
