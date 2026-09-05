@@ -11,7 +11,7 @@ import {
 import { UnlockEvidence } from "../utils/tier.utils";
 import {
     AbilityState, Aggregate, ConfigChoice, DEFAULT_ABILITY, abilityDecay, abilityEstimate,
-    abilityUpdate, aggregate, cautionPenalty, chooseConfig, dialSteps, guessRateFor, guessRateForRungs, initAbility, ItemSpec, levelOf,
+    abilityUpdate, aggregate, cautionPenalty, chooseConfig, densityAt, dialSteps, guessRateFor, guessRateForRungs, initAbility, ItemSpec, levelOf,
     pCorrect, priorForNewMode, targetLevel,
     DepthFit, DepthReport, Trial, depthReport, fitDepthCoefficient, fitRungCosts,
     fitWidthCoefficient, referenceSecondsFrom,
@@ -533,7 +533,17 @@ export class ProgressionService {
             const raw = localStorage.getItem(LS_ABILITY + key);
             if (raw) {
                 const p = JSON.parse(raw);
-                if (Array.isArray(p?.logPost) && p.logPost.length === this.abilityConfig.bins) {
+                /*
+                 * Any length at or past the starting grid.
+                 *
+                 * This demanded exactly `bins`, which was right while every
+                 * grid was that long. Grids grow per posterior now — a player
+                 * past the old ceiling has a longer one — so an exact check
+                 * discarded precisely the states belonging to the strongest
+                 * players and handed them the cold-start prior. Their modes
+                 * then opened at two premises with no clock.
+                 */
+                if (Array.isArray(p?.logPost) && p.logPost.length >= this.abilityConfig.bins) {
                     return { logPost: p.logPost, trials: p.trials ?? 0, lastSeen: p.lastSeen ?? Date.now() };
                 }
             }
@@ -568,7 +578,7 @@ export class ProgressionService {
                 const raw = localStorage.getItem(LS_ABILITY + member);
                 if (!raw) continue;
                 const p = JSON.parse(raw);
-                if (Array.isArray(p?.logPost) && p.logPost.length === this.abilityConfig.bins) {
+                if (Array.isArray(p?.logPost) && p.logPost.length >= this.abilityConfig.bins) {
                     states.push({ logPost: p.logPost, trials: p.trials ?? 0, lastSeen: p.lastSeen ?? Date.now() });
                 }
             } catch { /* skip a member that will not parse */ }
@@ -576,8 +586,17 @@ export class ProgressionService {
         if (!states.length) return null;
 
         const prior = this.freshPrior(type).logPost;
-        const logPost = prior.map((_, i) =>
-            states.reduce((sum, st) => sum + st.logPost[i], 0) - (states.length - 1) * prior[i]);
+        /*
+         * Over the longest of them, reading each past its own top as a flat
+         * continuation of its tail. Grids grow per posterior, so the members of
+         * a family need not be the same length — and mapping over one of them
+         * while indexing the others read `undefined` off the shorter ones, put
+         * a NaN into the sum, and left the whole family unmeasurable.
+         */
+        const bins = Math.max(prior.length, ...states.map(st => st.logPost.length));
+        const logPost = Array.from({ length: bins }, (_, i) =>
+            states.reduce((sum, st) => sum + densityAt(st.logPost, i), 0)
+                - (states.length - 1) * densityAt(prior, i));
 
         return {
             logPost,
@@ -1069,7 +1088,7 @@ export class ProgressionService {
                 const raw = localStorage.getItem(LS_ABILITY + key);
                 if (!raw) continue;
                 const p = JSON.parse(raw);
-                if (Array.isArray(p?.logPost) && p.logPost.length === this.abilityConfig.bins) {
+                if (Array.isArray(p?.logPost) && p.logPost.length >= this.abilityConfig.bins) {
                     states.push({ type, state: { logPost: p.logPost, trials: p.trials ?? 0, lastSeen: p.lastSeen ?? Date.now() } });
                 }
             } catch { /* skip */ }

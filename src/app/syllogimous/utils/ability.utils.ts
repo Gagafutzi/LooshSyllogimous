@@ -867,9 +867,94 @@ function erf(x: number) {
 }
 const Phi = (z: number) => 0.5 * (1 + erf(z / Math.SQRT2));
 
-export function abilityGrid(config = DEFAULT_ABILITY): number[] {
-    return Array.from({ length: config.bins }, (_, i) =>
-        config.minLevel + (config.maxLevel - config.minLevel) * i / (config.bins - 1));
+/** Spacing between grid points, which stays fixed however far the grid runs. */
+export function levelStep(config = DEFAULT_ABILITY): number {
+    return (config.maxLevel - config.minLevel) / (config.bins - 1);
+}
+
+/**
+ * The ability grid, as far as this posterior actually runs.
+ *
+ * `maxLevel` used to be the end of it, which made 26 a ceiling on what anybody
+ * could be measured at: a player past it had their posterior pile up in the top
+ * bin and could not be estimated any higher, so no configuration was ever
+ * chosen for where they were. That is a limit of the machinery reading as a
+ * claim about the player, and it contradicts the rule the ladder work is built
+ * on — comfortable at any level means advance.
+ *
+ * The grid grows instead, and the array's own length is how far it has grown.
+ * Nothing is stored for it: the spacing and the floor are fixed, so extending
+ * only ever *appends* points and an old posterior is a prefix of a longer one.
+ */
+export function abilityGrid(config = DEFAULT_ABILITY, bins = config.bins): number[] {
+    const step = levelStep(config);
+    return Array.from({ length: Math.max(2, bins) }, (_, i) => config.minLevel + step * i);
+}
+
+/**
+ * How close the mean may come to the top before the grid is extended.
+ *
+ * Two slopes, which is where the psychometric function still has room to
+ * distinguish one level from another. Closer than that and the posterior is
+ * being shaped by the edge rather than by the answers.
+ */
+const HEADROOM_SLOPES = 2;
+
+/** Points added each time, enough that it is not extended every other answer. */
+const EXTEND_SLOPES = 4;
+
+/**
+ * A guard on array size, not on ability.
+ *
+ * Six hundred points is past level one hundred and eighty at the default
+ * spacing, which no mode can state and no configuration can reach — it is here
+ * so a fault that made every answer look correct grows an array rather than
+ * forever.
+ */
+const MAX_BINS = 600;
+
+/**
+ * Extend the grid if the estimate has come near its top.
+ *
+ * Padded with the last log-density rather than with zero. The tail is where the
+ * mass piled up while the grid was too short, and continuing it flat says "at
+ * least this good, and no idea how much better" — which is what is actually
+ * known. A zero tail would assert the opposite.
+ */
+/**
+ * A posterior's density at a grid point, past its own top as well.
+ *
+ * Grids grow per posterior now, so two of them need not be the same length —
+ * and anything combining them indexes past the end of the shorter one. A
+ * shorter posterior says nothing above its top, so its last value continues,
+ * which is the same statement `growGrid` makes when it extends one.
+ *
+ * Reading `undefined` instead put a NaN into the arithmetic, and a NaN estimate
+ * makes every comparison in `chooseConfig` false — so the mode fell back to its
+ * very first candidate, which is the minimum. A strong player's mode collapsed
+ * to two premises and no clock.
+ */
+export function densityAt(logPost: number[], i: number): number {
+    return logPost[Math.min(i, logPost.length - 1)];
+}
+
+export function growGrid(state: AbilityState, config = DEFAULT_ABILITY): AbilityState {
+    const step = levelStep(config);
+    let logPost = state.logPost;
+
+    for (let guard = 0; guard < 16; guard++) {
+        const bins = logPost.length;
+        if (bins >= MAX_BINS) break;
+        const top = config.minLevel + step * (bins - 1);
+        const { level } = abilityEstimate({ ...state, logPost }, config);
+        if (level < top - HEADROOM_SLOPES * config.slope) break;
+
+        const add = Math.min(MAX_BINS - bins, Math.ceil(EXTEND_SLOPES * config.slope / step));
+        const tail = densityAt(logPost, bins - 1);
+        logPost = logPost.concat(new Array(add).fill(tail));
+    }
+
+    return logPost === state.logPost ? state : { ...state, logPost };
 }
 
 /** P(correct) for an item of `level` if true ability were `theta`. */
@@ -884,7 +969,15 @@ export function initAbility(
     config = DEFAULT_ABILITY,
     now = Date.now(),
 ): AbilityState {
-    const logPost = abilityGrid(config).map(theta => {
+    /*
+     * Wide enough for the prior it was given. A returning player whose
+     * aggregate is already past the initial grid would otherwise start a new
+     * mode with a posterior centred outside its own grid.
+     */
+    const step = levelStep(config);
+    const wanted = Math.ceil(
+        (priorMean + HEADROOM_SLOPES * config.slope + 2 * priorSd - config.minLevel) / step) + 1;
+    const logPost = abilityGrid(config, Math.max(config.bins, wanted)).map(theta => {
         const z = (theta - priorMean) / priorSd;
         return -0.5 * z * z;
     });
@@ -918,18 +1011,22 @@ export function abilityUpdate(
      */
     weight = 1,
 ): AbilityState {
-    const thetas = abilityGrid(config);
+    const thetas = abilityGrid(config, state.logPost.length);
     const logPost = state.logPost.map((lp, i) => {
         const p = pCorrect(config, thetas[i], level, guess);
         const like = correct ? p : 1 - p;
         return lp * config.forgetting + weight * Math.log(Math.max(1e-12, like));
     });
     const max = Math.max(...logPost);
-    return {
+    /*
+     * Grown after the update rather than before, so the answer that pushed the
+     * estimate to the edge is the one that buys the room. Almost always a no-op.
+     */
+    return growGrid({
         logPost: logPost.map(v => v - max),
         trials: state.trials + 1,
         lastSeen: now,
-    };
+    }, config);
 }
 
 export interface AbilityEstimate {
@@ -945,7 +1042,7 @@ export function abilityEstimate(
     config = DEFAULT_ABILITY,
     mass = 0.9,
 ): AbilityEstimate {
-    const thetas = abilityGrid(config);
+    const thetas = abilityGrid(config, state.logPost.length);
     const w = normalise(state.logPost);
 
     const mean = thetas.reduce((a, t, i) => a + t * w[i], 0);
@@ -981,7 +1078,7 @@ export function abilityDecay(
     const sd = Math.min(config.maxDecaySd, days * config.decayPerDay);
     if (sd < 0.05) return state;
 
-    const thetas = abilityGrid(config);
+    const thetas = abilityGrid(config, state.logPost.length);
     const step = thetas[1] - thetas[0];
     const radius = Math.max(1, Math.ceil(3 * sd / step));
     const w = normalise(state.logPost);

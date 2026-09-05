@@ -140,6 +140,7 @@ test("the per-mode clock does not wait for the master switch either", () => {
  * the test passes against a build that ignores the setting entirely, which is
  * how the first version of it went green against exactly that mutation.
  */
+/** A player good enough that the ladder has to reach for the clock. */
 function timedPlayer() {
     const { ov, prog } = fresh(true);
     localStorage.setItem("SYL_TIMER_TYPE", "2");
