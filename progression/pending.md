@@ -39,6 +39,25 @@ Fragments are storage — how many partial results you hold. Arity is integratio
 how much has to be combined in one step. The second is the thing this app exists
 to train, and the first is the thing it was trying not to be.
 
+**And the demand is not that several groups meet — it is that several *large*
+ones do.** Merging three objects is not the complex case. The complex case is an
+item that builds two or more separate, substantial structures and then has to
+fold them into one map: everything across the seam becomes determined at once,
+and both sides have to be held entire while it happens.
+
+So the count of groups joined is the wrong number on its own. `pairsSettled`
+counts what actually changes — the object pairs whose relation was undetermined
+before a premise and determined after it. Extending a six-chain by a name
+settles six; joining two four-groups settles sixteen; joining two six-groups
+settles thirty-six. Two groups joined can be worth four or worth thirty-six, and
+the count reads 2 either way.
+
+That also settles what wide premises are for. "A is above B, which is above C"
+names three objects and my first measure called it arity 3 — but it is two
+binary relations sharing a middle term, read in sequence, and it decomposes
+without loss. Betweenness does not. The case for wide premises is the carousel
+one: two links on one screen, integrated while both are visible. Not arity.
+
 This settles what wide premises are for. They merge *consecutive* edges of one
 layout, so a 7-edge item renders as ~4 sentences: arity rises to 3, fragment
 count falls from 7 to 4. That is a trade, and it is the right way round.

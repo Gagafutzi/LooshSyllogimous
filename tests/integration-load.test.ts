@@ -14,7 +14,7 @@
  * which is the cheapest possible way to hit it.
  */
 
-import { equal, test } from "./harness";
+import { assert, equal, test } from "./harness";
 import { integrationLoad, subjectsOf } from "../src/app/syllogimous/utils/integration.utils";
 import { pricedPremises } from "../src/app/syllogimous/utils/ability.utils";
 
@@ -125,4 +125,71 @@ test("an item from before the count was recorded falls back to the printed one",
         "history written before this field lost its premise count");
     equal(pricedPremises({ builtPremises: 0, premises: new Array(4) }), 4,
         "zero means unrecorded, not an item with no premises");
+});
+
+/* ------------------------------------------------------------------ *
+ * How much of the map one premise settles                             *
+ * ------------------------------------------------------------------ */
+
+/**
+ * The count of groups joined is blind to their size, and size is most of the
+ * demand. Joining two pairs and joining two six-object structures both weld two
+ * groups, and they are nothing like the same thing to hold: the hard case is
+ * several *large* structures meeting, where everything across the seam becomes
+ * determined at once.
+ */
+test("a chain read in order settles no more than its own length", () => {
+    const load = integrationLoad([p("A", "B"), p("B", "C"), p("C", "D"), p("D", "E")]);
+    equal(load.pairsSettled, 4,
+        "extending a four-object chain by one settles four pairs, one per object"
+        + " already placed");
+    equal(load.integration, 1, "and joins one structure to a fresh name");
+});
+
+test("joining two structures settles the whole seam between them", () => {
+    // Two chains of three built apart, then bridged.
+    const load = integrationLoad([
+        p("A", "B"), p("B", "C"),
+        p("X", "Y"), p("Y", "Z"),
+        p("C", "X"),
+    ]);
+    equal(load.integration, 2, "the bridge joins two structures already held");
+    equal(load.pairsSettled, 9,
+        "three against three is nine pairs settled by one premise");
+});
+
+test("the same number of groups can be worth very different amounts", () => {
+    const small = integrationLoad([p("A", "B"), p("X", "Y"), p("B", "X")]);
+    const large = integrationLoad([
+        p("A", "B"), p("B", "C"), p("C", "D"),
+        p("W", "X"), p("X", "Y"), p("Y", "Z"),
+        p("D", "W"),
+    ]);
+    equal(small.integration, large.integration,
+        "both join two structures, which is why the count alone is not enough");
+    assert(large.pairsSettled > small.pairsSettled * 3,
+        `four against four should dwarf two against two:`
+        + ` ${large.pairsSettled} vs ${small.pairsSettled}`);
+});
+
+test("three structures meeting at once settles more than two", () => {
+    const two = integrationLoad([
+        p("A", "B"), p("B", "C"), p("X", "Y"), p("Y", "Z"), p("C", "X"),
+    ]);
+    const three = integrationLoad([
+        p("A", "B"), p("B", "C"),
+        p("X", "Y"), p("Y", "Z"),
+        p("P", "Q"), p("Q", "R"),
+        p("C", "X", "P"),
+    ]);
+    assert(three.pairsSettled > two.pairsSettled,
+        `three threes should settle more than two threes:`
+        + ` ${three.pairsSettled} vs ${two.pairsSettled}`);
+    equal(three.pairsSettled, 27, "three groups of three settle twenty-seven pairs");
+});
+
+test("a premise that settles nothing new counts nothing", () => {
+    const load = integrationLoad([p("A", "B"), p("B", "C"), p("A", "C")]);
+    equal(load.pairsSettled, 2,
+        "the closing premise settles nothing, so the peak stays where it was");
 });

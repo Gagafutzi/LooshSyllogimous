@@ -511,6 +511,7 @@ export class Question {
      */
     arity = 0;
     integration = 0;
+    pairsSettled = 0;
     openGroups = 0;
 
     /**

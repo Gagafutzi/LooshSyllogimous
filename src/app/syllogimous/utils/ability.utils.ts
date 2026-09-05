@@ -1581,6 +1581,7 @@ export interface Trial {
      */
     arity?: number;
     integration?: number;
+    pairsSettled?: number;
     openGroups?: number;
     /**
      * Relations the conclusion needed, or 0 where the mode does not measure it.

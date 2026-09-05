@@ -1110,6 +1110,7 @@ export class GameService implements GeneratorContext {
                     // structures were carried at the peak.
                     arity: this.question.arity,
                     integration: this.question.integration,
+                    pairsSettled: this.question.pairsSettled,
                     openGroups: this.question.openGroups,
                     // Same standing: recorded now so that whether depth
                     // predicts accuracy can later be answered from answered
@@ -1424,6 +1425,7 @@ export class GameService implements GeneratorContext {
         const load = integrationLoad(question.premises);
         question.arity = load.arity;
         question.integration = load.integration;
+        question.pairsSettled = load.pairsSettled;
         question.openGroups = load.openGroups;
 
         /*

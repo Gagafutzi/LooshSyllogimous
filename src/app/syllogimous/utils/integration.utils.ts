@@ -46,6 +46,22 @@ export interface IntegrationLoad {
      */
     integration: number;
     /**
+     * Object pairs whose relation the heaviest premise settles at once.
+     *
+     * The size-aware one, and the reason the count above is not enough on its
+     * own: joining two pairs and joining two six-object structures both weld
+     * two groups, and they are nothing like the same thing to do in your head.
+     * The demand is not that several groups meet — it is that several *large*
+     * ones do, and everything across the seam becomes determined together.
+     *
+     * Counted as the pairs that were undetermined before the premise and
+     * determined after it: `C(total, 2)` less the pairs already settled inside
+     * each group. Extending a six-chain by a name settles six; joining two
+     * four-groups settles sixteen; joining two six-groups settles thirty-six.
+     * A chain read in order never rises above its own length.
+     */
+    pairsSettled: number;
+    /**
      * Peak number of part-built structures carried at once.
      *
      * Counted as components of two or more objects: a name you have been told
@@ -79,7 +95,8 @@ export function integrationLoad(premises: string[]): IntegrationLoad {
         return r;
     };
 
-    let arity = 0, integration = 0, openGroups = 0;
+    let arity = 0, integration = 0, openGroups = 0, pairsSettled = 0;
+    const pairs = (n: number) => (n * (n - 1)) / 2;
 
     for (const premise of premises) {
         const names = subjectsOf(premise);
@@ -92,6 +109,11 @@ export function integrationLoad(premises: string[]): IntegrationLoad {
         arity = Math.max(arity, roots.length);
         integration = Math.max(integration,
             roots.filter(r => (size.get(r) ?? 1) > 1).length);
+
+        const sizes = roots.map(r => size.get(r) ?? 1);
+        const total = sizes.reduce((a, n) => a + n, 0);
+        pairsSettled = Math.max(pairsSettled,
+            pairs(total) - sizes.reduce((a, n) => a + pairs(n), 0));
 
         const into = roots[0];
         for (const r of roots.slice(1)) {
@@ -106,5 +128,5 @@ export function integrationLoad(premises: string[]): IntegrationLoad {
         openGroups = Math.max(openGroups, open);
     }
 
-    return { arity, integration, openGroups };
+    return { arity, integration, pairsSettled, openGroups };
 }
