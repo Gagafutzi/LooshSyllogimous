@@ -27,12 +27,9 @@
                            (change)="setSymbolRelations($any($event.target).checked)">
                     <span>Relations as symbols
                         <small class="d-block text-muted">
-                            <strong>3 north</strong> becomes <strong>3 ↑</strong>,
-                            <strong>is east of</strong> becomes <strong>&rarr;</strong>,
-                            <strong>same latitude</strong> becomes <strong>&#8597;</strong>.
-                            Every relation has one, and each axis has its own, so a
-                            composed premise still reads apart without colour.
-                            Distances, objects and everything else are unchanged.
+                            <strong>3 north</strong> becomes <strong>3 ↑</strong>. Each axis has
+                            its own mark, so a composed premise still reads apart without
+                            colour.
                         </small>
                     </span>
                 </label>
@@ -165,11 +162,9 @@
                            [checked]="stimulusFlags.pharmaStimuli" (change)="setStimulus('pharmaStimuli', $any($event.target).checked)">
                     <span>Pharmacy stimuli
                         <small class="d-block text-muted">
-                            Drug names, molecular formulas and pharmacy vocabulary as the
-                            tokens. The relations stay invented — this only changes what
-                            the names are, so they go past your eyes a few hundred times
-                            a session.
-                        </small>
+                        Drug names, formulas and pharmacy vocabulary as the tokens.
+                        Only the names change; the relations stay invented.
+                    </small>
                     </span>
                 </label>
             </div>
@@ -299,11 +294,8 @@
                            [checked]="explanationsShown" (change)="setExplanationsShown($any($event.target).checked)">
                     <span>Explain wrong answers
                         <small class="d-block text-muted">
-                            Stops after a wrong answer or a timeout and shows how it
-                            followed — the derivation with the map, diagram or
-                            dimension breakdown that goes with it. Turned off, a wrong
-                            answer runs straight into the next question.
-                            <strong>History</strong> keeps the explanation either way.
+                            Stops on a wrong answer or a timeout and shows how it followed.
+                            History keeps the explanation either way.
                         </small>
                     </span>
                 </label>
@@ -321,13 +313,9 @@
                            [checked]="zenMode" (change)="setZenMode($any($event.target).checked)">
                     <span>Zen mode
                         <small class="d-block text-muted">
-                            No answer buttons and no explanation — just the question and
-                            the keys. <strong>↑</strong> and <strong>↓</strong> answer true
-                            and false, and on a picking item they answer the first and the
-                            second option. Number keys and the carousel arrows keep
-                            working. Overrides
-                            <strong>Explain wrong answers</strong> while it is on, and gives
-                            it back when it is off.
+                            Question and keys only. <strong>↑</strong> and <strong>↓</strong> answer
+                            true and false, or the first and second option. Overrides
+                            <strong>Explain wrong answers</strong> while it is on.
                         </small>
                     </span>
                 </label>

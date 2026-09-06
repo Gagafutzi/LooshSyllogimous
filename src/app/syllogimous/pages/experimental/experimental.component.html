@@ -94,14 +94,7 @@
                        class="form-control form-control-sm" style="max-width: 6rem;"
                        [disabled]="!streamOn" [value]="streamLength"
                        (change)="setStreamLength($any($event.target).value)">
-                <small class="text-muted">
-                    No ceiling. A stream is the one mode with no natural stopping
-                    point &mdash; the next premise arrives while the last question
-                    is still being resolved, so the moments where quitting is a
-                    <em>decision</em> are gone. This number is the only place a stop
-                    comes from, which is why it is yours and not a judgement of
-                    mine about how long anybody should sit there.
-                </small>
+                <small class="d-block text-muted">No ceiling — a stream has no stopping point of its own.</small>
             </div>
         </div>
     </app-collapsible>

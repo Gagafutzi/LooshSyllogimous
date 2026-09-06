@@ -178,21 +178,39 @@
     </app-collapsible>
 
     <app-collapsible heading="Transformations &amp; stimuli" [class.is-idle]="!active" [startClosed]="true">
-        <label class="flag">
-            <input type="checkbox" class="form-check-input" [disabled]="!active"
-                   [checked]="flags.meta" (change)="setFlag('meta', $any($event.target).checked)">
-            <span>Meta relations
+        <div class="lin">
+            <span class="lin__name">Meta relations
                 <small class="d-block text-muted">Premises that relate other premises</small>
             </span>
-        </label>
+            <span class="lin__tri" role="group" aria-label="Meta relations">
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="flags.meta === null"
+                        (click)="setFlag('meta', null)">Ladder</button>
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="flags.meta === false"
+                        (click)="setFlag('meta', false)">Off</button>
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="flags.meta === true"
+                        (click)="setFlag('meta', true)">On</button>
+            </span>
+        </div>
 
-        <label class="flag">
-            <input type="checkbox" class="form-check-input" [disabled]="!active"
-                   [checked]="flags.negation" (change)="setFlag('negation', $any($event.target).checked)">
-            <span>Negation
+        <div class="lin">
+            <span class="lin__name">Negation
                 <small class="d-block text-muted">Invert relations, forcing a second reasoning step</small>
             </span>
-        </label>
+            <span class="lin__tri" role="group" aria-label="Negation">
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="flags.negation === null"
+                        (click)="setFlag('negation', null)">Ladder</button>
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="flags.negation === false"
+                        (click)="setFlag('negation', false)">Off</button>
+                <button type="button" class="btn btn-sm" [disabled]="!active"
+                        [class.is-on]="flags.negation === true"
+                        (click)="setFlag('negation', true)">On</button>
+            </span>
+        </div>
 
         <p class="text-muted small mb-0">
             How the stimuli look — words, emoji or shapes — is on
@@ -413,11 +431,9 @@
             <div class="mode">
                 <label>Measurement items
                     <small class="text-muted d-block">
-                        One item in this many is placed to <em>measure</em> rather than
-                        to train: aimed at your estimate instead of below it, so the
-                        answer actually says something. Harder, and the reason the app
-                        can tell you have improved. 0 turns it off.
-                    </small>
+                One item in this many is aimed at your estimate rather than below
+                it, so the answer measures instead of training. 0 turns it off.
+            </small>
                 </label>
                 <span class="mode__premises">
                     <input type="number" class="form-control form-control-sm" min="0" max="20" step="1"

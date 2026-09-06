@@ -710,8 +710,18 @@ export class SettingsOverrideService {
         this.save();
     }
 
-    setFlag(key: Exclude<keyof OverrideState["flags"], "stimulusMix">, value: boolean) {
-        this.state.flags[key] = value;
+    /**
+     * `null` is a real value for `negation` and `meta`, and only for those.
+     *
+     * It means "no opinion, leave it to the ladder", which is what `pinned`
+     * reads to decide whether progression may set the flag. The other flags are
+     * presentation and have no third state.
+     */
+    setFlag(
+        key: Exclude<keyof OverrideState["flags"], "stimulusMix">,
+        value: boolean | null,
+    ) {
+        (this.state.flags as unknown as Record<string, boolean | null>)[key] = value;
         this.save();
     }
 

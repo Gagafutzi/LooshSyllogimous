@@ -459,7 +459,19 @@ export class AdvancedOptionsComponent {
         this.overrides.setMode(row.type, { numOfPremises: n }, this.fallback(row));
     }
 
-    setFlag(key: "meta" | "negation" | "useEmojis" | "meaningfulWords" | "visualNoise" | "junkEmojis" | "useText", value: boolean) {
+    /**
+     * `null` for negation and meta, which are three-state and always were.
+     *
+     * They mean "leave it to the ladder", "off", and "on" — and the control was
+     * a checkbox, so *no opinion* and *off* both drew as an empty box and behaved
+     * completely differently. Unchecked and still seeing struck-through
+     * premises was the ladder deciding, exactly as it is supposed to when
+     * nobody has said otherwise.
+     */
+    setFlag(
+        key: "meta" | "negation" | "useEmojis" | "meaningfulWords" | "visualNoise" | "junkEmojis" | "useText",
+        value: boolean | null,
+    ) {
         this.overrides.setFlag(key, value);
     }
 
