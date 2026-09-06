@@ -6,7 +6,7 @@
  */
 
 import { coordMapFromPositions } from "../utils/map.utils";
-import { GeneratorContext, deepConclusions, modifierOn } from "./context";
+import { GeneratorContext, deepConclusions, metaWanted, modifierOn } from "./context";
 import { buildConstructClaims } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
@@ -138,7 +138,7 @@ export function createComparison(ctx: GeneratorContext, numOfPremises: number, t
             question.premises.push(`${subj(first)} is ${relation} ${subj(last)}`);
         }
 
-        createMetaRelationships(settings, question, length, modifierOn(ctx, type, "meta", settings.enabled.meta));
+        createMetaRelationships(settings, question, length, metaWanted(ctx, type));
 
         a = Math.floor(Math.random() * question.bucket.length);
         b = Math.floor(Math.random() * question.bucket.length);
@@ -330,7 +330,7 @@ export function createLinear(ctx: GeneratorContext, numOfPremises: number, type:
          */
         if (!ties && !boundary) {
             createMetaRelationships(settings, question, premises.length + 1,
-                modifierOn(ctx, type, "meta", settings.enabled.meta));
+                metaWanted(ctx, type));
         }
 
         if (boundary) {

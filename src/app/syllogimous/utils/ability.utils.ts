@@ -60,7 +60,6 @@ import { MODE_SCALE } from "./calibration.utils";
  */
 export const RUNG_COST: Record<string, number> = {
     negation: 0.6,
-    meta: 1.0,
 
     branching: 0.8,
     overlap: 0.7,
@@ -258,6 +257,13 @@ export const RUNG_COST: Record<string, number> = {
     "retired-compact": 0,
     "retired-meta": 0,
     /*
+     * Not the same tombstone. Three modes offered `meta` and have never
+     * produced one — the direction generators still carry the TODO — so their
+     * slots must not be read as "this became a dial", which is what
+     * `retired-meta` now means everywhere else.
+     */
+    "retired-meta-unbuilt": 0,
+    /*
      * The counted entries, which are dials now. Held at nothing rather than
      * removed so a ladder keeps its length and its later entries keep meaning
      * what they meant.
@@ -416,6 +422,23 @@ export const DIALS: Record<string, Dial> = {
         steps: [1.5, 1.2], needs: [4, 5], shares: "objects",
         was: ["edit-1", "edit-2"],
     },
+    /*
+     * How many of an item's premises state a relation between two relations.
+     *
+     * A rung until now, so a player who found meta hard could not be given the
+     * levers past it without it — the simulation put someone at level 12 who
+     * finds meta five levels harder at 7.2, with meta on 88% of their items and
+     * no way to be short of it. That is the case the split exists for.
+     *
+     * One priced step, which is the rung's own price. A second meta premise is
+     * plainly more work than none, and how much more is not something anybody
+     * has measured — so the last price repeats rather than a diminishing curve
+     * being invented for it.
+     *
+     * Two premises per turn: the generator can replace at most `(length - 1) / 2`
+     * of them, since a meta premise consumes the two it relates.
+     */
+    meta: { steps: [1.0], needs: [3, 5], was: ["meta"] },
     "transform-depth": {
         steps: [1.2, 1.0], needs: [4, 5],
         was: ["transform-depth-1", "transform-depth-2"],

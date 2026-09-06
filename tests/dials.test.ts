@@ -63,11 +63,15 @@ test("a mode has the dials its ladder used to carry as rungs", () => {
     equal(dialsFor(EnumQuestionType.Transformation).join(","), "transform-depth",
         "Transformation lost its only lever");
 
-    const scale = dialsFor(EnumQuestionType.LinearVertical);
-    equal(scale.join(","), "transforms", "a scale mode's dial is not what it was");
+    const scale = dialsFor(EnumQuestionType.LinearVertical).sort();
+    equal(scale.join(","), "meta,transforms", "a scale mode's dial is not what it was");
 
+    /*
+     * Syllogism offered `meta` and never produced one, so its slot is a
+     * tombstone of a different name — the dial must not reach it.
+     */
     equal(dialsFor(EnumQuestionType.Syllogism).length, 0,
-        "a mode with no counted rungs was given a dial");
+        "a mode that has never built a meta relation was given the dial for it");
 });
 
 test("no mode still offers a counted rung as a gate", () => {

@@ -235,7 +235,7 @@ const LINEAR_LADDER = [
     // by position — so removing an entry renames every rung after it for every
     // existing player, silently. The tombstone holds the slot, matches no
     // `hasRung` call, and is filtered out of the settings UI. See fixes/6.
-    "negation", "branching", "meta", "overlap", "wide-premises",
+    "negation", "branching", "retired-meta", "overlap", "wide-premises",
     "retired-transform-1", "retired-transform-2", "retired-multi-conclusion", "choose-conclusion",
     "construct-conclusion", "construct-distance", "checkpoint",
 ];
@@ -445,7 +445,7 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * arrow-counting shortcut from underneath it.
      */
     "Relational Web":            ["structure-match", "structural"],
-    "Distinction":               ["negation", "meta"],
+    "Distinction":               ["negation", "retired-meta"],
     "Comparison Numerical":      LINEAR_LADDER,
     "Comparison Chronological":  LINEAR_LADDER,
     "Vertical Order":            LINEAR_LADDER,
@@ -467,9 +467,9 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * credited accordingly. Tombstoned rather than removed, so a stored count
      * keeps its position.
      */
-    "Syllogism":                 ["negation", "retired-meta", "hierarchy"],
-    "Linear Arrangement":        ["negation", "meta"],
-    "Circular Arrangement":      ["negation", "meta"],
+    "Syllogism":                 ["negation", "retired-meta-unbuilt", "hierarchy"],
+    "Linear Arrangement":        ["negation", "retired-meta"],
+    "Circular Arrangement":      ["negation", "retired-meta"],
     /*
      * Direction is served by the composed-space engine now, so it has that
      * ladder — the same one every other composed space has.
@@ -495,8 +495,8 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * opening with three free rungs already claimed.
      */
     "Direction":                 ND_LADDER,
-    "Direction3D Spatial":       ["negation", "retired-meta"],
-    "Direction3D Temporal":      ["negation", "retired-meta"],
+    "Direction3D Spatial":       ["negation", "retired-meta-unbuilt"],
+    "Direction3D Temporal":      ["negation", "retired-meta-unbuilt"],
     "Space 3D":                  ND_LADDER,
     "Space 4D":                  ND_LADDER,
     "Space 5D":                  ND_LADDER,
@@ -548,8 +548,8 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * the best matching rather than establish that none exists.
      */
     "Graph Matching":            ["which-differs", "as-relations", "distance"],
-    "Analogy":                   ["negation", "meta"],
-    "Binary":                    ["negation", "meta"],
+    "Analogy":                   ["negation", "retired-meta"],
+    "Binary":                    ["negation", "retired-meta"],
     /*
      * Empty, and for a different reason from the two above.
      *

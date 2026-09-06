@@ -204,8 +204,37 @@ test("a learner is followed rather than left behind", () => {
  * number here is nearly zero. The guard is that it must not get worse; the fix
  * is the gates-and-dials split, which lets a dial be turned down on its own.
  */
+/**
+ * A dial can be turned down on its own; a gate cannot.
+ *
+ * The player who finds meta five levels harder used to be estimated at 7.2
+ * against a true 12, with meta on 88% of their items and no way to be short of
+ * it — it sat third on the ladder and everything past it came with it. As a
+ * dial the selection simply gives them fewer, and measures them where they are.
+ *
+ * This is the whole case for the gates-and-dials split, and it is the same
+ * player, the same weakness and the same seeds as the guard below.
+ */
+test("a player weak at a dial is measured, not dragged down by it", () => {
+    const player = PLAYERS.find(p => p.name === "weak at meta")!;
+    const rs = runs(player);
+    const off = Math.abs(mean(rs.map(r => r.estimate)) - player.ability);
+    assert(off < 1.5,
+        `estimated ${off.toFixed(1)} levels from true ability — a dial they are`
+        + " weak at is still being forced on them");
+    assert(mean(rs.map(r => r.weakShare)) < 0.25,
+        `the weak lever still landed on ${(100 * mean(rs.map(r => r.weakShare))).toFixed(0)}%`
+        + " of items, so it is not really optional");
+});
+
+/**
+ * Meta is a dial now, and the player weak at it is no longer dragged down by it:
+ * the selection can turn it down and leave the rest of the mode alone. Negation
+ * is still a gate, and still first on nearly every ladder, so it is still the
+ * case this guard is about.
+ */
 test("known defect: one weak modifier costs the whole-mode estimate", () => {
-    for (const name of ["weak at negation", "weak at meta"]) {
+    for (const name of ["weak at negation"]) {
         const player = PLAYERS.find(p => p.name === name)!;
         const rs = runs(player);
         const under = player.ability - mean(rs.map(r => r.estimate));

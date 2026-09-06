@@ -16,7 +16,7 @@ import { ProgressionService } from "../src/app/syllogimous/services/progression.
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
 import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { buildChain, LINEAR_SCALES, renderPremises } from "../src/app/syllogimous/utils/linear.utils";
-import { FLOOR_START_MODES } from "../src/app/syllogimous/utils/progression.utils";
+import { FLOOR_START_MODES, dialsFor } from "../src/app/syllogimous/utils/progression.utils";
 
 /** A service with no saved history, whatever earlier tests left behind. */
 function fresh() {
@@ -50,8 +50,15 @@ test("answering correctly is what raises difficulty", () => {
     const after = p.estimateFor(EnumQuestionType.Distinction);
     assert(after.level > before, "twelve correct answers did not move the estimate");
     assert(after.sd < 2.5, "twelve answers left the posterior as wide as the prior");
-    assert(p.rungsFor(EnumQuestionType.Distinction).length > 0,
-        "twelve correct answers unlocked nothing");
+    /*
+     * Structure, not rungs. A mode's levers are gates and dials now, and
+     * Distinction's meta became a dial — so it can be unlocked without the rung
+     * count moving at all, and counting only rungs reads that as nothing.
+     */
+    const type = EnumQuestionType.Distinction;
+    const structure = p.rungsFor(type).length
+        + dialsFor(type).reduce((n, d) => n + p.dialFor(type, d), 0);
+    assert(structure > 0, "twelve correct answers unlocked nothing");
 });
 
 test("uncertainty makes items easier, not harder", () => {

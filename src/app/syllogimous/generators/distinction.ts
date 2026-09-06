@@ -5,7 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { GeneratorContext, buildSeries, extendWithSeries, modifierOn, seriesWanted } from "./context";
+import { GeneratorContext, buildSeries, extendWithSeries, metaWanted, modifierOn, seriesWanted } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
@@ -43,6 +43,19 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
     let start = "";
 
     do {
+        /*
+         * Zeroed per attempt, because an attempt can be thrown away.
+         *
+         * This loop rebuilds the premises and the conclusion when the claim
+         * turns out to restate a premise, and the counters kept accumulating
+         * across the discards — so an item reported negations and meta
+         * relations belonging to a card nobody was shown. Invisible while meta
+         * was a coin flip and every retry rare; a dial makes it deterministic
+         * and the miscount routine.
+         */
+        question.negations = 0;
+        question.metaRelations = 0;
+
         const rnd = Math.floor(Math.random() * symbols.length);
         // splice returns an array; take the element, so what reaches subj()
         // is the word it claims to be rather than an array coerced to one.
@@ -81,7 +94,7 @@ export function createDistinction(ctx: GeneratorContext, numOfPremises: number):
             return createDistinction(ctx, numOfPremises);
         }
 
-        createMetaRelationships(settings, question, length, modifierOn(ctx, type, "meta", settings.enabled.meta));
+        createMetaRelationships(settings, question, length, metaWanted(ctx, type));
 
         const isSameAs = coinFlip();
         const relation = getRelation(settings, type, isSameAs, () => question.negations++);

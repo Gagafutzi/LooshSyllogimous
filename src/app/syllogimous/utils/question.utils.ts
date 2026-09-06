@@ -5,7 +5,7 @@ import { Settings, Picked } from "../models/settings.models";
 import { getVisualNoiseSymbols } from "./visual-noise.utils";
 import { getPharmaSymbols } from "./pharma.utils";
 import { getJunkEmojiSymbols } from "./junk-emoji.utils";
-import { META_WORDS, hi, neg, rel, subj } from "./phrasing";
+import { META_WORDS, countNegations, hi, neg, rel, subj } from "./phrasing";
 
 export const b2n = (b: boolean) => +b as number;
 
@@ -213,10 +213,24 @@ export function getRelation(
  * omitting it keeps the old behaviour, which is what the modes with no per-mode
  * control still want.
  */
-export function createMetaRelationships(settings: Settings, question: Question, length: number, enabled?: boolean) {
-    // Substitute a variable number of premises with meta-relations
-    if ((enabled ?? settings.enabled.meta) && coinFlip()) {
-        const numOfMetaRelationships = 1 + Math.floor(Math.random() * Math.floor((length - 1) / 2));
+/**
+ * Replace some premises with relations between relations.
+ *
+ * `wanted` is how many, from the meta dial. It used to be a boolean and a coin
+ * flip over a random count — so a player who had earned meta got it on about
+ * half their items, in a quantity nobody chose. As a count the difficulty model
+ * can ask for one and price one, and a player who finds meta hard can be given
+ * fewer rather than none or all.
+ *
+ * Trimmed to what the item can carry: a meta premise consumes the two it
+ * relates, so at most `(length - 1) / 2` of them.
+ */
+export function createMetaRelationships(
+    settings: Settings, question: Question, length: number, wanted: number,
+) {
+    const room = Math.floor((length - 1) / 2);
+    if (wanted > 0 && room > 0) {
+        const numOfMetaRelationships = Math.min(wanted, room);
         question.metaRelations += numOfMetaRelationships;
 
         let subjects: { value: number, subject: string }[] = [];
@@ -252,6 +266,16 @@ export function createMetaRelationships(settings: Settings, question: Question, 
         const { picked: pickedPremises } = pickUniqueItems(eligible, Math.min(numOfMetaRelationships, eligible.length));
         const consumed = new Set(pickedPremises);
         const remainingPremises = question.premises.filter(p => !consumed.has(p));
+        /*
+         * A consumed premise takes its negations with it.
+         *
+         * The premises are built first and their negations counted as they are
+         * written; this then *replaces* some of them, and a struck-through one
+         * among the replaced left its count on the item with nothing on the card
+         * to show for it. Invisible while meta was a coin flip over a random
+         * number of premises, and routine once the dial made it deterministic.
+         */
+        question.negations -= countNegations(pickedPremises);
         const pickedPremisesSubjects = pickedPremises.map(extractSubjects);
         const remainingPremisesSubjects = remainingPremises.map(extractSubjects);
         const bidirectionalRelationshipMap = remainingPremisesSubjects.reduce((acc, [a, b]) => (acc[a] = acc[a] || [], acc[a].push(b), acc[b] = acc[b] || [], acc[b].push(a), acc), {} as { [key: string]: string[] });

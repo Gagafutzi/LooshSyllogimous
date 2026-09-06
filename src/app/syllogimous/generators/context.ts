@@ -288,6 +288,18 @@ export function extraTransforms(ctx: GeneratorContext, type: EnumQuestionType) {
  * Optional-called because a test context stubs the override service with only
  * the members it needs; absent, the global answer stands.
  */
+/**
+ * How many meta premises this item should carry.
+ *
+ * The global flag still switches them off entirely — it is the player saying
+ * "not these", and a dial has no way to express that — and above it the dial
+ * says how many. Zero either way means none.
+ */
+export function metaWanted(ctx: GeneratorContext, type: EnumQuestionType): number {
+    if (!ctx.settings.enabled.meta) return 0;
+    return ctx.dialFor(type, "meta");
+}
+
 export function modifierOn(
     ctx: GeneratorContext,
     type: string,

@@ -869,7 +869,11 @@ export class ProgressionService {
             if (this.scopedType) {
                 const rungs = this.rungsFor(this.scopedType);
                 if (!pinned?.negation) settings.setEnable("negation", rungs.includes("negation"));
-                if (!pinned?.meta) settings.setEnable("meta", rungs.includes("meta"));
+                // Meta is a dial now, so the flag says whether any are wanted and
+                // the count says how many.
+                if (!pinned?.meta) {
+                    settings.setEnable("meta", this.dialFor(this.scopedType, "meta") > 0);
+                }
             } else {
                 // Unscoped reads are for display, so show the union rather than
                 // implying nothing is unlocked.
@@ -878,7 +882,7 @@ export class ProgressionService {
                     if (!settings.question[type]?.enabled) continue;
                     const rungs = this.rungsFor(type);
                     anyNegation ||= rungs.includes("negation");
-                    anyMeta ||= rungs.includes("meta");
+                    anyMeta ||= this.dialFor(type, "meta") > 0;
                 }
                 settings.setEnable("negation", anyNegation);
                 settings.setEnable("meta", anyMeta);
