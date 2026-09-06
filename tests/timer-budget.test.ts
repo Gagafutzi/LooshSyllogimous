@@ -19,6 +19,7 @@
  */
 
 import { assert, equal, test } from "./harness";
+import { readFileSync } from "fs";
 import { StatsService } from "../src/app/syllogimous/services/stats.service";
 import { DEFAULT_ABILITY } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
@@ -86,7 +87,7 @@ test("the raw extreme is still reported, since it decides nothing", () => {
  * went wrong is a missing clamp, which is exactly what a source scan can see.
  */
 test("the adaptive deadline has a ceiling as well as a floor", () => {
-    const src = require("fs").readFileSync(
+    const src = readFileSync(
         "src/app/syllogimous/pages/game/game.component.ts", "utf8")
         .replace(/\/\*[\s\S]*?\*\//g, "");
 
@@ -99,10 +100,44 @@ test("the adaptive deadline has a ceiling as well as a floor", () => {
 });
 
 test("the ceiling is the one the ladder holds itself to", () => {
-    const src = require("fs").readFileSync(
+    const src = readFileSync(
         "src/app/syllogimous/pages/game/game.component.ts", "utf8");
     assert(/const MAX_SECONDS = this\.progressionService\.config\.ceilingSeconds;/.test(src),
         "the adaptive ceiling is a number of its own rather than the ladder's");
     equal(DEFAULT_ABILITY.maxSeconds, 180,
         "the ladder's own ceiling moved, so this test's premise needs revisiting");
+});
+
+/**
+ * A clock that refuses to start must not leave the bar armed.
+ *
+ * `start` rejects when one is already running. The bar used to be armed on the
+ * next line regardless — against the *previous* item's deadline, which is what
+ * the service still held — and the rejection went unhandled, so the freeze and
+ * the timeout never ran either. A bar sweeping to somebody else's schedule, and
+ * a countdown that could not end the item.
+ *
+ * Read from the source, because reaching it needs a component, a router and a
+ * live DOM; what went wrong is an unguarded call, which a scan can see.
+ */
+test("a refused clock is handled rather than left to reject", () => {
+    const src = readFileSync(
+        "src/app/syllogimous/pages/game/game.component.ts", "utf8");
+    const body = (src.match(/kickTimer = async[\s\S]*?\n    \}/) || [""])[0];
+    assert(body.length > 0, "kickTimer was not found, so this test proves nothing");
+
+    assert(/try \{[\s\S]*?await started;[\s\S]*?\} catch/.test(body),
+        "the awaited clock has no catch, so a refusal disables the timeout silently");
+    assert(/started\.catch\(/.test(body),
+        "the promise is awaited later than it is created, so it needs a catch"
+        + " attached at creation or the refusal surfaces as an unhandled rejection");
+});
+
+test("the deadline is armed before the bar is drawn against it", () => {
+    const src = readFileSync(
+        "src/app/syllogimous/pages/game/game.component.ts", "utf8");
+    const body = (src.match(/kickTimer = async[\s\S]*?\n    \}/) || [""])[0];
+    assert(body.indexOf("gameTimerService.start(") < body.indexOf("this.armTimerBar()"),
+        "the bar is armed before the clock has a deadline, so it sweeps against"
+        + " whatever the service was holding");
 });

@@ -998,13 +998,41 @@ export class GameComponent {
     }
 
     kickTimer = async () => {
-        // Only a clock that actually ran out is a timeout. Stopping it — which
-        // answering now does — used to look identical from here.
-        const started = this.gameTimerService.start(this.timerTimeSeconds);
+        /*
+         * A clock that refuses to start leaves nothing armed.
+         *
+         * `start` rejects if one is already running, and the bar used to be
+         * armed on the next line regardless — against the *previous* item's
+         * deadline, since that is what the service still held. The rejection
+         * then went unhandled, so the freeze and the timeout never ran either:
+         * a bar sweeping to somebody else's schedule and a countdown that could
+         * not end the item.
+         *
+         * Reachable only if two questions arm without a stop between them,
+         * which the subscription is careful about — but "careful about" is not
+         * "cannot", and the failure is silent.
+         */
+        let started: Promise<boolean>;
+        try {
+            started = this.gameTimerService.start(this.timerTimeSeconds);
+        } catch {
+            this.timerTimeSeconds = 0;
+            return;
+        }
+        started.catch(() => { /* settled below; this stops the unhandled warning */ });
+
         // Armed once the clock has a deadline to sweep against, and directly:
         // the bar is never removed from the tree, so it is always there.
         this.armTimerBar();
-        const elapsed = await started;
+
+        let elapsed: boolean;
+        try {
+            elapsed = await started;
+        } catch {
+            // No clock of our own, so nothing to freeze and nothing to time out.
+            this.timerTimeSeconds = 0;
+            return;
+        }
         /*
          * The sweep is a CSS transition, so it carries on draining after the
          * clock stops — through the verdict flash and any review overlay, which
