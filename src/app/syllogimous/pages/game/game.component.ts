@@ -340,6 +340,7 @@ export class GameComponent {
     };
 
     ngOnDestroy() {
+        this.barAnim?.cancel();
         this.questionSub?.unsubscribe();
         this.claimSub?.unsubscribe();
         if (typeof document !== "undefined") {
@@ -934,6 +935,8 @@ export class GameComponent {
          * time instead of none. The sweep waits for a frame, by which point
          * change detection has run and the element is rendered.
          */
+        this.barAnim?.cancel();
+        this.barAnim = undefined;
         el.style.transition = 'none';
         el.style.transform = `scaleX(${frac(this.gameTimerService.remainingMs)})`;
 
@@ -944,18 +947,57 @@ export class GameComponent {
             // that frame can be a long one.
             const leftMs = Math.max(0, this.gameTimerService.remainingMs);
             if (leftMs <= 0) return;
-            el.style.transition = 'none';
-            el.style.transform = `scaleX(${frac(leftMs)})`;
-            void el.offsetWidth;
-            el.style.transition = `transform ${leftMs}ms linear`;
-            el.style.transform = 'scaleX(0)';
+            const from = frac(leftMs);
+
+            /*
+             * Keyframes, not a transition, and this is the whole bug.
+             *
+             * The sweep used to place `scaleX(from)` with `transition: none`,
+             * flush with `void el.offsetWidth`, then set the transition and
+             * `scaleX(0)`. Reading `offsetWidth` forces **layout** — and
+             * `transform` is a compositor property that does not affect layout,
+             * so the browser had no reason to commit the intermediate value.
+             * The two writes coalesced into one style change and the transition
+             * ran from the *current computed* transform: wherever the previous
+             * item's sweep had stopped.
+             *
+             * On the first item of a session there is no previous transform, so
+             * it starts at full and looks right. Every item after it starts
+             * where the last one ended, and after enough of them the bar is at
+             * zero and stays there. That is the report, exactly, and it is why
+             * looking at the drawing kept finding nothing: the code says
+             * `scaleX(from)` and means it, and the browser is entitled to skip it.
+             *
+             * An animation takes its start explicitly, so there is nothing to
+             * commit and nothing to coalesce.
+             */
+            this.barAnim?.cancel();
+            this.barAnim = el.animate(
+                [{ transform: `scaleX(${from})` }, { transform: 'scaleX(0)' }],
+                { duration: leftMs, easing: 'linear', fill: 'forwards' });
         });
     }
+
+    /**
+     * The running sweep, so it can be cancelled before the next one is armed.
+     *
+     * `fill: 'forwards'` keeps the end state after it finishes, which is what
+     * holds an expired bar at empty — and it also means an old one would go on
+     * asserting that if it were left in place.
+     */
+    private barAnim?: Animation;
 
     /** Stop where it is: an answered item's bar should not carry on draining. */
     private freezeTimerBar() {
         const el = this.timerFill?.nativeElement;
         if (!el) return;
+
+        /*
+         * Pausing holds the sweep at exactly the point it reached, which is
+         * what "stop where it is" means and what the measure-and-pin below was
+         * approximating. The pin stays for the browser with no animation.
+         */
+        if (this.barAnim) { this.barAnim.pause(); return; }
         /*
          * Where it visually is, taken from the rendered box rather than from
          * the clock — the clock rounds to whole seconds once it has stopped, so

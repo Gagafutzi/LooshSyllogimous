@@ -65,6 +65,7 @@ import "./reading-floor.test";
 import "./recency.test";
 import "./ceiling.test";
 import "./flag-tristate.test";
+import "./timer-bar.test";
 import "./timer-budget.test";
 import "./goals.test";
 import "./dials.test";
