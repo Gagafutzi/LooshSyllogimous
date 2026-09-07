@@ -12,3 +12,12 @@
     white-space: pre;
 }
 .share__actions { display: flex; gap: .5rem; }
+
+.share__iq { display: flex; flex-wrap: wrap; gap: .75rem; }
+.share__iq label {
+    display: grid;
+    gap: .2rem;
+    font-size: .8rem;
+    color: var(--th-text-dim, #7d8ca6);
+}
+.share__iq input { min-width: 9rem; }

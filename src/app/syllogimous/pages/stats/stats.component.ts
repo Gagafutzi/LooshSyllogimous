@@ -3,7 +3,8 @@ import { Router } from '@angular/router';
 import { StatsExportService } from '../../services/stats-export.service';
 import { GameService } from '../../services/game.service';
 import { ProgressionService } from '../../services/progression.service';
-import { buildShareReport, ShareMode } from '../../utils/share.utils';
+import { buildShareReport, readSelfReported, ShareMode } from '../../utils/share.utils';
+import { LS_SELF_IQ, LS_SELF_IQ_SOURCE } from '../../constants/local-storage.constants';
 import { EnumQuestionType } from '../../constants/question.constants';
 import { EnumScreens } from '../../constants/game.constants';
 
@@ -38,6 +39,28 @@ export class StatsComponent {
     shareReport: { text: string; json: string } | null = null;
     shareCopied = false;
 
+    /*
+     * Kept between visits, because it is a fact about the person rather than
+     * about this session, and nobody should have to look it up twice.
+     */
+    iqScore = this.read(LS_SELF_IQ);
+    iqSource = this.read(LS_SELF_IQ_SOURCE);
+
+    private read(key: string) {
+        try { return localStorage.getItem(key) ?? ""; } catch { return ""; }
+    }
+
+    setIq(score: string, source: string) {
+        this.iqScore = score;
+        this.iqSource = source;
+        try {
+            localStorage.setItem(LS_SELF_IQ, score);
+            localStorage.setItem(LS_SELF_IQ_SOURCE, source);
+        } catch { /* private mode; it simply is not remembered */ }
+        // Rebuilt so what is on screen is what would be copied.
+        if (this.shareReport) this.buildShare();
+    }
+
     buildShare() {
         const modes: ShareMode[] = [];
         for (const type of Object.values(EnumQuestionType)) {
@@ -54,6 +77,7 @@ export class StatsComponent {
 
         this.shareReport = buildShareReport({
             modes, days, answered: answered.length, version: APP_VERSION,
+            iq: readSelfReported(this.iqScore, this.iqSource),
         });
         this.shareCopied = false;
     }

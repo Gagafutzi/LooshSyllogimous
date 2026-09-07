@@ -39,6 +39,18 @@
             Everything below is what gets copied — no dates, no times, no
             per-question rows.
         </p>
+        <div class="share__iq">
+            <label>
+                IQ, if you want to include one
+                <input type="number" [value]="iqScore" placeholder="optional"
+                       (change)="setIq($any($event.target).value, iqSource)">
+            </label>
+            <label>
+                Which test
+                <input type="text" [value]="iqSource" placeholder="e.g. Raven's APM"
+                       (change)="setIq(iqScore, $any($event.target).value)">
+            </label>
+        </div>
         <pre class="share__body">{{ shareReport.text }}
 
 {{ shareReport.json }}</pre>

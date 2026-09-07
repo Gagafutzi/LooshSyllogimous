@@ -7,7 +7,9 @@
  */
 
 import { assert, equal, test } from "./harness";
-import { buildShareReport, ShareInput } from "../src/app/syllogimous/utils/share.utils";
+import {
+    IQ_RANGE, buildShareReport, readSelfReported, ShareInput,
+} from "../src/app/syllogimous/utils/share.utils";
 
 const input: ShareInput = {
     modes: [
@@ -58,4 +60,47 @@ test("the strongest mode is listed first", () => {
     const first = lines.findIndex(l => l.startsWith("Comparison Numerical"));
     const second = lines.findIndex(l => l.startsWith("Space 4D"));
     assert(first > 0 && first < second, "the list is not ordered by level");
+});
+
+/* ------------------------------------------------------------------ *
+ * The optional self-reported score                                    *
+ * ------------------------------------------------------------------ */
+
+test("no score entered means no score published", () => {
+    const { text, json } = buildShareReport(input);
+    assert(!/IQ/i.test(text), "an absent score was reported anyway");
+    assert(!/iq/i.test(json), "…and it reached the machine-readable half too");
+});
+
+test("a score is marked as self-reported wherever it appears", () => {
+    const { text, json } = buildShareReport(
+        { ...input, iq: { score: 128, source: "Raven's APM" } });
+    assert(/Self-reported IQ 128 \(Raven's APM\)/.test(text),
+        "the readable half does not say who reported it");
+    assert(JSON.parse(json).selfReportedIq.score === 128,
+        "the machine-readable half lost the score");
+    assert("selfReportedIq" in JSON.parse(json),
+        "the field name does not say the number is self-reported");
+});
+
+test("a score with no test named says so rather than implying one", () => {
+    const { text } = buildShareReport({ ...input, iq: { score: 115 } });
+    assert(text.includes("test not named"),
+        "an unsourced score reads as though it came from somewhere");
+});
+
+test("a typo is not a score", () => {
+    equal(readSelfReported(""), null, "an empty field became a score");
+    equal(readSelfReported("abc"), null, "text became a score");
+    equal(readSelfReported(IQ_RANGE[0] - 1), null, "an implausible low value was kept");
+    equal(readSelfReported(IQ_RANGE[1] + 1), null, "an implausible high value was kept");
+    equal(readSelfReported(1300), null, "a missing decimal point was kept");
+});
+
+test("a score is rounded and its source trimmed", () => {
+    const parsed = readSelfReported("127.6", "  Mensa Norway  ");
+    equal(parsed?.score, 128, "the score was not rounded");
+    equal(parsed?.source, "Mensa Norway", "the source was not trimmed");
+    equal(readSelfReported(120, "   ")?.source, undefined,
+        "a blank source became an empty string rather than being left out");
 });

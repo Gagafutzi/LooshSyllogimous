@@ -29,6 +29,38 @@ export interface ShareMode {
     trials: number;
 }
 
+/**
+ * A score somebody typed in, and where it came from.
+ *
+ * Optional, and marked as self-reported everywhere it appears — in the readable
+ * half and in the field name — because a number in a public dataset gets read
+ * as measured unless it says otherwise, and nothing here measured it.
+ *
+ * `source` matters more than it looks: 130 from Raven's, from a supervised
+ * battery and from a free online quiz are three different claims, and a
+ * collection of scores with no test named is a collection of noise. It is not
+ * required, because demanding it would only produce invented answers.
+ */
+export interface SelfReported {
+    score: number;
+    /** Which test, in the reporter's own words. */
+    source?: string;
+}
+
+/** Outside this, it is a typo rather than a score. */
+export const IQ_RANGE: [number, number] = [40, 200];
+
+export function readSelfReported(
+    score: unknown, source?: unknown,
+): SelfReported | null {
+    const n = Number(score);
+    if (!Number.isFinite(n)) return null;
+    const rounded = Math.round(n);
+    if (rounded < IQ_RANGE[0] || rounded > IQ_RANGE[1]) return null;
+    const named = typeof source === "string" ? source.trim().slice(0, 60) : "";
+    return named ? { score: rounded, source: named } : { score: rounded };
+}
+
 export interface ShareInput {
     modes: ShareMode[];
     /** Distinct days on which anything was answered. */
@@ -37,6 +69,8 @@ export interface ShareInput {
     answered: number;
     /** Which build produced this, so a comparison knows what it is comparing. */
     version: string;
+    /** Optional, and only ever included when somebody has entered one. */
+    iq?: SelfReported | null;
 }
 
 export interface ShareReport {
@@ -60,8 +94,13 @@ export function buildShareReport(input: ShareInput): ShareReport {
         `Loosh Syllogimous — results`,
         `${input.answered} answered over ${input.days} day${input.days === 1 ? "" : "s"}`
         + ` · build ${input.version}`,
-        "",
     ];
+
+    if (input.iq) {
+        lines.push(`Self-reported IQ ${input.iq.score}`
+            + (input.iq.source ? ` (${input.iq.source})` : " (test not named)"));
+    }
+    lines.push("");
 
     if (!modes.length) {
         lines.push("No mode has been answered enough to have an estimate yet.");
@@ -86,6 +125,8 @@ export function buildShareReport(input: ShareInput): ShareReport {
         version: input.version,
         days: input.days,
         answered: input.answered,
+        // Named for what it is, so nothing downstream reads it as measured.
+        ...(input.iq ? { selfReportedIq: input.iq } : {}),
         modes: modes.map(m => ({
             type: m.type, level: round(m.level, 2), sure: round(m.sure, 2), trials: m.trials,
         })),

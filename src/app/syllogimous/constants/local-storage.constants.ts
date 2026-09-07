@@ -90,6 +90,9 @@ for (const type of Object.values(EnumQuestionType)) {
 
 /** Seconds handed back for each claim of a series answered. */
 export const LS_SERIES_BONUS = "SYL_SERIES_BONUS";
+/** An optional self-reported score, and which test it came from. */
+export const LS_SELF_IQ = "SYL_SELF_IQ";
+export const LS_SELF_IQ_SOURCE = "SYL_SELF_IQ_SOURCE";
 
 /**
  * Suppress the explanation overlay after a wrong answer.
