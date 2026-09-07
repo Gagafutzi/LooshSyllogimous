@@ -69,6 +69,7 @@ import "./timer-bar.test";
 import "./timer-budget.test";
 import "./binary-halves.test";
 import "./smooth-steps.test";
+import "./share.test";
 import "./goals.test";
 import "./dials.test";
 import "./player-sim.test";

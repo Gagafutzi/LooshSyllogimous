@@ -1,0 +1,14 @@
+
+.share { margin-top: 1rem; display: grid; gap: .6rem; }
+.share__note { margin: 0; font-size: .85rem; color: var(--th-text-dim, #7d8ca6); }
+.share__body {
+    margin: 0;
+    max-height: 22rem;
+    overflow: auto;
+    padding: .75rem;
+    border: 1px solid var(--th-rule, #2a3340);
+    border-radius: .4rem;
+    font-size: .78rem;
+    white-space: pre;
+}
+.share__actions { display: flex; gap: .5rem; }

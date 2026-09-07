@@ -24,6 +24,31 @@
             >
                 <i class="bi bi-download"></i> Export CSV
             </button>
+            <button class="btn btn-outline-primary" (click)="buildShare()">
+                <i class="bi bi-share"></i> Share results
+            </button>
+        </div>
+    </div>
+
+    <!--
+      Shown before it can be copied, and copied only on a second click. What is
+      published cannot be unpublished, so reading it first is the whole point.
+    -->
+    <div class="share" *ngIf="shareReport">
+        <p class="share__note">
+            Everything below is what gets copied — no dates, no times, no
+            per-question rows.
+        </p>
+        <pre class="share__body">{{ shareReport.text }}
+
+{{ shareReport.json }}</pre>
+        <div class="share__actions">
+            <button class="btn btn-outline-primary" (click)="copyShare()">
+                {{ shareCopied ? "Copied" : "Copy" }}
+            </button>
+            <button class="btn btn-outline-secondary" (click)="shareReport = null">
+                Close
+            </button>
         </div>
     </div>
 </app-card>
