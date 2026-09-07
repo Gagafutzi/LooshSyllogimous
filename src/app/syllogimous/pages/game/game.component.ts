@@ -916,7 +916,17 @@ export class GameComponent {
         const el = this.timerFill?.nativeElement;
         if (!el) return;
 
-        const totalMs = Math.max(1, this.timerTimeSeconds * 1000);
+        /*
+         * The clock's own idea of how long it was given, not the screen's.
+         *
+         * These were two fields in two places that had to agree — numerator
+         * from the service, denominator from here — and every wrong bar has
+         * been them disagreeing. `timerTimeSeconds` is left only as the fallback
+         * for a bar armed before any clock started, where it is the same number
+         * anyway.
+         */
+        const totalMs = Math.max(
+            1, this.gameTimerService.totalMs || this.timerTimeSeconds * 1000);
         const frac = (ms: number) => Math.min(1, Math.max(0, ms / totalMs));
 
         /*

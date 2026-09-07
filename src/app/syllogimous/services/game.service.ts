@@ -535,7 +535,9 @@ export class GameService implements GeneratorContext {
                  * than it was built from — wide premises merge two links into
                  * one — and pricing the printed count prices the wrong item.
                  */
-                question.builtPremises = numOfPremises;
+                // Only where the generator has not said otherwise: a mode whose
+                // size is capped below the ask knows what it actually built.
+                if (!question.builtPremises) question.builtPremises = numOfPremises;
                 return question;
             } finally {
                 this.progressionService.scopeTo(undefined);

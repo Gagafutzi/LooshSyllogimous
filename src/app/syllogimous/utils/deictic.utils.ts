@@ -51,6 +51,16 @@ export interface DeicticSpec {
      * this as a count, which costs nothing and keeps them true to the maths.
      */
     reversals: number[];
+    /**
+     * The cells that hold something, which need not be all of them.
+     *
+     * A third axis doubles the grid, and filling it doubled the objects: four
+     * to eight in one step, with nothing in between. The frame growing is one
+     * demand and the number of things to hold is another, and only the second
+     * has to move smoothly — so occupancy is a count now and the axis is added
+     * when the count outgrows two axes' worth of cells.
+     */
+    cells: DeicticCoord[];
 }
 
 export const coordKey = (c: DeicticCoord) => c.join("");
@@ -116,19 +126,39 @@ export function reversalTextFor(axis: DeicticAxis) {
  * request of ten. Asking for more than the frame can carry yields a shorter
  * item rather than a padded one.
  */
+/** The cell a reversal maps this one onto, which is its own inverse. */
+export function partnerOf(cell: DeicticCoord, reversals: number[]): DeicticCoord {
+    return cell.map((v, i) => (reversals[i] % 2 ? 1 - v : v));
+}
+
+/**
+ * Cells that can be asked about: both the cell and what it resolves to are
+ * occupied. With every cell filled that is all of them; with a partly filled
+ * grid it is the ones whose partner is there too.
+ */
+export function askableCells(spec: DeicticSpec): DeicticCoord[] {
+    const held = new Set(spec.cells.map(coordKey));
+    return spec.cells.filter(c => held.has(coordKey(partnerOf(c, spec.reversals))));
+}
+
 export function buildDeicticSpec(numOfPremises: number, symbols: string[]): DeicticSpec {
-    // Two axes carry six premises at most, so eight is where three axes — nine
-    // premises at their shortest — is the closer answer to what was asked.
-    const axisCount = numOfPremises >= 8 ? 3 : 2;
+    /*
+     * How many things there are to hold, which is the thing that should climb
+     * one at a time. It used to be every cell of the grid, so adding the third
+     * axis took it from four objects to eight in a single step — a doubling
+     * nobody asked for and no ladder rung to spread it over.
+     *
+     * One premise is always a reversal, so the rest state occupied cells.
+     */
+    const wanted = Math.max(4, Math.min(8, numOfPremises - 1));
+    // The frame grows only when the count has outgrown two axes' four cells.
+    const axisCount = wanted > 4 ? 3 : 2;
     const axes = DEICTIC_AXES.slice(0, axisCount);
-    const cells = allCoords(axisCount);
+    const every = allCoords(axisCount);
 
-    const grid: Record<string, string> = {};
-    cells.forEach((c, i) => { grid[coordKey(c)] = symbols[i]; });
-
-    // Whatever premises remain after stating the grid become reversals, always
+    // Whatever premises remain after stating the cells become reversals, always
     // at least one — a zero-reversal item is pure recall, not perspective work.
-    const spare = Math.max(1, numOfPremises - cells.length);
+    const spare = Math.max(1, numOfPremises - wanted);
     const reversals = new Array(axisCount).fill(0);
     /*
      * Reversed axes are drawn rather than counted out, which is also what
@@ -141,7 +171,41 @@ export function buildDeicticSpec(numOfPremises: number, symbols: string[]): Deic
         reversals[axis] = 1;
     }
 
-    return { axes, grid, reversals };
+    /*
+     * Filled in partner pairs, so an occupied cell has somewhere to resolve to.
+     * An odd count leaves one cell with its partner empty; it is stated like
+     * any other and simply never asked about, which is what `askableCells` is
+     * for. Taking cells at random instead would produce items whose question
+     * resolves into an empty cell — unanswerable rather than hard.
+     */
+    const pool = shuffle(every.slice());
+    const chosen: DeicticCoord[] = [];
+    const taken = new Set<string>();
+    for (const cell of pool) {
+        if (chosen.length >= wanted || taken.has(coordKey(cell))) continue;
+        const partner = partnerOf(cell, reversals);
+        const asPair = coordKey(partner) !== coordKey(cell)
+            && !taken.has(coordKey(partner))
+            && chosen.length + 2 <= wanted;
+        if (asPair) {
+            chosen.push(cell, partner);
+            taken.add(coordKey(cell));
+            taken.add(coordKey(partner));
+        }
+    }
+    // Then anything still needed, which can only be the odd one out.
+    for (const cell of pool) {
+        if (chosen.length >= wanted) break;
+        if (taken.has(coordKey(cell))) continue;
+        chosen.push(cell);
+        taken.add(coordKey(cell));
+    }
+
+    const cells = chosen;
+    const grid: Record<string, string> = {};
+    cells.forEach((c, i) => { grid[coordKey(c)] = symbols[i]; });
+
+    return { axes, grid, reversals, cells };
 }
 
 /** The symbol truly held at an uttered coordinate, after transformation. */

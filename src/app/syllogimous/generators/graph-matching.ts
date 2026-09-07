@@ -432,6 +432,14 @@ function buildWhichDiffers(ctx: GeneratorContext, numOfPremises: number): Questi
         if (oddGraphOut(built) !== odd) continue;
 
         const question = new Question(EnumQuestionType.GraphMatching);
+        /*
+         * The size this form actually built, which is not the size it was asked
+         * for. All three cap their node count at six or so, and the ask can be
+         * twenty — so an item that stopped growing at six was recorded, and
+         * priced, as though it held fifteen premises. Its statements are edge
+         * lines and group headings, so counting those is no better.
+         */
+        question.builtPremises = nodes;
         question.bucket = picked;
         question.premises = built.flatMap((edges, i) => [
             `${hi(`Group ${i + 1}`)}:`,
@@ -534,6 +542,14 @@ function buildDistance(ctx: GeneratorContext, numOfPremises: number): Question |
         if (options.length < 2) continue;
 
         const question = new Question(EnumQuestionType.GraphMatching);
+        /*
+         * The size this form actually built, which is not the size it was asked
+         * for. All three cap their node count at six or so, and the ask can be
+         * twenty — so an item that stopped growing at six was recorded, and
+         * priced, as though it held fifteen premises. Its statements are edge
+         * lines and group headings, so counting those is no better.
+         */
+        question.builtPremises = nodes;
         question.bucket = picked;
         question.premises = [
             `${hi("First")}:`, ...statements(base),
@@ -634,6 +650,14 @@ function buildAsRelations(ctx: GeneratorContext, numOfPremises: number): Questio
         }
 
         const question = new Question(EnumQuestionType.GraphMatching);
+        /*
+         * The size this form actually built, which is not the size it was asked
+         * for. All three cap their node count at six or so, and the ask can be
+         * twenty — so an item that stopped growing at six was recorded, and
+         * priced, as though it held fifteen premises. Its statements are edge
+         * lines and group headings, so counting those is no better.
+         */
+        question.builtPremises = nodes;
         question.bucket = picked;
         question.premises = [
             `${hi(first.name)}:`, ...asRelations(base, first),

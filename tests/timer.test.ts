@@ -270,3 +270,62 @@ test("resyncing a stopped clock does nothing", () => {
     t.resync();
     equal(t.remainingMs, 0, "a stopped clock was given time by a resync");
 });
+
+/* ------------------------------------------------------------------ *
+ * What the bar is drawn against                                       *
+ * ------------------------------------------------------------------ */
+
+/**
+ * The bar's numerator came from the clock and its denominator from the screen —
+ * two values in two places that had to agree, and every report of a wrong bar
+ * has been them disagreeing. Eighty seconds on an accurate clock drawn as eight
+ * per cent of the track means the denominator was about a thousand while the
+ * clock was about ninety.
+ *
+ * The clock owns both now, so there is nothing left to disagree with.
+ */
+test("the clock knows how long it was given, not just what is left", async () => {
+    const t = new GameTimerService();
+    equal(t.totalMs, 0, "a clock that has not started claims to have been given time");
+
+    const run = t.start(90);
+    equal(t.totalMs, 90_000, "the total is not what the clock was started with");
+    assert(t.remainingMs <= t.totalMs,
+        "more time is left than was ever given, so the bar would overflow");
+
+    t.stop();
+    equal(t.totalMs, 0, "a stopped clock still claims a total");
+    await run;
+});
+
+/**
+ * A series buys seconds rather than restarting, so the bar has further to fall —
+ * not a bar pinned at full because the extra ran past a fixed denominator.
+ */
+test("seconds bought are seconds the bar has to fall down", async () => {
+    const t = new GameTimerService();
+    const run = t.start(60);
+    t.extend(30);
+
+    equal(t.totalMs, 90_000, "the bought seconds were not added to the total");
+    assert(t.remainingMs <= t.totalMs,
+        `remaining ${t.remainingMs} exceeds the total ${t.totalMs}, which is the`
+        + " clamp that used to hide an extension as a full bar");
+
+    t.stop();
+    await run;
+});
+
+test("the proportion falls as the clock does, and never above one", async () => {
+    const t = new GameTimerService();
+    const run = t.start(50);
+    const frac = () => t.remainingMs / t.totalMs;
+
+    assert(frac() > 0.98, `a fresh clock should draw nearly full, and drew ${frac()}`);
+    (t as unknown as { endsAt: number }).endsAt = Date.now() + 25_000;
+    assert(Math.abs(frac() - 0.5) < 0.02,
+        `half the time left should draw half the bar, and drew ${frac().toFixed(3)}`);
+
+    t.stop();
+    await run;
+});

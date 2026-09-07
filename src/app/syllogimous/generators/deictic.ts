@@ -9,7 +9,7 @@ import { hi, subj } from "../utils/phrasing";
 import { GeneratorContext, deepConclusions, buildSeries, extendWithSeries, seriesWanted } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, isPremiseLikeConclusion, pickUniqueItems, shuffle } from "../utils/question.utils";
-import { DeicticSpec, POLES, allCoords, answerFor, buildDeicticSpec, coordKey, resolve, reversalTextFor, statementFor, verifyAnswer } from "../utils/deictic.utils";
+import { DeicticSpec, POLES, answerFor, askableCells, buildDeicticSpec, coordKey, resolve, reversalTextFor, statementFor, verifyAnswer } from "../utils/deictic.utils";
 import { scrambleLeading } from "../utils/premise-order.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
@@ -53,11 +53,20 @@ export function createDeictic(ctx: GeneratorContext, numOfPremises: number) {
          * room to give it up in.
          */
         const spec = buildDeicticSpec(numOfPremises + (deep ? 1 : 0), symbols);
-        const cells = allCoords(spec.axes.length);
+        // The occupied cells, which need not be every cell of the frame.
+        const cells = spec.cells;
 
         question.bucket = cells.map(c => spec.grid[coordKey(c)]);
 
-        const uttered = cells[Math.floor(Math.random() * cells.length)];
+        /*
+         * Asked only about a cell whose resolution is also occupied. With a
+         * full grid that is every cell; with a partly filled one it excludes
+         * the odd cell out, whose partner is empty — a question that resolves
+         * into an empty cell is unanswerable rather than hard.
+         */
+        const askable = askableCells(spec);
+        if (!askable.length) continue;
+        const uttered = askable[Math.floor(Math.random() * askable.length)];
         const landed = coordKey(resolve(uttered, spec.reversals));
 
         /*

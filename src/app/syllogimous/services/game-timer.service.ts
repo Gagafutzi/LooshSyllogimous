@@ -22,6 +22,25 @@ export class GameTimerService {
      */
     private endsAt = 0;
 
+    /**
+     * What this run was given altogether, extensions included.
+     *
+     * The bar needs a denominator, and it used to take one from the screen —
+     * `timerTimeSeconds` on the component — while taking its numerator from
+     * here. Two values that have to agree, kept in two places, and every report
+     * of a wrong bar has been them disagreeing: eighty seconds on an accurate
+     * clock drawn as eight per cent of the track means the denominator was
+     * about a thousand while the clock was about ninety.
+     *
+     * Kept with the countdown instead, so there is nothing to disagree with.
+     * Extensions add to it as well as to the deadline: a series that buys
+     * seconds has a longer bar to fall down, not a bar pinned at full.
+     */
+    private totalRunMs = 0;
+
+    /** Milliseconds this run was given, for anything drawing a proportion. */
+    get totalMs(): number { return this.totalRunMs; }
+
     /** Milliseconds left, to whatever resolution the caller wants to draw. */
     get remainingMs(): number {
         if (!this.running) return Math.max(0, this.remainingSeconds * 1000);
@@ -55,6 +74,7 @@ export class GameTimerService {
     
             this.remainingSeconds = seconds;
             this.endsAt = Date.now() + seconds * 1000;
+            this.totalRunMs = seconds * 1000;
             this.running = true;
             this.settle = resolve;
 
@@ -84,6 +104,7 @@ export class GameTimerService {
         if (!this.running || seconds <= 0) return;
         this.remainingSeconds += Math.round(seconds);
         this.endsAt += Math.round(seconds) * 1000;
+        this.totalRunMs += Math.round(seconds) * 1000;
     }
 
     /**
@@ -131,6 +152,7 @@ export class GameTimerService {
         if (this.running) this.pause();
         this.remainingSeconds = 0;
         this.endsAt = 0;
+        this.totalRunMs = 0;
         // Ended, but not by running out: whoever is waiting must not read this
         // as a deadline that expired.
         done?.(false);
