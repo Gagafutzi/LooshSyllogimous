@@ -76,10 +76,34 @@ export function createBinary(ctx: GeneratorContext, numOfPremises: number) {
     const operandIndex = Math.floor(Math.random() * operands.length);
     const operand = operands[operandIndex];
 
+    /**
+     * A half this mode can state, which is one that states a conclusion.
+     *
+     * Binary reads each half's conclusion into a sentence of its own — "$a and
+     * $b" — so a half with no conclusion *text* leaves the slot empty and the
+     * card reads "and" on its own. Modes answered by picking or by building
+     * have no such sentence: they carry a prompt and a set of options instead,
+     * and the scale modes become one the moment `choose-conclusion` is earned.
+     * Rare, because both halves have to land on one, and unanswerable when it
+     * happens.
+     *
+     * Redrawn rather than repaired: the prompt is not a claim and cannot be
+     * conjoined with one.
+     */
+    const statedHalf = (want: number): Question | null => {
+        for (let tries = 0; tries < 20; tries++) {
+            const half = ctx.random(want, true);
+            const text = Array.isArray(half.conclusion) ? half.conclusion[0] : half.conclusion;
+            if (text && text.trim()) return half;
+        }
+        return null;
+    };
+
     let safe = 1e2;
     do {
-        const a = ctx.random(Math.floor(numOfPremises / 2), true);
-        const b = ctx.random(Math.ceil(numOfPremises / 2), true);
+        const a = statedHalf(Math.floor(numOfPremises / 2));
+        const b = statedHalf(Math.ceil(numOfPremises / 2));
+        if (!a || !b) throw new Error("Cannot generate.");
         const choices = [a, b];
 
         // Per-item: which sub-questions this one was composed from. Without

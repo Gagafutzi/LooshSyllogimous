@@ -67,6 +67,7 @@ import "./ceiling.test";
 import "./flag-tristate.test";
 import "./timer-bar.test";
 import "./timer-budget.test";
+import "./binary-halves.test";
 import "./smooth-steps.test";
 import "./goals.test";
 import "./dials.test";
