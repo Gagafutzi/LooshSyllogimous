@@ -3,7 +3,9 @@ import { Router } from '@angular/router';
 import { StatsExportService } from '../../services/stats-export.service';
 import { GameService } from '../../services/game.service';
 import { ProgressionService } from '../../services/progression.service';
-import { buildShareReport, readSelfReported, ShareMode } from '../../utils/share.utils';
+import {
+    buildShareReport, readSelfReported, SHARE_DESTINATION, ShareMode,
+} from '../../utils/share.utils';
 import { LS_SELF_IQ, LS_SELF_IQ_SOURCE } from '../../constants/local-storage.constants';
 import { EnumQuestionType } from '../../constants/question.constants';
 import { EnumScreens } from '../../constants/game.constants';
@@ -38,6 +40,7 @@ export class StatsComponent {
      */
     shareReport: { text: string; json: string } | null = null;
     shareCopied = false;
+    SHARE_DESTINATION = SHARE_DESTINATION;
 
     /*
      * Kept between visits, because it is a fact about the person rather than

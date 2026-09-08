@@ -50,6 +50,17 @@ export interface SelfReported {
 /** Outside this, it is a typo rather than a score. */
 export const IQ_RANGE: [number, number] = [40, 200];
 
+/**
+ * Where a report can be posted, if its owner wants to.
+ *
+ * A page somebody else already hosts, where each person posts under their own
+ * account and can delete their own post afterwards. Nothing is sent from here:
+ * the report is copied, the page is opened, and the posting is done by hand by
+ * the person whose results they are. Changing hosts is changing this line.
+ */
+export const SHARE_DESTINATION =
+    "https://github.com/Gagafutzi/LooshSyllogimous/discussions";
+
 export function readSelfReported(
     score: unknown, source?: unknown,
 ): SelfReported | null {
