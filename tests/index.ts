@@ -71,6 +71,7 @@ import "./binary-halves.test";
 import "./smooth-steps.test";
 import "./share.test";
 import "./projection.test";
+import "./mode-tag.test";
 import "./goals.test";
 import "./dials.test";
 import "./player-sim.test";

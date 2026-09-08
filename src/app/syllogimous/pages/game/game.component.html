@@ -144,6 +144,19 @@
 
 <app-card>
     <div body class="battlefield" [ngStyle]="{ width: (gameMode === '1' || gameMode === '2') ? '100%' : 'auto' }">
+        <!--
+          Which mode is being asked, said plainly.
+
+          In focus mode the card is the whole screen: the tier badge, the nav
+          and everything else that names the game are gone, and the premises
+          alone often do not say which of the near-identical modes this is —
+          Direction3D Spatial and Temporal read the same until you know. In
+          flow rather than pinned to a corner, because both corners already
+          hold a fixed button, and outside the slides, because the slides are
+          hidden entirely in the all-premises mode.
+        -->
+        <div class="mode-tag text-muted text-center mb-2" *ngIf="game.question">{{ game.question.type }}</div>
+
         <div class="timerbar-wrap">
             <!--
               A plain bar, for the same reason the carousel below is one.

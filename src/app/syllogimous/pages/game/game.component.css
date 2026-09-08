@@ -78,6 +78,16 @@
     min-inline-size: 0;
 }
 
+/*
+ * Under the timer bar, above the premises. Quiet: it is there to be found when
+ * you look for it, not to be read on the way to the question.
+ */
+.mode-tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .timerbar-wrap {
     padding: 8px;
     position: absolute;
@@ -314,20 +324,6 @@
     .build__grid { grid-template-columns: 1fr; }
     .build__slot { grid-template-columns: 1fr 4.2rem; gap: 4px; }
     .build__label { grid-column: 1 / -1; text-align: start; }
-}
-
-/*
- * Instant slide changes.
- *
- * `[animation]="false"` already stops ngb-carousel adding the classes that
- * drive the slide, so nothing animates today. This is belt-and-braces against
- * Bootstrap's own `.carousel-item { transition: transform .6s }` ever being
- * triggered by a future version: stepping through premises is reading, and a
- * six-hundred-millisecond slide between them is latency, not polish.
- */
-::ng-deep .carousel-item,
-::ng-deep .carousel-inner {
-    transition: none !important;
 }
 
 /* ---- answer buttons ---- */
