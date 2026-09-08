@@ -39,8 +39,8 @@
                 <button class="btn btn-outline-secondary" (click)="shareReport = null">
                     Close
                 </button>
-                <a class="btn btn-outline-secondary" target="_blank"
-                   rel="noopener" [href]="SHARE_DESTINATION">
+                <a *ngIf="SHARE_DESTINATION" class="btn btn-outline-secondary"
+                   target="_blank" rel="noopener" [href]="SHARE_DESTINATION">
                     Where to post it
                 </a>
             </div>

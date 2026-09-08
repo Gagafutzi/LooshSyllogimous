@@ -7,8 +7,9 @@
  */
 
 import { assert, equal, test } from "./harness";
+import { readFileSync } from "fs";
 import {
-    IQ_RANGE, buildShareReport, readSelfReported, ShareInput,
+    IQ_RANGE, SHARE_DESTINATION, buildShareReport, readSelfReported, ShareInput,
 } from "../src/app/syllogimous/utils/share.utils";
 
 const input: ShareInput = {
@@ -103,4 +104,27 @@ test("a score is rounded and its source trimmed", () => {
     equal(parsed?.source, "Mensa Norway", "the source was not trimmed");
     equal(readSelfReported(120, "   ")?.source, undefined,
         "a blank source became an empty string rather than being left out");
+});
+
+/**
+ * A destination that is not there yet.
+ *
+ * The link is to somewhere outside this app, so it can be wrong in a way no
+ * amount of local testing notices — the only two states worth allowing are a
+ * real address and none, and the second must not render a button.
+ */
+test("no button is offered until there is somewhere for it to go", () => {
+    const html = readFileSync(
+        "src/app/syllogimous/pages/stats/stats.component.html", "utf8");
+    const link = html.match(/<a\b[^>]*\[href\]="SHARE_DESTINATION"[^>]*>/);
+    assert(!!link, "the destination link is gone");
+    assert(/\*ngIf="SHARE_DESTINATION"/.test(link![0]),
+        "an unset destination would still render a button that goes nowhere");
+    assert(/rel="noopener"/.test(link![0]) && /target="_blank"/.test(link![0]),
+        "the link should open elsewhere, without handing over this page");
+});
+
+test("the destination, if set at all, is a plain https address", () => {
+    assert(SHARE_DESTINATION === "" || /^https:\/\/[^\s"']+$/.test(SHARE_DESTINATION),
+        `an unusable destination: ${JSON.stringify(SHARE_DESTINATION)}`);
 });
