@@ -45,3 +45,9 @@ Thumbs.db
 repomix-output.txt
 # Headless test output
 /.tmp-tests
+
+# Android build output and machine-local paths
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
