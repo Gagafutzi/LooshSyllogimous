@@ -269,25 +269,135 @@ export class ProgressionService {
      */
     constructor(private overrides: SettingsOverrideService = new SettingsOverrideService()) {
         this.loadConfig(); this.loadResiduals();
+
+        /*
+         * The deferred write, made safe — the same pair of events `GameService`
+         * uses and for the same reasons: `pagehide` is what actually fires when
+         * a tab is closed or navigated away from, `beforeunload` is unreliable
+         * on mobile, and `visibilitychange` covers switching away without
+         * closing. Both are cheap; the flush returns immediately when there is
+         * nothing pending.
+         */
+        if (typeof window !== "undefined" && typeof document !== "undefined") {
+            const flush = () => this.flushTrials();
+            window.addEventListener("pagehide", flush);
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "hidden") flush();
+            });
+        }
     }
 
     /* ---------------- the trial log ---------------- */
 
+    /**
+     * The log, parsed once rather than once per read.
+     *
+     * This is the same fault `GameService.historyCache` was written to fix, and
+     * it was worse here because nothing about it was visible. `trials()` read
+     * and parsed the whole log from storage on every call, and one answer made
+     * **thirty-eight** of those calls: `configForMode` three times, `pushTrial`
+     * once, and `trialCount` thirty-four — because `trialCount` is reached
+     * through the `abilityConfig` getter, which recomputes `widthPerBit` and
+     * `depthPerPremise` on every access, and `record` touches `abilityConfig`
+     * seventeen times.
+     *
+     * At the 1500-trial cap that is 368 kB of storage read and 368 kB of JSON
+     * parsed thirty-eight times over — fourteen megabytes per answer, all of it
+     * synchronous and all of it on the keypress. Measured, per answer, at the
+     * caps: 0.6ms empty, 4.9ms at 500 trials, 9.2ms at 1000, 13.7ms at 1500,
+     * and that is desktop node — a phone's `getItem` is an IPC call into a
+     * database rather than a map lookup, so the real slope is far steeper.
+     * Perfectly linear in the log, which is why the game got slower the more of
+     * it you played.
+     *
+     * Nothing outside this service writes the key, so a cache held here cannot
+     * go stale behind our back; the two things that wipe it — importing a save
+     * and clearing one — reload the page immediately afterwards.
+     */
+    private trialCache: Trial[] | null = null;
+
+    /**
+     * Record a trial now, write it to storage in a moment.
+     *
+     * The cache is updated synchronously, so every reader — the fits, the
+     * anchor, the next call to this — sees it immediately. Serialising the log
+     * and handing 368 kB to `setItem` is the slow part and it is the part
+     * nothing is waiting for, so it is deferred past the verdict and the next
+     * question, which is the stretch that has to feel immediate.
+     */
     private pushTrial(trial: Trial) {
+        const log = this.trials();
+        log.push(trial);
+        // Trimmed in place, so the cache and what is stored stay the same list.
+        if (log.length > TRIAL_LOG) log.splice(0, log.length - TRIAL_LOG);
+        this.scheduleTrialWrite();
+    }
+
+    private trialWriteTimer: any = null;
+
+    /**
+     * Coalesced, so answering quickly writes once rather than once per answer.
+     *
+     * Immediate where there is no window, which means every headless test: the
+     * deferral is only safe because something eventually flushes it, and the
+     * flush hangs off `pagehide`. Without a window there is no such event, so a
+     * test would simply never see its trials reach storage — and the point of
+     * `tests/` is that it exercises the same code the browser runs.
+     */
+    private scheduleTrialWrite() {
+        if (typeof window === "undefined") { this.flushTrials(); return; }
+        if (this.trialWriteTimer != null) return;
+        this.trialWriteTimer = setTimeout(() => {
+            this.trialWriteTimer = null;
+            this.flushTrials();
+        }, 400);
+    }
+
+    /** Serialise and store. Safe to call at any time, including twice. */
+    flushTrials() {
+        if (this.trialWriteTimer != null) {
+            clearTimeout(this.trialWriteTimer);
+            this.trialWriteTimer = null;
+        }
+        if (!this.trialCache) return;
         try {
-            const log = this.trials();
-            log.push(trial);
-            localStorage.setItem(LS_TRIALS,
-                JSON.stringify(log.slice(-TRIAL_LOG)));
+            localStorage.setItem(LS_TRIALS, JSON.stringify(this.trialCache));
         } catch { /* private mode, or a full quota; the log is not load-bearing */ }
     }
 
+    /**
+     * Abandon the cache and any write still owed on it.
+     *
+     * Importing a save and clearing one both sweep storage and reload a moment
+     * later, and that moment is exactly the deferral used here — without this a
+     * pending flush lands in the gap and writes the old log back over the
+     * imported one. The same hazard, and the same remedy, as the history.
+     */
+    forgetTrialCache() {
+        if (this.trialWriteTimer != null) {
+            clearTimeout(this.trialWriteTimer);
+            this.trialWriteTimer = null;
+        }
+        this.trialCache = null;
+    }
+
+    /**
+     * Every answered item, oldest first.
+     *
+     * Returns the cached array itself rather than a copy: the readers are fits
+     * and reports that `filter` before they touch anything, and a copy per call
+     * is the cost this cache exists to remove.
+     */
     trials(): Trial[] {
+        if (this.trialCache) return this.trialCache;
+        let log: Trial[] = [];
         try {
             const raw = localStorage.getItem(LS_TRIALS);
             const parsed = raw ? JSON.parse(raw) : [];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch { return []; }
+            if (Array.isArray(parsed)) log = parsed;
+        } catch { /* unreadable storage is an empty log, not a dead model */ }
+        this.trialCache = log;
+        return log;
     }
 
     /**
@@ -518,15 +628,18 @@ export class ProgressionService {
     /** The same cheap probe, for callers outside this service. */
     trialCountPublic(): number { return this.trialCount(); }
 
-    /** Cheap length probe, so the cache check does not parse the whole log. */
+    /**
+     * How many answers the fits have to work with.
+     *
+     * Was a brace count over the raw string, to avoid parsing the log just to
+     * find out whether a refit was due. That trade is gone now the log is
+     * parsed at most once — and the brace count was itself the expensive thing
+     * here, because `abilityConfig` reaches it twice on every access and there
+     * are seventeen of those per answer: thirty-four reads of a 368 kB string
+     * and thirty-four regex scans allocating 1500 matches each.
+     */
     private trialCount(): number {
-        try {
-            const raw = localStorage.getItem(LS_TRIALS);
-            if (!raw) return 0;
-            // One object per trial; counting braces beats parsing to find out
-            // whether a refit is even due.
-            return (raw.match(/\}/g) ?? []).length;
-        } catch { return 0; }
+        return this.trials().length;
     }
 
     /* ---------------- per-mode posteriors ---------------- */

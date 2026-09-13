@@ -25,6 +25,8 @@ import { EnumQuestionType } from "../src/app/syllogimous/constants/question.cons
 import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
+import { HISTORY_CHUNK, HistoryStore } from "../src/app/syllogimous/utils/history-store.utils";
+import { allStorageKeys } from "../src/app/syllogimous/constants/local-storage.constants";
 
 function context(): GeneratorContext {
     const settings = new Settings();
@@ -187,18 +189,20 @@ function historyService(): GameService {
         new SettingsOverrideService(), new ProgressionService(), {} as never, {} as never);
 }
 
+/** What is actually on disk, read the way the app reads it. */
+const storedHistory = () => new HistoryStore(1000).load();
+
 test("an answer is recorded in memory before it is written to storage", () => {
     const g = historyService();
     equal(g.questions.length, 0, "expected an empty history");
 
     g.pushIntoHistory(fakeQuestion(1));
     equal(g.questions.length, 1, "the answer was not visible until it had been written");
-    equal(localStorage.getItem("SYL_HISTORY"), null,
+    equal(storedHistory().length, 0,
         "the write happened on the answer rather than after it");
 
     g.flushHistory();
-    const stored = JSON.parse(localStorage.getItem("SYL_HISTORY") || "[]");
-    equal(stored.length, 1, "flushing did not write the answer");
+    equal(storedHistory().length, 1, "flushing did not write the answer");
 });
 
 test("reading the history repeatedly does not re-parse storage", () => {
@@ -215,18 +219,54 @@ test("the stored history is capped, not merely read as capped", () => {
     const g = historyService();
     // Well past the cap, which the old write path never applied at all: the
     // read sliced to a thousand and the array on disk grew without bound.
-    for (let i = 0; i < 1005; i++) g.pushIntoHistory(fakeQuestion(i));
+    for (let i = 0; i < 1400; i++) g.pushIntoHistory(fakeQuestion(i));
     g.flushHistory();
-    const stored = JSON.parse(localStorage.getItem("SYL_HISTORY") || "[]");
-    assert(stored.length <= 1000, `${stored.length} questions written past a cap of 1000`);
-    equal(stored[0].answeredAt, 1000 + 1004, "the newest answer is not first");
+    const stored = storedHistory();
+    /*
+     * A chunk of slack, on purpose. The list is stored in chunks and whole
+     * chunks are dropped off the end — trimming to the item would mean
+     * rewriting the oldest chunk on every answer, which is the cost the
+     * chunking exists to avoid. So the cap binds to within one chunk.
+     */
+    assert(stored.length <= 1000 + HISTORY_CHUNK,
+        `${stored.length} questions written past a cap of 1000 plus a chunk`);
+    assert(stored.length >= 1000, `${stored.length} questions kept under a cap of 1000`);
+    equal(stored[0].answeredAt, 1000 + 1399, "the newest answer is not first");
 });
 
 test("a dropped cache abandons the write it was going to make", () => {
     const g = historyService();
     g.pushIntoHistory(fakeQuestion(1));
-    g.forgetHistoryCache();
+    g.abandonPendingWrites();
     g.flushHistory();
-    equal(localStorage.getItem("SYL_HISTORY"), null,
+    equal(storedHistory().length, 0,
         "a write landed after the cache was dropped — that is the import race");
+});
+
+/**
+ * The unload race, which is the sharper half of the same hazard.
+ *
+ * Clearing a save sweeps storage and calls `location.reload()`, and the browser
+ * fires `pagehide` on the way out — which is where these writes flush. So the
+ * reset wrote the old save straight back over the empty slot and the player got
+ * their history again on the next load. Nothing was *pending*; the flush writes
+ * whatever is cached, so the cache is what has to go.
+ */
+test("clearing a save survives the flush that the unload triggers", () => {
+    const g = historyService();
+    for (let i = 0; i < 3; i++) g.pushIntoHistory(fakeQuestion(i));
+    g.flushHistory();
+    g.progressionService.record(EnumQuestionType.Distinction, "right", 10);
+    assert(storedHistory().length === 3, "the history was not written in the first place");
+
+    // What `clearAllData` does, in the order it does it.
+    g.abandonPendingWrites();
+    for (const key of allStorageKeys()) localStorage.removeItem(key);
+
+    // And what the unload then does.
+    g.flushHistory();
+    g.progressionService.flushTrials();
+
+    equal(allStorageKeys().length, 0,
+        `the unload put ${allStorageKeys().join(", ")} back after the reset`);
 });

@@ -11,7 +11,18 @@ export const LS_DONT_SHOW = "SYL_DONT_SHOW:";
  * times to say so.
  */
 export const LS_SKIP_TUTORIALS = "SYL_SKIP_TUTORIALS";
+/**
+ * The pre-chunk history key.
+ *
+ * Still read once, to carry an existing player's answers into the chunked
+ * store, and still written by importing a backup taken before that change. See
+ * `utils/history-store.utils.ts`.
+ */
 export const LS_HISTORY = "SYL_HISTORY";
+/** One chunk of the answered history; the suffix is its sequence number. */
+export const LS_HISTORY_CHUNK = "SYL_HISTORY_C:";
+/** Which history chunks exist, newest first. */
+export const LS_HISTORY_INDEX = "SYL_HISTORY_IDX";
 export const LS_TIMER = "SYL_TIMER_TYPE";
 export const LS_GAME_MODE = "SYL_GAME_MODE";
 export const LS_CAROUSEL_ADVANCE = "SYL_CAROUSEL_ADVANCE";

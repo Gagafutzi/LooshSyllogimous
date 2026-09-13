@@ -32,6 +32,7 @@ import "./practice-choices.test";
 import "./stimuli.test";
 import "./shape-rotation.test";
 import "./customise.test";
+import "./history-store.test";
 import "./save-data.test";
 import "./map.test";
 import "./web.test";

@@ -27,7 +27,7 @@ import { NUMBER_WORDS } from "../constants/question.constants";
 import { EnumScreens, EnumTiers, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIER_SCORE_ADJUSTMENTS, TIER_SCORE_RANGES, TIERS_MATRIX } from "../constants/game.constants";
 import { dialsFor, ladderFor } from "../utils/progression.utils";
 import { composeDelayLine, DELAY_TYPES, DEFAULT_DELAY, DEFAULT_DELAY_ROUNDS } from "../generators/delay-line";
-import { LS_DONT_SHOW, LS_GAME_MODE, LS_HISTORY, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_ANALOGY, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_DELAY, LS_DELAY_TYPE, LS_DELAY_DEPTH, LS_DELAY_ROUNDS, LS_RANDOM_LABELS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
+import { LS_DONT_SHOW, LS_GAME_MODE, LS_SCORE, LS_SERIES_BONUS, LS_SKIP_TUTORIALS, LS_STREAM, LS_STREAM_ANALOGY, LS_STREAM_LENGTH, LS_STREAM_TYPE, LS_STREAM_WINDOW, LS_SYMBOL_RELATIONS, LS_DELAY, LS_DELAY_TYPE, LS_DELAY_DEPTH, LS_DELAY_ROUNDS, LS_RANDOM_LABELS, LS_TIMER, LS_ZEN } from "../constants/local-storage.constants";
 import { explanationsOn, reviewSteps, setExplanationsOn } from "../utils/review.utils";
 // Aliased: the service exposes members of the same names, and a call that
 // could be read as either is worth one line of renaming to avoid.
@@ -86,6 +86,7 @@ import { createTransformMatch } from "../generators/transform-match";
 import { createKnaves } from "../generators/knaves";
 import { createNested } from "../generators/nested";
 import { GeneratorContext } from "../generators/context";
+import { HistoryStore } from "../utils/history-store.utils";
 
 /**
  * Stated whenever a conclusion has to be *built*.
@@ -310,47 +311,53 @@ export class GameService implements GeneratorContext {
     }
 
     /**
-     * The answered history, parsed once rather than once per read.
+     * The answered history, read once rather than once per read.
      *
      * This parsed the whole of storage on every access — up to a thousand
-     * questions at about three kilobytes each, so three megabytes of JSON — and
+     * questions at about three and a half kilobytes each — and
      * `pushIntoHistory` read it on every answer before writing it all back.
-     * Measured on a full history that is 24ms of parsing and serialising per
+     * Measured on a full history that is 28ms of parsing and serialising per
      * answer before the synchronous `setItem` even starts, landing exactly on
      * the keypress. That is what made answering feel heavy rather than
      * immediate.
      *
-     * Nothing else in the app writes this key while the app is running, so a
+     * Nothing else in the app writes the history while the app is running, so a
      * cache held here cannot go stale behind our back; the two places that can
      * change it — importing a save and clearing one — drop it explicitly.
      */
     private historyCache: Question[] | null = null;
 
+    /** Where it actually lives. See `HistoryStore` for why it is in pieces. */
+    private historyStore = new HistoryStore(HISTORY_LIMIT);
+
     get questions(): Question[] {
         if (this.historyCache) return this.historyCache;
-        let questions: Question[] = [];
-        try {
-            const history = localStorage.getItem(LS_HISTORY);
-            if (history) questions = JSON.parse(history).slice(0, HISTORY_LIMIT);
-        } catch { /* unreadable storage is an empty history, not a dead app */ }
-        this.historyCache = questions;
-        return questions;
+        this.historyCache = this.historyStore.load();
+        return this.historyCache;
     }
 
     /**
-     * Anything that writes the key from outside has to say so.
+     * Drop everything held in memory that is owed to storage.
      *
-     * Cancels the pending write as well as dropping the cache: importing a save
-     * clears storage and reloads four hundred milliseconds later, which is
-     * exactly the deferral used here — without this, a flush could land in that
-     * gap and write the old history back over the imported one.
+     * Anything that sweeps storage from outside has to say so. Importing a save
+     * clears it and reloads four hundred milliseconds later, which is exactly
+     * the deferral both of these writes use — without this, a flush lands in
+     * that gap and writes the old save back over the imported one.
+     *
+     * The trial log goes with it because it is the same hazard: two services,
+     * two deferred writes, one clear to survive. Reached through here rather
+     * than separately because this is what the import path already has a handle
+     * on, and a caller that abandons one and not the other has half-abandoned.
      */
-    forgetHistoryCache() {
+    abandonPendingWrites() {
         if (this.historyWriteTimer != null) {
             clearTimeout(this.historyWriteTimer);
             this.historyWriteTimer = null;
         }
+        this.pendingHistory = [];
         this.historyCache = null;
+        this.historyStore.reset();
+        this.progressionService.forgetTrialCache();
     }
 
     constructor(
@@ -417,8 +424,12 @@ export class GameService implements GeneratorContext {
      */
     pushIntoHistory(question: Question) {
         this.historyCache = [question, ...this.questions].slice(0, HISTORY_LIMIT);
+        this.pendingHistory.push(question);
         this.scheduleHistoryWrite();
     }
+
+    /** Answered but not yet written. Ordinarily one; more only under a flurry. */
+    private pendingHistory: Question[] = [];
 
     private historyWriteTimer: any = null;
 
@@ -430,23 +441,26 @@ export class GameService implements GeneratorContext {
         }, 400);
     }
 
-    /** Serialise and store. Safe to call at any time, including twice. */
+    /**
+     * Store what has been answered since the last write. Safe to call twice.
+     *
+     * Hands the store the new items rather than the whole list, because the
+     * whole list is three and a half megabytes and the new items are one. The
+     * store writes the chunk they land in and nothing else, so the cost of an
+     * answer no longer depends on how many are behind it.
+     */
     flushHistory() {
         if (this.historyWriteTimer != null) {
             clearTimeout(this.historyWriteTimer);
             this.historyWriteTimer = null;
         }
-        if (!this.historyCache) return;
-        try {
-            localStorage.setItem(LS_HISTORY, JSON.stringify(this.historyCache));
-        } catch {
-            /*
-             * Out of quota, most likely. The history is the first thing worth
-             * dropping — the archive is where it is meant to live — so the
-             * session carries on with what is in memory rather than failing an
-             * answer over storage.
-             */
+        if (!this.pendingHistory.length) return;
+        // In the order they were answered: the store puts each at the front as
+        // it arrives, so the newest ends up first, as every reader expects.
+        for (const question of this.pendingHistory) {
+            this.historyStore.append(question);
         }
+        this.pendingHistory = [];
     }
 
     /** Given an EnumTiers value construct a Settings instance */

@@ -209,23 +209,49 @@ function play(service: ProgressionService, opts: {
     return service.estimateFor(type).level;
 }
 
+/**
+ * The middle of several runs, not one of them.
+ *
+ * A fit over seven hundred coin flips is a random variable, and this test used
+ * to assert a ±1.5 band around one draw of it. Swept over ten seeds the draws
+ * run from 1.18 to 4.12 — the seed it was pinned to landed at 3.89, a tenth
+ * inside the limit — so the test was passing by luck and would fail on any
+ * change that reordered the arithmetic without touching the model. It duly did:
+ * caching the trial log corrected a `trialCount` that had been counting the
+ * braces of the nested `dials` object as well as the trials, refitting twice as
+ * often as the fifty-answer schedule says, and the same seed moved to 4.12.
+ *
+ * A median over three seeds is the claim the test is actually making — that
+ * play prices width, not that one particular run does. Swept over the same
+ * seeds in triples it stays between 1.66 and 3.41, comfortably inside the band
+ * at both ends, and three runs cost about two seconds.
+ */
+const SEEDS = [20261, 1, 2];
+
+const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
+
 test("width priced from play, and the estimate is better for it", () => {
     const TRUE_COST = 2.5;
     const ABILITY = 9;
 
-    const withWidth = seeded(20261, () => {
+    const runs = SEEDS.map(seed => seeded(seed, () => {
         localStorage.clear();
         const service = new ProgressionService();
         const level = play(service, {
             trueWidthCost: TRUE_COST, ability: ABILITY, items: 700, spreadSd: 0.45,
         });
         return { level, perBit: service.appliedWidthPerBit() };
-    });
+    }));
+    const withWidth = {
+        level: median(runs.map(r => r.level)),
+        perBit: median(runs.map(r => r.perBit)),
+    };
 
-    assert(withWidth.perBit > 0,
+    assert(runs.every(r => r.perBit > 0),
         "seven hundred varied answers produced no coefficient at all");
     assert(Math.abs(withWidth.perBit - TRUE_COST) < 1.5,
-        `charged ${withWidth.perBit.toFixed(2)} per bit against a true ${TRUE_COST}`);
+        `charged ${withWidth.perBit.toFixed(2)} per bit against a true ${TRUE_COST}`
+        + ` (runs: ${runs.map(r => r.perBit.toFixed(2)).join(", ")})`);
 
     // The point of pricing it: the ability estimate stops absorbing width.
     const blind = seeded(20261, () => {

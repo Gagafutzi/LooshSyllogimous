@@ -135,12 +135,13 @@ export class SystemActionsService {
          * Cleared first, then written, and only over keys this app owns.
          */
         /*
-         * The history is written on a short delay, so a pending write has to be
-         * abandoned before storage is cleared — otherwise it lands between the
-         * clear and the reload and puts the old answers back.
+         * The history and the trial log are both written on a short delay, so a
+         * pending write has to be abandoned before storage is cleared —
+         * otherwise it lands between the clear and the reload and puts the old
+         * answers back.
          */
-        (window as unknown as { syllogimous?: { forgetHistoryCache?: () => void } })
-            .syllogimous?.forgetHistoryCache?.();
+        (window as unknown as { syllogimous?: { abandonPendingWrites?: () => void } })
+            .syllogimous?.abandonPendingWrites?.();
         for (const key of allStorageKeys()) localStorage.removeItem(key);
         for (const [key, value] of plan.entries) {
             try { localStorage.setItem(key, value); } catch { /* quota */ }
@@ -177,6 +178,22 @@ export class SystemActionsService {
      * first — the dropdown uses a styled modal, the side nav a native confirm.
      */
     clearAllData() {
+        /*
+         * The same abandonment the import path does, and for a sharper reason.
+         *
+         * `location.reload()` does not stop the page there and then: the
+         * navigation is queued, and on the way out the browser fires
+         * `pagehide` — which is where the deferred writes flush. So a reset
+         * swept storage and the unload then wrote the history straight back
+         * over the empty slot, from a cache nobody had dropped. A player who
+         * reset to escape their history got it again on the next load.
+         *
+         * Nothing was pending in the ordinary sense; the flush writes whatever
+         * is cached, and the cache is what has to go.
+         */
+        (window as unknown as { syllogimous?: { abandonPendingWrites?: () => void } })
+            .syllogimous?.abandonPendingWrites?.();
+
         // Likewise: a reset that leaves the ability estimates and the saved
         // profiles behind is not a reset, and it is the state a player is most
         // likely to be trying to escape.

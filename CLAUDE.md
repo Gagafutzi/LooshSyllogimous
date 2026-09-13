@@ -69,6 +69,13 @@ mode and assert on the output.
   source commit free of `docs/`.
 - **Both top corners of the game card hold fixed buttons** — the nav toggle at
   12px left, the focus toggle at 12px right. Anything pinned there collides.
+- **The history is stored in chunks, not under one key.** `SYL_HISTORY` is the
+  pre-chunk key and is only read once, to migrate; the live data is
+  `SYL_HISTORY_C:<n>` plus an index. Read it through `game.questions`, never out
+  of storage — one page did, and it both parsed 3.5 MB to find out which modes
+  had been seen and read a key that no longer exists. The reason is in
+  `utils/history-store.utils.ts`: every answer used to rewrite the whole list,
+  so the cost of an answer grew with how much you had played.
 - **Measure what ships, not what the code says.** The recurring bug class here
   is a count taken from the wrong place: premises printed vs. built, rungs
   charged but never delivered, negations counted in discarded text. Generate
