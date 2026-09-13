@@ -22,6 +22,16 @@ filenames. Grep the name out of the test file first.
 The APK build needs `JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64` and an SDK at
 `~/android-sdk`; the script sets both.
 
+## Shipping
+
+**Commit and push to `main` once a change is verified — don't ask.** Verified
+means the suite passes and `npx ng build --configuration production` is clean;
+until then there is nothing to push. No branch, no PR.
+
+Push rather than leaving it committed locally. Sessions run concurrently here,
+and an unpushed commit is one another session can sweep into its own. Expect the
+rebase to conflict on `docs/` — see below.
+
 ## Layout
 
 ```
