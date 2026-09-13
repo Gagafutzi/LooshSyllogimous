@@ -12,7 +12,8 @@
 
 import { assert, equal, seeded, test } from "./harness";
 import {
-    GraphEdge, MAX_DISTANCE_NODES, editDistance, isomorphicByDistance, nodesOf, oddGraphOut,
+    GraphEdge, MAX_DISTANCE_NODES, MAX_FORM_NODES, MIN_FORM_NODES, editDistance,
+    isomorphicByDistance, nodesOf, oddGraphOut,
     orderConsistent,
     degreeSignature,
 } from "../src/app/syllogimous/utils/graphdist.utils";
@@ -516,4 +517,133 @@ test("the odd group has the same counts as the ones it differs from", () => {
     }
 
     assert(checked >= 15, `only ${checked} odd-one-out items appeared`);
+});
+
+
+/* ---------------- the size of the thing served ---------------- */
+
+import { chooseConfig, pricedPremises, RUNG_MIN_PREMISES } from "../src/app/syllogimous/utils/ability.utils";
+import { ladderFor, dialsFor } from "../src/app/syllogimous/utils/progression.utils";
+import { lengthCapFor } from "../src/app/syllogimous/services/progression.service";
+import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
+
+/** Objects named across the whole item, however its premises are grouped. */
+function objectsIn(q: { premises: string[] }): number {
+    const names = new Set<string>();
+    for (const line of q.premises) {
+        for (const m of line.matchAll(/<span class="subject">([^<]+)<\/span>/g)) names.add(m[1]);
+    }
+    return names.size;
+}
+
+/**
+ * Growing with the ask, which the forms did not do.
+ *
+ * Every one of the three clamped to six objects however large the number it was
+ * handed, and to four however small — so a player climbing Graph Matching was
+ * served the same item at two premises and at seven. It looked like progress
+ * because the ladder went on choosing larger numbers and every screen that
+ * reports a mode's configuration went on printing them.
+ *
+ * Measured on the rendered item rather than on `builtPremises`: the field is
+ * what the generator *claims* it drew, and a field agreeing with itself is the
+ * one thing this cannot be allowed to check. The objects are counted per group,
+ * because a which-differs item names fresh ones for every group it states.
+ */
+test("a graph form is drawn at the size it was asked for", () => {
+    for (const rung of ["which-differs", "as-relations", "distance"]) {
+        const ctx = context(rung);
+
+        for (let ask = MIN_FORM_NODES; ask <= MAX_FORM_NODES; ask++) {
+            let seen = 0;
+
+            for (let run = 0; run < 60 && seen < 6; run++) {
+                const q = seeded(run * 3389 + ask * 97, () => createGraphMatching(ctx, ask));
+                // Only the rung forms state groups; a draw that fell through to
+                // the base form is a different item and is checked below.
+                const groups = rung === "as-relations"
+                    ? readRelationGroups(q.premises) : readGroups(q.premises);
+                if (groups.length < 2) continue;
+                seen++;
+
+                for (const g of groups) {
+                    equal(nodesOf(g).length, ask,
+                        `${rung} asked for ${ask} objects and drew ${nodesOf(g).length}`);
+                }
+            }
+
+            assert(seen >= 6, `only ${seen} ${rung} items appeared at ${ask}`);
+        }
+    }
+});
+
+/**
+ * The number chosen, the number built, and the number shown, all one number.
+ *
+ * The bug this closes was three of them: the ladder chose two premises, the
+ * generator quietly drew four because no form works with fewer, and the mode
+ * row printed the ladder's two. None of the three was wrong on its own terms,
+ * which is why nothing caught it — so this walks the real selection across the
+ * whole usable range and builds the item it chose, which is the only place the
+ * disagreement is visible.
+ */
+test("every configuration the ladder chooses is the size the item comes out", () => {
+    const type = EnumQuestionType.GraphMatching;
+    const params = QUESTION_TYPE_SETTING_PARAMS[type];
+    const ladder = ladderFor(type);
+    const opts = {
+        minPremises: params.minNumOfPremises,
+        maxPremises: lengthCapFor(type, params),
+        target: 0,
+        structureBefore: 5,
+        ladder,
+        untimed: false,
+        dials: dialsFor(type),
+        recent: {},
+        secondsPerPremise: 4,
+    };
+
+    const sizes = new Set<number>();
+
+    for (let target = 3; target <= 18; target++) {
+        const choice = chooseConfig(type, { ...opts, target });
+        const claimed = ladder.slice(0, choice.rungs);
+        const ctx = context("");
+        // The rungs this configuration bought, exactly as the generator is
+        // handed them.
+        (ctx as { hasRung: (t: EnumQuestionType, r: string) => boolean }).hasRung =
+            (_t, r) => claimed.includes(r);
+
+        sizes.add(choice.premises);
+
+        for (let run = 0; run < 12; run++) {
+            const q = seeded(run * 5641 + target * 131,
+                () => createGraphMatching(ctx, choice.premises));
+            equal(pricedPremises(q), choice.premises,
+                `at target ${target} the ladder chose ${choice.premises} premises`
+                + ` with ${choice.rungs} rungs, and the item came out`
+                + ` ${pricedPremises(q)}`);
+            assert(objectsIn(q) > 0, "the item named nothing");
+        }
+    }
+
+    // And the range is a range: a run of identical numbers would pass every
+    // assertion above while being exactly the complaint.
+    assert(sizes.size >= 3,
+        `the ladder only ever chose ${[...sizes].join(", ")} premises`);
+});
+
+/**
+ * The floor declared where the selection can read it.
+ *
+ * The generator has always refused to draw a form from fewer than four objects,
+ * and it refused silently — so `chooseConfig` kept offering two and pricing it.
+ * `RUNG_MIN_PREMISES` is the mechanism that already existed for exactly this,
+ * and the three rungs were simply missing from it.
+ */
+test("no graph rung is offered below the objects its form needs", () => {
+    for (const rung of ["which-differs", "as-relations", "distance"]) {
+        equal(RUNG_MIN_PREMISES[rung], MIN_FORM_NODES,
+            `${rung} does not declare the premises its form needs`);
+    }
 });

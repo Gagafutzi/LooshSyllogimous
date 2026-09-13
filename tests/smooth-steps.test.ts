@@ -86,10 +86,12 @@ test("graph matching records the size it built, not the size it was asked for", 
     seeded(77, () => {
         const ctx = ctxFor();
         /*
-         * The forms that draw two webs are the capped ones — four to six nodes
-         * whatever is asked — and they are what the ladder mostly serves once
-         * any rung is held. The base form scales with the ask and is left to
-         * the stamp that records it.
+         * The forms that draw two webs are the capped ones — four nodes at
+         * least and seven at most, the ceiling being what the bijection search
+         * can afford — and they are what the ladder mostly serves once any rung
+         * is held. Between those bounds they follow the ask; outside them the
+         * invariant here is what holds, and it is the half that matters: never
+         * record more than was asked for.
          */
         let checked = 0;
         for (const asked of [6, 10, 15, 20]) {

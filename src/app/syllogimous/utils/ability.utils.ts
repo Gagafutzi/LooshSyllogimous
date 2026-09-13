@@ -40,6 +40,7 @@
 
 import { EnumQuestionType } from "../constants/question.constants";
 import { MODE_SCALE } from "./calibration.utils";
+import { MIN_FORM_NODES } from "./graphdist.utils";
 
 /* ------------------------------------------------------------------ *
  * The difficulty scale                                                *
@@ -330,6 +331,16 @@ export const RUNG_MIN_PREMISES: Record<string, number> = {
     // Three badges need three nodes the web holds rigid, which a small web
     // rarely has.
     "match-3": 5,
+    /*
+     * Every Graph Matching form draws at least four objects, because three have
+     * one shape between them and nothing to compare. The generator knew that
+     * and enforced it silently, so the selection went on choosing two premises,
+     * pricing the item at two, and letting every screen that reports a mode's
+     * configuration print "2p" over an item drawn from four.
+     */
+    "which-differs": MIN_FORM_NODES,
+    "as-relations": MIN_FORM_NODES,
+    "distance": MIN_FORM_NODES,
 };
 
 /** Fewest premises at which a prefix of the ladder is all meaningful. */

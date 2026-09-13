@@ -24,6 +24,39 @@ export type GraphEdge = [string, "↔" | "→" | "←", string];
 export const MAX_DISTANCE_NODES = 8;
 
 /**
+ * How many objects a Graph Matching form is drawn over, at least and at most.
+ *
+ * Here rather than in the generator because two places have to agree about it.
+ * The generator applies it; `RUNG_MIN_PREMISES` has to know the floor, or the
+ * selection keeps choosing configurations the generator will quietly refuse to
+ * build — which is what it was doing: two premises chosen, four drawn, and
+ * "2p" printed beside a four-object item on every screen that reports the
+ * configuration.
+ *
+ * Four is a real floor. Three objects have one shape up to relabelling, so
+ * there is no odd one out among them, no distance worth asking for, and no
+ * correspondence to find.
+ *
+ * The ceiling is what the bijection search can afford, which is a node below
+ * where the search itself gives up. Every form decides itself with
+ * `editDistance` — a minimum over all n! pairings — and a draw makes up to two
+ * hundred attempts, so the per-item cost is the search cost multiplied by
+ * however many draws were discarded. Measured over forty items of the dearest
+ * form, odd-one-out, which searches every pair of its groups:
+ *
+ *     nodes   mean/item   worst
+ *         6       7 ms     23 ms
+ *         7      52 ms     93 ms
+ *         8     505 ms   1008 ms
+ *
+ * Eight is a visible stall on a phone, for one more object. Seven is also
+ * exactly the mode's own length cap — `lengthCapFor` gives floor(9 / 1.2) --
+ * so nothing the ladder can ask for is refused here.
+ */
+export const MIN_FORM_NODES = 4;
+export const MAX_FORM_NODES = MAX_DISTANCE_NODES - 1;
+
+/**
  * What holds between one unordered pair, as a single value.
  *
  * 0 nothing, 1 first to second, 2 second to first, 3 both ways. Collapsing a

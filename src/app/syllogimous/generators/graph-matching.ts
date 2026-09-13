@@ -13,7 +13,8 @@ import { EnumQuestionType } from "../constants/question.constants";
 import { hi, neg, subj, EDGE_WORDS } from "../utils/phrasing";
 import { LINEAR_SCALES, LinearScale } from "../utils/linear.utils";
 import {
-    GraphEdge, MAX_DISTANCE_NODES, editDistance, oddGraphOut, orderConsistent, sameDegrees,
+    GraphEdge, MAX_FORM_NODES, MIN_FORM_NODES, editDistance, oddGraphOut, orderConsistent,
+    sameDegrees,
 } from "../utils/graphdist.utils";
 
 export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number): Question {
@@ -271,6 +272,23 @@ function explainGraph(
 
 const ARROW = { "→": "goes to", "←": "comes from", "↔": "is connected to" } as const;
 
+/**
+ * How many objects this item is drawn over, given the size it was asked for.
+ *
+ * The three forms each clamped to six however large the ask and four however
+ * small, so every configuration from two premises to seven drew the same item.
+ * That is the mode not growing — and it grew on paper anyway, because the
+ * ladder went on choosing larger numbers and the screens that report a mode's
+ * configuration went on printing them. A player earning their way up Graph
+ * Matching watched "2p" become "7p" beside an item that never changed size.
+ *
+ * Both bounds are real and both are stated in `graphdist.utils`, where the
+ * search that sets the ceiling lives and where the selection can read the floor.
+ */
+function formNodes(numOfPremises: number): number {
+    return Math.max(MIN_FORM_NODES, Math.min(MAX_FORM_NODES, numOfPremises));
+}
+
 /** One graph as sentences. No negation or meta here — the form is the load. */
 function statements(edges: GraphEdge[]): string[] {
     return edges.map(([a, rel, b]) => `${subj(a)} ${ARROW[rel]} ${subj(b)}`);
@@ -409,7 +427,7 @@ function perturbEvenly(edges: GraphEdge[], tries = 60): GraphEdge[] | null {
  */
 function buildWhichDiffers(ctx: GeneratorContext, numOfPremises: number): Question | null {
     const settings = ctx.settings;
-    const nodes = Math.max(4, Math.min(6, numOfPremises));
+    const nodes = formNodes(numOfPremises);
     const groups = 3 + (numOfPremises > 5 ? 1 : 0);
 
     for (let attempt = 0; attempt < 200; attempt++) {
@@ -502,7 +520,7 @@ function buildWhichDiffers(ctx: GeneratorContext, numOfPremises: number): Questi
  */
 function buildDistance(ctx: GeneratorContext, numOfPremises: number): Question | null {
     const settings = ctx.settings;
-    const nodes = Math.max(4, Math.min(MAX_DISTANCE_NODES - 2, numOfPremises));
+    const nodes = formNodes(numOfPremises);
 
     for (let attempt = 0; attempt < 200; attempt++) {
         const symbols = getSymbols(settings);
@@ -597,7 +615,7 @@ function buildDistance(ctx: GeneratorContext, numOfPremises: number): Question |
  */
 function buildAsRelations(ctx: GeneratorContext, numOfPremises: number): Question | null {
     const settings = ctx.settings;
-    const nodes = Math.max(4, Math.min(6, numOfPremises));
+    const nodes = formNodes(numOfPremises);
 
     const pair = pickScalePair();
     if (!pair) return null;
