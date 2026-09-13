@@ -1,0 +1,21 @@
+{
+  "$comment": [
+    "Generated output that is never worth reading and, when it turns up in a",
+    "search, actively misleads: docs/ is a committed copy of the whole app in",
+    "minified form, so a grep for any identifier matches there too. It is the",
+    "one that matters here, because unlike dist/ and node_modules/ it is",
+    "tracked by git and so is not excluded already."
+  ],
+  "permissions": {
+    "deny": [
+      "Read(./docs/**)",
+      "Read(./dist/**)",
+      "Read(./node_modules/**)",
+      "Read(./.angular/**)",
+      "Read(./.tmp-tests/**)",
+      "Read(./android/app/build/**)",
+      "Read(./android/.gradle/**)",
+      "Read(./package-lock.json)"
+    ]
+  }
+}
