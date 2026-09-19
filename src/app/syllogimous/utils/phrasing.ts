@@ -38,7 +38,7 @@ export const subj = (s: string | undefined) => `<span class="subject">${s}</span
  * everywhere else — a one-axis mode has nothing to tell apart.
  */
 export const rel = (s: string, extra = "") =>
-    `<span class="relation ${extra}">${symbolise(s)}</span>`;
+    `<span class="relation ${extra}">${s}</span>`;
 
 /* ------------------------------------------------------------------ *
  * Minimal mode: a symbol where a word would be                        *
@@ -104,6 +104,13 @@ export const RELATION_SYMBOLS: Record<string, string> = {
     "is a different kind from": "≠", "is the same kind as": "≐",
     "different kind": "≠", "same kind": "≐",
     "opposite kind": "≠", "is the opposite kind to": "≠",
+    /*
+     * Distinction's own wording for the same two relations. The mode — and
+     * Binary and Analogy, which are built on it — says "same as" and "opposite
+     * of", which appeared in no scale, so the whole mode printed English under
+     * both switches while every mode beside it was converted.
+     */
+    "same as": "≐", "opposite of": "≠",
 
     // Temperature keeps its degree sign, since nothing else on a card has one.
     "is warmer than": "↑°", "is colder than": "↓°", "is as warm as": "=°",
@@ -195,6 +202,14 @@ export const RELATION_SYMBOLS: Record<string, string> = {
      * no business in.
      */
     "is to": ":",
+
+    /*
+     * The verdict of an analogy, which is the meta relation's two halves said
+     * in one word — "A to B is alike C to D" is "A : B ∷ C : D".
+     */
+    "is alike": "∷", "is unlike": "∺",
+    "is the same relation as": "∷", "has the same relation as": "∷",
+    "is the opposite relation to": "∺",
 };
 
 /**
@@ -274,6 +289,28 @@ export const EDGE_WORDS = {
     "↔": "is connected to",
 } as const;
 
+/**
+ * Distinction's two relations, which Binary and Analogy are built on too.
+ * Held here, on the `EDGE_WORDS` precedent, so the generators and the table
+ * read the same strings and the completeness check can count them as real.
+ */
+export const DISTINCTION_WORDS = { same: "same as", opposite: "opposite of" } as const;
+
+/**
+ * The meta relation as the arrangements and the composed spaces word it —
+ * "A to B has the same relation as C to D". Written from local strings, and
+ * one through `rel(word)` with a variable the literal scan cannot read, so both
+ * stayed English under either switch while the premises around them converted.
+ */
+export const PAIR_RELATION_WORDS = {
+    same: "is the same relation as",
+    opposite: "is the opposite relation to",
+    has: "has the same relation as",
+} as const;
+
+/** An analogy's verdict: the meta relation's two halves, said in one word. */
+export const ANALOGY_VERDICT = { alike: "is alike", unlike: "is unlike" } as const;
+
 /** The words, longest first, so "is above" is not matched as "above". */
 const RELATION_PATTERN = new RegExp(
     "\\b(" + Object.keys(RELATION_SYMBOLS)
@@ -318,6 +355,11 @@ export function symbolLegend(
 ): Array<{ mark: string; word: string }> {
     const body = texts.join(" ");
     const out: Array<{ mark: string; word: string }> = [];
+    /*
+     * The fixed marks of the modes with rules of their own are on the card
+     * under either switch, so the key explains them under either.
+     */
+    marks = { ...ownLegendMarks(), ...marks };
 
     for (const mark of new Set(Object.values(marks))) {
         if (!body.includes(mark)) continue;
@@ -352,7 +394,7 @@ export function symboliseStatement(
     marks: Record<string, string> = RELATION_SYMBOLS,
 ): string {
     if (!symbolRelations && marks === RELATION_SYMBOLS) return html;
-    return html
+    return applyOwnRules(html, marks)
         .split(/(<span class="subject">[\s\S]*?<\/span>)/)
         .map((part, i) => (i % 2 ? part : symbolise(part, marks)))
         .join("");
@@ -379,19 +421,15 @@ export function symbolise(
 /**
  * An emphasised fragment, optionally painted as one dimension's.
  *
- * Symbolised as well as `rel`, and that is not a nicety: the composed spaces
- * write their clauses through *this*, not through `rel`, so a version that only
- * substituted in `rel` printed "3 north" unchanged on every n-dimensional card
- * — which is most of the cards the setting exists for. Caught by looking at a
- * real item rather than by reading the code, which is the only way that one was
- * ever going to be caught.
- *
- * Safe for the same reason `rel` is, plus one: axis *names* are capitalised
- * ("East-west", "Up-down") and the table is lower-case, so a heading is never
- * mistaken for the direction it names.
+ * Neither this nor `rel` converts to marks any more. Both did, at generation
+ * time, whenever minimal mode was on — and with fresh labels on as well, the
+ * relations written through them reached the relabelling pass already as `↑`
+ * and `＜`, which it cannot match. A card read "QF" for the words written
+ * directly and "↑" for these. Conversion happens once, on the finished item,
+ * in `symboliseStatement`.
  */
 export const hi = (s: string, extra = "") =>
-    `<span class="highlight ${extra}">${symbolise(s)}</span>`;
+    `<span class="highlight ${extra}">${s}</span>`;
 
 /**
  * The join in a premise that states two relations rather than one.
@@ -417,7 +455,7 @@ export const chainJoin = (text: string) =>
     `<span class="${CHAIN_CLASS}">${text}</span>`;
 
 /** The reversal cue: a word that means the opposite of what it says. */
-export const neg = (s: string) => `<span class="${NEGATED_CLASS}">${symbolise(s)}</span>`;
+export const neg = (s: string) => `<span class="${NEGATED_CLASS}">${s}</span>`;
 
 /**
  * The class a reversed word is marked with, and the one thing that reads it
@@ -629,6 +667,115 @@ export function randomRelationLabels(
     for (const mark of classes.keys()) {
         if (done.has(mark)) continue;
         label(mark, draw());
+    }
+    return out;
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Modes with rules of their own                                       *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Wording that is not a relation between two objects, and so has no place in
+ * the relation table — a syllogism's quantifiers, Binary's connectives, the
+ * operations Transformation names.
+ *
+ * These were the words left on the card under both switches. They cannot be
+ * put in `RELATION_SYMBOLS`: "All", "No", "is" and "and" are ordinary English,
+ * and a table that matched them would rewrite sentences it has no business in.
+ * So the generator marks exactly the words it means with `own(key)`, and the
+ * conversion looks the key up here rather than matching text.
+ *
+ * **Fixed under randomised labels too.** Each of these is a rule the mode is
+ * built on rather than an arbitrary name for a direction — "∀" and "∃" are
+ * the logic, not a label for it — so a fresh vocabulary has nothing to vary
+ * and they keep minimal mode's marks whichever switch is on. The one exception
+ * is `relation`: a word that *is* a relation from the table, only written
+ * where the table cannot safely match it, takes whatever that relation is
+ * called on this card.
+ *
+ * An empty mark drops the words: "A and B are not both true" is "A ⊼ B", and
+ * the tail has nothing left to say.
+ */
+export const OWN_RULES: Record<string, { words: string; mark: string; label?: string; relation?: string }> = {
+    // Syllogism: the quantifiers, and the copula as membership.
+    "syl-all": { words: "All", mark: "∀", label: "all" },
+    "syl-some": { words: "Some", mark: "∃", label: "some" },
+    "syl-no": { words: "No", mark: "∄", label: "no" },
+    "syl-is": { words: "is", mark: "∈", label: "is" },
+    "syl-is-not": { words: "is not", mark: "∉", label: "is not" },
+
+    /*
+     * Binary's connectives. Clear of `∧` and `∨`, which are the vertical
+     * scale's marks and can be the operands' own relations on the same card,
+     * and of `⊕`, which Infer the Relation uses for its unknown.
+     */
+    "bin-and": { words: "and", mark: "＆", label: "and" },
+    "bin-or": { words: "or", mark: "｜", label: "or" },
+    "bin-nand": { words: "and", mark: "⊼", label: "not both" },
+    "bin-nand-tail": { words: "are not both true", mark: "" },
+    "bin-nor": { words: "and", mark: "⊽", label: "neither" },
+    "bin-nor-tail": { words: "are both false", mark: "" },
+    "bin-xor": { words: "differs from", mark: "⊻", label: "differs from" },
+    "bin-xnor": { words: "is equal to", mark: "⇔", label: "matches" },
+
+    // Transformation's operations. The axis label sits between the halves.
+    "tf-mirror": { words: "is ", mark: "⇋", label: "mirrored across" },
+    "tf-mirrored": { words: "-mirrored across", mark: "" },
+    "tf-mirrored-bare": { words: "mirrored across", mark: "" },
+    "tf-scale": { words: "is ", mark: "⤢", label: "scaled from" },
+    "tf-scaled": { words: "-scaled", mark: "" },
+    "tf-scaled-bare": { words: "scaled", mark: "" },
+    "tf-from": { words: "from", mark: "" },
+    "tf-set": { words: "is set to", mark: "≔", label: "set to" },
+    "tf-rotate": { words: "is ", mark: "⟳", label: "rotated around" },
+    "tf-rotated": { words: "-rotated", mark: "" },
+    "tf-around": { words: "around", mark: "" },
+
+    /*
+     * Knights and Knaves: "A and B are the same kind" is the distinction
+     * relation, said around both names. The connective takes the relation's
+     * mark and the tail goes, so it reads "A ≐ B" — and, being a relation, it
+     * takes the item's own label when the labels are fresh.
+     */
+    "kn-same": { words: "and", mark: "≐", relation: "same kind" },
+    "kn-same-tail": { words: "are the same kind", mark: "" },
+    "kn-differ": { words: "and", mark: "≠", relation: "different kind" },
+    "kn-differ-tail": { words: "are different kinds", mark: "" },
+
+    // Graph Matching's reversed pair: "as the inverse of C to D".
+    "gm-inverse": { words: "the inverse of", mark: "¬", label: "the inverse of" },
+
+    // The analogy pairing, which is the table's "is to" said as "to".
+    "pair-to": { words: "to", mark: ":", relation: "is to" },
+};
+
+const OWN_CLASS = "own-rule";
+
+/** Words the conversion replaces by key rather than by matching the text. */
+export const own = (key: keyof typeof OWN_RULES & string) =>
+    `<span class="${OWN_CLASS} own--${key}">${OWN_RULES[key].words}</span>`;
+
+const OWN_PATTERN = new RegExp(`<span class="${OWN_CLASS} own--([\\w-]+)">[^<]*</span>`, "g");
+
+function applyOwnRules(html: string, marks: Record<string, string>): string {
+    return html
+        .replace(OWN_PATTERN, (whole, key: string) => {
+            const rule = OWN_RULES[key];
+            if (!rule) return whole;
+            const mark = rule.relation ? (marks[rule.relation] ?? rule.mark) : rule.mark;
+            return mark ? `<span class="${OWN_CLASS}">${mark}</span>` : "";
+        })
+        // A connective whose words were all tail leaves an empty line behind.
+        .replace(/<div class="is-connector">\s*<\/div>/g, "");
+}
+
+/** The fixed marks, with what each one means, for the key. */
+function ownLegendMarks(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const rule of Object.values(OWN_RULES)) {
+        if (rule.mark && !rule.relation) out[rule.label ?? rule.words.trim()] = rule.mark;
     }
     return out;
 }

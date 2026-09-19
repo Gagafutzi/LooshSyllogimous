@@ -14,7 +14,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getCircularWays, getLinearWays, pickUniqueItems } from "../utils/question.utils";
 import { canGenerateQuestion } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
-import { countNegations, subj } from "../utils/phrasing";
+import { ANALOGY_VERDICT, countNegations, own, subj } from "../utils/phrasing";
 
 export function createAnalogy(ctx: GeneratorContext, length: number) {
     ctx.logger.info("createAnalogy");
@@ -119,7 +119,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
             question.conclusion = "";
 
             [a, b, c, d] = pickUniqueItems([...question.buckets[0], ...question.buckets[1]], 4).picked;
-            question.conclusion += `${subj(a)} to ${subj(b)}`;
+            question.conclusion += `${subj(a)} ${own("pair-to")} ${subj(b)}`;
 
             [
                 indexOfA,
@@ -148,7 +148,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
             question.conclusion = "";
 
             [a, b, c, d] = pickUniqueItems(question.bucket, 4).picked;
-            question.conclusion += `${subj(a)} to ${subj(b)}`;
+            question.conclusion += `${subj(a)} ${own("pair-to")} ${subj(b)}`;
 
             [indexOfA, indexOfB] = [question.bucket.indexOf(a), question.bucket.indexOf(b)];
             [indexOfC, indexOfD] = [question.bucket.indexOf(c), question.bucket.indexOf(d)];
@@ -190,7 +190,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
 
                 const [coordsa, coordsb, coordsc, coordsd] = pickUniqueItems(question.coords, 4).picked;
                 [a, b, c, d] = [coordsa[0], coordsb[0], coordsc[0], coordsd[0]];
-                question.conclusion += `${subj(a)} to ${subj(b)}`;
+                question.conclusion += `${subj(a)} ${own("pair-to")} ${subj(b)}`;
 
                 const dxatob = coordsa[1] - coordsb[1];
                 const dyatob = coordsa[2] - coordsb[2];
@@ -218,7 +218,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
 
                 const [coordsa, coordsb, coordsc, coordsd] = pickUniqueItems(question.coords3D, 4).picked;
                 [a, b, c, d] = [coordsa[0], coordsb[0], coordsc[0], coordsd[0]];
-                question.conclusion += `${subj(a)} to ${subj(b)}`;
+                question.conclusion += `${subj(a)} ${own("pair-to")} ${subj(b)}`;
 
                 const dxatob = coordsa[1] - coordsb[1];
                 const dyatob = coordsa[2] - coordsb[2];
@@ -262,7 +262,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
 
             const subjects = question.rule.split(", ");
             [a, b, c, d] = pickUniqueItems(subjects, 4).picked;
-            question.conclusion += `${subj(a)} to ${subj(b)}`;
+            question.conclusion += `${subj(a)} ${own("pair-to")} ${subj(b)}`;
 
             const [idxA, idxB, idxC, idxD] = [
                 subjects.indexOf(a),
@@ -312,9 +312,9 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
 
     const negated = settings.enabled.negation && coinFlip();
     if (negated) {
-        question.conclusion += `<div class="analogy-conclusion is-negated">is ${isSameRelationship ? 'unlike' : 'alike'}</div>`;
+        question.conclusion += `<div class="analogy-conclusion is-negated">${isSameRelationship ? ANALOGY_VERDICT.unlike : ANALOGY_VERDICT.alike}</div>`;
     } else {
-        question.conclusion += `<div class="analogy-conclusion">is ${isSameRelationship ? 'alike' : 'unlike'}</div>`;
+        question.conclusion += `<div class="analogy-conclusion">${isSameRelationship ? ANALOGY_VERDICT.alike : ANALOGY_VERDICT.unlike}</div>`;
     }
 
     /*
@@ -328,7 +328,7 @@ export function createAnalogy(ctx: GeneratorContext, length: number) {
      */
     question.negations = countNegations(question.premises) + (negated ? 1 : 0);
 
-    question.conclusion += `${subj(c)} to ${subj(d)}`;
+    question.conclusion += `${subj(c)} ${own("pair-to")} ${subj(d)}`;
 
     /*
      * Its own derivation, not the layout's.

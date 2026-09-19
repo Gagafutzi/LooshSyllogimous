@@ -10,7 +10,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getSymbols, pickUniqueItems, shuffle, areGraphsIsomorphic } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
-import { hi, neg, subj, EDGE_WORDS } from "../utils/phrasing";
+import { hi, neg, own, subj, EDGE_WORDS } from "../utils/phrasing";
 import { LINEAR_SCALES, LinearScale } from "../utils/linear.utils";
 import {
     GraphEdge, MAX_FORM_NODES, MIN_FORM_NODES, editDistance, oddGraphOut, orderConsistent,
@@ -174,7 +174,7 @@ export function createGraphMatching(ctx: GeneratorContext, numOfPremises: number
                 usedEdges.add(edgeKey);
                 usedEdges.add(pickedEdgeKey);
                 if (coinFlip() && edge[1] !== "↔") {
-                    relationship = `the inverse of ${getSubject(pickedEdge[2])} to ${getSubject(pickedEdge[0])}`;
+                    relationship = `${own("gm-inverse")} ${getSubject(pickedEdge[2])} ${own("pair-to")} ${getSubject(pickedEdge[0])}`;
                 } else {
                     relationship = `${getSubject(pickedEdge[0])} is to ${getSubject(pickedEdge[2])}`;
                 }

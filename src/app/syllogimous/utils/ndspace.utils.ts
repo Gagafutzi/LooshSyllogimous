@@ -41,7 +41,7 @@
 import { ConstructClaim } from "../models/question.models";
 import { LINEAR_SCALES, LinearLayout, LinearScale, SPATIAL_SCALES, buildBranching, buildChain } from "./linear.utils";
 import { Transform, TransformVocab, drawTransforms, replay } from "./transformations.utils";
-import { hi, rel, subj } from "./phrasing";
+import { hi, own, PAIR_RELATION_WORDS, rel, subj } from "./phrasing";
 
 /* ------------------------------------------------------------------ *
  * Axes                                                                *
@@ -1246,9 +1246,9 @@ export function buildNdAnalogy(
     if (!candidates.length) return null;
 
     const [first, second] = pick(candidates);
-    const word = claimSame ? "is the same relation as" : "is the opposite relation to";
+    const word = claimSame ? PAIR_RELATION_WORDS.same : PAIR_RELATION_WORDS.opposite;
     return {
-        text: `${subj(first.a)} to ${subj(first.b)} ${rel(word)} ${subj(second.a)} to ${subj(second.b)}`,
+        text: `${subj(first.a)} ${own("pair-to")} ${subj(first.b)} ${rel(word)} ${subj(second.a)} ${own("pair-to")} ${subj(second.b)}`,
         isValid: wantValid,
         pairs: [first.a, first.b, second.a, second.b],
         claimSame,

@@ -10,7 +10,7 @@ import { Question } from "../models/question.models";
 import { coinFlip, getRandomSymbols, getRelation, isPremiseLikeConclusion, createMetaRelationships, shuffle } from "../utils/question.utils";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { EnumQuestionType } from "../constants/question.constants";
-import { hi, rel, subj } from "../utils/phrasing";
+import { DISTINCTION_WORDS, hi, rel, subj } from "../utils/phrasing";
 
 export function createDistinction(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createDistinction");
@@ -174,11 +174,11 @@ function explainDistinction(start: string, walk: Array<{ word: string; same: boo
     for (const step of walk) {
         flipped = step.same ? flipped : !flipped;
         const side = flipped ? "the opposite side from" : "the same side as";
-        lines.push(`${subj(step.word)} is ${rel(step.same ? "same as" : "opposite of")} the one before`
+        lines.push(`${subj(step.word)} is ${rel(step.same ? DISTINCTION_WORDS.same : DISTINCTION_WORDS.opposite)} the one before`
             + ` \u2014 so far, ${side} ${subj(start)}`);
     }
 
     const last = walk[walk.length - 1].word;
-    lines.push(`so ${subj(start)} is ${rel(flipped ? "opposite of" : "same as")} ${subj(last)}`);
+    lines.push(`so ${subj(start)} is ${rel(flipped ? DISTINCTION_WORDS.opposite : DISTINCTION_WORDS.same)} ${subj(last)}`);
     return lines;
 }

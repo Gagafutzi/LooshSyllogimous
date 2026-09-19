@@ -5,7 +5,7 @@ import { Settings, Picked } from "../models/settings.models";
 import { getVisualNoiseSymbols } from "./visual-noise.utils";
 import { getPharmaSymbols } from "./pharma.utils";
 import { getJunkEmojiSymbols } from "./junk-emoji.utils";
-import { META_WORDS, countNegations, hi, neg, rel, subj } from "./phrasing";
+import { DISTINCTION_WORDS, META_WORDS, countNegations, hi, neg, rel, subj } from "./phrasing";
 
 export const b2n = (b: boolean) => +b as number;
 
@@ -174,8 +174,8 @@ export function getRelation(
 
     switch (type) {
         case EnumQuestionType.Distinction:
-            positive = "same as";
-            negative = "opposite of";
+            positive = DISTINCTION_WORDS.same;
+            negative = DISTINCTION_WORDS.opposite;
             break;
         case EnumQuestionType.ComparisonNumerical:
             positive = "more than";

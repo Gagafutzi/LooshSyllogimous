@@ -5,7 +5,7 @@
  * State comes in through {GeneratorContext} rather than `this`.
  */
 
-import { countNegations, hi } from "../utils/phrasing";
+import { countNegations, hi, own } from "../utils/phrasing";
 import { GeneratorContext } from "./context";
 import { Question } from "../models/question.models";
 import { coinFlip, shuffle, fixBinaryInstructions } from "../utils/question.utils";
@@ -38,32 +38,32 @@ export function createBinary(ctx: GeneratorContext, numOfPremises: number) {
     if (settings.enabled.binary.and) {
         operands.push("a&&b");
         operandNames.push("AND");
-        operandTemplates.push('$a <div class="is-connector">and</div> $b');
+        operandTemplates.push('$a <div class="is-connector">' + own("bin-and") + '</div> $b');
     }
     if (settings.enabled.binary.nand) {
         operands.push("!(a&&b)");
         operandNames.push("NAND");
-        operandTemplates.push('$a <div class="is-connector">and</div> $b <div class="is-connector">are not both true</div>');
+        operandTemplates.push('$a <div class="is-connector">' + own("bin-nand") + '</div> $b <div class="is-connector">' + own("bin-nand-tail") + '</div>');
     }
     if (settings.enabled.binary.or) {
         operands.push("a||b");
         operandNames.push("OR");
-        operandTemplates.push('$a <div class="is-connector">or</div> $b');
+        operandTemplates.push('$a <div class="is-connector">' + own("bin-or") + '</div> $b');
     }
     if (settings.enabled.binary.nor) {
         operands.push("!(a||b)");
         operandNames.push("NOR");
-        operandTemplates.push('$a <div class="is-connector">and</div> $b <div class="is-connector">are both false</div>');
+        operandTemplates.push('$a <div class="is-connector">' + own("bin-nor") + '</div> $b <div class="is-connector">' + own("bin-nor-tail") + '</div>');
     }
     if (settings.enabled.binary.xor) {
         operands.push("!(a&&b)&&(a||b)");
         operandNames.push("XOR");
-        operandTemplates.push('$a <div class="is-connector">differs from</div> $b');
+        operandTemplates.push('$a <div class="is-connector">' + own("bin-xor") + '</div> $b');
     }
     if (settings.enabled.binary.xnor) {
         operands.push("!(!(a&&b)&&(a||b))");
         operandNames.push("XNOR");
-        operandTemplates.push('$a <div class="is-connector">is equal to</div> $b');
+        operandTemplates.push('$a <div class="is-connector">' + own("bin-xnor") + '</div> $b');
     }
 
     /*

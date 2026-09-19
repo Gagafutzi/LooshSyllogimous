@@ -1,6 +1,6 @@
 import { SYL_IMMEDIATE_INFERENCES, SYL_KINDS, SYL_TRUE_CONCLUSIONS, SYL_TRUE_CONCLUSIONS_KEYS } from "../constants/syllogism.constants";
 import { PolysyllogismResult, SylKind, SylPremise } from "../models/syllogism.models";
-import { subj } from "./phrasing";
+import { own, subj } from "./phrasing";
 
 export function sylNegate(premise: SylPremise): SylPremise {
     const [a, k, b] = premise;
@@ -393,17 +393,17 @@ export function formatSylPremise([a, k, b]: SylPremise, negated = false): string
 
     if (!negated) {
         switch (k) {
-            case "all":      return `All ${A} is ${B}`;
-            case "no":       return `No ${A} is ${B}`;
-            case "some":     return `Some ${A} is ${B}`;
-            case "some_not": return `Some ${A} is not ${B}`;
+            case "all":      return `${own("syl-all")} ${A} ${own("syl-is")} ${B}`;
+            case "no":       return `${own("syl-no")} ${A} ${own("syl-is")} ${B}`;
+            case "some":     return `${own("syl-some")} ${A} ${own("syl-is")} ${B}`;
+            case "some_not": return `${own("syl-some")} ${A} ${own("syl-is-not")} ${B}`;
         }
     } else {
         switch (k) {
-            case "all":      return `<span class="is-negated">No</span> ${A} is ${B}`;
-            case "no":       return `<span class="is-negated">All</span> ${A} is ${B}`;
-            case "some":     return `Some ${A} <span class="is-negated">is not</span> ${B}`;
-            case "some_not": return `Some ${A} <span class="is-negated">is</span> ${B}`;
+            case "all":      return `<span class="is-negated">${own("syl-no")}</span> ${A} ${own("syl-is")} ${B}`;
+            case "no":       return `<span class="is-negated">${own("syl-all")}</span> ${A} ${own("syl-is")} ${B}`;
+            case "some":     return `${own("syl-some")} ${A} <span class="is-negated">${own("syl-is-not")}</span> ${B}`;
+            case "some_not": return `${own("syl-some")} ${A} <span class="is-negated">${own("syl-is")}</span> ${B}`;
         }
     }
 }

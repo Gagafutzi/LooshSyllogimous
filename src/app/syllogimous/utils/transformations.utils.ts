@@ -17,7 +17,7 @@
  * `TransformVocab` supplies the words.
  */
 
-import { hi, neg, subj } from "./phrasing";
+import { hi, neg, own, subj } from "./phrasing";
 
 export type Coord = number[];
 export type CoordMap = Record<string, Coord>;
@@ -447,11 +447,6 @@ function axisLabel(axes: number[], vocab: TransformVocab): string {
     return [...axes].sort((a, b) => a - b).map(ax => vocab.axisNames[ax]).join("");
 }
 
-/** "X-mirrored" in a space with axes to distinguish, plain "mirrored" in a line. */
-function labelled(label: string, word: string): string {
-    return label ? `${label}-${word}` : word;
-}
-
 /**
  * An axis label, painted when it names exactly one axis.
  *
@@ -471,14 +466,14 @@ export function describeTransform(t: Transform, vocab: TransformVocab = SPATIAL_
 
     switch (t.kind) {
         case "mirror":
-            return `${subj(t.b)} is ${labelled(label, "mirrored")} across ${subj(t.a)}`;
+            return `${subj(t.b)} ${own("tf-mirror")}${label}${own(label ? "tf-mirrored" : "tf-mirrored-bare")} ${subj(t.a)}`;
         case "set":
-            if (allAxes) return `every coordinate of ${subj(t.b)} is set to that of ${subj(t.a)}`;
+            if (allAxes) return `every coordinate of ${subj(t.b)} ${own("tf-set")} that of ${subj(t.a)}`;
             return label
-                ? `${label} of ${subj(t.b)} is set to ${label} of ${subj(t.a)}`
-                : `${subj(t.b)} is set to the position of ${subj(t.a)}`;
+                ? `${label} of ${subj(t.b)} ${own("tf-set")} ${label} of ${subj(t.a)}`
+                : `${subj(t.b)} ${own("tf-set")} the position of ${subj(t.a)}`;
         case "scale":
-            return `${subj(t.b)} is ${labelled(label, "scaled")} ${hi(formatFactor(t.scale ?? SCALE_FACTOR))} from ${subj(t.a)}`;
+            return `${subj(t.b)} ${own("tf-scale")}${label}${own(label ? "tf-scaled" : "tf-scaled-bare")} ${hi(formatFactor(t.scale ?? SCALE_FACTOR))} ${own("tf-from")} ${subj(t.a)}`;
         case "rotate": {
             const [m, n] = t.plane!;
             // Each letter takes its own axis's colour: a plane is exactly the
@@ -487,7 +482,7 @@ export function describeTransform(t: Transform, vocab: TransformVocab = SPATIAL_
             const planeName = hi(vocab.axisNames[m], axisColor(vocab, m))
                 + hi(vocab.axisNames[n], axisColor(vocab, n));
             const deg = t.clockwise ? "90°↷" : "-90°↺";
-            return `${subj(t.b)} is ${planeName}-rotated ${deg} around ${subj(t.a)}`;
+            return `${subj(t.b)} ${own("tf-rotate")}${planeName}${own("tf-rotated")} ${deg} ${own("tf-around")} ${subj(t.a)}`;
         }
         case "place": {
             // Already one span per axis, so nothing is wrapped again here.

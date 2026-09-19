@@ -20,7 +20,7 @@
  * Pure — no Angular, no storage.
  */
 
-import { hi, subj } from "./phrasing";
+import { hi, own, subj } from "./phrasing";
 
 /** A statement about who is which. `true` means knight throughout. */
 export type Claim =
@@ -167,9 +167,9 @@ export function describeClaim(claim: Claim, names: string[]): string {
         case "is":
             return `${name(claim.who)} is a ${KIND(claim.knight)}`;
         case "same":
-            return `${name(claim.a)} and ${name(claim.b)} are the same kind`;
+            return `${name(claim.a)} ${own("kn-same")} ${name(claim.b)} ${own("kn-same-tail")}`;
         case "differ":
-            return `${name(claim.a)} and ${name(claim.b)} are different kinds`;
+            return `${name(claim.a)} ${own("kn-differ")} ${name(claim.b)} ${own("kn-differ-tail")}`;
         case "any":
             return `at least one of ${list(claim.who)} is a ${KIND(claim.knight)}`;
         case "all":

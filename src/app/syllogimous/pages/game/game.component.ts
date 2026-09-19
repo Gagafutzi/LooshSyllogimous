@@ -427,13 +427,19 @@ export class GameComponent {
          * with the next item's labels — and with fresh labels that is not a
          * cosmetic error, it is a wrong key for an unanswerable card.
          */
-        if (!this.game.symbolRelations && !q.relationLabels) return [];
+        if (!this.game.symbolRelations && !this.game.randomLabels) return [];
+        /*
+         * A keyless scheme still gets a key for the fixed marks — a syllogism's
+         * quantifiers are on its card under either switch — but none for the
+         * relations, whose labels it deliberately leaves to be worked out.
+         */
+        const relations = q.relationLabels ?? (this.game.symbolRelations ? undefined : {});
         return symbolLegend([
             ...q.setup ?? [],
             ...q.premises,
             ...(Array.isArray(q.conclusion) ? q.conclusion : [q.conclusion ?? ""]),
             ...q.choices,
-        ], q.relationLabels);
+        ], relations);
     }
 
     get skipKeyLabel() {

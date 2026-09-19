@@ -12,7 +12,7 @@ import { NUMBER_WORDS } from "../constants/question.constants";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { guid } from "src/app/utils/uuid";
 import { EnumArrangements, EnumQuestionType } from "../constants/question.constants";
-import { hi, subj } from "../utils/phrasing";
+import { hi, own, PAIR_RELATION_WORDS, rel, subj } from "../utils/phrasing";
 
 export function createArrangement(ctx: GeneratorContext, numOfPremises: number, type: EnumQuestionType.LinearArrangement | EnumQuestionType.CircularArrangement): Question {
     ctx.logger.info("createArrangement:", type);
@@ -139,7 +139,7 @@ export function createArrangement(ctx: GeneratorContext, numOfPremises: number, 
         if (settings.enabled.meta && coinFlip() && metaRelationships.length && !metaRelationshipLookupMap[uid]) {
             const premise = pickUniqueItems(metaRelationships, 1).picked[0];
             metaRelationshipLookupMap[premise.uid] = true;
-            return `${subj(a)} to ${subj(b)} has the same relation as ${subj(premise.a)} to ${subj(premise.b)}`;
+            return `${subj(a)} ${own("pair-to")} ${subj(b)} ${rel(PAIR_RELATION_WORDS.has)} ${subj(premise.a)} ${own("pair-to")} ${subj(premise.b)}`;
         }
 
         const { description, steps } = relationship;

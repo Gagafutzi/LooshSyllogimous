@@ -25,7 +25,7 @@ import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { ladderFor } from "../src/app/syllogimous/utils/progression.utils";
 import {
-    ARRANGEMENT_WORDS, DIRECTION3D_WORDS, META_WORDS,
+    ANALOGY_VERDICT, ARRANGEMENT_WORDS, DIRECTION3D_WORDS, DISTINCTION_WORDS, META_WORDS, PAIR_RELATION_WORDS,
     EDGE_WORDS, rel, setSymbolRelations, subj, symbolFor, symbolise, symbolisedWords,
     symbolLegend,
     symboliseStatement,
@@ -124,6 +124,9 @@ function everyRelationLiteral(): string[] {
     // and inline strings, in no scale and in no `rel()` literal.
     for (const word of ARRANGEMENT_WORDS) found.add(word);
     for (const word of Object.values(META_WORDS)) found.add(word);
+    for (const word of Object.values(DISTINCTION_WORDS)) found.add(word);
+    for (const word of Object.values(ANALOGY_VERDICT)) found.add(word);
+    for (const word of Object.values(PAIR_RELATION_WORDS)) found.add(word);
 
     return [...found].filter(w => !CONNECTIVES.includes(w));
 }
@@ -186,9 +189,9 @@ test("off, a relation reads exactly as it always did", () => {
 
 test("on, the words become marks and the distances stay", () => {
     setSymbolRelations(true);
-    equal(strip(rel("3 north")), "3 ↑", "a distance lost its number, or its mark");
-    equal(strip(rel("is east of")), "→", "a whole relation phrase was not replaced");
-    equal(strip(rel("2 above, 1 earlier")), "2 ⇧, 1 «",
+    equal(strip(symboliseStatement(rel("3 north"))), "3 ↑", "a distance lost its number, or its mark");
+    equal(strip(symboliseStatement(rel("is east of"))), "→", "a whole relation phrase was not replaced");
+    equal(strip(symboliseStatement(rel("2 above, 1 earlier"))), "2 ⇧, 1 «",
         "a multi-clause position did not come through");
     setSymbolRelations(false);
 });
@@ -199,8 +202,8 @@ test("on, the words become marks and the distances stay", () => {
  */
 test("the longest wording wins", () => {
     setSymbolRelations(true);
-    equal(strip(rel("is above")), "⇧", "a compound relation matched its own tail");
-    equal(strip(rel("later in the cycle")), "↻", "a cyclic wording matched plain 'later'");
+    equal(strip(symboliseStatement(rel("is above"))), "⇧", "a compound relation matched its own tail");
+    equal(strip(symboliseStatement(rel("later in the cycle"))), "↻", "a cyclic wording matched plain 'later'");
     setSymbolRelations(false);
 });
 
@@ -323,7 +326,7 @@ function context(rungs: string[] = []): GeneratorContext {
 test("the key lists every mark on the card and none that is not", () => {
     setSymbolRelations(true);
     try {
-        const card = [strip(rel("3 north")), strip(rel("2 above, 1 earlier"))];
+        const card = [strip(symboliseStatement(rel("3 north"))), strip(symboliseStatement(rel("2 above, 1 earlier")))];
         const rows = symbolLegend(card);
         const marks = rows.map(r => r.mark);
 
@@ -341,7 +344,7 @@ test("the key lists every mark on the card and none that is not", () => {
 test("the key names the direction, not the sentence", () => {
     setSymbolRelations(true);
     try {
-        const rows = symbolLegend([strip(rel("is north of"))]);
+        const rows = symbolLegend([strip(symboliseStatement(rel("is north of")))]);
         equal(rows.length, 1, "one mark should have produced one row");
         equal(rows[0].word, "north", `the key reads "${rows[0].word}"`);
     } finally {
@@ -448,8 +451,8 @@ test("an arrangement relation leaves no word of its own behind", () => {
             for (const description of Object.values(EnumArrangements)) {
                 for (const steps of [1, 2, 3]) {
                     for (let r = 0; r < 8; r++) {
-                        const text = strip(rel(interpolateArrangementRelationship(
-                            { description, steps }, settings)));
+                        const text = strip(symboliseStatement(rel(interpolateArrangementRelationship(
+                            { description, steps }, settings))));
                         const left = (text.toLowerCase().match(/[a-z]+/g) ?? [])
                             .filter(w => !allowed.has(w));
                         if (left.length) {
