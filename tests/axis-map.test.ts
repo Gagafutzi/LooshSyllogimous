@@ -57,6 +57,16 @@ function context(rungs: string[]): GeneratorContext {
 const strip = (h: string) => h.replace(/<[^>]+>/g, "");
 /** The example half of the premises: the lines showing a before and an after. */
 const examplesOf = (q: { premises: string[] }) => q.premises.filter(p => p.includes("→")).map(strip);
+/**
+ * An option, read as the object each of its links is about.
+ *
+ * An option is links joined by "·" and every link opens with its subject, so
+ * this is the option as a reader takes it: this object read this way.
+ */
+const linesOf = (choice: string) => new Map(strip(choice).split("·")
+    .map(l => l.trim()).filter(Boolean)
+    .map(l => [l.slice(0, l.indexOf(":")), l] as [string, string]));
+
 /** The chain half: everything after the second heading. */
 const chainOf = (q: { premises: string[] }) =>
     q.premises.filter(p => !p.includes("→") && !p.includes(":")).map(strip);
@@ -118,20 +128,35 @@ test("two maps with the same examples behave the same everywhere", () => {
     for (const rungs of [[], FULL.slice(0, 5), FULL]) {
         seeded(99, () => {
             const ctx = context(rungs);
-            const byExamples = new Map<string, string>();
+            const byExamples = new Map<string, Map<string, string>>();
             for (let rep = 0; rep < 60; rep++) {
                 const q = createAxisMap(ctx, 4);
                 const key = examplesOf(q).join(" | ");
                 // Same examples *and* same chain: then the answer must match.
                 const chain = q.premises.filter(p => !p.includes("→")).map(strip).join(" | ");
                 const stamp = `${key}###${chain}`;
-                const answer = strip(q.choices[q.correctChoice]);
+                /*
+                 * Compared link by link, keyed on the object each link is
+                 * about, because an answer only states the links the two
+                 * options disagree on — and which those are depends on the
+                 * distractor drawn. Two answers to the same item are the same
+                 * answer when no object is read two different ways; the same
+                 * object appearing in one and not the other is the trim, not a
+                 * disagreement.
+                 */
+                const answer = linesOf(q.choices[q.correctChoice]);
                 const seen = byExamples.get(stamp);
                 if (seen !== undefined) {
-                    equal(answer, seen,
-                        "the same examples over the same chain produced two different answers");
+                    for (const [who, line] of answer) {
+                        const before = seen.get(who);
+                        if (before === undefined) continue;
+                        equal(line, before,
+                            "the same examples over the same chain produced two different answers");
+                    }
+                    for (const [who, line] of answer) seen.set(who, line);
+                } else {
+                    byExamples.set(stamp, answer);
                 }
-                byExamples.set(stamp, answer);
             }
         });
     }
@@ -443,22 +468,72 @@ test("no option is reached by using another marker's change", () => {
             equal(new Set(q.choices).size, 2, "the two options describe the same arrangement");
 
             /*
-             * Every option names the same objects as the chain. Checked by cast
-             * rather than by phrasing, so a change to how a position is worded
-             * does not quietly turn this into a test of nothing.
+             * Every option is drawn from the chain and from nowhere else, and
+             * both options speak about the same objects — an option naming an
+             * object the other does not could be picked off by cast alone.
+             *
+             * A subset, not the whole chain: the options print only the links
+             * the two maps disagree on. Checked by cast rather than by phrasing,
+             * so a change to how a position is worded does not quietly turn this
+             * into a test of nothing.
              */
             const chainAt = q.premises.findIndex(p => /Now, from/.test(strip(p)));
             const cast = new Set(q.premises.slice(chainAt + 1)
                 .flatMap(p => [...p.matchAll(/<span class="subject">([^<]*)<\/span>/g)].map(m => m[1])));
-            for (const choice of q.choices) {
-                const named = new Set([...choice.matchAll(/<span class="subject">([^<]*)<\/span>/g)]
-                    .map(m => m[1]));
-                equal([...named].sort().join(","), [...cast].sort().join(","),
-                    "an option is not the chain");
+            const casts = q.choices.map(choice =>
+                [...new Set([...choice.matchAll(/<span class="subject">([^<]*)<\/span>/g)]
+                    .map(m => m[1]))].sort());
+            for (const named of casts) {
+                assert(named.length > 0, "an option names nobody");
+                for (const n of named) {
+                    assert(cast.has(n), `an option names ${n}, who is not in the chain`);
+                }
             }
+            equal(casts[0].join(","), casts[1].join(","),
+                "the two options are about different objects");
         }
 
         assert(checked > 10, `only ${checked} multi-group items to check`);
+    });
+});
+
+/**
+ * An option states only what the two readings disagree about.
+ *
+ * Both options are the same chain under two maps that differ in one part, so
+ * most of their links come out word for word identical. Printed in full, a
+ * five-link chain asked the reader to diff two paragraphs to find the single
+ * clause that was ever in question — proofreading, not induction, and worse the
+ * longer the chain. A link that reads the same in both options cannot decide
+ * anything, so it is not printed.
+ */
+test("an option prints no link the other option also prints", () => {
+    seeded(3606, () => {
+        const ctx = context(FULL);
+        let checked = 0, trimmed = 0;
+
+        for (let rep = 0; rep < 60; rep++) {
+            const q = createAxisMap(ctx, 5);
+            const [a, b] = q.choices.map(linesOf);
+            equal(a.size, b.size, "the two options state a different number of links");
+            checked++;
+
+            for (const [who, line] of a) {
+                const other = b.get(who);
+                assert(other !== undefined, `only one option reads ${who}`);
+                assert(line !== other,
+                    `both options print the same link, which decides nothing: ${line}`);
+            }
+
+            // And the trim has to actually bite: a five-link chain whose
+            // options both run to five links is the paragraph diff again.
+            const chain = q.premises.length - q.premises.findIndex(p => /Now, from/.test(strip(p))) - 1;
+            if (a.size < chain) trimmed++;
+        }
+
+        assert(checked > 40, `only ${checked} items to check`);
+        assert(trimmed / checked > 0.8,
+            `${trimmed} of ${checked} items dropped a link, so the options are still the whole chain`);
     });
 });
 

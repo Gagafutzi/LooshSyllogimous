@@ -265,6 +265,32 @@ function exampleLine(name: string, before: number[], after: number[], axes: Line
 
 const minus = (a: number[], b: number[]) => a.map((v, i) => v - b[i]);
 
+/**
+ * The two readings, cut down to the links they disagree on.
+ *
+ * Both options are the same chain under two maps that differ in one part, so
+ * most of their links come out identical — and an identical line printed in
+ * both options is not something the reader can decide anything by. Printed in
+ * full, a five-link chain asked the reader to diff two paragraphs to find the
+ * one clause that was ever in question, which is proofreading rather than
+ * induction, and the longer the chain the worse it got.
+ *
+ * So each option states only the links where the two maps part company. What
+ * is left is still the chain read under a map — the dropped links say the same
+ * thing in both options, and a link that keeps its `from <previous>` tail is
+ * still anchored, because that object is named in the premises whether or not
+ * its mapped line survives here.
+ *
+ * Null when the two maps read the chain alike: that is not a wrong option at
+ * all, and the caller draws again.
+ */
+function disagreement(right: string[], other: string[]): [string, string] | null {
+    const at = right.map((_, i) => i).filter(i => right[i] !== other[i]);
+    if (!at.length) return null;
+    const join = (lines: string[]) => lines.join(` ${hi("·")} `);
+    return [join(at.map(i => right[i])), join(at.map(i => other[i]))];
+}
+
 /* ------------------------------------------------------------------ *
  * The item                                                            *
  * ------------------------------------------------------------------ */
@@ -722,17 +748,17 @@ function buildGroups(
             : shortLine(n, minus(asked.coords[i], asked.coords[i - 1]), axes, asked.chain[i - 1])));
     question.premises = premises;
 
-    /** The asked chain under a given map, rendered. */
+    /** The asked chain under a given map, link by link. */
     const render = (m: AxisMap) => {
         const after = asked.coords.map(c => applyAxisMap(c, m));
         return asked.chain.map((n, i) =>
             i === 0
                 ? shortLine(n, after[0], axes)
-                : shortLine(n, minus(after[i], after[i - 1]), axes, asked.chain[i - 1]))
-            .join(` ${hi("·")} `);
+                : shortLine(n, minus(after[i], after[i - 1]), axes, asked.chain[i - 1]));
     };
 
-    const truth = render(asked.map);
+    const truthLinks = render(asked.map);
+    const fullTruth = truthLinks.join(` ${hi("·")} `);
 
     /*
      * A distractor is this map got slightly wrong — never another marker's map.
@@ -756,7 +782,7 @@ function buildGroups(
      * the same reason the other groups' were: wrong in several places at once,
      * so it is dismissed on the first clause.
      */
-    const wrong = new Set<string>();
+    let pair: [string, string] | null = null;
 
     const nearMiss = (): AxisMap | null => {
         const m: AxisMap = {
@@ -800,21 +826,20 @@ function buildGroups(
      * nothing to compare against each other — the only way to tell them apart is
      * to apply the change and see which comes out.
      */
-    for (let i = 0; i < 200 && !wrong.size; i++) {
+    for (let i = 0; i < 200 && !pair; i++) {
         const near = nearMiss();
         if (!near) continue;
-        const text = render(near);
-        if (text !== truth) wrong.add(text);
+        pair = disagreement(truthLinks, render(near));
     }
-    for (let i = 0; i < 120 && !wrong.size; i++) {
+    for (let i = 0; i < 120 && !pair; i++) {
         const other = buildMap(axes, covered, feat.kinds, feat.count);
         if (!other) continue;
-        const text = render(other);
-        if (text !== truth) wrong.add(text);
+        pair = disagreement(truthLinks, render(other));
     }
-    if (!wrong.size) return null;
+    if (!pair) return null;
 
-    const options = shuffle([truth, ...wrong]);
+    const [truth, missed] = pair;
+    const options = shuffle([truth, missed]);
     question.answerMode = "choice";
     question.choicePrompt = "After the change, which describes them?";
     question.choices = options;
@@ -863,22 +888,22 @@ function buildGroups(
                 return chain.map((n, i) =>
                     i === 0
                         ? shortLine(n, after[0], axes)
-                        : shortLine(n, minus(after[i], after[i - 1]), axes, chain[i - 1]))
-                    .join(` ${hi("·")} `);
+                        : shortLine(n, minus(after[i], after[i - 1]), axes, chain[i - 1]));
             };
 
-            const right = say(asked.map);
-            // The same one-wrong-option rule as the first claim.
-            const others = new Set<string>();
-            for (let i = 0; i < 200 && !others.size; i++) {
+            const rightLinks = say(asked.map);
+            // The same one-wrong-option rule, and the same cut to the links
+            // that disagree, as the first claim.
+            let shownPair: [string, string] | null = null;
+            for (let i = 0; i < 200 && !shownPair; i++) {
                 const near = nearMiss();
                 if (!near) continue;
-                const text = say(near);
-                if (text !== right) others.add(text);
+                shownPair = disagreement(rightLinks, say(near));
             }
-            if (!others.size) return null;
+            if (!shownPair) return null;
 
-            const shownOptions = shuffle([right, ...others]);
+            const [right, missedHere] = shownPair;
+            const shownOptions = shuffle([right, missedHere]);
             return {
                 text: "",
                 isValid: true,
@@ -942,7 +967,7 @@ function buildGroups(
         })(),
         `Nothing else moves.`,
         `Each link maps on its own, because the change is the same throughout`
-        + ` — so the chain comes through as ${hi(truth)}.`,
+        + ` — so the chain comes through as ${hi(fullTruth)}.`,
     ];
 
     return question;
