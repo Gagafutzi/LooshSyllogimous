@@ -15,7 +15,7 @@ import { orderPremises, scrambleBlocks, scrambleByFactor, scrambleLeading } from
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { LinearFeatureFlags } from "../services/settings-override.service";
 import { EnumQuestionType } from "../constants/question.constants";
-import { hi, subj } from "../utils/phrasing";
+import { hi, rel, subj } from "../utils/phrasing";
 import { SPEAKERS_NOTE, TESTIMONY_NOTE, describeStatement, drawClaims, solve } from "../utils/knaves.utils";
 import {
     Egocentric, FACING_NOTE, OPPOSITE, bearingPlane, describeBearing, describeEgocentric,
@@ -1031,10 +1031,18 @@ export function ndSetup(ctx: GeneratorContext,
         lines.push(describeNdAxes(axes));
     }
     if (!loops.length) return lines;
+    /*
+     * The axis is named through `rel`, not `<b>`, so that the one line saying
+     * which axis wraps is written in whatever that relation is called on this
+     * card. In English over relabelled premises it named an axis the reader had
+     * no way to identify — and on a ring the wrap is the whole question.
+     */
+    const named = (l: AxisSpec) =>
+        `${rel(l.scale.direction[0])}/${rel(l.scale.direction[1])}`;
     lines.push(loops.length === 1
-        ? `The <b>${loops[0].scale.direction[0]}/${loops[0].scale.direction[1]}</b> axis is a loop of <b>${loops[0].modulus}</b>; it wraps around.`
+        ? `The ${named(loops[0])} axis is a loop of <b>${loops[0].modulus}</b>; it wraps around.`
         : `Two axes are loops that wrap around: `
-          + loops.map(l => `<b>${l.scale.direction[0]}/${l.scale.direction[1]}</b> (${l.modulus})`).join(" and ") + ".");
+          + loops.map(l => `${named(l)} (${l.modulus})`).join(" and ") + ".");
     return lines;
 }
 

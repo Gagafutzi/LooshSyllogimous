@@ -95,6 +95,73 @@ test("the key decodes the card it belongs to", () => {
 });
 
 /* ------------------------------------------------------------------ *
+ * The key describes the card, and only the card                       *
+ * ------------------------------------------------------------------ *
+ *
+ * `symbolLegend` reads the marks off the rendered text rather than off the
+ * item's axis list, so it cannot disagree with what is on screen. It found them
+ * with `includes`, which is a substring test, and a substring test on a card
+ * has two ways to be wrong — both of them producing a row about a relation the
+ * item does not contain, on the one screen whose whole job is to say what the
+ * card means.
+ */
+
+test("a mark nested inside another is not read out of it", () => {
+    setSymbolRelations(true);
+    try {
+        /* The temperature axis is ↑°/↓° and the vertical one is ↑/↓, so a card
+           stating nothing but temperature used to be given two extra rows
+           explaining "north" and "south". */
+        const card = ['<span class="subject">Aaa</span> <span class="relation">↑°</span> '
+            + '<span class="subject">Bbb</span>'];
+        const key = symbolLegend(card);
+
+        equal(key.length, 1, `the key has ${key.length} rows for one relation: `
+            + key.map(r => `${r.mark}=${r.word}`).join(", "));
+        equal(key[0].mark, "↑°", "the wrong half of the pair was credited");
+    } finally { setSymbolRelations(false); }
+});
+
+test("a label is not read out of an object's name", () => {
+    setSymbolRelations(false);
+    /*
+     * A label is two letters of the Latin alphabet and one stimulus pool is
+     * three-letter consonant-vowel-consonant strings in the same alphabet —
+     * QAR, ZIT, RUX — so "AR" is inside "QAR". Measured at about one in
+     * seventy label-and-card pairs: often enough to be met, rare enough never
+     * to be reproduced on demand.
+     *
+     * Written as a fixed table rather than a drawn one, because the failure is
+     * a coincidence and a test that waits for one is a test that passes.
+     */
+    const marks = {
+        "north": "AR", "is north of": "AR",
+        "south": "ZK", "is south of": "ZK",
+    };
+    const card = ['<span class="subject">QAR</span> <span class="relation">ZK</span> '
+        + '<span class="subject">ZIT</span>'];
+
+    const key = symbolLegend(card, marks);
+    equal(key.length, 1,
+        `the key explains ${key.map(r => strip(r.mark)).join(", ")} on a card that`
+        + " only states one relation — the other is inside an object's name");
+    equal(key[0].mark, "ZK", "the key credited the name rather than the relation");
+});
+
+test("the key still reads in the order the card does", () => {
+    setSymbolRelations(true);
+    try {
+        /* The rows are scanned against the card, so their order has to be the
+           card's — and striking out a mark as it is credited must not move the
+           ones after it. */
+        const card = ['<span class="relation">↓°</span> then <span class="relation">＞</span>'
+            + ' then <span class="relation">↑</span>'];
+        equal(symbolLegend(card).map(r => r.mark), ["↓°", "＞", "↑"],
+            "the key is not in the order the card reads");
+    } finally { setSymbolRelations(false); }
+});
+
+/* ------------------------------------------------------------------ *
  * Telling one pole from the other                                     *
  * ------------------------------------------------------------------ */
 

@@ -39,7 +39,7 @@ import { hasNextClaim, isHoldClaim, judgeItem, takeSeriesAnswer } from "../utils
 // Aliased for the reason the feedback imports are: the service exposes a
 // member of the same name, and a call that could be read as either is worth
 // one line of renaming to avoid.
-import { LabelScheme, randomRelationLabels, setSymbolRelations as pushSymbolRelations, symboliseStatement } from "../utils/phrasing";
+import { LabelScheme, randomRelationLabels, setSymbolRelations as pushSymbolRelations, symboliseSetup, symboliseStatement } from "../utils/phrasing";
 import { integrationLoad } from "../utils/integration.utils";
 import { DIALS, pricedPremises } from "../utils/ability.utils";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
@@ -1440,11 +1440,23 @@ export class GameService implements GeneratorContext {
      * funnel turned out not to be one, so this stops guessing where the words
      * are produced and converts what the card will show.
      *
-     * **Statements only.** `setup` and `explanation` keep their words: the setup
-     * says things like "every change it makes is shown below", where "below" is
-     * prose and a mark would be nonsense, and the derivation reads better in
-     * words — it becomes the decoder for the card above it, which is worth
-     * having rather than a consistency to enforce.
+     * **Statements, and the relations a setup line marks.** The derivation keeps
+     * its words on purpose: it reads better that way and becomes the decoder for
+     * the card above it, which is worth having rather than a consistency to
+     * enforce.
+     *
+     * The setup was in the same bucket, on the grounds that it says things like
+     * "every change it makes is shown below", where "below" is prose and a mark
+     * would be nonsense. Right, and only half the story — some setup lines name
+     * the very relation the premises were relabelled out of. "Being wider makes
+     * something more fragile" is the whole rule of a Stimulus Function item, and
+     * over premises reading `¤ QF ¤` it names a relation that appears nowhere
+     * else on the card, which is not a cosmetic split but an unanswerable item.
+     *
+     * So `symboliseSetup` converts what the generator *marked* as a relation and
+     * leaves the prose, rather than rewriting the line and turning "Later
+     * premises change the arrangement" into "QF premises change the
+     * arrangement".
      */
 
     private asMinimal(question: Question): Question {
@@ -1488,6 +1500,7 @@ export class GameService implements GeneratorContext {
             : one(question.conclusion ?? "");
         question.choices = question.choices.map(one);
         question.choicePrompt = one(question.choicePrompt ?? "");
+        question.setup = question.setup.map(line => symboliseSetup(line, marks));
 
         // The claims a series will swap in later are statements too, and they
         // are already built by the time the item is handed over.

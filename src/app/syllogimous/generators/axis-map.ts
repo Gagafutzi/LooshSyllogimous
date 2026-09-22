@@ -718,8 +718,8 @@ function buildGroups(
             ? `Each group has its own change, and <b>every change it makes is shown</b>`
             + ` in that group's examples. What the examples leave alone stays as it is.`
             : `The same change is applied to every object at once, and`
-            + ` <b>every change it makes is shown below</b> — anything the`
-            + ` examples leave alone stays as it is.`,
+            + ` <b>every change it makes is shown in the examples</b> — anything they`
+            + ` leave alone stays as it is.`,
     ];
 
     const asked = groups[target];

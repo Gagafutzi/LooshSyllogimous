@@ -615,7 +615,7 @@ export function fillLinearConclusion(ctx: GeneratorContext,
 export function linearSetup(ctx: GeneratorContext, transformCount: number, constructing: boolean): string[] {
     const lines: string[] = [];
     if (transformCount > 0) {
-        lines.push("Later premises <b>change</b> the arrangement, in order.");
+        lines.push("Premises further down <b>change</b> the arrangement, in order.");
     }
     if (constructing) lines.push(ONE_STEP_NOTE);
     return lines;

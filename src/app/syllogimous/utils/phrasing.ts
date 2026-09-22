@@ -354,24 +354,84 @@ export function symbolLegend(
     marks: Record<string, string> = RELATION_SYMBOLS,
 ): Array<{ mark: string; word: string }> {
     const body = texts.join(" ");
-    const out: Array<{ mark: string; word: string }> = [];
+    /*
+     * **Object names are not marks.** Everything inside a `subject` span is
+     * taken out before anything is looked for, which is the same protection
+     * `symboliseStatement` gives when it rewrites — and it is needed here for a
+     * sharper reason.
+     *
+     * A fresh label is two letters of the Latin alphabet, and one of the
+     * stimulus pools is three-letter consonant-vowel-consonant strings in the
+     * same alphabet: `QAR`, `ZIT`, `RUX`. So the label `UX` is a substring of
+     * the object called `RUX`, and the key would list it — telling the reader
+     * that a relation they have not been shown means "is north of", on a card
+     * that never uses it. Measured at about one in seventy label-and-card
+     * pairs, which is often enough to be met and rare enough never to be
+     * reproduced on demand.
+     *
+     * Replaced rather than deleted, which keeps the card's shape: the text each
+     * mark is found in still has a gap where the name was, so a mark cannot be
+     * read across a join that only deletion would have created. On real cards
+     * the names sit between spaces and deleting them would be safe too — this
+     * is the cheaper guarantee, not a bug that was observed.
+     */
+    const shown = body.replace(SUBJECT_SPAN, SUBJECT_STANDIN);
+    const out: Array<{ mark: string; word: string; at: number }> = [];
     /*
      * The fixed marks of the modes with rules of their own are on the card
      * under either switch, so the key explains them under either.
      */
     marks = { ...ownLegendMarks(), ...marks };
 
-    for (const mark of new Set(Object.values(marks))) {
-        if (!body.includes(mark)) continue;
+    /*
+     * **Longest first, and each match struck out as it is found.**
+     *
+     * Two of the fixed marks contain another: the temperature axis is `↑°` and
+     * `↓°`, and the vertical one is `↑` and `↓`. A plain `includes` sees `↑`
+     * inside `↑°`, so a card stating nothing but temperature was given a key
+     * that also explained "north" and "south" — two rows about relations the
+     * item does not contain, on the one screen whose whole job is to say what
+     * the card means.
+     *
+     * The stand-in is as long as what it replaces, so a mark's position is
+     * still its position after an earlier one has been struck out, and the
+     * order below is the order the card reads in.
+     */
+    let residue = shown;
+    const longestFirst = [...new Set(Object.values(marks))]
+        .filter(mark => !!mark)
+        .sort((a, b) => b.length - a.length);
+
+    for (const mark of longestFirst) {
+        const at = residue.indexOf(mark);
+        if (at === -1) continue;
+        residue = residue.split(mark).join(STRUCK.repeat(mark.length));
+
         const words = Object.keys(marks)
             .filter(w => marks[w] === mark)
             .sort((a, b) => a.length - b.length);
-        out.push({ mark, word: words[0] });
+        out.push({ mark, word: words[0], at });
     }
 
     // The order the card reads in, so the key can be scanned against it.
-    return out.sort((a, b) => body.indexOf(a.mark) - body.indexOf(b.mark));
+    return out
+        .sort((a, b) => a.at - b.at)
+        .map(({ mark, word }) => ({ mark, word }));
 }
+
+/**
+ * A subject span, and what stands in its place while a card is being read.
+ *
+ * `symboliseStatement` keeps its own copy of this pattern rather than sharing
+ * it, and has to: it splits on the span to protect it, which needs a capturing
+ * group, and a `g`-flagged regex behaves differently under `split` than under
+ * `replace`. The rule is the same — an object name is not relation text — and
+ * `tests/phrasing.test.ts` holds the two to it from the outside.
+ */
+const SUBJECT_SPAN = /<span class="subject">[\s\S]*?<\/span>/g;
+const SUBJECT_STANDIN = "\u00a4";
+/** Stands in for a mark already credited, so a shorter one cannot re-read it. */
+const STRUCK = "\u0000";
 
 /**
  * A finished statement, with its relation words turned into marks.
@@ -398,6 +458,52 @@ export function symboliseStatement(
         .split(/(<span class="subject">[\s\S]*?<\/span>)/)
         .map((part, i) => (i % 2 ? part : symbolise(part, marks)))
         .join("");
+}
+
+/**
+ * A setup line, with the relations in it converted and the prose left alone.
+ *
+ * The setup used to keep its words under both switches, on the stated grounds
+ * that it "says things like 'every change it makes is shown below', where
+ * 'below' is prose and a mark would be nonsense". That is right, and it is only
+ * half the story — because some setup lines name the very relation the premises
+ * have just been relabelled out of:
+ *
+ *   Stimulus Function  "Being wider makes something more fragile."
+ *   Shape and Rotation "Corners: north, east, south, west."
+ *   the composed spaces "The east/west axis is a loop of 4; it wraps around."
+ *
+ * Each of those is the rule the item turns on, and each was printing a relation
+ * in English over premises that called it `QF`. Stimulus Function is the one
+ * that is simply unanswerable that way: the whole item is "follow this property
+ * along this relation", and the relation is named nowhere else.
+ *
+ * So the line is not converted wholesale — that would rewrite "Later premises
+ * change the arrangement" into "QF premises change the arrangement", and the
+ * prose argument was never wrong. What is converted is what the generator has
+ * *marked* as a relation, by wrapping it in `rel` or `hi`. Prose is bare, or in
+ * `<b>`, and is left exactly as it is.
+ *
+ * That makes it opt-in, which is the property worth having: a new setup line
+ * naming a relation has to say so to be converted, and `tests/phrasing.test.ts`
+ * fails on one that names a relation outside a marked span, so the choice is
+ * made deliberately rather than discovered on a card.
+ */
+export function symboliseSetup(
+    html: string,
+    marks: Record<string, string> = RELATION_SYMBOLS,
+): string {
+    if (!symbolRelations && marks === RELATION_SYMBOLS) return html;
+    /*
+     * The inner text can carry markup of its own — `describeNdAxes` puts the
+     * axis letter in `<b>` inside the same span — so this is not `[^<]*`. It is
+     * still safe as a lazy match, because none of these spans contains another
+     * one, so the first `</span>` is always this span's.
+     */
+    return html.replace(
+        /(<span class="(?:relation|highlight)[^"]*">)([\s\S]*?)(<\/span>)/g,
+        (_whole, open: string, inner: string, close: string) =>
+            open + symbolise(inner, marks) + close);
 }
 
 /** Every word that has a mark, for the test that says every relation does. */

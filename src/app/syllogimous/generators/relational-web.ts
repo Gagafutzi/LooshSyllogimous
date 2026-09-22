@@ -192,8 +192,8 @@ function buildStructure(ctx: GeneratorContext, question: Question, left: Web, n:
     question.setup = [
         "The second web is the first one relabelled and redrawn. Same arrows, "
         + "different names and positions.",
-        "The numbered, coloured nodes on the left are the ones to find. "
-        + "Tap their counterparts on the right in the same order.",
+        "The numbered, coloured nodes on the <b>first</b> web are the ones to "
+        + "find. Tap their counterparts on the <b>second</b> in the same order.",
     ];
     question.explanation = [
         ...targets.map((v, i) => {
@@ -256,8 +256,8 @@ function buildMapping(ctx: GeneratorContext, question: Question, left: Web, n: n
     question.setup = [
         "The second web is the first one relabelled and redrawn. Same arrows, "
         + "different names, different positions.",
-        "The coloured node on the left is the one to find. Tap its counterpart "
-        + "on the right.",
+        "The coloured node on the <b>first</b> web is the one to find. Tap its "
+        + "counterpart on the <b>second</b>.",
     ];
     question.explanation = [
         `${subj(NODE_LABELS[v])} has ${hi(String(left.adj[v].filter(Boolean).length))} arrows out `

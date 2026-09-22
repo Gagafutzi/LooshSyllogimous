@@ -18,7 +18,8 @@
  * with both switches off.
  */
 
-import { equal, seeded, test } from "./harness";
+import { readFileSync } from "fs";
+import { assert, equal, seeded, test } from "./harness";
 import { BUILD } from "./modes";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
@@ -30,7 +31,8 @@ import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/s
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import {
-    randomRelationLabels, setSymbolRelations, symboliseStatement, symbolisedWords,
+    randomRelationLabels, rel, setSymbolRelations, symboliseSetup, symboliseStatement,
+    symbolisedWords,
 } from "../src/app/syllogimous/utils/phrasing";
 
 function ctxOf(): GeneratorContext {
@@ -119,6 +121,203 @@ test("randomised labels leave no relation word on the card", () => {
 
     equal(left.length, 0,
         `relation wording survived relabelling:\n  ${left.join("\n  ")}`);
+});
+
+/* ------------------------------------------------------------------ *
+ * The setup line                                                      *
+ * ------------------------------------------------------------------ *
+ *
+ * The setup used to keep its words under both switches, and the reasoning was
+ * half right: it says things like "every change it makes is shown below", and a
+ * mark there would be nonsense. What the reasoning missed is that some setup
+ * lines name the very relation the premises were relabelled out of — and those
+ * are the lines the item turns on.
+ *
+ *   Stimulus Function  "Being wider makes something more fragile."
+ *   Shape and Rotation "Corners: north, east, south, west."
+ *   composed spaces    "The east/west axis is a loop of 4; it wraps around."
+ *
+ * Stimulus Function is the unanswerable one: the whole item is "follow this
+ * property along this relation", the relation is named nowhere but the setup,
+ * and every premise called it `QF`.
+ *
+ * Both directions are asserted, because the fix has two ways to be wrong. A
+ * relation left in English is the bug; prose rewritten into a mark is the
+ * over-correction, and "QF premises change the arrangement" is worse than what
+ * it replaced.
+ */
+
+const setupLines = (q: Question) => q.setup ?? [];
+
+function setupSweep(convert: (s: string) => string): string[] {
+    const ctx = ctxOf();
+    const faults = new Map<string, Set<string>>();
+
+    seeded(7, () => {
+        for (const type of Object.values(EnumQuestionType)) {
+            if (!BUILD[type]) continue;
+            const params = QUESTION_TYPE_SETTING_PARAMS[type];
+            for (let r = 0; r < 25; r++) {
+                let q: Question;
+                try { q = BUILD[type](ctx, params.minNumOfPremises + (r % 4)); } catch { continue; }
+                for (const line of setupLines(q)) {
+                    for (const hit of bare(convert(line)).match(ANY_CASE) ?? []) {
+                        const set = faults.get(String(type)) ?? new Set<string>();
+                        set.add(hit);
+                        faults.set(String(type), set);
+                    }
+                }
+            }
+        }
+    });
+
+    return [...faults].map(([type, words]) => `${type}: ${[...words].join(", ")}`);
+}
+
+test("minimal mode leaves no relation word in a setup line", () => {
+    setSymbolRelations(true);
+    let left: string[];
+    try { left = setupSweep(s => symboliseSetup(s)); }
+    finally { setSymbolRelations(false); }
+
+    equal(left.length, 0,
+        `a setup line names a relation the card has marked away:\n  ${left.join("\n  ")}`);
+});
+
+test("randomised labels leave none either", () => {
+    const marks = randomRelationLabels();
+    const left = setupSweep(s => symboliseSetup(s, marks));
+
+    equal(left.length, 0,
+        `a setup line names a relation the card relabelled:\n  ${left.join("\n  ")}`);
+});
+
+/**
+ * And the prose is left alone, which is the other half.
+ *
+ * Converting the line wholesale would be the easy fix and the wrong one. Only
+ * what the generator *marked* as a relation — wrapped in `rel` or `hi` — is
+ * converted; bare prose and anything in `<b>` stays as written.
+ *
+ * **The fixtures are the old wordings, deliberately.** Every shipped setup line
+ * that collided with a relation word was also reworded — "left out of a
+ * premise" now reads "omitted from", "shown below" reads "shown in the
+ * examples" — because a reader meeting "left" beside relabelled premises cannot
+ * tell prose from an axis, and that is true with or without this converter. But
+ * that rewording is exactly what would let a wholesale conversion pass
+ * unnoticed: with no colliding word left in any real line, there is nothing for
+ * the over-correction to damage. So the contract is held to the sentences that
+ * made it necessary, which are the ones a future setup line will look like.
+ */
+test("a setup line's prose is not rewritten into marks", () => {
+    const marks = randomRelationLabels();
+    const kept = [
+        // "Later" as in subsequent, not as in the temporal relation.
+        "Later premises <b>change</b> the arrangement, in order.",
+        // "left out" as in omitted, not as in the horizontal axis.
+        "A dimension left out of a premise is <b>the same</b> for both.",
+        // "below" as in further down the card, not as in containment.
+        "Every change it makes is shown <b>below</b> \u2014 anything the examples"
+        + " leave alone stays as it is.",
+        // "reaches" as in the question being asked, not a stated relation.
+        "Premises are <b>direct</b> links. The question asks whether one reaches"
+        + " the other along <b>any number</b> of steps.",
+        // And the sides of the screen, not the horizontal axis.
+        "The coloured node on the left is the one to find. Tap its counterpart"
+        + " on the right.",
+    ];
+
+    for (const line of kept) {
+        equal(symboliseSetup(line, marks), line,
+            "a setup line's prose was rewritten as if it were a relation");
+    }
+
+    /* And the marked half of the same sentence *is* converted, so this is a
+       test about the boundary rather than about doing nothing. */
+    const mixed = `Later premises change the ${rel("north")} axis.`;
+    const out = symboliseSetup(mixed, marks);
+    assert(out.includes(marks["north"]), "the marked relation was not converted");
+    assert(out.startsWith("Later premises change the"),
+        "the prose around it was rewritten");
+});
+
+/**
+ * The marked half really is converted, through a real item.
+ *
+ * The sweep above passes if a mode simply stops saying anything, so the one
+ * mode whose rule *is* a relation is checked by building it and reading the
+ * line back. Stimulus Function states "Being wider makes something more
+ * fragile" and nothing else on the card names that relation, which is what made
+ * it the unanswerable case.
+ *
+ * Run under `red`, and that is the point rather than a convenience. The
+ * obvious assertion — the rule's label appears in the premises — is *false*
+ * under `mapped`, which draws the two poles of a scale independently: an item
+ * whose premises all happen to state "narrower" will have a rule naming the
+ * "wider" label, and the key is what relates them. `red` gives both poles one
+ * token and marks the inverted one, so the token in the rule is the token in
+ * the premises, and the check becomes sound instead of nearly true.
+ */
+test("a rule stated in the setup is stated in the card's own labels", () => {
+    const ctx = ctxOf();
+    const marks = randomRelationLabels(Math.random, "red");
+
+    let checked = 0;
+    seeded(4242, () => {
+        for (let r = 0; r < 30 && checked < 3; r++) {
+            let q: Question;
+            try {
+                q = BUILD[EnumQuestionType.StimulusFunction](
+                    ctx, QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.StimulusFunction].minNumOfPremises + (r % 3));
+            } catch { continue; }
+
+            const rule = (q.setup ?? []).find(l => /Being/.test(bare(l)));
+            if (!rule) continue;
+            checked++;
+
+            const label = bare(symboliseSetup(rule, marks)).match(/Being (\S+) makes/)?.[1];
+            assert(!!label, `no relation in the rule: ${bare(rule)}`);
+            /* A label rather than the English word it replaced, which is the
+               whole fix — and one this card actually uses. */
+            assert(!symbolisedWords().includes(label!),
+                `the rule still says "${label}" in words`);
+
+            const premises = bare(q.premises.map(pr => symboliseStatement(pr, marks)).join(" "));
+            assert(premises.includes(label!),
+                `the rule names ${label} and no premise uses it`);
+        }
+    });
+    assert(checked > 0, "no Stimulus Function item stated its rule");
+});
+
+/**
+ * And the item handed to the screen has been through it.
+ *
+ * The three sweeps above call `symboliseSetup` themselves, which says the
+ * converter works and nothing at all about whether anything calls it — remove
+ * the one line in `asMinimal` that does and every one of them still passes.
+ * That is the shape of the defect this whole area started as: a conversion that
+ * covered the statements and skipped the line the item turns on.
+ *
+ * Read off the shipped service, beside the statement conversions it belongs
+ * with, because what regresses is the call and not the function.
+ */
+test("the service converts a setup line as well as the statements", () => {
+    const src = readFileSync(
+        "src/app/syllogimous/services/game.service.ts", "utf8");
+
+    const at = src.indexOf("private asMinimal");
+    assert(at > 0, "the conversion pass is gone from the service");
+    const pass = src.slice(at, at + 3000);
+
+    assert(/question\.setup = question\.setup\.map\(/.test(pass),
+        "the setup is not converted, so a relabelled card states its rule in words");
+    assert(/symboliseSetup\(/.test(pass),
+        "the setup goes through the statement converter, which would rewrite its prose");
+    /* And the statements still go through theirs — the two are different
+       functions on purpose, and swapping either for the other is a defect. */
+    assert(/question\.premises = question\.premises\.map\(one\)/.test(pass),
+        "the premises are no longer converted as statements");
 });
 
 /**

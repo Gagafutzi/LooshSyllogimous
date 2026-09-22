@@ -25,12 +25,12 @@
  * be told apart only by a verb.
  */
 export const HIERARCHY_NOTE =
-    "Premises are <b>direct</b> links. The question asks whether one reaches the "
-    + "other along <b>any number</b> of steps.";
+    "Premises are <b>direct</b> links. The question asks whether there is a path "
+    + "from one to the other along <b>any number</b> of steps.";
 
 /** Stated whenever axes with no difference are left out of the premises. */
 export const COMPACT_NOTE =
-    "A dimension left out of a premise is <b>the same</b> for both.";
+    "A dimension <b>omitted from</b> a premise is the same for both.";
 
 /**
  * Stated because the item is unfair without it.
@@ -47,8 +47,8 @@ export const INDETERMINATE_NOTE =
 
 /** Stated whenever later premises rewrite earlier relations. */
 export const EDIT_NOTE =
-    "Later premises <b>change the relations themselves</b>, in order. Answer "
-    + "about the relations as they end up.";
+    "Premises further down <b>change the relations themselves</b>, in order. "
+    + "Answer about the relations as they end up.";
 
 export const ONE_STEP_NOTE =
     "Each premise is <b>one step</b> on every dimension it names.";
@@ -61,8 +61,8 @@ export const ONE_STEP_NOTE =
  * premise true of the arrangement it described and then moves things out of it.
  */
 export const ND_TRANSFORM_NOTE =
-    "Later premises <b>move things</b> around the space, in order. Answer about "
-    + "where they end up.";
+    "Premises further down <b>move things</b> around the space, in order. Answer "
+    + "about where they end up.";
 
 /**
  * Stated whenever a conclusion compares two relations.

@@ -162,7 +162,7 @@ export function createInferRelation(ctx: GeneratorContext, numOfPremises: number
         question.conclusion = "";
 
         question.setup = [
-            `<b>${OPERATOR}</b> is one of the relations below, the same one every `
+            `<b>${OPERATOR}</b> is one of these relations, the same one every `
             + "time. Which?",
         ];
 
