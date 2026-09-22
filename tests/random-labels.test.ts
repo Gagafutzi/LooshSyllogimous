@@ -13,11 +13,45 @@
 import { assert, equal, seeded, test } from "./harness";
 import {
     INVERTED_LABEL_CLASS, LabelScheme, RELATION_SYMBOLS, markPairs,
-    randomRelationLabels, setSymbolRelations, symbolLegend,
+    randomRelationLabels, setSymbolRelations, symbolLegend, symboliseSetup,
     symboliseStatement,
 } from "../src/app/syllogimous/utils/phrasing";
 import { LINEAR_SCALES, SPATIAL_SCALES } from "../src/app/syllogimous/utils/linear.utils";
 import { labelSchemeFrom } from "../src/app/syllogimous/services/game.service";
+import { BUILD } from "./modes";
+import { GeneratorContext } from "../src/app/syllogimous/generators/context";
+import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
+import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
+import { Question } from "../src/app/syllogimous/models/question.models";
+import { Settings } from "../src/app/syllogimous/models/settings.models";
+import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
+import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
+import { Logger } from "../src/app/syllogimous/utils/logger";
+import { createDistinction } from "../src/app/syllogimous/generators/distinction";
+
+/** Every mode switched on, nothing earned — the plainest item each can build. */
+function ctxOf(): GeneratorContext {
+    const settings = new Settings();
+    for (const t of Object.values(EnumQuestionType)) settings.question[t].enabled = true;
+    const ctx: GeneratorContext = {
+        settings,
+        logger: new Logger("error", false),
+        settingsOverrideService: {
+            linearOverride: () => null, axesFor: () => null, circularAxes: () => 0,
+            spread: () => null, depthFor: () => 0, scramble: 100, rungOverride: () => null,
+        } as unknown as SettingsOverrideService,
+        progressionService: {
+            hasRung: () => false, depthBonusFor: () => 0,
+            dialFor: () => 0, mergeTarget: () => null,
+        } as unknown as ProgressionService,
+        forceConstruction: "off",
+        hasRung: () => false,
+        dialFor: () => 0,
+        mergeTarget: () => null,
+        random: (n?: number) => createDistinction(ctx, n ?? 2),
+    };
+    return ctx;
+}
 
 /** Words the fixed table treats as the same relation must stay together. */
 function classesOf(map: Record<string, string>): string[] {
@@ -159,6 +193,97 @@ test("the key still reads in the order the card does", () => {
         equal(symbolLegend(card).map(r => r.mark), ["↓°", "＞", "↑"],
             "the key is not in the order the card reads");
     } finally { setSymbolRelations(false); }
+});
+
+/**
+ * Every label a card shows has a row in its key, across every mode.
+ *
+ * The two tests above are about rows the key should not have. This is the other
+ * direction, and it is the one that makes an item unanswerable rather than
+ * merely confusing: a label with no row is a relation the reader is given no
+ * way to decode, on a scheme whose whole premise is that the vocabulary is
+ * arbitrary and the key is how you learn it.
+ *
+ * Swept over every mode because the failure is structural, not per-mode. The
+ * key is built from `setup`, `premises`, `conclusion` and `choices` — and not
+ * from `choicePrompt`, which is the field a new mode would most easily put a
+ * relation in.
+ *
+ * **This passes today for a reason worth writing down: no mode shows a relation
+ * anywhere but its premises.** Every label in a conclusion, an option or a
+ * prompt is one the premises already carry, so the sweep survives dropping any
+ * one field from the key — it was tried. So it is a tripwire for the next mode
+ * rather than a fix for this one, and the test below is what keeps it from
+ * being a claim of coverage instead of coverage: it checks that the condition
+ * this sweep is built on can actually fail.
+ */
+test("every label on a card has a row in that card's key", () => {
+    const ctx = ctxOf();
+    const unkeyed: string[] = [];
+
+    seeded(31337, () => {
+        for (const type of Object.values(EnumQuestionType)) {
+            if (!BUILD[type]) continue;
+            const params = QUESTION_TYPE_SETTING_PARAMS[type];
+
+            for (let r = 0; r < 12; r++) {
+                let q: Question;
+                try { q = BUILD[type](ctx, params.minNumOfPremises + (r % 3)); } catch { continue; }
+
+                const marks = randomRelationLabels();
+                const conv = (t: unknown) => symboliseStatement(String(t ?? ""), marks);
+
+                /* The same four fields the game screen hands to `symbolLegend`. */
+                const keyed = [
+                    ...(q.setup ?? []).map(l => symboliseSetup(l, marks)),
+                    ...q.premises.map(conv),
+                    ...(Array.isArray(q.conclusion) ? q.conclusion : [q.conclusion ?? ""]).map(conv),
+                    ...q.choices.map(conv),
+                ];
+                const rows = new Set(symbolLegend(keyed, marks).map(row => row.mark));
+
+                /* Everything the player is shown, the prompt included. */
+                const shown = [...keyed, conv(q.choicePrompt)].join(" ");
+
+                for (const label of new Set(Object.values(marks))) {
+                    if (shown.includes(label) && !rows.has(label)) {
+                        unkeyed.push(`${type}: ${strip(label)}`);
+                    }
+                }
+            }
+        }
+    });
+
+    equal([...new Set(unkeyed)].length, 0,
+        `a label is shown with nothing in the key to decode it:\n  `
+        + [...new Set(unkeyed)].join("\n  "));
+});
+
+/**
+ * And the sweep above can fail, which is the part that is not free.
+ *
+ * Every mode currently restates its relations in its premises, so the sweep
+ * would pass even against a key that read nothing at all. What is asserted here
+ * is the detection itself, on the card shape a future mode would have: a
+ * relation shown somewhere the key does not read. If this ever stops failing to
+ * find it, the sweep above has stopped meaning anything.
+ */
+test("...and an unkeyed label is something the sweep can see", () => {
+    const marks = randomRelationLabels();
+    const north = marks["north"], south = marks["south"];
+    assert(north !== south, "the two poles drew the same label");
+
+    /* One relation, in a field the key reads. */
+    const keyed = [`<span class="subject">Aaa</span> `
+        + `<span class="relation">${north}</span> <span class="subject">Bbb</span>`];
+    const rows = new Set(symbolLegend(keyed, marks).map(row => row.mark));
+
+    equal([...rows], [north], "the key did not describe the one relation it was given");
+
+    /* And another only in the prompt, which it does not. */
+    const shown = [...keyed, `Which of them is ${south}?`].join(" ");
+    assert(shown.includes(south) && !rows.has(south),
+        "an unkeyed label is not detectable, so the sweep above proves nothing");
 });
 
 /* ------------------------------------------------------------------ *
