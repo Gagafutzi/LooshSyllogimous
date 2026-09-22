@@ -78,18 +78,62 @@ export class GameTimerService {
             this.running = true;
             this.settle = resolve;
 
-            this.interval = setInterval(() => {
-                if (this.remainingSeconds > 0) {
-                    this.remainingSeconds--;
-                    if (this.remainingSeconds === 0) {
-                        const done = this.settle;
-                        this.settle = undefined;
-                        this.pause();
-                        return done?.(true);
-                    }
-                }
-            }, 1000);
+            this.tick();
         });
+    }
+
+    /**
+     * The countdown itself, so `resume` is not a second copy of it.
+     *
+     * It was inline in `start`, which was fine while the only way to have a
+     * running clock was to begin one. Pausing changed that: a clock put back
+     * has to tick the same way, and the way for two of them to drift is to
+     * write it twice.
+     */
+    private tick() {
+        this.interval = setInterval(() => {
+            if (this.remainingSeconds > 0) {
+                this.remainingSeconds--;
+                if (this.remainingSeconds === 0) {
+                    const done = this.settle;
+                    this.settle = undefined;
+                    this.pause();
+                    return done?.(true);
+                }
+            }
+        }, 1000);
+    }
+
+    /**
+     * Put a paused clock back, with what it had left.
+     *
+     * The counterpart `pause` never had, because nothing used to pause a
+     * running item — the clock either ran or the item was over. Going back to
+     * the hub is the case that needs it: the page is hidden and nothing is
+     * being answered, so the countdown stops, and coming back has to continue
+     * the same run rather than start a new one.
+     *
+     * `start` cannot serve. It builds a new promise, and the one the game is
+     * already awaiting would then never settle — the item would sit there with
+     * a clock it does not own, and a timeout would resolve a promise nobody is
+     * listening to. So this keeps `settle` exactly as it is and only re-arms
+     * the tick.
+     *
+     * Silent when there is nothing to resume. A paused clock with no waiter, or
+     * one already at zero, is an item that finished while the page was hidden,
+     * and reviving its countdown would time out an item that is over.
+     */
+    resume() {
+        if (this.running || !this.settle || this.remainingSeconds <= 0) return;
+        this.running = true;
+        /*
+         * Rebuilt from the count rather than from what it was when the clock
+         * stopped, which is the same decision `pause` documents: time the
+         * player was not given is not charged to them, so the deadline moves
+         * out by however long the interruption lasted.
+         */
+        this.endsAt = Date.now() + this.remainingSeconds * 1000;
+        this.tick();
     }
 
     /**

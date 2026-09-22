@@ -313,7 +313,7 @@ export class GameComponent {
          * drawing catching up with the clock, not the clock being reset.
          */
         if (typeof document !== "undefined") {
-            document.addEventListener("visibilitychange", this.onVisible);
+            document.addEventListener("visibilitychange", this.onVisibility);
         }
     }
 
@@ -333,8 +333,36 @@ export class GameComponent {
      * be taken off again — the listener would then outlive the screen and arm a
      * bar belonging to a component that had gone.
      */
-    private onVisible = () => {
-        if (document.visibilityState !== "visible") return;
+    private onVisibility = () => {
+        /*
+         * Hidden means nothing is being answered, so the clock stops.
+         *
+         * This used to return here and do nothing, on the reasoning that a
+         * background tab has its timers clamped and coming back only needed a
+         * resync. The clamp is to about 1 Hz and this countdown ticks at
+         * exactly 1 Hz, so it was never really slowed — and the case that made
+         * it plainly wrong is the shell: going back to the hub menu hides the
+         * frame with CSS, which throttles nothing at all, so an item went on
+         * counting down behind a menu and timed out while nobody was looking
+         * at it.
+         *
+         * The bar is frozen with it. It is animated against real elapsed time
+         * rather than against the tick, so left running it would drain to
+         * empty over a stopped clock — which reads as a timeout that has not
+         * happened.
+         */
+        if (document.visibilityState !== "visible") {
+            if (this.gameTimerService.running) this.gameTimerService.pause();
+            this.freezeTimerBar();
+            return;
+        }
+        /*
+         * `resume` continues the run the game is already awaiting; `resync`
+         * then covers the clock that was never paused — a hidden event that
+         * did not arrive, which is a thing browsers do on the way out of a
+         * background tab — and re-anchors the deadline either way.
+         */
+        this.gameTimerService.resume();
         this.gameTimerService.resync();
         this.armTimerBar();
     };
@@ -344,7 +372,7 @@ export class GameComponent {
         this.questionSub?.unsubscribe();
         this.claimSub?.unsubscribe();
         if (typeof document !== "undefined") {
-            document.removeEventListener("visibilitychange", this.onVisible);
+            document.removeEventListener("visibilitychange", this.onVisibility);
         }
         this.gameTimerService.stop();
         clearInterval(this.carouselTimerHandle);

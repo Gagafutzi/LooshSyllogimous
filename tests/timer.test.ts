@@ -210,6 +210,124 @@ test("a paused clock reports what it was paused with", async () => {
  * the clock a one-conclusion item has, and answering a conclusion visibly does
  * nothing to it, which is what it did.
  */
+/* ------------------------------------------------------------------ *
+ * Pausing, and coming back                                            *
+ * ------------------------------------------------------------------ *
+ *
+ * `pause` had no counterpart, because nothing used to pause a running item —
+ * the clock either ran or the item was over. Going back to the hub menu is the
+ * case that needs one: the shell hides the frame and delivers the browser's
+ * hidden signal, so the countdown stops and coming back has to continue *the
+ * same run*.
+ */
+
+test("a resumed clock continues the run the game is already awaiting", async () => {
+    const restore = fakeClock();
+    try {
+        const timer = new GameTimerService();
+        let settled: boolean | undefined;
+        timer.start(4).then(v => { settled = v; });
+
+        tick(1);
+        timer.pause();
+        equal(timer.running, false, "pause left the clock running");
+
+        /* The pause itself costs nothing: the count is where the tick left it. */
+        equal(timer.remainingSeconds, 3, "pausing charged the player for the pause");
+
+        timer.resume();
+        equal(timer.running, true, "resume did not restart the countdown");
+        tick(3);
+        await flush();
+
+        /*
+         * The whole point. `start` would have built a second promise and left
+         * the first one pending for ever — the item would sit there with a
+         * clock it does not own, and the timeout would resolve a promise
+         * nobody is listening to.
+         */
+        equal(settled, true, "the run the game was awaiting never settled");
+    } finally { restore(); }
+});
+
+test("a resumed clock does not hand back the seconds it was paused for", async () => {
+    const restore = fakeClock();
+    try {
+        const timer = new GameTimerService();
+        timer.start(10);
+        tick(4);
+        timer.pause();
+        timer.resume();
+        equal(timer.remainingSeconds, 6,
+            "resuming changed how much time was left");
+        /* And the deadline the bar is drawn against moves out with it, or the
+           bar would resume already drained by however long the pause was. */
+        assert(timer.remainingMs > 5500 && timer.remainingMs <= 6000,
+            `the bar would resume at ${timer.remainingMs}ms of a 6s remainder`);
+    } finally { restore(); }
+});
+
+test("there is nothing to resume on a clock that already finished", async () => {
+    const restore = fakeClock();
+    try {
+        /* An item that ran out while the page was hidden. Reviving its
+           countdown would time out an item that is already over. */
+        const ran = new GameTimerService();
+        ran.start(1);
+        tick(1);
+        await flush();
+        ran.resume();
+        equal(ran.running, false, "a finished clock was restarted");
+
+        /* And one that was stopped rather than paused: `stop` settles the
+           promise, so there is no run left to continue. */
+        const stopped = new GameTimerService();
+        stopped.start(5);
+        stopped.stop();
+        stopped.resume();
+        equal(stopped.running, false, "a stopped clock was restarted");
+
+        /* And a fresh one nobody ever started. */
+        const fresh = new GameTimerService();
+        fresh.resume();
+        equal(fresh.running, false, "a clock that never ran was started by resume");
+    } finally { restore(); }
+});
+
+/**
+ * And the screen actually stops it.
+ *
+ * The service can pause all it likes; what made the item time out behind the
+ * hub menu was the handler returning early on the way *out*. Read off the
+ * shipped component, because the way this regresses is somebody restoring the
+ * early return while the service keeps its new method.
+ */
+test("the game screen pauses the clock when the page goes hidden", () => {
+    const src = require("fs").readFileSync(
+        "src/app/syllogimous/pages/game/game.component.ts", "utf8") as string;
+
+    const at = src.indexOf("onVisibility = ");
+    assert(at > 0, "the visibility handler is gone from the game screen");
+    const handler = src.slice(at, at + 1600);
+
+    assert(/visibilityState !== "visible"/.test(handler),
+        "the handler no longer tells the two directions apart");
+    assert(/gameTimerService\.pause\(\)/.test(handler),
+        "the screen does not stop the clock when it is hidden");
+    assert(/freezeTimerBar\(\)/.test(handler),
+        "the bar is left draining over a stopped clock, which reads as a timeout");
+    assert(/gameTimerService\.resume\(\)/.test(handler),
+        "the screen never puts the clock back");
+
+    /* Both halves have to be registered, and taken off again — the listener
+       outliving the screen would arm a bar belonging to a component that had
+       gone, which is why it is a bound field in the first place. */
+    assert(src.includes('addEventListener("visibilitychange", this.onVisibility)'),
+        "the handler is never registered");
+    assert(src.includes('removeEventListener("visibilitychange", this.onVisibility)'),
+        "the handler is never removed");
+});
+
 test("an unset series bonus is the documented default, not nothing", () => {
     equal(seriesBonusFrom(null), DEFAULT_SERIES_BONUS,
         "nothing stored read as a bonus of zero");
