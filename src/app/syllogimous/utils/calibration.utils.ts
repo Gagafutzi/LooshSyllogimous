@@ -165,6 +165,14 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // scale modes, but a very large graph becomes clerical rather than harder.
     [EnumQuestionType.Hierarchy]: { weight: 1.35, ceiling: 14 },
     [EnumQuestionType.Analogy]: { weight: 1.5, ceiling: 20 },
+    /*
+     * A notch above Analogy, and the notch is the guessing. A stated match can
+     * be judged one axis at a time and abandoned at the first disagreement —
+     * half the false items are settled by the first axis a reader happens to
+     * check. A completion has to derive the whole relation before any candidate
+     * can be measured against it, so the width of the space is paid in full.
+     */
+    [EnumQuestionType.AnalogyCompletion]: { weight: 1.7, ceiling: 20 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

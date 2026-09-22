@@ -149,6 +149,13 @@ export const RUNG_COST: Record<string, number> = {
     checkpoint: 0.5,
 
     analogy: 2.0,
+    /*
+     * The decoy that agrees on every axis but one. Priced with the other rungs
+     * that remove a shortcut rather than add a part: nothing new has to be
+     * carried, and the way of answering that skipped most of the work stops
+     * working.
+     */
+    "near-miss": 1.2,
 
     "choose-conclusion": 0.8,
     "construct-conclusion": 1.8,
@@ -318,6 +325,14 @@ export const RUNG_MIN_PREMISES: Record<string, number> = {
     branching: 4,
     overlap: 4,
     analogy: 5,
+    /*
+     * Five objects for the stem and two disjoint candidate pairs, and then
+     * enough spare relations that one of them can be made to differ on exactly
+     * one axis. Below six premises the draw usually cannot find the near miss
+     * and falls back to an ordinary decoy, which is a rung charged and not
+     * delivered.
+     */
+    "near-miss": 6,
     "choose-conclusion": 5,
     "construct-conclusion": 4,
     // The halfway claim only exists above four premises, so granting the rung

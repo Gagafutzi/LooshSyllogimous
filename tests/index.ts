@@ -88,5 +88,6 @@ import "./series.test";
 import "./testimony.test";
 import "./deictic.test";
 import "./anchor-negation.test";
+import "./analogy-completion.test";
 
 run();

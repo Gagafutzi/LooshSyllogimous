@@ -43,6 +43,7 @@ import { createArrangement } from "../src/app/syllogimous/generators/arrangement
 import { createDirection, createDirection3D } from "../src/app/syllogimous/generators/direction";
 import { createGraphMatching } from "../src/app/syllogimous/generators/graph-matching";
 import { createAnalogy } from "../src/app/syllogimous/generators/analogy";
+import { createAnalogyCompletion } from "../src/app/syllogimous/generators/analogy-completion";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
@@ -92,6 +93,7 @@ const MODES: Array<[EnumQuestionType, (c: GeneratorContext, n: number) => Questi
     [EnumQuestionType.GraphMatching, createGraphMatching],
     [EnumQuestionType.Hierarchy, createHierarchy],
     [EnumQuestionType.Analogy, createAnalogy],
+    [EnumQuestionType.AnalogyCompletion, createAnalogyCompletion],
     [EnumQuestionType.Deictic, createDeictic],
     [EnumQuestionType.Transformation, createTransformation],
     [EnumQuestionType.AnchorSpace, createAnchorSpace],

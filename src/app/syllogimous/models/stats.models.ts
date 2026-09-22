@@ -21,6 +21,7 @@ export class TypeBasedStats {
     [EnumQuestionType.GraphMatching] = new TypeBasedStatsInner(EnumQuestionType.GraphMatching);
     [EnumQuestionType.Hierarchy] = new TypeBasedStatsInner(EnumQuestionType.Hierarchy);
     [EnumQuestionType.Analogy] = new TypeBasedStatsInner(EnumQuestionType.Analogy);
+    [EnumQuestionType.AnalogyCompletion] = new TypeBasedStatsInner(EnumQuestionType.AnalogyCompletion);
     [EnumQuestionType.Binary] = new TypeBasedStatsInner(EnumQuestionType.Binary);
     [EnumQuestionType.Deictic] = new TypeBasedStatsInner(EnumQuestionType.Deictic);
     [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);

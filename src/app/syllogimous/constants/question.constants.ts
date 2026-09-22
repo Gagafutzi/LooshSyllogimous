@@ -34,6 +34,17 @@ export enum EnumQuestionType {
      */
     Hierarchy = "Hierarchy",
     Analogy = "Analogy",
+    /*
+     * The same relation-of-relations, asked the other way round. Analogy shows
+     * both pairs and asks whether they match; this shows one and asks which
+     * pair completes it — "A is to B as ? is to ?".
+     *
+     * Judging a stated match can be done by checking the claim one axis at a
+     * time and stopping at the first disagreement. Completing one cannot: the
+     * relation has to be derived in full before any candidate can be measured
+     * against it, which is the whole reason it is a mode and not a wording.
+     */
+    AnalogyCompletion = "Analogy Completion",
     Binary = "Binary",
     Deictic = "Deictic Relations",
     Transformation = "Transformation",

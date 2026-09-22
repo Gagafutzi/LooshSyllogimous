@@ -549,6 +549,17 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      */
     "Graph Matching":            ["which-differs", "as-relations", "distance"],
     "Analogy":                   ["negation", "retired-meta"],
+    /*
+     * One rung, and it is the only thing about this mode worth making harder.
+     *
+     * Premises buy objects and axes, which is width; what decides whether an
+     * item is answered by reasoning or by glancing is how close the wrong pair
+     * sits to the right one. Off the rung the decoy is any pair with a
+     * different relation, most of which disagree on several axes at once and
+     * can be dismissed at a look. On it the decoy agrees everywhere but one
+     * axis, so every axis has to be checked before either can be ruled out.
+     */
+    "Analogy Completion":        ["near-miss"],
     "Binary":                    ["negation", "retired-meta"],
     /*
      * Empty, and for a different reason from the two above.

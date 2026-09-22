@@ -104,6 +104,7 @@ export class ModeModifiersComponent {
             "construct-conclusion": "Build the conclusion yourself, one slot per dimension",
             "construct-distance": "Build it with distances, not only directions",
             "analogy": "Analogy conclusions — one pair against another",
+            "near-miss": "The wrong pair differs on one axis only",
 
             /* --- shape of the premise network --- */
             "branching": "Branching premises, not a single chain",

@@ -195,6 +195,19 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 20,
         basic: false
     },
+    /*
+     * Four premises is the floor, and it is an object count rather than a
+     * reading cost: the stem takes two objects and each candidate pair takes
+     * two more that are not the stem's, so an item needs five objects before
+     * it can offer a choice at all. Four premises is the shortest chain that
+     * draws five.
+     */
+    [EnumQuestionType.AnalogyCompletion]: {
+        enabled: true,
+        minNumOfPremises: 4,
+        maxNumOfPremises: 20,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,

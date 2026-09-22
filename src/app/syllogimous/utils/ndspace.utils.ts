@@ -1166,8 +1166,15 @@ export interface NdAnalogy {
     claimSame: boolean;
 }
 
-/** Sign per axis, as a comparable key. Circular axes compare by displacement. */
-function relationKey(layout: NdLayout, a: string, b: string): string {
+/**
+ * Sign per axis, as a comparable key. Circular axes compare by displacement.
+ *
+ * Exported because two modes now compare pair relations rather than one:
+ * Analogy judges a stated match, and Analogy Completion asks for the pair that
+ * makes one. A second copy of this would be a second answer to "are these the
+ * same relation", and the two would drift the first time an axis kind changed.
+ */
+export function relationKey(layout: NdLayout, a: string, b: string): string {
     return layout.axes.map((axis, i) => isParity(axis)
         ? (sameClass(layout, i, a, b) ? 0 : 1)
         : isCircular(axis)
@@ -1195,7 +1202,7 @@ function reversedKey(layout: NdLayout, key: string): string {
  * All-zero relations are dropped too: a relation with no direction on any axis
  * is its own reverse, so "same" and "opposite" stop being different claims.
  */
-function derivedPairs(layout: NdLayout): Array<{ a: string; b: string; key: string }> {
+export function derivedPairs(layout: NdLayout): Array<{ a: string; b: string; key: string }> {
     const out: Array<{ a: string; b: string; key: string }> = [];
     const zero = layout.axes.map(() => 0).join(",");
     for (const a of layout.words) {

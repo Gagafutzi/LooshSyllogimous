@@ -48,6 +48,13 @@ const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
     EnumQuestionType.WidestGroup,
     EnumQuestionType.Knaves,
     EnumQuestionType.NestedSpaces,
+    /*
+     * Named after Analogy and unlike it in exactly this respect. Analogy
+     * borrows a finished item from another mode, so what it can build
+     * depends on what else is switched on; this builds its own composed
+     * space, so it has something to ask about whatever Customise says.
+     */
+    EnumQuestionType.AnalogyCompletion,
 ]);
 
 export function canGenerateQuestion(
@@ -178,6 +185,7 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.GraphMatching);
         this.initQuestionSettings(EnumQuestionType.Hierarchy);
         this.initQuestionSettings(EnumQuestionType.Analogy);
+        this.initQuestionSettings(EnumQuestionType.AnalogyCompletion);
         this.initQuestionSettings(EnumQuestionType.Binary);
         this.initQuestionSettings(EnumQuestionType.Deictic);
         this.initQuestionSettings(EnumQuestionType.Transformation);
