@@ -1236,11 +1236,17 @@ export class GameService implements GeneratorContext {
              * `score` now *reads* the derived value — `this.score += n` would
              * quietly overwrite the total with skill points plus n.
              */
-            if (!this.progressionActive) {
+            if (!this.progressionActive || this.progressionService.easy) {
                 // Nothing is adapting, so nothing should be climbing. Leaving
                 // the score moving would keep promoting a tier that no longer
                 // decides anything, and announcing it would be a promotion to
                 // nowhere.
+                //
+                // Easy mode lands here for the other half of the same promise:
+                // the item was served below level and `record` threw the answer
+                // away, so the stored total must not move either. Were it to
+                // climb, turning progression off afterwards would hand back a
+                // score built out of warm-ups.
                 this.question.userScore = this.score;
             } else if (isQuestionValid) {
                 this.rawScore += TIER_SCORE_ADJUSTMENTS[this.tier].increment;

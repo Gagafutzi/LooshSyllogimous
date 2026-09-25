@@ -41,6 +41,27 @@
             </span>
         </label>
 
+        <!--
+          Third because it is the third decision of the same kind — not a knob,
+          a choice about what this session is for — and because it only means
+          anything with fluid progression on, which is the switch above it.
+        -->
+        <label class="master mt-2" [class.is-idle]="!prog.enabled">
+            <input type="checkbox" class="form-check-input" [disabled]="!prog.enabled"
+                   [checked]="prog.easyMode"
+                   (change)="setProg('easyMode', $any($event.target).checked)">
+            <span>
+                <strong>Easy mode</strong>
+                <small class="d-block text-muted">
+                    Play {{ easyPoints }} points below your own level, off the
+                    record. Nothing is measured and nothing is scored &mdash;
+                    your estimate and your points stay exactly where they are.
+                    For warming up, or for a session that is not an attempt at
+                    a personal best.
+                </small>
+            </span>
+        </label>
+
         <p class="decides mb-0 mt-3">{{ decidesSummary() }}</p>
     </div>
 

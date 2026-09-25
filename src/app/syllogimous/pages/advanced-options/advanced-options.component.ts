@@ -4,7 +4,7 @@ import { EnumQuestionType } from "../../constants/question.constants";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../../constants/settings.constants";
 import { ModeOverride, SettingsOverrideService } from "../../services/settings-override.service";
 
-import { ProgressionService } from "../../services/progression.service";
+import { EASY_MODE_POINTS, ProgressionService } from "../../services/progression.service";
 import { GameService } from "../../services/game.service";
 import { ProgressAndPerformanceService } from "../../services/progress-and-performance.service";
 import { EnumTiers, ORDERED_TIERS, TIER_SCORE_RANGES } from "../../constants/game.constants";
@@ -154,6 +154,9 @@ export class AdvancedOptionsComponent {
     nudgeScore(delta: number) { this.game.score = this.game.score + delta; }
 
     get prog() { return this.progression.config; }
+
+    /** Read from the service so the copy cannot drift from the behaviour. */
+    readonly easyPoints = EASY_MODE_POINTS;
 
     /** The residual as points per hundred, or a dash before there is one. */
     get fatigueReading() {
@@ -374,10 +377,24 @@ export class AdvancedOptionsComponent {
         const modes = "Which modes appear and which run without a clock are"
             + " always yours, switch or no switch.";
 
+        /*
+         * Named here as well as on its own switch, because it is the one
+         * setting on this page that stops the session counting. Somebody who
+         * leaves it on by accident should find out from the line that
+         * summarises the page, not from a score that has not moved in a week.
+         *
+         * Only on the branches where progression is on: with it off the flag
+         * selects nothing, and `progression.easy` already says so.
+         */
+        const easy = this.progression.easy
+            ? ` Easy mode is on: items come ${EASY_MODE_POINTS} points below your`
+                + " level and none of this session is recorded."
+            : "";
+
         if (mine && fluid) {
             return `${modes} Fluid progression sets how hard they are, so the`
                 + " premise counts, modifiers and clock below are stored but not"
-                + " used until you switch it off.";
+                + " used until you switch it off." + easy;
         }
         if (mine && !fluid) {
             return `${modes} You set the rest too — difficulty stays where you`
@@ -385,7 +402,7 @@ export class AdvancedOptionsComponent {
         }
         if (!mine && fluid) {
             return `${modes} Fluid progression sets how hard they are; nothing`
-                + " else on this page is in force.";
+                + " else on this page is in force." + easy;
         }
         return `${modes} Your tier fills in the modes you have not decided about,`
             + " and the premise count steps up and down on streaks.";

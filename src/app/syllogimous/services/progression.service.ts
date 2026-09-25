@@ -48,6 +48,21 @@ import { MODE_SCALE } from "../utils/calibration.utils";
  * Precedence when enabled: tier → user overrides → progression.
  */
 
+/**
+ * Points per level, which is the whole of the conversion between the two
+ * scales the app talks in: the ability estimate is in levels and the score the
+ * player sees is in points.
+ */
+export const POINTS_PER_LEVEL = 100;
+
+/**
+ * How far below your own level easy mode plays.
+ *
+ * Written in points because that is the scale it is chosen in and the scale it
+ * is described in; it reaches the aim as levels, through the constant above.
+ */
+export const EASY_MODE_POINTS = 500;
+
 const LS_CONFIG = "syllogimous-progression-config";
 /** Long enough to read one premise and move on, when the player is paging. */
 const MANUAL_SCREEN_SECONDS = 2;
@@ -88,6 +103,20 @@ function forgettingFor(answers: number): number {
 
 export interface ProgressionSettings {
     enabled: boolean;
+    /**
+     * Play below your own level, and do not be measured while you do.
+     *
+     * For warming up, for coming back after a break, and for the times a
+     * session is not an attempt at a personal best. Nothing is recorded: the
+     * posterior does not move, the score does not move, and no probe is served,
+     * because a probe exists to measure and there is nothing here to measure.
+     *
+     * That last part is what makes it safe. Serving easier items while still
+     * recording them would drive the estimate down and leave the player dug
+     * into a hole they would have to climb out of — the score is derived from
+     * the posteriors, so answering easy items IS evidence that ability is low.
+     */
+    easyMode: boolean;
     /** Accuracy item selection aims for. Training wants ~0.8, measurement lower. */
     targetAccuracy: number;
     /** Clock bounds when difficulty is made up with time. */
@@ -163,6 +192,7 @@ export interface ProgressionSettings {
 
 const DEFAULT_SETTINGS: ProgressionSettings = {
     enabled: true,
+    easyMode: false,
     targetAccuracy: 0.8,
     floorSeconds: DEFAULT_ABILITY.minSeconds,
     ceilingSeconds: DEFAULT_ABILITY.maxSeconds,
@@ -251,6 +281,16 @@ export class ProgressionService {
     }
 
     private get live() { return this.config.enabled && !this.suppressed; }
+
+    /**
+     * Whether easy mode is actually in force.
+     *
+     * It is a progression setting and it works by moving the aim, so with
+     * progression off there is no aim to move and the flag selects nothing.
+     * Everything that asks reads it through here, so the score and the
+     * posterior can never disagree about whether this answer counted.
+     */
+    get easy() { return this.config.enabled && this.config.easyMode; }
 
     /*
      * The override layer is consulted for one thing only: whether a mode is
@@ -808,6 +848,7 @@ export class ProgressionService {
 
     /** The timer preference each cached choice was built under, per mode. */
     private cachedUntimed: Partial<Record<EnumQuestionType, boolean>> = {};
+    private cachedEasy = false;
 
     /**
      * Whether the player has turned the clock off.
@@ -859,6 +900,9 @@ export class ProgressionService {
     isProbeTurn(type: EnumQuestionType): boolean {
         const every = this.config.probeEvery;
         if (!every || every < 2 || !this.config.enabled) return false;
+        /* A probe is an item placed to measure, and easy mode records nothing.
+           Serving one anyway would be a harder item bought for no evidence. */
+        if (this.easy) return false;
         return this.abilityFor(type).trials % every === every - 1;
     }
 
@@ -872,6 +916,13 @@ export class ProgressionService {
             this.cachedUntimed[type] = untimed;
             // Only this mode's choice depended on it, so only this one goes.
             delete this.configCache[type];
+        }
+        /* Easy mode moves the aim, so a cached choice made under the other
+           setting is the wrong item. Every mode's is, so the whole cache goes
+           rather than this one's. */
+        if (this.easy !== this.cachedEasy) {
+            this.cachedEasy = this.easy;
+            this.configCache = {};
         }
 
         // Only the training configuration is cached. A probe is computed on the
@@ -900,6 +951,17 @@ export class ProgressionService {
         const cautious = probe
             ? est
             : { ...est, level: est.level - cautionPenalty(est.sd, cfg, this.trials().length) };
+        /*
+         * Easy mode, applied to the aim rather than to the estimate.
+         *
+         * The estimate is what the player is; the aim is what they are served.
+         * Taking the five hundred points off here leaves the posterior exactly
+         * where it was, so the number on the screen does not move and the
+         * session is a step down rather than a demotion.
+         */
+        const aim = this.easy
+            ? { ...cautious, level: cautious.level - EASY_MODE_POINTS / POINTS_PER_LEVEL }
+            : cautious;
         const wantAccuracy = probe ? this.config.probeAccuracy : this.config.targetAccuracy;
 
         const ladder = ladderFor(type);
@@ -929,13 +991,13 @@ export class ProgressionService {
          */
         const first = chooseConfig(type, {
             ...opts,
-            target: targetLevel(cautious, wantAccuracy, 0.5, cfg),
+            target: targetLevel(aim, wantAccuracy, 0.5, cfg),
         }, cfg);
 
         const guess = guessRateForRungs(ladder.slice(0, first.rungs));
         const choice = guess === 0.5 ? first : chooseConfig(type, {
             ...opts,
-            target: targetLevel(cautious, wantAccuracy, guess, cfg),
+            target: targetLevel(aim, wantAccuracy, guess, cfg),
         }, cfg);
 
         if (!probe) this.configCache[type] = choice;
@@ -1344,6 +1406,27 @@ export class ProgressionService {
         },
     ): LadderEvent[] {
         if (!this.config.enabled) { this.lastEvents = []; return []; }
+
+        /*
+         * Easy mode answers nothing to the model.
+         *
+         * The item was chosen five hundred points below the estimate, so its
+         * outcome says almost nothing about ability either way — a right
+         * answer is expected and a wrong one is noise. Recording it anyway
+         * would be the trap the mode exists to avoid: easy items answered
+         * correctly still drag a Bayesian posterior towards the level they
+         * were served at, and the score is derived from the posteriors, so a
+         * warm-up would cost points.
+         *
+         * The levers are still noted. That window is variety, not evidence —
+         * it keeps the next item from repeating this one — and there is no
+         * reason a warm-up should serve the same shape six times running.
+         */
+        if (this.easy) {
+            this.noteLevers(type, this.configFor(type));
+            this.lastEvents = [];
+            return [];
+        }
 
         /*
          * Scored against the item that actually arrived.

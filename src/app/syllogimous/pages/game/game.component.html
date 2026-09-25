@@ -155,7 +155,18 @@
           hold a fixed button, and outside the slides, because the slides are
           hidden entirely in the all-premises mode.
         -->
-        <div class="mode-tag text-muted text-center mb-2" *ngIf="game.question">{{ game.question.type }}</div>
+        <!--
+          Easy mode says so here, on the line that already names the mode, so
+          it costs no new rule against the 8 kB budget this file's CSS sits
+          against. Appended into the same interpolation rather than wrapped in
+          an element, because the label is checked by matching the div's text
+          straight through and a child tag would end that match early.
+
+          It has to be visible somewhere: a session that is not being recorded
+          looks exactly like one that is, and finding out afterwards that an
+          hour did not count is the worst way to find out.
+        -->
+        <div class="mode-tag text-muted text-center mb-2" *ngIf="game.question">{{ game.question.type }}{{ progressionService.easy ? ' · easy, not counted' : '' }}</div>
 
         <div class="timerbar-wrap">
             <!--

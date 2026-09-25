@@ -10,6 +10,7 @@ import { run } from "./harness";
 import "./phrasing.test";
 import "./ndspace.test";
 import "./progression.test";
+import "./easy-mode.test";
 import "./generators.test";
 import "./induction.test";
 import "./derivation.test";
