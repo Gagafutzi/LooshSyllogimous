@@ -226,6 +226,9 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // answer space here, and the only mode whose relations do not compose
     // to a point.
     [EnumQuestionType.Intervals]: { weight: 2.4, ceiling: 26 },
+    // Four relations composed before any of them can be ruled out, and the
+    // wrong one wrong by a single axis or by direction alone.
+    [EnumQuestionType.OddAnalogy]: { weight: 2.5, ceiling: 26 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

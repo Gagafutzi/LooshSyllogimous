@@ -31,6 +31,17 @@
 
 import { assert, equal, seeded, test } from "./harness";
 import { BUILD } from "./modes";
+
+/**
+ * A subject, blanked, so two sentences differing only in their names match.
+ *
+ * The same pair `phrasing.ts` keeps for its own use — object names out of the
+ * symbol key — written out again here rather than exported: this needs it for a
+ * different reason, and sharing the constant would tie the two together for no
+ * better reason than that they agree today.
+ */
+const SUBJECT_SPAN = /<span class="subject">[\s\S]*?<\/span>/g;
+const SUBJECT_STANDIN = "\u00a4";
 import { GeneratorContext } from "../src/app/syllogimous/generators/context";
 import { ProgressionService } from "../src/app/syllogimous/services/progression.service";
 import { SettingsOverrideService } from "../src/app/syllogimous/services/settings-override.service";
@@ -607,33 +618,54 @@ test("no item offers more than two options", () => {
                             continue;
                         }
                         /*
-                         * **A menu whose options are the premises is exempt,
-                         * and the condition is the argument.**
+                         * **A menu of the item's own claims is exempt, and the
+                         * two conditions are the argument.**
                          *
                          * The harm above is that a long menu can be shortened
                          * by looking: three of four claims are about the wrong
                          * pair and go without being reasoned about. That needs
                          * the options to differ in some way a glance can use.
                          *
-                         * Where the options *are* the premises, verbatim and in
-                         * their own order, there is nothing to glance at — each
-                         * is a sentence of the same shape about the same
-                         * entities, and ruling one out means withdrawing it and
-                         * finding the rest still clash. Nor would a shorter
-                         * menu make the item harder: narrowing the premises to
-                         * two would do the finding the mode exists for.
+                         * So the exemption asks for both halves of "there is
+                         * nothing to glance at". Every option must be a premise
+                         * of this item, verbatim — the question is which of the
+                         * card's own claims is wrong, which is inherently about
+                         * one thing rather than four. And the options must be
+                         * the same *sentence* as each other with different names
+                         * in them, checked by blanking the subject spans: two
+                         * shapes at most, which is what a mode with an affirmed
+                         * and a negated form needs.
+                         *
+                         * Two shapes cannot be sorted into groups usefully, but
+                         * a two-way split could still *correlate* with the
+                         * answer — if the wrong premise were always the negated
+                         * one, the menu would be free. That is a fact about one
+                         * mode's draw rather than about menus, so it is checked
+                         * where it arises: `contradiction.test.ts` holds the
+                         * marked premise to sharing its polarity with another.
+                         *
+                         * Either half alone is not enough. Premises that came in
+                         * assorted forms could be sorted by form; uniform
+                         * sentences the card does not assert would be an
+                         * authored menu about four different things.
                          *
                          * `guessRateFor("choice", 0, n)` is exactly `1/n`, so
-                         * the weaker floor is already priced. The exemption is
-                         * written as this condition rather than as a list of
-                         * modes, so a mode that grows an authored menu does not
-                         * inherit it.
+                         * the weaker floor is already priced. Written as
+                         * conditions rather than as a list of modes, so a mode
+                         * that grows an authored menu does not inherit it.
                          */
                         const own = (claim as { premises?: string[] }).premises ?? [];
-                        const fromPremises = own.length > 2
-                            && offered.length === own.length
-                            && offered.every((o, i) => o === own[i]);
-                        if (fromPremises) continue;
+                        const asserted = offered.length > 2
+                            && offered.every(o => own.includes(o));
+                        const shapes = new Set(
+                            offered.map(o => o.replace(SUBJECT_SPAN, SUBJECT_STANDIN)));
+                        if (asserted && shapes.size <= 2) continue;
+                        if (asserted) {
+                            wide.push(`${type} at ${n} premises offers ${offered.length}`
+                                + ` of its own premises in ${shapes.size} different shapes,`
+                                + " so they can be sorted by form rather than judged");
+                            continue;
+                        }
                         if (offered.length > 2) {
                             wide.push(`${type} at ${n} premises offers ${offered.length}`);
                         }

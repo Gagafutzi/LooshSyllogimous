@@ -55,9 +55,12 @@ type Pair = { a: string; b: string; key: string };
  * unlike a premise it cannot be read off one sentence — it is accumulated along
  * the chain. Two is the floor because a one-axis relation has three values and
  * a decoy is then always the reverse, which is a different question. Five is
- * the ceiling: the sixth preset axis is Distinction, which has no direction to
- * carry, and a relation with a non-directional component in it stops being the
- * thing this mode is about.
+ * the ceiling: `DIMENSION_AXES` adds Quantity at six and Distinction at seven,
+ * and Distinction has no direction to carry — a relation with a non-directional
+ * component in it stops being the thing this mode is about. (This said "the
+ * sixth preset axis is Distinction", which the table does not: it is the
+ * seventh. The cap is where it is because five signs is as many as anyone
+ * carries along a chain, not because the sixth axis is unusable.)
  */
 function axisCount(numOfPremises: number): number {
     return Math.max(2, Math.min(5, numOfPremises - 2));
@@ -76,7 +79,9 @@ function disjoint(one: Pair, other: Pair): boolean {
         && one.b !== other.a && one.b !== other.b;
 }
 
-const pairText = (p: Pair) => `${subj(p.a)} ${own("pair-to")} ${subj(p.b)}`;
+/** How this app words a pair. Shared, so the two analogy modes read alike. */
+export const pairText = (p: { a: string; b: string }) =>
+    `${subj(p.a)} ${own("pair-to")} ${subj(p.b)}`;
 
 export function createAnalogyCompletion(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createAnalogyCompletion");

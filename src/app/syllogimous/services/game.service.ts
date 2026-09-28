@@ -72,6 +72,7 @@ import { createMissingPremise } from "../generators/missing-premise";
 import { createMappingConflict } from "../generators/mapping-conflict";
 import { createBetweenness } from "../generators/betweenness";
 import { createIntervals } from "../generators/intervals";
+import { createOddAnalogy } from "../generators/odd-analogy";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
 import { createArrangement } from "../generators/arrangement";
 import { createBinary } from "../generators/binary";
@@ -535,6 +536,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.MappingConflict]: () => createMappingConflict(this, numOfPremises),
             [EnumQuestionType.Betweenness]: () => createBetweenness(this, numOfPremises),
             [EnumQuestionType.Intervals]: () => createIntervals(this, numOfPremises),
+            [EnumQuestionType.OddAnalogy]: () => createOddAnalogy(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
             [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),

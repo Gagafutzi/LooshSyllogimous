@@ -128,11 +128,9 @@ test("the long menu is the premise list, and priced as one", () => {
         assert(q.choices.length > 2,
             "the menu is short enough not to need the exemption, which makes the "
             + "exemption untested rather than unnecessary");
-        const shapes = new Set(q.choices.map(c =>
-            strip(c).replace(/[^ ]+/g, w => /^(does|not)$/.test(w) ? w : "·")));
-        assert(shapes.size <= 2,
-            `the options come in ${shapes.size} shapes, so some can be told apart `
-            + `by their form rather than by what they say: ${[...shapes].join(" | ")}`);
+        /* The options being one sentence with different names in it is now a
+           condition of the exemption itself, checked in `registries.test.ts`
+           for every mode that claims it rather than here for this one. */
         // A fifth of a level's worth of evidence, not a half — the model is told.
         equal(guessRateFor("choice", 0, q.choices.length), 1 / q.choices.length,
             "the floor a menu this long carries is not the one being credited");

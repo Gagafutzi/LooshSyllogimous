@@ -32,6 +32,7 @@ export class TypeBasedStats {
     [EnumQuestionType.MappingConflict] = new TypeBasedStatsInner(EnumQuestionType.MappingConflict);
     [EnumQuestionType.Betweenness] = new TypeBasedStatsInner(EnumQuestionType.Betweenness);
     [EnumQuestionType.Intervals] = new TypeBasedStatsInner(EnumQuestionType.Intervals);
+    [EnumQuestionType.OddAnalogy] = new TypeBasedStatsInner(EnumQuestionType.OddAnalogy);
     [EnumQuestionType.Binary] = new TypeBasedStatsInner(EnumQuestionType.Binary);
     [EnumQuestionType.Deictic] = new TypeBasedStatsInner(EnumQuestionType.Deictic);
     [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);

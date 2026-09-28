@@ -330,6 +330,18 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 5,
         basic: false
     },
+    /*
+     * Six is the floor and it is the four claims that set it: the count is the
+     * layout's premises, and three axes need four of them before there are pairs
+     * enough two steps apart to draw eight distinct halves from. Nine is the
+     * ceiling because the card already carries four analogies under the layout.
+     */
+    [EnumQuestionType.OddAnalogy]: {
+        enabled: true,
+        minNumOfPremises: 6,
+        maxNumOfPremises: 9,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,
