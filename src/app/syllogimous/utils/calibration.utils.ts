@@ -180,7 +180,7 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      * a reach of seven is not a harder linear order — there is no order — and
      * counting round it stays discriminating where the orderings have stopped.
      */
-    [EnumQuestionType.CyclicDominance]: { weight: 1.5, ceiling: 22 },
+    [EnumQuestionType.DominanceRing]: { weight: 1.5, ceiling: 22 },
     /*
      * Weighted high for the same reason the induction pair is: a premise here
      * buys arrangements to rule out rather than a chain to lengthen, and the
@@ -188,6 +188,13 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      * correct one says considerably more than a true-or-false does.
      */
     [EnumQuestionType.PossibilitySets]: { weight: 2.0, ceiling: 24 },
+    /*
+     * A shade under Possibility Sets. Same question and the same answer shape,
+     * on one family of relations rather than four — the reading is narrower,
+     * and a player who has met the circle before knows what kind of thing they
+     * are working out.
+     */
+    [EnumQuestionType.CyclicDominance]: { weight: 1.9, ceiling: 24 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

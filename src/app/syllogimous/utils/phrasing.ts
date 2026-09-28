@@ -504,7 +504,7 @@ export function symboliseSetup(
      * Own-rule wording converts here too, and safely: `applyOwnRules` replaces
      * spans by their key rather than by matching text, so it is "what the
      * generator marked" by the same rule as the spans below. A mode whose
-     * setup states its own vocabulary — Cyclic Dominance says what "beats"
+     * setup states its own vocabulary — Dominance Ring says what "beats"
      * means — would otherwise print that word over premises using the mark.
      */
     return applyOwnRules(html, marks).replace(
@@ -861,7 +861,7 @@ export const OWN_RULES: Record<string, { words: string; mark: string; label?: st
     "gm-inverse": { words: "the inverse of", mark: "¬", label: "the inverse of" },
 
     /*
-     * Cyclic Dominance's one relation, and it takes a fixed mark rather than
+     * The dominance relation, and it takes a fixed mark rather than
      * the card's label.
      *
      * "Beats" is not a relation from the scale table and must not become one:

@@ -102,10 +102,13 @@ test("each system does what its description says", () => {
         const says = s.meaning.toLowerCase();
         let checked = 0;
 
-        if (says.includes("never runs both ways")) {
+        if (says.includes("never runs both ways") || says.includes("one way only")) {
             checked++;
+            /* Two wordings for asymmetry, and both are checked. "One way only"
+               went unchecked, so `cyclic3` was passing on its other claim alone
+               and a symmetric circle would have gone unnoticed. */
             assert(!everSymmetric(s, n),
-                `${s.id} says it never runs both ways, and it does`);
+                `${s.id} says it runs one way only, and it runs both`);
         }
         if (says.includes("runs both ways") && !says.includes("never runs both ways")) {
             checked++;

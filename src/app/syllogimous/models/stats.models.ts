@@ -22,8 +22,9 @@ export class TypeBasedStats {
     [EnumQuestionType.Hierarchy] = new TypeBasedStatsInner(EnumQuestionType.Hierarchy);
     [EnumQuestionType.Analogy] = new TypeBasedStatsInner(EnumQuestionType.Analogy);
     [EnumQuestionType.AnalogyCompletion] = new TypeBasedStatsInner(EnumQuestionType.AnalogyCompletion);
-    [EnumQuestionType.CyclicDominance] = new TypeBasedStatsInner(EnumQuestionType.CyclicDominance);
+    [EnumQuestionType.DominanceRing] = new TypeBasedStatsInner(EnumQuestionType.DominanceRing);
     [EnumQuestionType.PossibilitySets] = new TypeBasedStatsInner(EnumQuestionType.PossibilitySets);
+    [EnumQuestionType.CyclicDominance] = new TypeBasedStatsInner(EnumQuestionType.CyclicDominance);
     [EnumQuestionType.Binary] = new TypeBasedStatsInner(EnumQuestionType.Binary);
     [EnumQuestionType.Deictic] = new TypeBasedStatsInner(EnumQuestionType.Deictic);
     [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);

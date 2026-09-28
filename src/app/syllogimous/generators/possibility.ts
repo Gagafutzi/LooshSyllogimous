@@ -83,8 +83,25 @@ function everLeavesOpen(s: RelationSystem, n: number): boolean {
 
 export function createPossibilitySets(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createPossibilitySets");
+    return buildPossibility(
+        ctx, numOfPremises, EnumQuestionType.PossibilitySets, ALL_SYSTEMS.filter(oneWay));
+}
 
-    const type = EnumQuestionType.PossibilitySets;
+/**
+ * The question both possibility modes ask, over whichever systems it is given.
+ *
+ * Isomorph's arrangement, and the reason porting the band is cheap: the mode
+ * says what is asked and the system says what the relation means, so a second
+ * mode over the same question is a different pool of systems rather than a
+ * second generator. Cyclic Dominance is this asked of the dominance circles;
+ * Possibility Sets is this asked of everything that runs one way.
+ */
+export function buildPossibility(
+    ctx: GeneratorContext,
+    numOfPremises: number,
+    type: EnumQuestionType,
+    pool: RelationSystem[],
+): Question {
     const settings = ctx.settings;
 
     if (!canGenerateQuestion(type, numOfPremises, settings)) {
@@ -92,10 +109,10 @@ export function createPossibilitySets(ctx: GeneratorContext, numOfPremises: numb
     }
     numOfPremises = clampPremises(type, numOfPremises);
 
-    const asymmetric = ALL_SYSTEMS.filter(oneWay);
+    if (!pool.length) throw new Error("Cannot generate.");
 
     for (let attempt = 0; attempt < 300; attempt++) {
-        const system = pickUniqueItems(asymmetric, 1).picked[0];
+        const system = pickUniqueItems(pool, 1).picked[0];
         /*
          * Entities are the width and premises are the reading. They are drawn
          * apart because the state space is what has to stay enumerable: four or

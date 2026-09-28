@@ -1,5 +1,5 @@
 /**
- * Cyclic Dominance — the mode whose whole point is that chaining fails.
+ * Dominance Ring — the mode whose whole point is that chaining fails.
  *
  * Every other mode in this app states an ordering, and an item is solved by
  * leaning on transitivity. This one states results on a ring, where A beats B,
@@ -25,9 +25,9 @@ import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/s
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { extractSubjects } from "../src/app/syllogimous/utils/question.utils";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
-import { createCyclicDominance } from "../src/app/syllogimous/generators/cyclic";
+import { createDominanceRing } from "../src/app/syllogimous/generators/dominance-ring";
 
-const TYPE = EnumQuestionType.CyclicDominance;
+const TYPE = EnumQuestionType.DominanceRing;
 const { minNumOfPremises: MIN, maxNumOfPremises: MAX } = QUESTION_TYPE_SETTING_PARAMS[TYPE];
 
 function context(): GeneratorContext {
@@ -97,7 +97,7 @@ function items(): Question[] {
     seeded(20260928, () => {
         for (let n = MIN; n <= MAX; n++) {
             for (let rep = 0; rep < 6; rep++) {
-                try { out.push(createCyclicDominance(ctx, n)); } catch { /* an undrawable ring */ }
+                try { out.push(createDominanceRing(ctx, n)); } catch { /* an undrawable ring */ }
             }
         }
     });

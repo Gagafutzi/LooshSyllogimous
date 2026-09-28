@@ -31,6 +31,7 @@ import {
 } from "../src/app/syllogimous/utils/relation-systems.utils";
 import { createDistinction } from "../src/app/syllogimous/generators/distinction";
 import { createPossibilitySets } from "../src/app/syllogimous/generators/possibility";
+import { createCyclicDominance } from "../src/app/syllogimous/generators/cyclic-dominance";
 
 const TYPE = EnumQuestionType.PossibilitySets;
 const { minNumOfPremises: MIN, maxNumOfPremises: MAX } = QUESTION_TYPE_SETTING_PARAMS[TYPE];
@@ -307,4 +308,82 @@ test("the game screen offers a way to answer a selection", () => {
     assert(/this\.selectPicks = \[\]/.test(ts),
         "the picks are not cleared between items, so the last answer carries over");
     assert(/checkSelection\(/.test(ts), "the screen never hands the selection to the service");
+});
+
+/* ------------------------------------------------------------------ *
+ * Cyclic Dominance, the same question over the circles                *
+ * ------------------------------------------------------------------ *
+ *
+ * Isomorph's mode, and a pool of systems rather than a second generator: the
+ * mode says what is asked and the system says what the relation means. So what
+ * is worth asserting is the pool — that it is circles and only circles, and
+ * that the rung really widens one.
+ */
+
+function circleItems(five: boolean): Question[] {
+    const ctx = context();
+    (ctx as { hasRung: unknown }).hasRung = () => five;
+    const out: Question[] = [];
+    seeded(five ? 515 : 313, () => {
+        for (let n = 3; n <= 8; n++) {
+            for (let rep = 0; rep < 8; rep++) {
+                try { out.push(createCyclicDominance(ctx, n)); } catch { /* an undrawable draw */ }
+            }
+        }
+    });
+    assert(out.length > 20, `only ${out.length} items were built`);
+    return out;
+}
+
+test("Cyclic Dominance asks about a circle and nothing else", () => {
+    for (const q of circleItems(false)) {
+        equal(systemOf(q).id, "cyclic3",
+            "the mode drew a relation that is not the three-kind circle");
+        equal(q.answerMode, "select", "the mode is not answered by selecting");
+    }
+});
+
+/**
+ * The rung widens the circle rather than adding to the pool.
+ *
+ * Both in the pool would leave half the items on the three-kind circle, and a
+ * rung that arrives half the time is one a player cannot tell they have —
+ * which is the ladder's own complaint about modifiers that are charged for and
+ * not delivered.
+ */
+test("the five rung replaces the circle rather than joining it", () => {
+    const widened = circleItems(true);
+    for (const q of widened) {
+        equal(systemOf(q).id, "cyclic5", "an item on the rung is still the smaller circle");
+    }
+
+    /* And the wider circle really is a different relation: at three, two steps
+       always run back the other way, and at five they do not. */
+    const three = systemOf(circleItems(false)[0]);
+    const five = systemOf(widened[0]);
+    assert(three.meaning !== five.meaning, "the two circles describe themselves the same way");
+    assert(five.meaning.includes("does not chain"),
+        "the wider circle does not say that a chain of two can fail, which is what it adds");
+});
+
+/** The answer is still recomputed from the card, circles included. */
+test("Cyclic Dominance marks exactly the outcomes its survivors have", () => {
+    for (const five of [false, true]) {
+        for (const q of circleItems(five)) {
+            const system = systemOf(q);
+            const survivors = consistentStates(system, q.bucket.length, factsOf(q));
+            assert(survivors.length > 0, "no arrangement fits the premises");
+
+            const [x, y] = askedPair(q);
+            const at = new Map(q.bucket.map((w, i) => [w, i]));
+            q.choices.forEach((option, i) => {
+                const named = extractSubjects(option);
+                const possible = named.length === 2
+                    ? survivors.some(st => system.holds(st, at.get(named[0])!, at.get(named[1])!))
+                    : survivors.some(st => !system.holds(st, x, y) && !system.holds(st, y, x));
+                equal(q.selectAnswer.includes(i), possible,
+                    `"${strip(option)}" is marked wrongly on the ${system.id} circle`);
+            });
+        }
+    }
 });

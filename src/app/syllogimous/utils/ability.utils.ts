@@ -156,6 +156,12 @@ export const RUNG_COST: Record<string, number> = {
      * working.
      */
     "near-miss": 1.2,
+    /*
+     * A wider dominance circle. Priced with the rungs that remove a shortcut:
+     * nothing new has to be carried, and the rule that let a reader answer
+     * without working anything out stops holding.
+     */
+    five: 1.3,
 
     "choose-conclusion": 0.8,
     "construct-conclusion": 1.8,

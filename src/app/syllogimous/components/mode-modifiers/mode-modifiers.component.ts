@@ -105,6 +105,7 @@ export class ModeModifiersComponent {
             "construct-distance": "Build it with distances, not only directions",
             "analogy": "Analogy conclusions — one pair against another",
             "near-miss": "The wrong pair differs on one axis only",
+            "five": "Five kinds round the circle, not three",
 
             /* --- shape of the premise network --- */
             "branching": "Branching premises, not a single chain",

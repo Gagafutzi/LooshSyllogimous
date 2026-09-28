@@ -62,8 +62,9 @@ import { settingsForTier, unlockRow } from "../utils/tier.utils";
 import { neg, subj } from "../utils/phrasing";
 import { createAnalogy } from "../generators/analogy";
 import { createAnalogyCompletion } from "../generators/analogy-completion";
-import { createCyclicDominance } from "../generators/cyclic";
+import { createDominanceRing } from "../generators/dominance-ring";
 import { createPossibilitySets } from "../generators/possibility";
+import { createCyclicDominance } from "../generators/cyclic-dominance";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
 import { createArrangement } from "../generators/arrangement";
 import { createBinary } from "../generators/binary";
@@ -517,8 +518,9 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.Hierarchy]: () => createHierarchy(this, numOfPremises),
             [EnumQuestionType.Analogy]: () => createAnalogy(this, numOfPremises),
             [EnumQuestionType.AnalogyCompletion]: () => createAnalogyCompletion(this, numOfPremises),
-            [EnumQuestionType.CyclicDominance]: () => createCyclicDominance(this, numOfPremises),
+            [EnumQuestionType.DominanceRing]: () => createDominanceRing(this, numOfPremises),
             [EnumQuestionType.PossibilitySets]: () => createPossibilitySets(this, numOfPremises),
+            [EnumQuestionType.CyclicDominance]: () => createCyclicDominance(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
             [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),

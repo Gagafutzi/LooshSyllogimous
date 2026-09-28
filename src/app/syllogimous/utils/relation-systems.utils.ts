@@ -209,6 +209,26 @@ const CYCLIC3: RelationSystem = {
     holds: (state, a, b) => (state[a] - state[b] + 3) % 3 === 1,
 };
 
+/**
+ * The circle widened, which is Isomorph's `five` rung for the mode.
+ *
+ * Three kinds is the smallest circle and the one everybody already knows, and
+ * it has a property the wider ones lose: from A beating B and B beating C it
+ * follows that C beats A, every time. At five each kind beats the *two* that
+ * follow, so a chain of two sometimes gives the third and sometimes does not —
+ * the trap stops being a rule to invert and becomes something to work out.
+ */
+const CYCLIC5: RelationSystem = {
+    id: "cyclic5",
+    maxN: 7,
+    meaning: "dominance round a circle of five kinds: one way only, each kind beats the two that follow it, and it does not chain",
+    states: n => assignments(n, 5),
+    holds: (state, a, b) => {
+        const round = (state[a] - state[b] + 5) % 5;
+        return round === 1 || round === 2;
+    },
+};
+
 const ADJACENCY: RelationSystem = {
     id: "adjacency",
     maxN: 7,
@@ -250,8 +270,11 @@ const ANCESTRY: RelationSystem = {
  */
 export const STARTER_SYSTEMS: RelationSystem[] = [ORDER, EQUIVALENCE, CYCLIC3, ADJACENCY];
 
+/** The dominance circles, widest last — Cyclic Dominance's own ladder. */
+export const CIRCLE_SYSTEMS: RelationSystem[] = [CYCLIC3, CYCLIC5];
+
 export const ALL_SYSTEMS: RelationSystem[] = [
-    ORDER, EQUIVALENCE, OPPOSITION, CYCLIC3, ADJACENCY, SUCCESSOR, ANCESTRY,
+    ORDER, EQUIVALENCE, OPPOSITION, CYCLIC3, CYCLIC5, ADJACENCY, SUCCESSOR, ANCESTRY,
 ];
 
 export const systemById = (id: string): RelationSystem | undefined =>

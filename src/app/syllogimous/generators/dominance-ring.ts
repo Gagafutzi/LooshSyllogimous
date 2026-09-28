@@ -1,7 +1,10 @@
 /**
- * Cyclic Dominance — a result that orders nothing.
+ * Dominance Ring — a result that orders nothing.
  *
- * The first of the modes brought over from Isomorph, and chosen first because
+ * Written here rather than ported: Isomorph's Cyclic Dominance is a different
+ * mode that shares the idea — three kinds round a circle, and which outcomes
+ * the premises still allow. This one is a ring of the objects themselves, and
+ * what it asks is which way round a pair comes out. It was chosen first because
  * of what the rest of this app is made of. Every relation here is an ordering:
  * north of, bigger than, before, contains, above. They differ in vocabulary and
  * in how many of them you carry at once, and in one respect they are all the
@@ -56,10 +59,10 @@ function ringSize(numOfPremises: number): number {
 const beats = (winner: string, loser: string) =>
     `${subj(winner)} ${own("cyc-beats")} ${subj(loser)}`;
 
-export function createCyclicDominance(ctx: GeneratorContext, numOfPremises: number): Question {
-    ctx.logger.info("createCyclicDominance");
+export function createDominanceRing(ctx: GeneratorContext, numOfPremises: number): Question {
+    ctx.logger.info("createDominanceRing");
 
-    const type = EnumQuestionType.CyclicDominance;
+    const type = EnumQuestionType.DominanceRing;
     const settings = ctx.settings;
 
     if (!canGenerateQuestion(type, numOfPremises, settings)) {

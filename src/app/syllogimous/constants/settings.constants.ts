@@ -215,7 +215,7 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
      * to count: at three, every pair is adjacent and every answer is read off
      * a premise. Fifteen is the ceiling, where each object beats seven.
      */
-    [EnumQuestionType.CyclicDominance]: {
+    [EnumQuestionType.DominanceRing]: {
         enabled: true,
         minNumOfPremises: 5,
         maxNumOfPremises: 15,
@@ -229,6 +229,13 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
      * usually settle the pair outright and the skill is telling that.
      */
     [EnumQuestionType.PossibilitySets]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 8,
+        basic: false
+    },
+    /* The same question over a dominance circle, so the same bounds. */
+    [EnumQuestionType.CyclicDominance]: {
         enabled: true,
         minNumOfPremises: 3,
         maxNumOfPremises: 8,

@@ -566,8 +566,14 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * premise count, so there is no second quantity for a rung to name —
      * Deictic's case, reached the same way.
      */
-    "Cyclic Dominance":          [],
+    "Dominance Ring":            [],
     "Possibility Sets":          [],
+    /*
+     * One rung, and it is Isomorph's own: a wider circle. Three kinds is a rule
+     * that can be learnt and inverted — two steps always run back the other
+     * way — and five is not.
+     */
+    "Cyclic Dominance":          ["five"],
     "Binary":                    ["negation", "retired-meta"],
     /*
      * Empty, and for a different reason from the two above.

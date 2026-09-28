@@ -90,7 +90,7 @@ import "./testimony.test";
 import "./deictic.test";
 import "./anchor-negation.test";
 import "./analogy-completion.test";
-import "./cyclic.test";
+import "./dominance-ring.test";
 import "./relation-systems.test";
 import "./possibility.test";
 

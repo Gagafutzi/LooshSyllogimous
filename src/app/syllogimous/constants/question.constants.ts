@@ -71,8 +71,9 @@ export enum EnumQuestionType {
      * up. These assume the base game rather than extending it: what they train
      * is what a chain of "north of" leaves out.
      */
-    CyclicDominance = "Cyclic Dominance",
+    DominanceRing = "Dominance Ring",
     PossibilitySets = "Possibility Sets",
+    CyclicDominance = "Cyclic Dominance",
 }
 
 export enum EnumArrangements {
