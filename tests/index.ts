@@ -91,5 +91,6 @@ import "./deictic.test";
 import "./anchor-negation.test";
 import "./analogy-completion.test";
 import "./cyclic.test";
+import "./relation-systems.test";
 
 run();
