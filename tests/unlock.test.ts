@@ -14,7 +14,8 @@
 import { assert, equal, test } from "./harness";
 import { TIER_UNLOCK_LEVELS, unlockRow } from "../src/app/syllogimous/utils/tier.utils";
 import {
-    ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIERS_MATRIX, TIER_SCORE_RANGES,
+    EnumTiers, IMPORTED_MODES, ORDERED_QUESTION_TYPES, ORDERED_TIERS, TIERS_MATRIX,
+    TIER_SCORE_RANGES,
 } from "../src/app/syllogimous/constants/game.constants";
 import { DEFAULT_ABILITY, levelOf } from "../src/app/syllogimous/utils/ability.utils";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
@@ -33,23 +34,28 @@ const modesAt = (row: number) => TIERS_MATRIX[row].filter(v => v).length;
 const EVERY_MODE = Math.max(
     ...Object.values(TIERS_MATRIX).map(row => row.filter(v => v).length));
 
-/**
- * The modes held above the base game's ramp, read off the matrix.
- *
- * "Everything is open by level 8" was true of the app as built, and the two
- * tests below said so by name. It stopped being true when the band imported
- * from Isomorph arrived: those assume the base game rather than extending it,
- * and open from Oracle up, one or two at a time.
- *
- * Derived rather than listed, so the next import does not need this file
- * edited — and so the claim stays "the *base game's* ramp finishes by level 8",
- * which is what was actually being guarded.
- */
-const BAND = ORDERED_QUESTION_TYPES.filter((_, i) =>
-    TIERS_MATRIX[Object.keys(TIERS_MATRIX).length - 1][i] === 1 && TIERS_MATRIX[9][i] === 0);
+/** Where the general ramp finishes — everything but the late arrivals. */
+const RAMP_END = 6;
+const TOP_ROW = Object.keys(TIERS_MATRIX).length - 1;
 
-/** What the base game's own ramp finishes with. */
-const RAMP_TOTAL = EVERY_MODE - BAND.length;
+/**
+ * The modes the general ramp does not finish with, read off the matrix.
+ *
+ * "Everything is open by level 8" was true of the app as built, and the tests
+ * below said so by name. Two things have made it false since, and they are
+ * different things: the three widest composed spaces, which continue past the
+ * ramp because width has no substitute; and the band imported from Isomorph,
+ * which assumes the base game rather than extending it.
+ *
+ * Derived rather than listed, so an import does not need this file edited —
+ * and so the claim stays "the *general* ramp finishes by level 8", which is
+ * what was actually being guarded.
+ */
+const LATE = ORDERED_QUESTION_TYPES.filter((_, i) =>
+    TIERS_MATRIX[TOP_ROW][i] === 1 && TIERS_MATRIX[RAMP_END][i] === 0);
+
+/** What the general ramp itself finishes with. */
+const RAMP_TOTAL = EVERY_MODE - LATE.length;
 
 test("more ability never means fewer modes", () => {
     let last = -1;
@@ -85,7 +91,10 @@ test("being strong at one mode is enough to unlock", () => {
  */
 test("a mode with nothing left to give unlocks the rest", () => {
     const stuck = unlockRow({ aggregateLevel: 1, bestLevel: 1, anyExhausted: true });
-    equal(modesAt(stuck), RAMP_TOTAL - DEEP.length,
+    /* `RAMP_TOTAL` already leaves out everything that arrives after the ramp,
+       the three widest spaces included, so there is nothing further to take
+       off — subtracting them again counted them twice. */
+    equal(modesAt(stuck), RAMP_TOTAL,
         "a player who has exhausted a mode was still being held back");
 
     /*
@@ -138,14 +147,15 @@ const offers = (level: number, type: EnumQuestionType) =>
 test("everything but the widest spaces is open to a competent player", () => {
     const ordinary = 8;
     const row = unlockRow({ aggregateLevel: ordinary, bestLevel: ordinary, anyExhausted: false });
-    equal(modesAt(row), RAMP_TOTAL - DEEP.length,
-        "level 8 does not open everything the base game's ramp offers");
+    equal(modesAt(row), RAMP_TOTAL,
+        "level 8 does not open everything the general ramp offers");
 
-    // And the band really is above it, or the line above is measuring nothing.
-    assert(BAND.length > 0, "there is no imported band, so nothing waits above the ramp");
-    for (const type of BAND) {
+    // And the late arrivals really are above it, or the line above measures
+    // nothing.
+    assert(LATE.length > 0, "nothing at all waits above the ramp");
+    for (const type of LATE) {
         assert(!offers(ordinary, type),
-            `${type} is in the imported band and open to a level-8 player`);
+            `${type} arrives after the ramp and is open to a level-8 player`);
     }
 
     // The mode the original complaint named, specifically.
@@ -326,24 +336,44 @@ test("every row of the matrix has a level that reaches it", () => {
  * that should stay free to move.
  */
 test("the ranks above the base game's ramp grant something", () => {
-    const rows = Object.keys(TIERS_MATRIX).map(Number).sort((a, b) => a - b);
-    const last = rows[rows.length - 1];
-    assert(last >= 10, "there is no rank above the base game's ramp at all");
+    const beyond = ORDERED_QUESTION_TYPES.filter((_, i) =>
+        TIERS_MATRIX[TOP_ROW][i] === 1 && TIERS_MATRIX[9][i] === 0);
 
-    const before = TIERS_MATRIX[9];
-    const top = TIERS_MATRIX[last];
-    const band = ORDERED_QUESTION_TYPES.filter((_, i) => top[i] === 1 && before[i] === 0);
-
-    assert(band.length > 0,
+    assert(beyond.length > 0,
         "nothing is unlocked above row 9, so fifteen ranks are a badge and no more");
+});
 
-    // Held back below as well as offered above: a mode row 9 already had is not
-    // in the band, whatever the top row says.
-    for (const type of band) {
+/**
+ * And nothing imported arrives before Genius.
+ *
+ * The band opened uniformly at Oracle to begin with; two of its modes have
+ * since been brought forward to Genius, which is a pacing decision and should
+ * stay one. What is not a pacing decision is a mode that assumes the base game
+ * turning up while a player is still being shown the base game — so the floor
+ * is asserted and the rest is left free to move.
+ *
+ * The three widest spaces are excluded by name because they are late for the
+ * other reason: they are this app's own, continuing past the ramp because
+ * width has no substitute elsewhere in it.
+ */
+test("no imported mode is offered before Genius", () => {
+    const GENIUS = ORDERED_TIERS.indexOf(EnumTiers.Genius);
+    equal(GENIUS, 8, "Genius has moved on the ladder, so this floor names the wrong row");
+
+    /*
+     * Read from the list that says where a mode came from, not from where it
+     * sits. Deriving it from the matrix — "the ones that arrive late" — was how
+     * this started, and it cannot fail: a mode moved too early stops matching
+     * the derivation and so escapes the check meant to catch it, which a
+     * mutation moving one to row 6 duly proved.
+     */
+    assert(IMPORTED_MODES.length > 0, "nothing is imported, so this guards nothing");
+
+    for (const type of IMPORTED_MODES) {
         const i = ORDERED_QUESTION_TYPES.indexOf(type);
-        for (let row = 0; row < 10; row++) {
+        for (let row = 0; row < GENIUS; row++) {
             equal(TIERS_MATRIX[row][i], 0,
-                `${type} is in the imported band and offered at row ${row}`);
+                `${type} is imported and offered at row ${row}, below Genius`);
         }
     }
 });

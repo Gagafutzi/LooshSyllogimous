@@ -94,5 +94,6 @@ import "./dominance-ring.test";
 import "./relation-systems.test";
 import "./possibility.test";
 import "./hidden-algebra.test";
+import "./minimal-premises.test";
 
 run();

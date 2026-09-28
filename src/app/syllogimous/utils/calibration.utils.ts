@@ -202,6 +202,14 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      * the two do not average out the way a mode's parts usually do.
      */
     [EnumQuestionType.HiddenAlgebra]: { weight: 2.3, ceiling: 26 },
+    /*
+     * Asking which premises did the work rather than what they settle. A
+     * premise consistent with the answer is not thereby part of the reason for
+     * it, and telling those apart means working out what would still follow
+     * without each one — so the reading is the same and what is done with it
+     * is not.
+     */
+    [EnumQuestionType.MinimalPremises]: { weight: 2.1, ceiling: 24 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

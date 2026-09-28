@@ -75,6 +75,7 @@ export enum EnumQuestionType {
     PossibilitySets = "Possibility Sets",
     CyclicDominance = "Cyclic Dominance",
     HiddenAlgebra = "Hidden Algebra",
+    MinimalPremises = "Minimal Premises",
 }
 
 export enum EnumArrangements {

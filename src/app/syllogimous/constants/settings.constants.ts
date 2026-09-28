@@ -253,6 +253,18 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 8,
         basic: false
     },
+    /*
+     * The premises are the options, so the count is the length of the menu as
+     * well as of the reading. Four is the floor — below it there is rarely
+     * anything spare to leave out — and seven the ceiling, because the smallest
+     * sufficient subset is found by trying every subset and that is 2^n.
+     */
+    [EnumQuestionType.MinimalPremises]: {
+        enabled: true,
+        minNumOfPremises: 4,
+        maxNumOfPremises: 7,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,
