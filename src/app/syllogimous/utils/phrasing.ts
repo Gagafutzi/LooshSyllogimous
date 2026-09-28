@@ -872,6 +872,38 @@ export const OWN_RULES: Record<string, { words: string; mark: string; label?: st
      */
     "cyc-beats": { words: "beats", mark: "\u227b", label: "beats" },
 
+    /*
+     * Allen's thirteen interval relations, as rules of their own.
+     *
+     * Three of the names — "is before", "is after", "contains" — are already
+     * relation labels in this app's own tables, so left as plain text they would
+     * be converted to the temporal and containment symbols and, worse, *renamed*
+     * by the fresh-labels feature. Three of thirteen rewritten leaves a card
+     * whose vocabulary no longer names an algebra. Marking them by key is what
+     * that mechanism is for.
+     *
+     * The marks are Allen's own notation, bracketed. Unbracketed it cannot be
+     * used here: the legend finds a mark by looking for it in the card's text,
+     * and a bare `f`, `d`, `s`, `o` or `m` occurs in ordinary prose — every card
+     * would claim to explain five relations it does not use, and the rewrite
+     * would eat letters out of words. Brackets make each one a token nothing
+     * else contains, and they keep the pairs distinct: `[f]` is not inside
+     * `[fi]`, where `f` is inside `fi`.
+     */
+    "allen-0": { words: "is before", mark: "[<]", label: "is before" },
+    "allen-1": { words: "meets", mark: "[m]", label: "meets" },
+    "allen-2": { words: "overlaps", mark: "[o]", label: "overlaps" },
+    "allen-3": { words: "starts", mark: "[s]", label: "starts" },
+    "allen-4": { words: "is during", mark: "[d]", label: "is during" },
+    "allen-5": { words: "finishes", mark: "[f]", label: "finishes" },
+    "allen-6": { words: "equals", mark: "[=]", label: "equals" },
+    "allen-7": { words: "is finished by", mark: "[fi]", label: "is finished by" },
+    "allen-8": { words: "contains", mark: "[di]", label: "contains" },
+    "allen-9": { words: "is started by", mark: "[si]", label: "is started by" },
+    "allen-10": { words: "is overlapped by", mark: "[oi]", label: "is overlapped by" },
+    "allen-11": { words: "is met by", mark: "[mi]", label: "is met by" },
+    "allen-12": { words: "is after", mark: "[>]", label: "is after" },
+
     // The analogy pairing, which is the table's "is to" said as "to".
     "pair-to": { words: "to", mark: ":", relation: "is to" },
 };

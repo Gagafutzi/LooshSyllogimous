@@ -64,6 +64,7 @@ const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
     EnumQuestionType.MissingPremise,
     EnumQuestionType.MappingConflict,
     EnumQuestionType.Betweenness,
+    EnumQuestionType.Intervals,
 ]);
 
 export function canGenerateQuestion(
@@ -204,6 +205,7 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.MissingPremise);
         this.initQuestionSettings(EnumQuestionType.MappingConflict);
         this.initQuestionSettings(EnumQuestionType.Betweenness);
+        this.initQuestionSettings(EnumQuestionType.Intervals);
         this.initQuestionSettings(EnumQuestionType.Binary);
         this.initQuestionSettings(EnumQuestionType.Deictic);
         this.initQuestionSettings(EnumQuestionType.Transformation);

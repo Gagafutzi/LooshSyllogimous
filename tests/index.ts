@@ -93,6 +93,8 @@ import "./analogy-completion.test";
 import "./dominance-ring.test";
 import "./relation-systems.test";
 import "./progress-dashboard.test";
+import "./interval-algebra.test";
+import "./intervals.test";
 import "./betweenness.test";
 import "./mapping-conflict.test";
 import "./contradiction.test";

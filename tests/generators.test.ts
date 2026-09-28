@@ -43,6 +43,7 @@ import { createContradiction } from "../src/app/syllogimous/generators/contradic
 import { createMissingPremise } from "../src/app/syllogimous/generators/missing-premise";
 import { createMappingConflict } from "../src/app/syllogimous/generators/mapping-conflict";
 import { createBetweenness } from "../src/app/syllogimous/generators/betweenness";
+import { createIntervals } from "../src/app/syllogimous/generators/intervals";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
@@ -138,6 +139,7 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.MissingPremise, createMissingPremise],
     [EnumQuestionType.MappingConflict, createMappingConflict],
     [EnumQuestionType.Betweenness, createBetweenness],
+    [EnumQuestionType.Intervals, createIntervals],
     [EnumQuestionType.Deictic, createDeictic],
     [EnumQuestionType.Transformation, createTransformation],
     [EnumQuestionType.AnchorSpace, createAnchorSpace],

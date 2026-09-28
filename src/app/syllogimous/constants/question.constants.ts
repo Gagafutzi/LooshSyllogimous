@@ -80,6 +80,7 @@ export enum EnumQuestionType {
     MissingPremise = "Missing Premise",
     MappingConflict = "Mapping Conflict",
     Betweenness = "Betweenness",
+    Intervals = "Interval Algebra",
 }
 
 export enum EnumArrangements {

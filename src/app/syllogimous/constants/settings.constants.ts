@@ -315,6 +315,21 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 8,
         basic: false
     },
+    /*
+     * The counts are the pairs, not a difficulty dial.
+     *
+     * Three periods have three pairs and one of them is the question, so two
+     * premises is every pair that can be stated; four periods have six, so five
+     * is. The generator widens from three periods to four at four premises for
+     * that reason — the count *is* how many periods there are — and past five
+     * there is nothing left to say without stating the answer.
+     */
+    [EnumQuestionType.Intervals]: {
+        enabled: true,
+        minNumOfPremises: 2,
+        maxNumOfPremises: 5,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,
