@@ -66,6 +66,12 @@ export enum EnumQuestionType {
     WidestGroup = "Widest Group",
     Knaves = "Knights and Knaves",
     NestedSpaces = "Nested Spaces",
+    /*
+     * The imported band, brought over from Isomorph and opening from Oracle
+     * up. These assume the base game rather than extending it: what they train
+     * is what a chain of "north of" leaves out.
+     */
+    CyclicDominance = "Cyclic Dominance",
 }
 
 export enum EnumArrangements {

@@ -500,7 +500,14 @@ export function symboliseSetup(
      * still safe as a lazy match, because none of these spans contains another
      * one, so the first `</span>` is always this span's.
      */
-    return html.replace(
+    /*
+     * Own-rule wording converts here too, and safely: `applyOwnRules` replaces
+     * spans by their key rather than by matching text, so it is "what the
+     * generator marked" by the same rule as the spans below. A mode whose
+     * setup states its own vocabulary — Cyclic Dominance says what "beats"
+     * means — would otherwise print that word over premises using the mark.
+     */
+    return applyOwnRules(html, marks).replace(
         /(<span class="(?:relation|highlight)[^"]*">)([\s\S]*?)(<\/span>)/g,
         (_whole, open: string, inner: string, close: string) =>
             open + symbolise(inner, marks) + close);
@@ -852,6 +859,18 @@ export const OWN_RULES: Record<string, { words: string; mark: string; label?: st
 
     // Graph Matching's reversed pair: "as the inverse of C to D".
     "gm-inverse": { words: "the inverse of", mark: "¬", label: "the inverse of" },
+
+    /*
+     * Cyclic Dominance's one relation, and it takes a fixed mark rather than
+     * the card's label.
+     *
+     * "Beats" is not a relation from the scale table and must not become one:
+     * every word in that table is an ordering, and the whole point of this mode
+     * is a result that does not order anything — A beats B beats C beats A. A
+     * label drawn for it would sit in the key beside "is north of" and invite
+     * exactly the reading it exists to break.
+     */
+    "cyc-beats": { words: "beats", mark: "\u227b", label: "beats" },
 
     // The analogy pairing, which is the table's "is to" said as "to".
     "pair-to": { words: "to", mark: ":", relation: "is to" },

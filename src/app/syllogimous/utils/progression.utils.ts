@@ -560,6 +560,13 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * axis, so every axis has to be checked before either can be ruled out.
      */
     "Analogy Completion":        ["near-miss"],
+    /*
+     * Empty, and listed rather than omitted so "nothing to claim" is visible
+     * as a decision. The ring size is the difficulty and it is already the
+     * premise count, so there is no second quantity for a rung to name —
+     * Deictic's case, reached the same way.
+     */
+    "Cyclic Dominance":          [],
     "Binary":                    ["negation", "retired-meta"],
     /*
      * Empty, and for a different reason from the two above.

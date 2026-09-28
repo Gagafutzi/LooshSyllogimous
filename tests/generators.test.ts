@@ -34,6 +34,7 @@ import { createDirection, createDirection3D } from "../src/app/syllogimous/gener
 import { createGraphMatching } from "../src/app/syllogimous/generators/graph-matching";
 import { createAnalogy } from "../src/app/syllogimous/generators/analogy";
 import { createAnalogyCompletion } from "../src/app/syllogimous/generators/analogy-completion";
+import { createCyclicDominance } from "../src/app/syllogimous/generators/cyclic";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
@@ -120,6 +121,7 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.Hierarchy, createHierarchy],
     [EnumQuestionType.Analogy, createAnalogy],
     [EnumQuestionType.AnalogyCompletion, createAnalogyCompletion],
+    [EnumQuestionType.CyclicDominance, createCyclicDominance],
     [EnumQuestionType.Deictic, createDeictic],
     [EnumQuestionType.Transformation, createTransformation],
     [EnumQuestionType.AnchorSpace, createAnchorSpace],

@@ -23,6 +23,7 @@ import { createDirection, createDirection3D } from "../src/app/syllogimous/gener
 import { createGraphMatching } from "../src/app/syllogimous/generators/graph-matching";
 import { createAnalogy } from "../src/app/syllogimous/generators/analogy";
 import { createAnalogyCompletion } from "../src/app/syllogimous/generators/analogy-completion";
+import { createCyclicDominance } from "../src/app/syllogimous/generators/cyclic";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
@@ -61,6 +62,7 @@ export const BUILD: Record<string, Build> = {
     [EnumQuestionType.Hierarchy]: createHierarchy,
     [EnumQuestionType.Analogy]: createAnalogy,
     [EnumQuestionType.AnalogyCompletion]: createAnalogyCompletion,
+    [EnumQuestionType.CyclicDominance]: createCyclicDominance,
     [EnumQuestionType.Deictic]: createDeictic,
     [EnumQuestionType.Transformation]: createTransformation,
     [EnumQuestionType.AnchorSpace]: createAnchorSpace,

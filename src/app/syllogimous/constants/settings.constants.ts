@@ -208,6 +208,19 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 20,
         basic: false
     },
+    /*
+     * One premise per adjacent pair, so the count *is* the ring size — and the
+     * ring is odd, because an even one has a pair at exactly half the loop
+     * that the rule does not settle. Five is the smallest ring with anything
+     * to count: at three, every pair is adjacent and every answer is read off
+     * a premise. Fifteen is the ceiling, where each object beats seven.
+     */
+    [EnumQuestionType.CyclicDominance]: {
+        enabled: true,
+        minNumOfPremises: 5,
+        maxNumOfPremises: 15,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,

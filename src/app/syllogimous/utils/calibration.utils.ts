@@ -173,6 +173,14 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      * can be measured against it, so the width of the space is paid in full.
      */
     [EnumQuestionType.AnalogyCompletion]: { weight: 1.7, ceiling: 20 },
+    /*
+     * The first mode priced above the base game's ceiling, and the reason the
+     * upper rows of the unlock ramp can be reached at all: while every mode
+     * caps at 20, no evidence can put a player past it. A ring of fifteen with
+     * a reach of seven is not a harder linear order — there is no order — and
+     * counting round it stays discriminating where the orderings have stopped.
+     */
+    [EnumQuestionType.CyclicDominance]: { weight: 1.5, ceiling: 22 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

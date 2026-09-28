@@ -46,7 +46,37 @@ import { Settings } from "../models/settings.models";
  * 7.2 levels for the three of them — that the opening items are comfortably
  * within reach and the mode climbs from there.
  */
-export const TIER_UNLOCK_LEVELS = [0, 3, 4, 5, 6, 7, 8, 10, 12, 14];
+/*
+ * **And the imported band, from Oracle up.** Everything above is about the
+ * modes this app was built with, and the reasoning holds for them: they are
+ * open by level 8 because a gate that withholds them is a treadmill rather
+ * than a pacing.
+ *
+ * The modes brought over from Isomorph are a different proposition. They
+ * assume the base game — chains of "north of" and "bigger than" are taken as
+ * read — and what they train is what those chains leave out. Offering one to
+ * a player who is still learning to compose a linear order is not pacing
+ * either; it is the six-dimensional-space mistake again, one order of task
+ * further out.
+ *
+ * So the ramp keeps its shape and grows a second half. Row 9 stays where it
+ * was, and rows 10 upward — Oracle onwards on the badge — open one level at a
+ * time, which is slow on purpose: these arrive one or two at a time over the
+ * rest of the ladder rather than in a row-6-style handful.
+ *
+ * **The top of this band is not reachable yet, and that is not a mistake.**
+ * A level is credited against `MODE_SCALE`'s ceilings, and while every mode
+ * caps at 20 no evidence can put a player above it — so rows past about
+ * twenty are waiting for the modes that price higher than the base game does.
+ * Each import that lands raises the reachable level and brings the next rows
+ * into play with it. Writing the whole band now rather than extending it per
+ * mode means the thresholds are one legible schedule instead of a series of
+ * amendments, and `tests/unlock.test.ts` holds it to being one.
+ */
+export const TIER_UNLOCK_LEVELS = [
+    0, 3, 4, 5, 6, 7, 8, 10, 12, 14,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+];
 
 /**
  * The furthest row exhaustion alone can reach.

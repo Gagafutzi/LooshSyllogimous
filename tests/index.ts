@@ -90,5 +90,6 @@ import "./testimony.test";
 import "./deictic.test";
 import "./anchor-negation.test";
 import "./analogy-completion.test";
+import "./cyclic.test";
 
 run();

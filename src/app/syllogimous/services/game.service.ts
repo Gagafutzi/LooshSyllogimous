@@ -62,6 +62,7 @@ import { settingsForTier, unlockRow } from "../utils/tier.utils";
 import { neg, subj } from "../utils/phrasing";
 import { createAnalogy } from "../generators/analogy";
 import { createAnalogyCompletion } from "../generators/analogy-completion";
+import { createCyclicDominance } from "../generators/cyclic";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
 import { createArrangement } from "../generators/arrangement";
 import { createBinary } from "../generators/binary";
@@ -515,6 +516,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.Hierarchy]: () => createHierarchy(this, numOfPremises),
             [EnumQuestionType.Analogy]: () => createAnalogy(this, numOfPremises),
             [EnumQuestionType.AnalogyCompletion]: () => createAnalogyCompletion(this, numOfPremises),
+            [EnumQuestionType.CyclicDominance]: () => createCyclicDominance(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
             [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),

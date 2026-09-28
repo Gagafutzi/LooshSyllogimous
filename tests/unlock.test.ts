@@ -33,6 +33,24 @@ const modesAt = (row: number) => TIERS_MATRIX[row].filter(v => v).length;
 const EVERY_MODE = Math.max(
     ...Object.values(TIERS_MATRIX).map(row => row.filter(v => v).length));
 
+/**
+ * The modes held above the base game's ramp, read off the matrix.
+ *
+ * "Everything is open by level 8" was true of the app as built, and the two
+ * tests below said so by name. It stopped being true when the band imported
+ * from Isomorph arrived: those assume the base game rather than extending it,
+ * and open from Oracle up, one or two at a time.
+ *
+ * Derived rather than listed, so the next import does not need this file
+ * edited — and so the claim stays "the *base game's* ramp finishes by level 8",
+ * which is what was actually being guarded.
+ */
+const BAND = ORDERED_QUESTION_TYPES.filter((_, i) =>
+    TIERS_MATRIX[Object.keys(TIERS_MATRIX).length - 1][i] === 1 && TIERS_MATRIX[9][i] === 0);
+
+/** What the base game's own ramp finishes with. */
+const RAMP_TOTAL = EVERY_MODE - BAND.length;
+
 test("more ability never means fewer modes", () => {
     let last = -1;
     for (let level = 0; level <= 20; level += 0.5) {
@@ -67,7 +85,7 @@ test("being strong at one mode is enough to unlock", () => {
  */
 test("a mode with nothing left to give unlocks the rest", () => {
     const stuck = unlockRow({ aggregateLevel: 1, bestLevel: 1, anyExhausted: true });
-    equal(modesAt(stuck), EVERY_MODE - DEEP.length,
+    equal(modesAt(stuck), RAMP_TOTAL - DEEP.length,
         "a player who has exhausted a mode was still being held back");
 
     /*
@@ -108,12 +126,27 @@ const offers = (level: number, type: EnumQuestionType) =>
     TIERS_MATRIX[unlockRow({ aggregateLevel: level, bestLevel: level, anyExhausted: false })]
         [ORDERED_QUESTION_TYPES.indexOf(type)] === 1;
 
-/** The gate is an onboarding ramp, not a treadmill — for everything but three. */
+/**
+ * The gate is an onboarding ramp, not a treadmill — for everything but three,
+ * and for everything the app was built with.
+ *
+ * The imported band is the exception that is not an exception to this: it is
+ * not part of the ramp at all. What is guarded here is that the ramp itself
+ * still finishes early, and that a competent player is not being made to climb
+ * for the modes this app is made of.
+ */
 test("everything but the widest spaces is open to a competent player", () => {
     const ordinary = 8;
     const row = unlockRow({ aggregateLevel: ordinary, bestLevel: ordinary, anyExhausted: false });
-    equal(modesAt(row), EVERY_MODE - DEEP.length,
-        "level 8 does not open everything the ramp offers");
+    equal(modesAt(row), RAMP_TOTAL - DEEP.length,
+        "level 8 does not open everything the base game's ramp offers");
+
+    // And the band really is above it, or the line above is measuring nothing.
+    assert(BAND.length > 0, "there is no imported band, so nothing waits above the ramp");
+    for (const type of BAND) {
+        assert(!offers(ordinary, type),
+            `${type} is in the imported band and open to a level-8 player`);
+    }
 
     // The mode the original complaint named, specifically.
     assert(offers(7, EnumQuestionType.Space3D), "a level-7 player still cannot see Space 3D");
@@ -245,5 +278,72 @@ test("a retired mode is not offered at any tier", () => {
         const heirIdx = ORDERED_QUESTION_TYPES.indexOf(heir);
         assert(Object.values(TIERS_MATRIX).some(row => row[heirIdx] === 1),
             `${heir} is not offered at any tier, so retiring ${retired} lost a mode`);
+    }
+});
+
+/* ------------------------------------------------------------------ *
+ * The ramp reaches every row it has                                   *
+ * ------------------------------------------------------------------ *
+ *
+ * `TIERS_MATRIX` had twenty-five rows and `TIER_UNLOCK_LEVELS` had ten
+ * thresholds, so `unlockRow` could never return past nine. Fifteen rows —
+ * Oracle upward, three fifths of the badge ladder — were not merely empty but
+ * unreachable: a row could have been filled in and still granted nothing to
+ * anybody, and nothing would have said so.
+ *
+ * That is a shape of failure rather than a one-off, so what is asserted is the
+ * agreement between the two tables and not the numbers in them.
+ */
+
+test("every row of the matrix has a level that reaches it", () => {
+    equal(TIER_UNLOCK_LEVELS.length, Object.keys(TIERS_MATRIX).length,
+        "the unlock ramp and the tier matrix are different lengths, so either"
+        + " some rows can never be reached or some levels point at no row");
+
+    for (let i = 1; i < TIER_UNLOCK_LEVELS.length; i++) {
+        assert(TIER_UNLOCK_LEVELS[i] > TIER_UNLOCK_LEVELS[i - 1],
+            `row ${i} opens at level ${TIER_UNLOCK_LEVELS[i]}, which is not above`
+            + ` row ${i - 1}'s ${TIER_UNLOCK_LEVELS[i - 1]} — one of them is dead`);
+    }
+
+    // The ramp is walked rather than indexed, so the last threshold has to be
+    // the one that returns the last row.
+    equal(unlockRow({ aggregateLevel: 0, bestLevel: 1e6, anyExhausted: false }),
+        Object.keys(TIERS_MATRIX).length - 1,
+        "no amount of ability reaches the top row");
+});
+
+/**
+ * And the ranks above the base game's ramp are not a flat tail.
+ *
+ * Everything this app was built with is open by level 8, deliberately — the
+ * gate is there so a first session is not thirty-three modes at once, not to be
+ * a treadmill. What sits above is the band imported from Isomorph, and a band
+ * that grants nothing is a rank with no reward behind it.
+ *
+ * Asserted as "something arrives up there" rather than row by row, because they
+ * arrive one or two at a time and which row each lands on is a pacing decision
+ * that should stay free to move.
+ */
+test("the ranks above the base game's ramp grant something", () => {
+    const rows = Object.keys(TIERS_MATRIX).map(Number).sort((a, b) => a - b);
+    const last = rows[rows.length - 1];
+    assert(last >= 10, "there is no rank above the base game's ramp at all");
+
+    const before = TIERS_MATRIX[9];
+    const top = TIERS_MATRIX[last];
+    const band = ORDERED_QUESTION_TYPES.filter((_, i) => top[i] === 1 && before[i] === 0);
+
+    assert(band.length > 0,
+        "nothing is unlocked above row 9, so fifteen ranks are a badge and no more");
+
+    // Held back below as well as offered above: a mode row 9 already had is not
+    // in the band, whatever the top row says.
+    for (const type of band) {
+        const i = ORDERED_QUESTION_TYPES.indexOf(type);
+        for (let row = 0; row < 10; row++) {
+            equal(TIERS_MATRIX[row][i], 0,
+                `${type} is in the imported band and offered at row ${row}`);
+        }
     }
 });
