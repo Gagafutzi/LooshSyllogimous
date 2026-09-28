@@ -606,6 +606,34 @@ test("no item offers more than two options", () => {
                                 + " a menu that short is a choice wearing a submit button");
                             continue;
                         }
+                        /*
+                         * **A menu whose options are the premises is exempt,
+                         * and the condition is the argument.**
+                         *
+                         * The harm above is that a long menu can be shortened
+                         * by looking: three of four claims are about the wrong
+                         * pair and go without being reasoned about. That needs
+                         * the options to differ in some way a glance can use.
+                         *
+                         * Where the options *are* the premises, verbatim and in
+                         * their own order, there is nothing to glance at — each
+                         * is a sentence of the same shape about the same
+                         * entities, and ruling one out means withdrawing it and
+                         * finding the rest still clash. Nor would a shorter
+                         * menu make the item harder: narrowing the premises to
+                         * two would do the finding the mode exists for.
+                         *
+                         * `guessRateFor("choice", 0, n)` is exactly `1/n`, so
+                         * the weaker floor is already priced. The exemption is
+                         * written as this condition rather than as a list of
+                         * modes, so a mode that grows an authored menu does not
+                         * inherit it.
+                         */
+                        const own = (claim as { premises?: string[] }).premises ?? [];
+                        const fromPremises = own.length > 2
+                            && offered.length === own.length
+                            && offered.every((o, i) => o === own[i]);
+                        if (fromPremises) continue;
                         if (offered.length > 2) {
                             wide.push(`${type} at ${n} premises offers ${offered.length}`);
                         }

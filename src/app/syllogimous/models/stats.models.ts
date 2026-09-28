@@ -27,6 +27,8 @@ export class TypeBasedStats {
     [EnumQuestionType.CyclicDominance] = new TypeBasedStatsInner(EnumQuestionType.CyclicDominance);
     [EnumQuestionType.HiddenAlgebra] = new TypeBasedStatsInner(EnumQuestionType.HiddenAlgebra);
     [EnumQuestionType.MinimalPremises] = new TypeBasedStatsInner(EnumQuestionType.MinimalPremises);
+    [EnumQuestionType.Contradiction] = new TypeBasedStatsInner(EnumQuestionType.Contradiction);
+    [EnumQuestionType.MissingPremise] = new TypeBasedStatsInner(EnumQuestionType.MissingPremise);
     [EnumQuestionType.Binary] = new TypeBasedStatsInner(EnumQuestionType.Binary);
     [EnumQuestionType.Deictic] = new TypeBasedStatsInner(EnumQuestionType.Deictic);
     [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);

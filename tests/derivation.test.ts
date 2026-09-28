@@ -49,6 +49,8 @@ import { createPossibilitySets } from "../src/app/syllogimous/generators/possibi
 import { createCyclicDominance } from "../src/app/syllogimous/generators/cyclic-dominance";
 import { createHiddenAlgebra } from "../src/app/syllogimous/generators/hidden-algebra";
 import { createMinimalPremises } from "../src/app/syllogimous/generators/minimal-premises";
+import { createContradiction } from "../src/app/syllogimous/generators/contradiction";
+import { createMissingPremise } from "../src/app/syllogimous/generators/missing-premise";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
@@ -104,6 +106,8 @@ const MODES: Array<[EnumQuestionType, (c: GeneratorContext, n: number) => Questi
     [EnumQuestionType.CyclicDominance, createCyclicDominance],
     [EnumQuestionType.HiddenAlgebra, createHiddenAlgebra],
     [EnumQuestionType.MinimalPremises, createMinimalPremises],
+    [EnumQuestionType.Contradiction, createContradiction],
+    [EnumQuestionType.MissingPremise, createMissingPremise],
     [EnumQuestionType.Deictic, createDeictic],
     [EnumQuestionType.Transformation, createTransformation],
     [EnumQuestionType.AnchorSpace, createAnchorSpace],

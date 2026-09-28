@@ -210,6 +210,12 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      * is not.
      */
     [EnumQuestionType.MinimalPremises]: { weight: 2.1, ceiling: 24 },
+    // Inconsistency rather than inference, held over the whole premise set
+    // at once; the menu is the premises, so it grows with the reading.
+    [EnumQuestionType.Contradiction]: { weight: 2.2, ceiling: 25 },
+    // Two candidates rather than Isomorph's four, so the floor is a half
+    // and the item is the harder for it.
+    [EnumQuestionType.MissingPremise]: { weight: 2.0, ceiling: 24 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

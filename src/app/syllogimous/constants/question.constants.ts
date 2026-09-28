@@ -76,6 +76,8 @@ export enum EnumQuestionType {
     CyclicDominance = "Cyclic Dominance",
     HiddenAlgebra = "Hidden Algebra",
     MinimalPremises = "Minimal Premises",
+    Contradiction = "Contradiction",
+    MissingPremise = "Missing Premise",
 }
 
 export enum EnumArrangements {

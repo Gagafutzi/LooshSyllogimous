@@ -265,6 +265,33 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 7,
         basic: false
     },
+    /*
+     * The premises are the options here too, so the count is the length of the
+     * menu as well as of the reading. Six is the floor, and it is a measured
+     * one rather than a guessed one: "withdraw any other and a clash remains"
+     * needs the wrong premise to sit on *two* conflicts, so the set has to
+     * carry two routes between the same pair. Drawn at random, four premises
+     * produce that once in about five hundred and five about once in fifty,
+     * which is a mode that intermittently fails to build; six is one in
+     * twenty-two and the rejection loop clears it with room to spare.
+     */
+    [EnumQuestionType.Contradiction]: {
+        enabled: true,
+        minNumOfPremises: 6,
+        maxNumOfPremises: 9,
+        basic: false
+    },
+    /*
+     * Two of the count are held back as the candidates rather than stated, so
+     * the floor is a premise higher than it looks: five leaves three premises,
+     * which is the fewest that can leave a pair open and still bear on it.
+     */
+    [EnumQuestionType.MissingPremise]: {
+        enabled: true,
+        minNumOfPremises: 5,
+        maxNumOfPremises: 8,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,
