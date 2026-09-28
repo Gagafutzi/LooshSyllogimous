@@ -50,7 +50,19 @@ import { GeneratorContext } from "./context";
  * has intuitions about is a relation they can answer from those instead. The
  * system's description says what it does; the word says nothing at all.
  */
-const INVENTED = [
+export interface InventedWord { stem: string; third: string; }
+
+/** What a caller building on this question can vary about it. */
+export interface PossibilityShape {
+    /** The word the relation is called, when a caller has already used one. */
+    word?: InventedWord;
+    /** Lines shown before the premises — another group, stated first. */
+    lead?: string[];
+    /** Replaces the setup, for a mode that frames the question differently. */
+    setup?: string[];
+}
+
+export const INVENTED: InventedWord[] = [
     { stem: "glorp", third: "glorps" },
     { stem: "vex", third: "vexes" },
     { stem: "thrum", third: "thrums" },
@@ -101,6 +113,7 @@ export function buildPossibility(
     numOfPremises: number,
     type: EnumQuestionType,
     pool: RelationSystem[],
+    shape: PossibilityShape = {},
 ): Question {
     const settings = ctx.settings;
 
@@ -180,7 +193,8 @@ export function buildPossibility(
         const open = Number(forward) + Number(backward) + Number(neither);
         if (open === 3 && Math.random() > 0.25) continue;
 
-        const word = INVENTED[Math.floor(Math.random() * INVENTED.length)];
+        const word = shape.word
+            ?? INVENTED[Math.floor(Math.random() * INVENTED.length)];
         const options = [
             { text: `${subj(words[x])} ${rel(word.third)} ${subj(words[y])}`, possible: forward },
             { text: `${subj(words[y])} ${rel(word.third)} ${subj(words[x])}`, possible: backward },
@@ -193,12 +207,17 @@ export function buildPossibility(
 
         const question = new Question(type);
         question.bucket = [...words];
-        question.premises = orderPremises(
-            stated.map(p => p.holds
-                ? `${subj(words[p.a])} ${rel(word.third)} ${subj(words[p.b])}`
-                : `${subj(words[p.a])} does not ${rel(word.stem)} ${subj(words[p.b])}`),
-            ctx.settingsOverrideService.scramble,
-            ctx.mergeTarget());
+        /* A caller's own lines first, unscrambled: another group stated before
+           this one is a different half of the card, not more of this one. */
+        question.premises = [
+            ...(shape.lead ?? []),
+            ...orderPremises(
+                stated.map(p => p.holds
+                    ? `${subj(words[p.a])} ${rel(word.third)} ${subj(words[p.b])}`
+                    : `${subj(words[p.a])} does not ${rel(word.stem)} ${subj(words[p.b])}`),
+                ctx.settingsOverrideService.scramble,
+                ctx.mergeTarget()),
+        ];
 
         question.choices = shown.map(o => o.text);
         question.selectAnswer = answer;
@@ -208,7 +227,7 @@ export function buildPossibility(
         question.isValid = true;
         question.conclusion = "";
 
-        question.setup = [
+        question.setup = shape.setup ?? [
             `<b>${hi(word.third)}</b> is ${system.meaning}.`,
             "Some of what holds is stated and the rest is not. Select <b>every</b> "
             + "outcome the premises still leave open — which may be more than one, "

@@ -93,5 +93,6 @@ import "./analogy-completion.test";
 import "./dominance-ring.test";
 import "./relation-systems.test";
 import "./possibility.test";
+import "./hidden-algebra.test";
 
 run();

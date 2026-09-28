@@ -574,6 +574,7 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * way — and five is not.
      */
     "Cyclic Dominance":          ["five"],
+    "Hidden Algebra":            [],
     "Binary":                    ["negation", "retired-meta"],
     /*
      * Empty, and for a different reason from the two above.

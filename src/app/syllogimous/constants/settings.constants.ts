@@ -241,6 +241,18 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 8,
         basic: false
     },
+    /*
+     * The premise count is the second group only: the first list is complete
+     * by definition and its length is the table's, not a setting. Three is the
+     * floor for the same reason as Possibility Sets — below it nothing is
+     * settled whatever the algebra turns out to be.
+     */
+    [EnumQuestionType.HiddenAlgebra]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 8,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,

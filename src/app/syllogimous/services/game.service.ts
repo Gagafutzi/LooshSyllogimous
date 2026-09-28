@@ -65,6 +65,7 @@ import { createAnalogyCompletion } from "../generators/analogy-completion";
 import { createDominanceRing } from "../generators/dominance-ring";
 import { createPossibilitySets } from "../generators/possibility";
 import { createCyclicDominance } from "../generators/cyclic-dominance";
+import { createHiddenAlgebra } from "../generators/hidden-algebra";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
 import { createArrangement } from "../generators/arrangement";
 import { createBinary } from "../generators/binary";
@@ -521,6 +522,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.DominanceRing]: () => createDominanceRing(this, numOfPremises),
             [EnumQuestionType.PossibilitySets]: () => createPossibilitySets(this, numOfPremises),
             [EnumQuestionType.CyclicDominance]: () => createCyclicDominance(this, numOfPremises),
+            [EnumQuestionType.HiddenAlgebra]: () => createHiddenAlgebra(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
             [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),

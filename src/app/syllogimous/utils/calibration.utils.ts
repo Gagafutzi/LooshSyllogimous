@@ -195,6 +195,13 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      * are working out.
      */
     [EnumQuestionType.CyclicDominance]: { weight: 1.9, ceiling: 24 },
+    /*
+     * The heaviest of the band so far, and the only mode here with two
+     * questions on one card: induce the algebra, then use it. A wrong reading
+     * of the first half does not make the second hard, it makes it wrong, so
+     * the two do not average out the way a mode's parts usually do.
+     */
+    [EnumQuestionType.HiddenAlgebra]: { weight: 2.3, ceiling: 26 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

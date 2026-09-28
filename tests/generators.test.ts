@@ -37,6 +37,7 @@ import { createAnalogyCompletion } from "../src/app/syllogimous/generators/analo
 import { createDominanceRing } from "../src/app/syllogimous/generators/dominance-ring";
 import { createPossibilitySets } from "../src/app/syllogimous/generators/possibility";
 import { createCyclicDominance } from "../src/app/syllogimous/generators/cyclic-dominance";
+import { createHiddenAlgebra } from "../src/app/syllogimous/generators/hidden-algebra";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
@@ -126,6 +127,7 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.DominanceRing, createDominanceRing],
     [EnumQuestionType.PossibilitySets, createPossibilitySets],
     [EnumQuestionType.CyclicDominance, createCyclicDominance],
+    [EnumQuestionType.HiddenAlgebra, createHiddenAlgebra],
     [EnumQuestionType.Deictic, createDeictic],
     [EnumQuestionType.Transformation, createTransformation],
     [EnumQuestionType.AnchorSpace, createAnchorSpace],
