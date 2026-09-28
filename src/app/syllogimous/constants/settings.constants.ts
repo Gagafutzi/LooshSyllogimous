@@ -292,6 +292,29 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 8,
         basic: false
     },
+    /*
+     * The analogies are the options, so the count is the length of the menu.
+     * Five is the floor: the clash has to survive withdrawing any analogy but
+     * one, which needs the disputed name spoken of by two others as well.
+     */
+    [EnumQuestionType.MappingConflict]: {
+        enabled: true,
+        minNumOfPremises: 5,
+        maxNumOfPremises: 9,
+        basic: false
+    },
+    /*
+     * Four premises at least, because three betweenness facts over five names
+     * leave almost everything free; eight at most, because past that the
+     * premises pin the row down to one ordering and its mirror, and then
+     * everyone between the two ends is forced and the reading is over.
+     */
+    [EnumQuestionType.Betweenness]: {
+        enabled: true,
+        minNumOfPremises: 4,
+        maxNumOfPremises: 8,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,

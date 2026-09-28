@@ -29,6 +29,8 @@ export class TypeBasedStats {
     [EnumQuestionType.MinimalPremises] = new TypeBasedStatsInner(EnumQuestionType.MinimalPremises);
     [EnumQuestionType.Contradiction] = new TypeBasedStatsInner(EnumQuestionType.Contradiction);
     [EnumQuestionType.MissingPremise] = new TypeBasedStatsInner(EnumQuestionType.MissingPremise);
+    [EnumQuestionType.MappingConflict] = new TypeBasedStatsInner(EnumQuestionType.MappingConflict);
+    [EnumQuestionType.Betweenness] = new TypeBasedStatsInner(EnumQuestionType.Betweenness);
     [EnumQuestionType.Binary] = new TypeBasedStatsInner(EnumQuestionType.Binary);
     [EnumQuestionType.Deictic] = new TypeBasedStatsInner(EnumQuestionType.Deictic);
     [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);

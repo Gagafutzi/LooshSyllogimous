@@ -78,6 +78,8 @@ export enum EnumQuestionType {
     MinimalPremises = "Minimal Premises",
     Contradiction = "Contradiction",
     MissingPremise = "Missing Premise",
+    MappingConflict = "Mapping Conflict",
+    Betweenness = "Betweenness",
 }
 
 export enum EnumArrangements {

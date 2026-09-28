@@ -69,6 +69,8 @@ import { createHiddenAlgebra } from "../generators/hidden-algebra";
 import { createMinimalPremises } from "../generators/minimal-premises";
 import { createContradiction } from "../generators/contradiction";
 import { createMissingPremise } from "../generators/missing-premise";
+import { createMappingConflict } from "../generators/mapping-conflict";
+import { createBetweenness } from "../generators/betweenness";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
 import { createArrangement } from "../generators/arrangement";
 import { createBinary } from "../generators/binary";
@@ -529,6 +531,8 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.MinimalPremises]: () => createMinimalPremises(this, numOfPremises),
             [EnumQuestionType.Contradiction]: () => createContradiction(this, numOfPremises),
             [EnumQuestionType.MissingPremise]: () => createMissingPremise(this, numOfPremises),
+            [EnumQuestionType.MappingConflict]: () => createMappingConflict(this, numOfPremises),
+            [EnumQuestionType.Betweenness]: () => createBetweenness(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
             [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),

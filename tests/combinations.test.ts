@@ -43,6 +43,8 @@ import { createHiddenAlgebra } from "../src/app/syllogimous/generators/hidden-al
 import { createMinimalPremises } from "../src/app/syllogimous/generators/minimal-premises";
 import { createContradiction } from "../src/app/syllogimous/generators/contradiction";
 import { createMissingPremise } from "../src/app/syllogimous/generators/missing-premise";
+import { createMappingConflict } from "../src/app/syllogimous/generators/mapping-conflict";
+import { createBetweenness } from "../src/app/syllogimous/generators/betweenness";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
@@ -88,6 +90,8 @@ const BUILD: Record<string, Build> = {
     [EnumQuestionType.MinimalPremises]: createMinimalPremises,
     [EnumQuestionType.Contradiction]: createContradiction,
     [EnumQuestionType.MissingPremise]: createMissingPremise,
+    [EnumQuestionType.MappingConflict]: createMappingConflict,
+    [EnumQuestionType.Betweenness]: createBetweenness,
     [EnumQuestionType.Deictic]: createDeictic,
     [EnumQuestionType.Transformation]: createTransformation,
     [EnumQuestionType.AnchorSpace]: createAnchorSpace,

@@ -22,6 +22,7 @@ import { SettingsOverrideService } from "../src/app/syllogimous/services/setting
 import { Question } from "../src/app/syllogimous/models/question.models";
 import { Settings } from "../src/app/syllogimous/models/settings.models";
 import { EnumQuestionType } from "../src/app/syllogimous/constants/question.constants";
+import { QUESTION_TYPE_SETTING_PARAMS } from "../src/app/syllogimous/constants/settings.constants";
 import { Logger } from "../src/app/syllogimous/utils/logger";
 import { extractSubjects } from "../src/app/syllogimous/utils/question.utils";
 import {
@@ -56,11 +57,22 @@ function context(): GeneratorContext {
     return ctx;
 }
 
+/**
+ * The premise counts this mode actually ships, read rather than repeated.
+ *
+ * Written out as a range, these tests exercised five to nine whatever the
+ * settings said — so lowering the floor, which is the change that makes an item
+ * ambiguous, left the suite green while the app served the items the floor had
+ * been protecting against. Reading the range means a floor moved in
+ * `settings.constants` is a floor this checks at.
+ */
+const RANGE = QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.Contradiction];
+
 function items(): Question[] {
     const ctx = context();
     const out: Question[] = [];
     seeded(20261002, () => {
-        for (let n = 6; n <= 9; n++) {
+        for (let n = RANGE.minNumOfPremises; n <= RANGE.maxNumOfPremises; n++) {
             for (let rep = 0; rep < 12; rep++) {
                 try { out.push(createContradiction(ctx, n)); } catch { /* an undrawable draw */ }
             }

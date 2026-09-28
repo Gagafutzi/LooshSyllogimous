@@ -216,6 +216,12 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // Two candidates rather than Isomorph's four, so the floor is a half
     // and the item is the harder for it.
     [EnumQuestionType.MissingPremise]: { weight: 2.0, ceiling: 24 },
+    // No relation to read at all: the whole of it is holding a pairing
+    // together, which is cheaper per premise and wider across them.
+    [EnumQuestionType.MappingConflict]: { weight: 1.9, ceiling: 24 },
+    // A relation among three, which nothing else here has — the premises
+    // cannot be chained, so the arrangements have to be held instead.
+    [EnumQuestionType.Betweenness]: { weight: 2.3, ceiling: 26 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

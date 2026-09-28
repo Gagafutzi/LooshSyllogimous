@@ -65,7 +65,21 @@ test("more ability never means fewer modes", () => {
         assert(open >= last, `level ${level} opened ${open} modes after ${last}`);
         last = open;
     }
-    equal(last, EVERY_MODE, "the ramp never reaches every mode it offers");
+    /*
+     * The message names the rule, because the bare count does not.
+     *
+     * A mode first offered above the row that level 20 reaches makes this fail
+     * with "expected 46, actual 45", which says nothing about why — I placed one
+     * at row 16 and spent a while looking at the wrong file. The last reachable
+     * row is what `TIER_UNLOCK_LEVELS` puts level 20 at, so that is what the
+     * failure says.
+     */
+    const reached = unlockRow({ aggregateLevel: 20, bestLevel: 20, anyExhausted: false });
+    equal(last, EVERY_MODE,
+        `the ramp never reaches every mode it offers: level 20 opens row ${reached}, `
+        + `which offers ${modesAt(reached)} of ${EVERY_MODE}. A mode first offered `
+        + `above row ${reached} is one no level can reach — move its first 1 down to `
+        + `row ${reached} or earlier in TIERS_MATRIX.`);
 });
 
 /**
