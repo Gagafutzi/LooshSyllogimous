@@ -342,6 +342,18 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 9,
         basic: false
     },
+    /*
+     * The count is the layout, and it is also the length of the menu — every
+     * entity but the named one is offered. Five is the floor because three axes
+     * need that many premises before positions accumulate rather than being
+     * stated, and nine keeps the selection to a list rather than a wall.
+     */
+    [EnumQuestionType.Projection]: {
+        enabled: true,
+        minNumOfPremises: 5,
+        maxNumOfPremises: 9,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,

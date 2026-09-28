@@ -93,6 +93,7 @@ import "./analogy-completion.test";
 import "./dominance-ring.test";
 import "./relation-systems.test";
 import "./progress-dashboard.test";
+import "./projection.test";
 import "./odd-analogy.test";
 import "./interval-algebra.test";
 import "./intervals.test";

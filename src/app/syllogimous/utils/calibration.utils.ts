@@ -229,6 +229,9 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // Four relations composed before any of them can be ruled out, and the
     // wrong one wrong by a single axis or by direction alone.
     [EnumQuestionType.OddAnalogy]: { weight: 2.5, ceiling: 26 },
+    // Compose the whole relation, then discard part of it on purpose — the
+    // space modes' reading plus one act of deliberate forgetting.
+    [EnumQuestionType.Projection]: { weight: 2.1, ceiling: 24 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

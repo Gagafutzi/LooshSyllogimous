@@ -134,12 +134,20 @@ export function createBetweenness(ctx: GeneratorContext, numOfPremises: number):
         if (!askable.length) continue;
 
         /*
-         * Preferring a pair that forces somebody, since "nobody" is an answer a
-         * reader can give without reading. Kept occasionally all the same — see
-         * below — so the mode does not teach that there is always somebody.
+         * Preferring a pair that forces somebody.
+         *
+         * Not because "nobody" is easy — establishing that nobody is forced
+         * means checking every candidate against every arrangement, which is the
+         * whole reading. Because it is *likely*: `guessRateFor("select", …)`
+         * prices a selection at one subset in `2^n`, which assumes no single
+         * subset is much likelier than another, and an empty answer that came up
+         * a fifth of the time would credit submitting nothing as though it had
+         * named one subset in eight. Kept at about a tenth, which leaves the
+         * reading available — a premise set that pins nobody is worth meeting —
+         * without letting it carry the mode's floor.
          */
         const settling = askable.filter(([a, b]) => forcedBetween(a, b).length > 0);
-        const pool = settling.length && Math.random() > 0.15 ? settling : askable;
+        const pool = settling.length && Math.random() > 0.08 ? settling : askable;
         const [x, y] = pickUniqueItems(pool, 1).picked[0];
         const forced = forcedBetween(x, y);
 

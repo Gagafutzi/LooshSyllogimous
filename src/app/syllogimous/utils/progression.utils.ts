@@ -582,6 +582,7 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Betweenness":               [],
     "Interval Algebra":          [],
     "Odd Analogy":               [],
+    "Projection":                [],
     "Binary":                    ["negation", "retired-meta"],
     /*
      * Empty, and for a different reason from the two above.

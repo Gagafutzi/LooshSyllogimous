@@ -82,6 +82,7 @@ export enum EnumQuestionType {
     Betweenness = "Betweenness",
     Intervals = "Interval Algebra",
     OddAnalogy = "Odd Analogy",
+    Projection = "Projection",
 }
 
 export enum EnumArrangements {
