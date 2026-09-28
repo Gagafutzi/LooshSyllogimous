@@ -231,7 +231,29 @@ export class Question {
      * coin-flip floor — a guess is worth 1/n rather than 1/2, so the same number
      * of trials says considerably more about whether the item was understood.
      */
-    answerMode: "boolean" | "choice" | "construct" | "map" = "boolean";
+    answerMode: "boolean" | "choice" | "construct" | "map" | "select" = "boolean";
+
+    /**
+     * Which of `choices` are true, for an item answered by selecting every one
+     * that applies.
+     *
+     * The answer mode the imported band is built on, and the one this app had
+     * no equivalent of. Every mode here builds a single arrangement and asks
+     * about it, so the honest answers are "yes", "no" and "one of these". A
+     * mode that enumerates the arrangements a set of premises still allows has
+     * a fourth: *these* are the outcomes still open, and saying which is the
+     * whole task — "it could be either" stops being a dodge and becomes the
+     * answer.
+     *
+     * Empty is a real answer and not an absent one: a set of premises can rule
+     * everything out, and a player who says so is right. `selectAsked` is what
+     * tells the two apart, because `selectAnswer.length === 0` cannot.
+     */
+    selectAnswer: number[] = [];
+    /** Whether this item is asking for a selection at all. */
+    selectAsked = false;
+    /** What the player selected, in the order they picked. */
+    userSelect?: number[];
 
     /**
      * A whole-structure match, answered by pointing rather than by picking.
@@ -582,6 +604,8 @@ export class Question {
      */
     askAsTrueOrFalse() {
         this.answerMode = "boolean";
+        this.selectAnswer = [];
+        this.selectAsked = false;
 
         this.series = [];
         this.seriesAt = 0;

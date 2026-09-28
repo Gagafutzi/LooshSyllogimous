@@ -567,6 +567,7 @@ export const RUNG_LADDERS: Record<string, string[]> = {
      * Deictic's case, reached the same way.
      */
     "Cyclic Dominance":          [],
+    "Possibility Sets":          [],
     "Binary":                    ["negation", "retired-meta"],
     /*
      * Empty, and for a different reason from the two above.

@@ -659,8 +659,30 @@ export class GameComponent {
         this.game.checkMapping(this.mapPicks);
     }
 
+    /* ---- selecting everything that applies ---- */
+
+    /** What the player has picked so far, in the order they picked it. */
+    selectPicks: number[] = [];
+
+    isSelected(i: number) { return this.selectPicks.includes(i); }
+
+    /** Picking an option again takes it back, which is how a set is edited. */
+    toggleSelect(i: number) {
+        this.selectPicks = this.isSelected(i)
+            ? this.selectPicks.filter(v => v !== i)
+            : [...this.selectPicks, i];
+    }
+
+    submitSelection() {
+        // No guard on emptiness: "none of these" is an answer, not an absence.
+        this.game.checkSelection(this.selectPicks);
+    }
+
     private resetPicks() {
         this.mapPicks = [];
+        // Left standing, the last item's selection is an answer already given
+        // to a question nobody has read.
+        this.selectPicks = [];
         this.webRedraw = 0;
         // A cursor left on the last item's third option would be pointing at
         // an answer to a question nobody has read yet.
@@ -823,6 +845,41 @@ export class GameComponent {
                 || event.key === " " || event.key === "Enter") {
                 event.preventDefault();
                 this.holdOn();
+            }
+            return;
+        }
+
+        if (this.game.question.answerMode === "select") {
+            const index = Number(event.key) - 1;
+            if (Number.isInteger(index) && index >= 0 && index < this.choiceCount) {
+                event.preventDefault();
+                this.toggleSelect(index);
+                return;
+            }
+            const action = this.keys.actionFor(event);
+            /*
+             * Two keys do the work and they are the two this app already binds:
+             * the pair that answers true or false moves the cursor and takes
+             * the option under it, and submit settles the set.
+             *
+             * Submit does not toggle. A selection is finished by saying so, and
+             * a key that both picked and submitted would make the last option
+             * picked the one you could never change your mind about.
+             */
+            if (action === "prev" || action === "next") {
+                event.preventDefault();
+                this.moveChoice(action === "next" ? 1 : -1);
+                return;
+            }
+            if ((action === "answerTrue" || action === "answerFalse") && this.choiceFocus >= 0) {
+                event.preventDefault();
+                this.toggleSelect(this.choiceFocus);
+                return;
+            }
+            if (action === "submit") {
+                event.preventDefault();
+                this.submitSelection();
+                return;
             }
             return;
         }

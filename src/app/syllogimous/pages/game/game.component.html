@@ -488,6 +488,43 @@
             </small>
         </div>
 
+        <!--
+          Select: every option is its own decision, so each toggles and one
+          submit settles the lot.
+
+          Drawn with the choice classes and Bootstrap's `active` rather than a
+          state of its own — `game.component.css` is 20 bytes under the budget
+          that fails the build, and a pressed button is exactly what `active`
+          is for.
+
+          The submit is never disabled. An empty selection is an answer here:
+          premises can rule everything out, and a player who says "none of
+          these is still possible" is right. Disabling it until something is
+          picked would make the one answer this band exists to allow the one
+          answer nobody can give.
+        -->
+        <div *ngIf="game.question.answerMode === 'select'">
+            <div class="small text-muted mb-2" *ngIf="game.question.choicePrompt">
+                {{ game.question.choicePrompt }}
+            </div>
+            <div class="choices">
+                <button *ngFor="let c of game.question.choices; let i = index"
+                        class="btn choice" [class.active]="isSelected(i)"
+                        [class.choice--focus]="choiceFocus === i"
+                        [attr.aria-pressed]="isSelected(i)"
+                        (click)="toggleSelect(i)">
+                    <span class="choice__key">{{ i + 1 }}</span>
+                    <span [innerHTML]="c"></span>
+                </button>
+            </div>
+            <div class="d-grid mt-2">
+                <button class="btn btn-lg btn-primary" (click)="submitSelection()">
+                    {{ selectPicks.length ? 'Submit ' + selectPicks.length + ' selected'
+                       : 'Submit \u2014 none of these' }}
+                </button>
+            </div>
+        </div>
+
         <!-- Choice: the question is which statement follows, so a True button
              would have nothing to refer to. -->
         <div class="choices" *ngIf="game.question.answerMode === 'choice' && !game.question.choiceGrids?.length">

@@ -24,6 +24,7 @@ import { createGraphMatching } from "../src/app/syllogimous/generators/graph-mat
 import { createAnalogy } from "../src/app/syllogimous/generators/analogy";
 import { createAnalogyCompletion } from "../src/app/syllogimous/generators/analogy-completion";
 import { createCyclicDominance } from "../src/app/syllogimous/generators/cyclic";
+import { createPossibilitySets } from "../src/app/syllogimous/generators/possibility";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
@@ -63,6 +64,7 @@ export const BUILD: Record<string, Build> = {
     [EnumQuestionType.Analogy]: createAnalogy,
     [EnumQuestionType.AnalogyCompletion]: createAnalogyCompletion,
     [EnumQuestionType.CyclicDominance]: createCyclicDominance,
+    [EnumQuestionType.PossibilitySets]: createPossibilitySets,
     [EnumQuestionType.Deictic]: createDeictic,
     [EnumQuestionType.Transformation]: createTransformation,
     [EnumQuestionType.AnchorSpace]: createAnchorSpace,

@@ -578,6 +578,34 @@ test("no item offers more than two options", () => {
                     for (const claim of [q, ...q.series]) {
                         const offered = claim.choices;
                         if (!offered || !offered.length) continue;
+                        /*
+                         * **Selections are the exception, and the reasoning is
+                         * why rather than in spite of it.**
+                         *
+                         * The rule above is that a long menu turns judging into
+                         * searching: four claims about four pairs let three be
+                         * dismissed for not being about the pair that matters,
+                         * and what is left can be shortened by looking rather
+                         * than by reasoning.
+                         *
+                         * Selecting everything that applies inverts every step
+                         * of that. Nothing can be dismissed for being about the
+                         * wrong thing, because each option is its own question
+                         * and dismissing one *is* answering it. There is no
+                         * shortening: the item is not over until every option
+                         * has been settled. And the guess floor moves the other
+                         * way — one subset in `2^n`, so eight options is one in
+                         * 256 against a true-or-false's one in two, which is
+                         * the opposite of the weaker evidence a long menu of
+                         * claims would be. `guessRateFor` prices it that way,
+                         * so nothing has to be told twice here either.
+                         */
+                        if (q.answerMode === "select") {
+                            assert(offered.length >= 3,
+                                `${type} asks for a selection from ${offered.length} —`
+                                + " a menu that short is a choice wearing a submit button");
+                            continue;
+                        }
                         if (offered.length > 2) {
                             wide.push(`${type} at ${n} premises offers ${offered.length}`);
                         }

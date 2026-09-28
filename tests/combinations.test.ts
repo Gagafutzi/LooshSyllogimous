@@ -37,6 +37,7 @@ import { createGraphMatching } from "../src/app/syllogimous/generators/graph-mat
 import { createAnalogy } from "../src/app/syllogimous/generators/analogy";
 import { createAnalogyCompletion } from "../src/app/syllogimous/generators/analogy-completion";
 import { createCyclicDominance } from "../src/app/syllogimous/generators/cyclic";
+import { createPossibilitySets } from "../src/app/syllogimous/generators/possibility";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
@@ -76,6 +77,7 @@ const BUILD: Record<string, Build> = {
     [EnumQuestionType.Analogy]: createAnalogy,
     [EnumQuestionType.AnalogyCompletion]: createAnalogyCompletion,
     [EnumQuestionType.CyclicDominance]: createCyclicDominance,
+    [EnumQuestionType.PossibilitySets]: createPossibilitySets,
     [EnumQuestionType.Deictic]: createDeictic,
     [EnumQuestionType.Transformation]: createTransformation,
     [EnumQuestionType.AnchorSpace]: createAnchorSpace,
@@ -148,7 +150,15 @@ for (const everyRung of [false, true]) {
                         const q = seeded(n * 7717 + rep * 131 + 5, () => make(ctx, n));
 
                         const states = q.premises.length > 0 || (q.webs?.length ?? 0) > 0;
-                        const asks = q.answerMode === "choice"
+                        /*
+                         * Where an item's question lives depends on how it is
+                         * answered, and this knew about one of the modes that
+                         * keep it in the options. A selection keeps it there
+                         * too — it has no conclusion, because the options are
+                         * the answer being given — and was reported as asking
+                         * nothing while offering three things to settle.
+                         */
+                        const asks = q.answerMode === "choice" || q.answerMode === "select"
                             ? q.choices.length > 0
                             : String(q.conclusion ?? "").length > 0 || q.construct.length > 0;
 

@@ -92,5 +92,6 @@ import "./anchor-negation.test";
 import "./analogy-completion.test";
 import "./cyclic.test";
 import "./relation-systems.test";
+import "./possibility.test";
 
 run();

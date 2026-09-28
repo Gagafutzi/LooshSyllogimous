@@ -72,6 +72,7 @@ export enum EnumQuestionType {
      * is what a chain of "north of" leaves out.
      */
     CyclicDominance = "Cyclic Dominance",
+    PossibilitySets = "Possibility Sets",
 }
 
 export enum EnumArrangements {

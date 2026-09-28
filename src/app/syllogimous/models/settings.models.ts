@@ -56,6 +56,7 @@ const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
      */
     EnumQuestionType.AnalogyCompletion,
     EnumQuestionType.CyclicDominance,
+    EnumQuestionType.PossibilitySets,
 ]);
 
 export function canGenerateQuestion(
@@ -188,6 +189,7 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.Analogy);
         this.initQuestionSettings(EnumQuestionType.AnalogyCompletion);
         this.initQuestionSettings(EnumQuestionType.CyclicDominance);
+        this.initQuestionSettings(EnumQuestionType.PossibilitySets);
         this.initQuestionSettings(EnumQuestionType.Binary);
         this.initQuestionSettings(EnumQuestionType.Deictic);
         this.initQuestionSettings(EnumQuestionType.Transformation);

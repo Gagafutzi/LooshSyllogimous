@@ -57,6 +57,26 @@ export function slotSatisfied(slot: ConstructSlot, answer: SlotAnswer | undefine
 }
 
 /**
+ * Whether a selection is the one the item asked for.
+ *
+ * The set and the whole set: no partial credit, for the same reason
+ * construction has none. The guess floor is one subset in `2^n` precisely
+ * because every option is its own decision, and crediting three right out of
+ * four hands most of that straight back — a player who selects everything
+ * would score well on an item they never read, which is the one outcome this
+ * mode must not allow.
+ *
+ * Order is not part of it: a set is a set, and the screen records the order
+ * only so a pick can be taken back.
+ */
+export function selectionSatisfied(want: number[], picked: number[] | undefined): boolean {
+    if (!picked) return false;
+    const got = new Set(picked);
+    // Both ways round, or selecting everything would satisfy every item.
+    return got.size === want.length && want.every(i => got.has(i));
+}
+
+/**
  * Whether the whole conclusion is right.
  *
  * Every slot of every claim, with no partial credit: half a relation is not a

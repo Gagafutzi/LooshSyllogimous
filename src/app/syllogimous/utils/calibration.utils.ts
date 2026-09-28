@@ -181,6 +181,13 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
      * counting round it stays discriminating where the orderings have stopped.
      */
     [EnumQuestionType.CyclicDominance]: { weight: 1.5, ceiling: 22 },
+    /*
+     * Weighted high for the same reason the induction pair is: a premise here
+     * buys arrangements to rule out rather than a chain to lengthen, and the
+     * answer is a set rather than a verdict — one subset in eight, so a
+     * correct one says considerably more than a true-or-false does.
+     */
+    [EnumQuestionType.PossibilitySets]: { weight: 2.0, ceiling: 24 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

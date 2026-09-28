@@ -221,6 +221,19 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 15,
         basic: false
     },
+    /*
+     * Premises narrow the arrangements rather than building one, so the count
+     * is how much is pinned down rather than how much there is to read. Three
+     * is the floor: below it almost everything is still open and the answer is
+     * "all three" whatever the system. Eight is the ceiling, where the premises
+     * usually settle the pair outright and the skill is telling that.
+     */
+    [EnumQuestionType.PossibilitySets]: {
+        enabled: true,
+        minNumOfPremises: 3,
+        maxNumOfPremises: 8,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,

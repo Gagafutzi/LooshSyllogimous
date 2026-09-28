@@ -976,6 +976,15 @@ export function secondsForCost(levels: number, config = DEFAULT_ABILITY): number
  */
 export function guessRateFor(answerMode: string, slots = 0, choices = 0, options = 3): number {
     if (answerMode === "choice") return choices > 0 ? 1 / choices : 0.25;
+    /*
+     * Every option is its own decision, so a guess is one subset of `2^n` —
+     * which is the whole argument for letting this mode offer a long menu
+     * where every other one is held to two. Eight options is a floor of one in
+     * 256, against one in two for a true-or-false, and a menu that long is not
+     * a search to be shortened: the reader has to settle every option, and
+     * dismissing one at a glance is answering it, not skipping it.
+     */
+    if (answerMode === "select") return choices > 0 ? 1 / Math.pow(2, choices) : 0.05;
     // Options per slot are no longer always three: a mode that asks for a rank
     // offers one per candidate, and crediting it at a third would understate
     // how decisive a correct answer is by orders of magnitude.

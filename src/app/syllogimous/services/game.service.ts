@@ -51,7 +51,7 @@ import { LinearFeatureFlags, SettingsOverrideService } from "./settings-override
 import { ProgressionService } from "./progression.service";
 import { ToastService } from "src/app/services/toast.service";
 import { Subject } from "rxjs";
-import { SlotAnswer, compareConstruction, constructionSatisfied } from "../utils/construct.utils";
+import { SlotAnswer, compareConstruction, constructionSatisfied, selectionSatisfied } from "../utils/construct.utils";
 import { applyResult, itemDifficulty } from "../utils/rating.utils";
 import { guid } from "src/app/utils/uuid";
 import { EnumArrangements, EnumQuestionType } from "../constants/question.constants";
@@ -63,6 +63,7 @@ import { neg, subj } from "../utils/phrasing";
 import { createAnalogy } from "../generators/analogy";
 import { createAnalogyCompletion } from "../generators/analogy-completion";
 import { createCyclicDominance } from "../generators/cyclic";
+import { createPossibilitySets } from "../generators/possibility";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
 import { createArrangement } from "../generators/arrangement";
 import { createBinary } from "../generators/binary";
@@ -517,6 +518,7 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.Analogy]: () => createAnalogy(this, numOfPremises),
             [EnumQuestionType.AnalogyCompletion]: () => createAnalogyCompletion(this, numOfPremises),
             [EnumQuestionType.CyclicDominance]: () => createCyclicDominance(this, numOfPremises),
+            [EnumQuestionType.PossibilitySets]: () => createPossibilitySets(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
             [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),
@@ -943,6 +945,26 @@ export class GameService implements GeneratorContext {
     checkConstruction(picked: SlotAnswer[][]) {
         this.question.userConstruct = picked;
         return this.checkQuestion(constructionSatisfied(this.question.construct, picked));
+    }
+
+    /**
+     * Answer a "select everything that applies" item.
+     *
+     * The set, not the order, and all of it or none. Partial credit is what
+     * would make this mode pointless: the guess floor is one in `2^n` precisely
+     * because every option is its own decision, and crediting three right out
+     * of four hands most of that back — a player who selects everything would
+     * score well on an item they did not read.
+     *
+     * An empty selection is an answer like any other and is checked like one.
+     * Premises can rule out every outcome, and "none of these is still
+     * possible" is then correct; a submit that treated empty as "not answered"
+     * would make the one case the band exists to allow unsayable.
+     */
+    checkSelection(picked: number[]) {
+        this.question.userSelect = [...picked];
+        return this.checkQuestion(
+            selectionSatisfied(this.question.selectAnswer, picked));
     }
 
     /**

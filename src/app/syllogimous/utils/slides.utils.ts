@@ -23,7 +23,7 @@ export interface SlideSource {
     setup?: string[];
     premises: string[];
     conclusion: string | string[];
-    answerMode: "boolean" | "choice" | "construct" | "map";
+    answerMode: "boolean" | "choice" | "construct" | "map" | "select";
     webs?: unknown[];
     grids?: unknown[];
     choices?: string[];
@@ -49,7 +49,10 @@ export function drawsItself(q: SlideSource): boolean {
  * in both the conclusion field holds the answer rather than a claim to judge.
  */
 export function concealsConclusion(q: SlideSource): boolean {
-    return q.answerMode === "construct" || q.answerMode === "map";
+    /* A selection has no conclusion to show either: what would go in that slide
+       is the list of options, and the options are the answer being given. */
+    return q.answerMode === "construct" || q.answerMode === "map"
+        || q.answerMode === "select";
 }
 
 export function slideNames(q: SlideSource): string[] {
@@ -66,7 +69,10 @@ export function slideNames(q: SlideSource): string[] {
         q.premises.forEach((_, i) => ids.push("premise-" + i));
     }
 
-    if (q.answerMode === "choice") {
+    if (q.answerMode === "choice" || q.answerMode === "select") {
+        // The same slide either way: the options have to be read together,
+        // and for a selection they have to be read together *and* settled one
+        // by one, which is more reason to show them at once rather than less.
         ids.push("choices");
     } else if (!concealsConclusion(q)) {
         const count = Array.isArray(q.conclusion) ? q.conclusion.length : 1;
