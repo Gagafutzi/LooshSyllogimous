@@ -115,7 +115,8 @@ test("a score is rounded and its source trimmed", () => {
  */
 test("no button is offered until there is somewhere for it to go", () => {
     const html = readFileSync(
-        "src/app/syllogimous/pages/stats/stats.component.html", "utf8");
+        "src/app/syllogimous/pages/progress-dashboard/progress-dashboard.component.html",
+        "utf8");
     const link = html.match(/<a\b[^>]*\[href\]="SHARE_DESTINATION"[^>]*>/);
     assert(!!link, "the destination link is gone");
     assert(/\*ngIf="SHARE_DESTINATION"/.test(link![0]),

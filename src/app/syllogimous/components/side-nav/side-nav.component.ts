@@ -97,7 +97,7 @@ export class SideNavComponent {
         },
         {
             label: "Progress", icon: "▤", children: [
-                { label: "Stats",        link: ["/", EnumScreens.Stats] },
+                { label: "Dashboard",    link: ["/", EnumScreens.ProgressDashboard] },
                 { label: "History",      link: ["/", EnumScreens.History] },
                 { label: "Tiers matrix", link: ["/", EnumScreens.TiersMatrix], needsProgression: true },
             ]

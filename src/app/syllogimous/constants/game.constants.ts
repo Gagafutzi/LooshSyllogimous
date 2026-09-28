@@ -10,7 +10,7 @@ export enum EnumScreens {
     Feedback = "Feedback",
     History = "History",
     Tutorials = "Tutorials",
-    Stats = "Stats",
+    ProgressDashboard = "Progress Dashboard",
     Settings = "Settings",
     Appearance = "Appearance",
     AdvancedOptions = "Advanced Options",

@@ -92,6 +92,7 @@ import "./anchor-negation.test";
 import "./analogy-completion.test";
 import "./dominance-ring.test";
 import "./relation-systems.test";
+import "./progress-dashboard.test";
 import "./possibility.test";
 import "./hidden-algebra.test";
 import "./minimal-premises.test";

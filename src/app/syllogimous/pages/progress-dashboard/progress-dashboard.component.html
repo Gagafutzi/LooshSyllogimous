@@ -1,0 +1,131 @@
+<app-card>
+    <div body class="d-grid gap-4 py-3 px-md-3" style="min-width: 320px;">
+        <div class="dash__empty" *ngIf="empty">
+            <h2>Progress dashboard</h2>
+            <p>Nothing has been answered yet, so every figure here would be a dash.</p>
+            <button class="btn btn-lg btn-primary" (click)="router.navigate([EnumScreens.Start])">
+                Play <i class="bi bi-play-fill"></i>
+            </button>
+        </div>
+
+        <ng-container *ngIf="!empty">
+            <section>
+                <h3 class="dash__head">Model &amp; calibration</h3>
+                <div class="dash__tiles">
+                    <div class="dash__tile" *ngFor="let t of model">
+                        <div class="dash__value">{{ t.value }}</div>
+                        <div class="dash__label">{{ t.label }}</div>
+                        <div class="dash__note" *ngIf="t.note">{{ t.note }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="dash__head">Answering</h3>
+                <div class="dash__tiles">
+                    <div class="dash__tile" *ngFor="let t of outcomes">
+                        <div class="dash__value">{{ t.value }}</div>
+                        <div class="dash__label">{{ t.label }}</div>
+                        <div class="dash__note" *ngIf="t.note">{{ t.note }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="dash__head">Reading load</h3>
+                <div class="dash__tiles">
+                    <div class="dash__tile" *ngFor="let t of load">
+                        <div class="dash__value">{{ t.value }}</div>
+                        <div class="dash__label">{{ t.label }}</div>
+                        <div class="dash__note" *ngIf="t.note">{{ t.note }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="dash__head">By mode</h3>
+                <table class="dash__table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Mode</th>
+                            <th scope="col" class="dash__num">Level</th>
+                            <th scope="col" class="dash__num">Items</th>
+                            <th scope="col" class="dash__num">Accuracy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let m of modes">
+                            <td>{{ m.type }}</td>
+                            <td class="dash__num">
+                                {{ m.level }} <span class="dash__note" *ngIf="m.sure">{{ m.sure }}</span>
+                            </td>
+                            <td class="dash__num">{{ m.items }}</td>
+                            <td class="dash__num">{{ m.accuracy }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </ng-container>
+
+        <!--
+          Shown before it can be copied, and copied only on a second click. What is
+          published cannot be unpublished, so reading it first is the whole point.
+        -->
+        <div class="share" *ngIf="shareReport">
+            <p class="share__note">
+                Everything below is what gets copied — no dates, no times, no
+                per-question rows. Nothing is sent from here — copying it and
+                posting it are both yours to do.
+            </p>
+            <div class="share__iq">
+                <label>
+                    IQ, if you want to include one
+                    <input type="number" [value]="iqScore" placeholder="optional"
+                           (change)="setIq($any($event.target).value, iqSource)">
+                </label>
+                <label>
+                    Which test
+                    <input type="text" [value]="iqSource" placeholder="e.g. Raven's APM"
+                           (change)="setIq(iqScore, $any($event.target).value)">
+                </label>
+            </div>
+            <pre class="share__body">{{ shareReport.text }}
+
+{{ shareReport.json }}</pre>
+            <div class="share__actions">
+                <button class="btn btn-outline-primary" (click)="copyShare()">
+                    {{ shareCopied ? "Copied" : "Copy" }}
+                </button>
+                <button class="btn btn-outline-secondary" (click)="shareReport = null">
+                    Close
+                </button>
+                <a *ngIf="SHARE_DESTINATION" class="btn btn-outline-secondary"
+                   target="_blank" rel="noopener" [href]="SHARE_DESTINATION">
+                    Where to post it
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div footer class="playcard-toolbar">
+        <div>
+            <button
+                class="btn btn-outline-primary"
+                (click)="router.navigate([EnumScreens.Start])"
+            >
+                <i class="bi bi-arrow-left"></i> Start
+            </button>
+        </div>
+        <div>
+            <button
+                class="btn btn-outline-primary"
+                (click)="exportStats()"
+            >
+                <i class="bi bi-download"></i> Export CSV
+            </button>
+            <button class="btn btn-outline-primary" (click)="buildShare()">
+                <i class="bi bi-share"></i> Share results
+            </button>
+        </div>
+    </div>
+</app-card>

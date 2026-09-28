@@ -11,7 +11,7 @@ import { StartComponent } from './pages/start/start.component';
 import { TutorialComponent } from './pages/tutorial/tutorial.component';
 import { HistoryComponent } from './pages/history/history.component';
 import { FeedbackComponent } from './pages/feedback/feedback.component';
-import { StatsComponent } from './pages/stats/stats.component';
+import { ProgressDashboardComponent } from './pages/progress-dashboard/progress-dashboard.component';
 import { TutorialsComponent } from './pages/tutorials/tutorials.component';
 import { TutorialDistinctionComponent } from './pages/tutorial/distinction/distinction.component';
 import { TutorialSyllogismComponent } from './pages/tutorial/syllogism/syllogism.component';
@@ -24,14 +24,8 @@ import { TutorialAnalogyComponent } from './pages/tutorial/analogy/analogy.compo
 import { TutorialBinaryComponent } from './pages/tutorial/binary/binary.component';
 import { TutorialLinearArrangementComponent } from './pages/tutorial/linear-arrangement/linear-arrangement.component';
 import { TutorialCircularArrangementComponent } from './pages/tutorial/circular-arrangement/circular-arrangement.component';
-import { AccuracyStatsComponent } from './pages/stats/accuracy-stats/accuracy-stats.component';
-import { ErrorAnalysisComponent } from './pages/stats/error-analysis/error-analysis.component';
-import { DimensionStatsComponent } from './pages/stats/dimension-stats/dimension-stats.component';
 import { SummaryComponent } from './pages/summary/summary.component';
 import { ExperimentalComponent } from './pages/experimental/experimental.component';
-import { TierStatsComponent } from './pages/stats/tier-stats/tier-stats.component';
-import { TimeBasedStatsComponent } from './pages/stats/time-based-stats/time-based-stats.component';
-import { TypeBasedStatsComponent } from './pages/stats/type-based-stats/type-based-stats.component';
 import { StatsExportService } from './services/stats-export.service';
 import { CardDropdownComponent } from './components/card/card-dropdown/card-dropdown.component';
 import { TimerChooseComponent } from './pages/settings/timer-choose/timer-choose.component';
@@ -66,7 +60,7 @@ const routes: Routes = [
             { path: EnumScreens.Intro, component: IntroComponent },
             { path: EnumScreens.Start, component: StartComponent, runGuardsAndResolvers: 'always' },
             { path: EnumScreens.Game, component: GameComponent },
-            { path: EnumScreens.Stats, component: StatsComponent },
+            { path: EnumScreens.ProgressDashboard, component: ProgressDashboardComponent },
             { path: EnumScreens.History, component: HistoryComponent },
             { path: EnumScreens.Feedback, component: FeedbackComponent },
             { path: EnumScreens.Settings, component: SettingsComponent },
@@ -127,15 +121,9 @@ const routes: Routes = [
         TutorialGraphMatchingComponent,
         TutorialAnalogyComponent,
         TutorialBinaryComponent,
-        StatsComponent,
-        AccuracyStatsComponent,
-        ErrorAnalysisComponent,
-        DimensionStatsComponent,
+        ProgressDashboardComponent,
         SummaryComponent,
         ExperimentalComponent,
-        TierStatsComponent,
-        TimeBasedStatsComponent,
-        TypeBasedStatsComponent,
         CardDropdownComponent,
         TimerChooseComponent,
         DailyProgressComponent,

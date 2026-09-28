@@ -1,0 +1,74 @@
+/*
+ * Tiles first, prose nowhere. The page this replaces explained each number
+ * beside it, which meant reading a paragraph to find a figure; here the figure
+ * is the largest thing in its box and the words under it are there for the
+ * second look.
+ */
+
+.dash__head {
+    margin: 0 0 .6rem;
+    font-size: .95rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--th-text-dim, #7d8ca6);
+}
+
+/*
+ * Auto-fit rather than a fixed count: the three rows hold four, four and six
+ * tiles, and a phone should reflow them rather than shrink them to a column of
+ * slivers.
+ */
+.dash__tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: .6rem;
+}
+
+.dash__tile {
+    padding: .7rem .8rem;
+    border: 1px solid var(--th-rule, #2a3340);
+    border-radius: .5rem;
+}
+
+.dash__value { font-size: 1.5rem; line-height: 1.1; font-weight: 600; }
+.dash__label { font-size: .82rem; margin-top: .15rem; }
+.dash__note { font-size: .72rem; color: var(--th-text-dim, #7d8ca6); }
+
+.dash__table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.dash__table th {
+    font-weight: 600;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--th-text-dim, #7d8ca6);
+}
+.dash__table th, .dash__table td {
+    padding: .35rem .5rem;
+    border-bottom: 1px solid var(--th-rule, #2a3340);
+}
+.dash__num { text-align: right; white-space: nowrap; }
+
+.dash__empty { text-align: center; display: grid; gap: .75rem; justify-items: center; }
+
+.share { margin-top: 1rem; display: grid; gap: .6rem; }
+.share__note { margin: 0; font-size: .85rem; color: var(--th-text-dim, #7d8ca6); }
+.share__body {
+    margin: 0;
+    max-height: 22rem;
+    overflow: auto;
+    padding: .75rem;
+    border: 1px solid var(--th-rule, #2a3340);
+    border-radius: .4rem;
+    font-size: .78rem;
+    white-space: pre;
+}
+.share__actions { display: flex; gap: .5rem; }
+
+.share__iq { display: flex; flex-wrap: wrap; gap: .75rem; }
+.share__iq label {
+    display: grid;
+    gap: .2rem;
+    font-size: .8rem;
+    color: var(--th-text-dim, #7d8ca6);
+}
+.share__iq input { min-width: 9rem; }
