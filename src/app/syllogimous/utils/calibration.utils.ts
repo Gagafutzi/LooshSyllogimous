@@ -232,6 +232,17 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // Compose the whole relation, then discard part of it on purpose — the
     // space modes' reading plus one act of deliberate forgetting.
     [EnumQuestionType.Projection]: { weight: 2.1, ceiling: 24 },
+    /*
+     * The isomorphism family. Nothing here can be read off one premise and
+     * nothing accumulates along a chain, so the whole item is held at once —
+     * which is why these are the heaviest weights in the app, and why they
+     * climb through the family as the structure asked about gets smaller and
+     * less pointed at.
+     */
+    [EnumQuestionType.StructureMatch]: { weight: 2.4, ceiling: 26 },
+    [EnumQuestionType.MotifSearch]: { weight: 2.5, ceiling: 26 },
+    [EnumQuestionType.PartialIsomorphism]: { weight: 2.6, ceiling: 27 },
+    [EnumQuestionType.CommonSubsystem]: { weight: 2.8, ceiling: 28 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

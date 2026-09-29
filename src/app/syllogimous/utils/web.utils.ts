@@ -870,3 +870,104 @@ export function obstructions(layout: Array<[number, number]>, adj: boolean[][]):
     });
     return count;
 }
+
+/* ------------------------------------------------------------------ *
+ * Sub-structure                                                       *
+ * ------------------------------------------------------------------ */
+
+/**
+ * The web on just these nodes, with the arrows that run between them.
+ *
+ * *Induced*, which is the only version of "sub-structure" the imported modes can
+ * use. A subgraph that merely contains the pattern's arrows would let a group
+ * count as matching while carrying extra arrows between its own members, and
+ * "these three stand to each other as those three do" would then be false of the
+ * group it named. Taking every arrow between the chosen nodes makes the claim
+ * exactly what it says.
+ *
+ * `pick` is read in the order given, so the result's node `i` is `pick[i]` — the
+ * callers need that correspondence to say which entity plays which part.
+ */
+export function induced(w: Web, pick: number[]): Web {
+    const out = emptyWeb(pick.length);
+    pick.forEach((a, i) => pick.forEach((b, j) => { out.adj[i][j] = w.adj[a][b]; }));
+    return out;
+}
+
+/** Every set of `k` nodes of a web, in ascending order. */
+export function subsets(n: number, k: number): number[][] {
+    const out: number[][] = [];
+    const walk = (at: number, chosen: number[]) => {
+        if (chosen.length === k) { out.push([...chosen]); return; }
+        for (let i = at; i < n; i++) walk(i + 1, [...chosen, i]);
+    };
+    walk(0, []);
+    return out;
+}
+
+/**
+ * The groups of `host` nodes that stand to each other as `pattern`'s do.
+ *
+ * Returned as node sets rather than as mappings, because that is the question
+ * the modes ask — *which* entities form the pattern, not which plays which part.
+ * A set is listed once however many ways the pattern fits onto it, so a pattern
+ * with a symmetry of its own does not report the same group twice.
+ *
+ * Brute force over subsets: the hosts here are at most eight nodes and the
+ * patterns three or four, so this is a few hundred isomorphism checks on graphs
+ * of three or four nodes. A real subgraph-isomorphism search would be faster and
+ * would not be checkable by reading it.
+ */
+export function motifSites(host: Web, pattern: Web): number[][] {
+    return subsets(host.n, pattern.n)
+        .filter(pick => isomorphic(induced(host, pick), pattern));
+}
+
+/**
+ * The largest groups, one from each web, that stand to each other alike.
+ *
+ * Every size from the largest down, stopping at the first size that matches
+ * anywhere — so the result is the *common* structure rather than some shared
+ * structure, which is what "no larger group does" on the card claims. Pairs are
+ * returned so a caller can check the claim is unambiguous: one pair means the
+ * answer is unique, several means the item would mark one of many right.
+ */
+export function largestCommon(
+    a: Web,
+    b: Web,
+    most = Math.min(a.n, b.n) - 1,
+): Array<{ inA: number[]; inB: number[] }> {
+    for (let size = Math.min(most, a.n, b.n); size >= 2; size--) {
+        const found: Array<{ inA: number[]; inB: number[] }> = [];
+        for (const inA of subsets(a.n, size)) {
+            const shape = induced(a, inA);
+            for (const inB of subsets(b.n, size)) {
+                if (isomorphic(induced(b, inB), shape)) found.push({ inA, inB });
+            }
+        }
+        if (found.length) return found;
+    }
+    return [];
+}
+
+/**
+ * The nodes whose removal leaves the two webs the same shape.
+ *
+ * Isomorph's partial isomorphism: two systems alike but for one entity on each
+ * side. Returned as every pair that works, because "leave those out and the rest
+ * match" is only a question with an answer when exactly one pair does — and a
+ * web with a symmetry often has several, which is the item to reject rather than
+ * to ship with one of them marked.
+ */
+export function oddPairs(a: Web, b: Web): Array<[number, number]> {
+    if (a.n !== b.n) return [];
+    const out: Array<[number, number]> = [];
+    const keep = (w: Web, drop: number) =>
+        induced(w, [...Array(w.n).keys()].filter(i => i !== drop));
+    for (let i = 0; i < a.n; i++) {
+        for (let j = 0; j < b.n; j++) {
+            if (isomorphic(keep(a, i), keep(b, j))) out.push([i, j]);
+        }
+    }
+    return out;
+}

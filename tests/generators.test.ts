@@ -46,6 +46,12 @@ import { createBetweenness } from "../src/app/syllogimous/generators/betweenness
 import { createIntervals } from "../src/app/syllogimous/generators/intervals";
 import { createOddAnalogy } from "../src/app/syllogimous/generators/odd-analogy";
 import { createProjection } from "../src/app/syllogimous/generators/projection";
+import {
+    createStructureMatch,
+    createMotifSearch,
+    createPartialIsomorphism,
+    createCommonSubsystem,
+} from "../src/app/syllogimous/generators/isomorphism";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
@@ -144,6 +150,10 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.Intervals, createIntervals],
     [EnumQuestionType.OddAnalogy, createOddAnalogy],
     [EnumQuestionType.Projection, createProjection],
+    [EnumQuestionType.StructureMatch, createStructureMatch],
+    [EnumQuestionType.MotifSearch, createMotifSearch],
+    [EnumQuestionType.PartialIsomorphism, createPartialIsomorphism],
+    [EnumQuestionType.CommonSubsystem, createCommonSubsystem],
     [EnumQuestionType.Deictic, createDeictic],
     [EnumQuestionType.Transformation, createTransformation],
     [EnumQuestionType.AnchorSpace, createAnchorSpace],

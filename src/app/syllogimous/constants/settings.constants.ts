@@ -354,6 +354,39 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 9,
         basic: false
     },
+    /*
+     * The count is the arrows, not the entities: every one of these draws a fixed
+     * number of named things and varies how densely they are connected, because
+     * that is what makes two structures hard to line up. The floors are where a
+     * web has enough shape for a decoy one arrow away to exist at all.
+     */
+    [EnumQuestionType.StructureMatch]: {
+        enabled: true,
+        minNumOfPremises: 6,
+        maxNumOfPremises: 10,
+        basic: false
+    },
+    /* Stops at eight because the host system caps at seven entities: asked for
+       more, the mode built the same item while the ladder printed a larger
+       number. Measured, not guessed. */
+    [EnumQuestionType.MotifSearch]: {
+        enabled: true,
+        minNumOfPremises: 6,
+        maxNumOfPremises: 8,
+        basic: false
+    },
+    [EnumQuestionType.PartialIsomorphism]: {
+        enabled: true,
+        minNumOfPremises: 6,
+        maxNumOfPremises: 10,
+        basic: false
+    },
+    [EnumQuestionType.CommonSubsystem]: {
+        enabled: true,
+        minNumOfPremises: 5,
+        maxNumOfPremises: 9,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,

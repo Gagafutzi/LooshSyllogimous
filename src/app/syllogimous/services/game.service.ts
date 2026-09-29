@@ -74,6 +74,12 @@ import { createBetweenness } from "../generators/betweenness";
 import { createIntervals } from "../generators/intervals";
 import { createOddAnalogy } from "../generators/odd-analogy";
 import { createProjection } from "../generators/projection";
+import {
+    createStructureMatch,
+    createMotifSearch,
+    createPartialIsomorphism,
+    createCommonSubsystem,
+} from "../generators/isomorphism";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
 import { createArrangement } from "../generators/arrangement";
 import { createBinary } from "../generators/binary";
@@ -539,6 +545,10 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.Intervals]: () => createIntervals(this, numOfPremises),
             [EnumQuestionType.OddAnalogy]: () => createOddAnalogy(this, numOfPremises),
             [EnumQuestionType.Projection]: () => createProjection(this, numOfPremises),
+            [EnumQuestionType.StructureMatch]: () => createStructureMatch(this, numOfPremises),
+            [EnumQuestionType.MotifSearch]: () => createMotifSearch(this, numOfPremises),
+            [EnumQuestionType.PartialIsomorphism]: () => createPartialIsomorphism(this, numOfPremises),
+            [EnumQuestionType.CommonSubsystem]: () => createCommonSubsystem(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
             [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),

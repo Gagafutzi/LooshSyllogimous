@@ -83,6 +83,10 @@ export enum EnumQuestionType {
     Intervals = "Interval Algebra",
     OddAnalogy = "Odd Analogy",
     Projection = "Projection",
+    StructureMatch = "Structure Match",
+    MotifSearch = "Motif Search",
+    PartialIsomorphism = "Partial Isomorphism",
+    CommonSubsystem = "Common Sub-System",
 }
 
 export enum EnumArrangements {

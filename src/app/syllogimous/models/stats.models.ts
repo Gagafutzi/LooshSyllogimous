@@ -34,6 +34,10 @@ export class TypeBasedStats {
     [EnumQuestionType.Intervals] = new TypeBasedStatsInner(EnumQuestionType.Intervals);
     [EnumQuestionType.OddAnalogy] = new TypeBasedStatsInner(EnumQuestionType.OddAnalogy);
     [EnumQuestionType.Projection] = new TypeBasedStatsInner(EnumQuestionType.Projection);
+    [EnumQuestionType.StructureMatch] = new TypeBasedStatsInner(EnumQuestionType.StructureMatch);
+    [EnumQuestionType.MotifSearch] = new TypeBasedStatsInner(EnumQuestionType.MotifSearch);
+    [EnumQuestionType.PartialIsomorphism] = new TypeBasedStatsInner(EnumQuestionType.PartialIsomorphism);
+    [EnumQuestionType.CommonSubsystem] = new TypeBasedStatsInner(EnumQuestionType.CommonSubsystem);
     [EnumQuestionType.Binary] = new TypeBasedStatsInner(EnumQuestionType.Binary);
     [EnumQuestionType.Deictic] = new TypeBasedStatsInner(EnumQuestionType.Deictic);
     [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);
