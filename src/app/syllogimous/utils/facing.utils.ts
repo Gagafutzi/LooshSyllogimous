@@ -73,6 +73,36 @@ export const OPPOSITE: Record<Egocentric, Egocentric> = {
     left: "right", right: "left", ahead: "behind", behind: "ahead",
 };
 
+/**
+ * The same direction as a mirror twin would name it.
+ *
+ * Left and right swap; ahead and behind do not. A mirror twin is reflected, not
+ * turned around — someone turned around would have their ahead and behind swapped
+ * too, and would be an ordinary viewer facing the other way, which the premises
+ * can already say. The whole difficulty is that a mirror twin's facing is
+ * unchanged and only the sideways half of their vocabulary is reversed, so the
+ * bearing is worked out exactly as usual and *then* one word is exchanged.
+ *
+ * The ahead and behind entries are written for what the table means, not for what
+ * the mode reaches: items are drawn only where the answer is sideways, since a
+ * twin asked about ahead or behind states a rule it never uses. So changing those
+ * two entries cannot fail a test, and they are here to say what a mirror twin is
+ * rather than to be exercised.
+ */
+export const MIRRORED: Record<Egocentric, Egocentric> = {
+    left: "right", right: "left", ahead: "ahead", behind: "behind",
+};
+
+/** "A is a mirror twin." */
+export function describeTwin(viewer: string): string {
+    return `${subj(viewer)} is a ${hi("mirror twin")}`;
+}
+
+export const MIRROR_NOTE =
+    "Some are <b>mirror twins</b>: their left and right are swapped. A twin faces"
+    + " where the premises say, and the bearing is worked out as usual \u2014 but what"
+    + " lies on their left is what they call their right.";
+
 /** "B is on A's left", with the pronoun slot filled. */
 export function describeEgocentric(target: string, viewer: string, rel: Egocentric): string {
     return `${subj(target)} is ${hi(EGOCENTRIC_WORDS[rel].replace("{a}", viewer))}`;

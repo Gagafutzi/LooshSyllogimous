@@ -122,6 +122,7 @@ export class ModeModifiersComponent {
             "circular-2": "A second axis wraps around",
             "indeterminate": "Some pairs are left undetermined",
             "facing": "Relations from an object’s own facing, not the map’s",
+            "mirror-twins": "Some have their left and right swapped",
             "speakers": "Premises reported by speakers, and some of them lie",
             "testimony": "Reports that have to be checked against each other",
             "transform-1": "One transformation applied to the arrangement",

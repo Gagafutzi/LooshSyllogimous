@@ -279,6 +279,7 @@ const ND_LADDER = [
     // and reads them by position, so a new rung anywhere but the end renames
     // every rung after it for everyone who already has them.
     "checkpoint",
+    "mirror-twins",
 ];
 
 /**

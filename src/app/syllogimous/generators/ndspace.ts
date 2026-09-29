@@ -18,7 +18,8 @@ import { EnumQuestionType } from "../constants/question.constants";
 import { hi, rel, subj } from "../utils/phrasing";
 import { SPEAKERS_NOTE, TESTIMONY_NOTE, describeStatement, drawClaims, solve } from "../utils/knaves.utils";
 import {
-    Egocentric, FACING_NOTE, OPPOSITE, bearingPlane, describeBearing, describeEgocentric,
+    Egocentric, FACING_NOTE, MIRRORED, MIRROR_NOTE, OPPOSITE, bearingPlane,
+    describeBearing, describeEgocentric, describeTwin,
     describeFacing, egocentric,
 } from "../utils/facing.utils";
 import { QUESTION_TYPE_SETTING_PARAMS } from "../constants/settings.constants";
@@ -440,6 +441,8 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
     const forcedFacing = ctx.settingsOverrideService.linearOverride("facing");
     const facing = (forcedFacing === null ? ladder("facing") : !!forcedFacing)
         && edits === 0 && transforms === 0;
+    /* Mirror twins are a way of *reading* a facing, so they need one to read. */
+    const twins = facing && ladder("mirror-twins");
 
     /*
      * Reported relations, some of them by liars. Same exclusions as
@@ -475,6 +478,7 @@ export function ndFeatures(ctx: GeneratorContext, type: EnumQuestionType) {
         testimony,
         speakers: speakers && !testimony,
         facing,
+        twins,
         indeterminate,
         branching: pick("branching", "branching"),
         compact,
@@ -801,7 +805,7 @@ export function fillNdConclusion(ctx: GeneratorContext,
      * own branch: the claim is not about an axis at all.
      */
     if (feat.facing) {
-        const built = fillFacingConclusion(question, layout, extraPremises);
+        const built = fillFacingConclusion(question, layout, extraPremises, feat.twins);
         if (built) return true;
         // Falling through rather than failing: a layout can simply have no
         // pair the bearing plane separates, and that is not an error.
@@ -1018,6 +1022,7 @@ export function ndSetup(ctx: GeneratorContext,
     if (feat.compact) lines.push(COMPACT_NOTE);
     if (feat.indeterminate) lines.push(INDETERMINATE_NOTE);
     if (feat.facing) lines.push(FACING_NOTE);
+    if (feat.twins) lines.push(MIRROR_NOTE);
     if (feat.speakers) lines.push(SPEAKERS_NOTE);
     if (feat.testimony) lines.push(TESTIMONY_NOTE);
     if (edited) lines.push(EDIT_NOTE);
@@ -1089,6 +1094,7 @@ function fillFacingConclusion(
     question: Question,
     layout: NdLayout,
     extraPremises: string[],
+    twins = false,
 ): boolean {
     const plane = bearingPlane(layout.axes);
     if (!plane || layout.words.length < 3) return false;
@@ -1114,14 +1120,33 @@ function fillFacingConclusion(
     }
     if (!options.length) return false;
 
-    const chosen = options[Math.floor(Math.random() * options.length)];
+    /*
+     * With the rung on, the viewer is a mirror twin and the claim is sideways.
+     *
+     * Both halves are required rather than hoped for. A twin who is not the
+     * viewer changes nothing — the swap is about whose vocabulary the claim is
+     * in — and a claim of "ahead" or "behind" is the same word either way, so an
+     * item with one would state the rule and never use it. Where no such triple
+     * exists the caller falls through to another kind of conclusion, which is
+     * what it already does when the bearing plane separates nothing.
+     */
+    const usable = twins
+        ? options.filter(o => o.rel === "left" || o.rel === "right")
+        : options;
+    if (!usable.length) return false;
+
+    const chosen = usable[Math.floor(Math.random() * usable.length)];
+    /* The relation as the viewer would name it: a twin's sideways words are
+       exchanged, and the bearing that produced them is not. */
+    const spoken = twins ? MIRRORED[chosen.rel] : chosen.rel;
     const claimTrue = coinFlip();
-    const claimed = claimTrue ? chosen.rel : OPPOSITE[chosen.rel];
+    const claimed = claimTrue ? spoken : OPPOSITE[spoken];
 
     const f = sub(at(chosen.faced), at(chosen.viewer));
     const v = sub(at(chosen.target), at(chosen.viewer));
 
     extraPremises.push(describeFacing(chosen.viewer, chosen.faced));
+    if (twins) extraPremises.push(describeTwin(chosen.viewer));
     question.conclusion = describeEgocentric(chosen.target, chosen.viewer, claimed);
     question.isValid = claimTrue;
     question.explanation = [
@@ -1130,7 +1155,12 @@ function fillFacingConclusion(
         + ` ${subj(chosen.viewer)} is turned.`,
         `From ${subj(chosen.viewer)}, ${subj(chosen.target)} lies`
         + ` ${hi(describeBearing(v, layout.axes, plane))}.`,
-        `so ${describeEgocentric(chosen.target, chosen.viewer, chosen.rel)}`,
+        ...(twins
+            ? [`so ${describeEgocentric(chosen.target, chosen.viewer, chosen.rel)}`
+                + ` \u2014 but ${subj(chosen.viewer)} is a mirror twin, and calls that`
+                + ` side the other one`,
+               `so ${describeEgocentric(chosen.target, chosen.viewer, spoken)}`]
+            : [`so ${describeEgocentric(chosen.target, chosen.viewer, chosen.rel)}`]),
     ];
     return true;
 }

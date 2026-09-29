@@ -80,6 +80,16 @@ export const RUNG_COST: Record<string, number> = {
      */
     facing: 1.8,
     /*
+     * Dearer than a facing, and only a little.
+     *
+     * It is the same reading with one exchange on the end: the bearing is worked
+     * out exactly as a facing item's is, and then the answer is said in a
+     * vocabulary where two of the four words have traded places. The step is
+     * small, and it is easy to omit precisely because everything before it is
+     * unchanged — which is what it costs rather than what it adds.
+     */
+    "mirror-twins": 2.0,
+    /*
      * Two puzzles stacked: work out who is lying, then work out the
      * arrangement from what is left. Dearer than either alone because the
      * second cannot start until the first is finished.
