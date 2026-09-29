@@ -7,6 +7,45 @@
     .playcard-footer {
         border-top: 1px solid rgba(var(--app-gray_1000), 1);
         background: #0000;
+
+        /*
+         * **The answers may not take the whole card.**
+         *
+         * The card is a flex column: header, body, footer. The footer sizes to
+         * its content and the body takes what is left, which was right when a
+         * footer held two buttons. A selection offers one row per relation —
+         * eight for Region Connection, thirteen for Interval Algebra — and at
+         * 420 x 880 that came to a **619px footer, seventy per cent of the
+         * card, leaving the premises 259px** to show 417px of statements.
+         *
+         * So the reader was choosing between eight relations with most of the
+         * statements they are about scrolled out of sight, and on a wider window
+         * the setup line was cut off mid-sentence. The options were winning the
+         * argument with the question.
+         *
+         * Capped, the same item gives the premises 395px and the options 483px,
+         * and the options scroll inside the cap. The submit sits at the end of
+         * them rather than below the fold — which is also the right reading
+         * order, since an item answered by selecting is not answered until
+         * every option has been settled.
+         *
+         * Measured in a real browser on the built app, not reasoned about:
+         * `tests/answer-space.test.ts` keeps the cap honest from the other side.
+         */
+        max-block-size: 55%;
+        overflow-y: auto;
+    }
+
+    /*
+     * And the body is allowed to shrink to the cap, which is the other half.
+     *
+     * A flex item's `min-height` is `auto` — "no smaller than my content" — and
+     * the body's content is a scroll container, so this is belt and braces
+     * rather than a second fix. It states the intent the cap above relies on:
+     * the body gives way, and the cap is what stops it giving way to nothing.
+     */
+    .playcard > .card-body {
+        min-block-size: 0;
     }
 
     .playcard-header:empty, 
