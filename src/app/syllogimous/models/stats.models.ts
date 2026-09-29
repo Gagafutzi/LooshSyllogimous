@@ -40,6 +40,8 @@ export class TypeBasedStats {
     [EnumQuestionType.CommonSubsystem] = new TypeBasedStatsInner(EnumQuestionType.CommonSubsystem);
     [EnumQuestionType.PartialAnalogy] = new TypeBasedStatsInner(EnumQuestionType.PartialAnalogy);
     [EnumQuestionType.SecondOrder] = new TypeBasedStatsInner(EnumQuestionType.SecondOrder);
+    [EnumQuestionType.ObliqueBasis] = new TypeBasedStatsInner(EnumQuestionType.ObliqueBasis);
+    [EnumQuestionType.PivotTransforms] = new TypeBasedStatsInner(EnumQuestionType.PivotTransforms);
     [EnumQuestionType.Binary] = new TypeBasedStatsInner(EnumQuestionType.Binary);
     [EnumQuestionType.Deictic] = new TypeBasedStatsInner(EnumQuestionType.Deictic);
     [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);

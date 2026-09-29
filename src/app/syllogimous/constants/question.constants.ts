@@ -89,6 +89,8 @@ export enum EnumQuestionType {
     CommonSubsystem = "Common Sub-System",
     PartialAnalogy = "Partial Analogy",
     SecondOrder = "Second-Order Analogy",
+    ObliqueBasis = "Oblique Basis",
+    PivotTransforms = "Pivot Transforms",
 }
 
 export enum EnumArrangements {

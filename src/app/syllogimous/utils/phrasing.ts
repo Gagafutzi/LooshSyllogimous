@@ -847,6 +847,20 @@ export const OWN_RULES: Record<string, { words: string; mark: string; label?: st
     "tf-around": { words: "around", mark: "" },
 
     /*
+     * Pivot Transforms' two whole-space moves.
+     *
+     * Their own rules rather than Transformation's, and their own marks rather
+     * than its `⇋` and `⟳`, because they are not the same operations: those
+     * move one object relative to an anchor, these take the whole arrangement
+     * with them and stop the earlier premises being true. Sharing a mark would
+     * also put the other mode's wording in this one's key — the legend lists
+     * every word that a found mark stands for.
+     */
+    "pv-mirror": { words: "mirrored through", mark: "⇄", label: "mirrored through" },
+    "pv-turn": { words: "turns a quarter turn about", mark: "⟲",
+        label: "turns a quarter about" },
+
+    /*
      * Knights and Knaves: "A and B are the same kind" is the distinction
      * relation, said around both names. The connective takes the relation's
      * mark and the tail goes, so it reads "A ≐ B" — and, being a relation, it

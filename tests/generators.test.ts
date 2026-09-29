@@ -54,6 +54,8 @@ import {
 } from "../src/app/syllogimous/generators/isomorphism";
 import { createPartialAnalogy } from "../src/app/syllogimous/generators/partial-analogy";
 import { createSecondOrder } from "../src/app/syllogimous/generators/second-order";
+import { createObliqueBasis } from "../src/app/syllogimous/generators/oblique-basis";
+import { createPivotTransforms } from "../src/app/syllogimous/generators/pivot-transforms";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
 import { createOddestRelation } from "../src/app/syllogimous/generators/oddest-relation";
@@ -158,6 +160,8 @@ const GENERATORS: Array<[EnumQuestionType, (ctx: GeneratorContext, n: number) =>
     [EnumQuestionType.CommonSubsystem, createCommonSubsystem],
     [EnumQuestionType.PartialAnalogy, createPartialAnalogy],
     [EnumQuestionType.SecondOrder, createSecondOrder],
+    [EnumQuestionType.ObliqueBasis, createObliqueBasis],
+    [EnumQuestionType.PivotTransforms, createPivotTransforms],
     [EnumQuestionType.Deictic, createDeictic],
     [EnumQuestionType.Transformation, createTransformation],
     [EnumQuestionType.AnchorSpace, createAnchorSpace],

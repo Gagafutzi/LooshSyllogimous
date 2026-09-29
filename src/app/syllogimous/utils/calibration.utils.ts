@@ -249,6 +249,12 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // Relations composed, then compared to each other: the operation has to
     // be identified from one example before it can be applied.
     [EnumQuestionType.SecondOrder]: { weight: 2.6, ceiling: 27 },
+    // No column to add: every word moves two directions, so the axes cannot
+    // be tracked one at a time the way every other space mode allows.
+    [EnumQuestionType.ObliqueBasis]: { weight: 2.4, ceiling: 25 },
+    // The model has to be updated mid-read: the early premises stop being
+    // true and a reader who keeps them gets a consistent wrong answer.
+    [EnumQuestionType.PivotTransforms]: { weight: 2.5, ceiling: 26 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

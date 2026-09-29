@@ -404,6 +404,26 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 10,
         basic: false
     },
+    /* Seven is the floor: three axes, three codex words that all have to be used,
+       and a chain of at least three steps so the answer is a sum. */
+    /* Stops at eight: the chain caps at six steps and the codex at three words, so
+       past that the mode built the same item while the ladder printed a larger
+       number. Measured across the range, not guessed. */
+    [EnumQuestionType.ObliqueBasis]: {
+        enabled: true,
+        minNumOfPremises: 7,
+        maxNumOfPremises: 8,
+        basic: false
+    },
+    /* The count is split between the two phases — placements before the move and
+       after it — so seven is the fewest that leaves three and two with the move
+       between them. */
+    [EnumQuestionType.PivotTransforms]: {
+        enabled: true,
+        minNumOfPremises: 7,
+        maxNumOfPremises: 11,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,
