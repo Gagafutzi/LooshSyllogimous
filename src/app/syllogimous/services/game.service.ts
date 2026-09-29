@@ -84,6 +84,8 @@ import { createPartialAnalogy } from "../generators/partial-analogy";
 import { createSecondOrder } from "../generators/second-order";
 import { createObliqueBasis } from "../generators/oblique-basis";
 import { createPivotTransforms } from "../generators/pivot-transforms";
+import { createContextShifts } from "../generators/context-shifts";
+import { createCrossAnalogy } from "../generators/cross-analogy";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
 import { createArrangement } from "../generators/arrangement";
 import { createBinary } from "../generators/binary";
@@ -557,6 +559,8 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.SecondOrder]: () => createSecondOrder(this, numOfPremises),
             [EnumQuestionType.ObliqueBasis]: () => createObliqueBasis(this, numOfPremises),
             [EnumQuestionType.PivotTransforms]: () => createPivotTransforms(this, numOfPremises),
+            [EnumQuestionType.ContextShifts]: () => createContextShifts(this, numOfPremises),
+            [EnumQuestionType.CrossAnalogy]: () => createCrossAnalogy(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
             [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),

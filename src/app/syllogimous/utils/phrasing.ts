@@ -857,6 +857,15 @@ export const OWN_RULES: Record<string, { words: string; mark: string; label?: st
      * every word that a found mark stands for.
      */
     "pv-mirror": { words: "mirrored through", mark: "⇄", label: "mirrored through" },
+    /* Context Shifts mirrors a displacement *along* one direction, which is a
+       different operation from reflecting a layout *through* an entity — and
+       "mirrored" alone is already Transformation's word, so this needs a key
+       and a mark of its own rather than borrowing either. */
+    "cs-mirror": { words: "mirrored along", mark: "⇌", label: "mirrored along" },
+    /* Cross-System Analogy pairs an entity of one system with an entity of the
+       other. Not "the same relation as" — a correspondence is not a relation, and
+       borrowing the analogy wording for it said the wrong thing on every card. */
+    "xa-counterpart": { words: "answers to", mark: "⋈", label: "answers to" },
     "pv-turn": { words: "turns a quarter turn about", mark: "⟲",
         label: "turns a quarter about" },
 

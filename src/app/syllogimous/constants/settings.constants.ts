@@ -424,6 +424,23 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 11,
         basic: false
     },
+    /* Eight is the floor: three axes, two composed base contexts and at least two
+       operations that each change the running value. */
+    [EnumQuestionType.ContextShifts]: {
+        enabled: true,
+        minNumOfPremises: 8,
+        maxNumOfPremises: 11,
+        basic: false
+    },
+    /* Nine, because the card carries two arrangements, the pairings that pin the
+       dictionary, and the analogy — and the dictionary needs at least two pairings
+       before it is pinned at all. */
+    [EnumQuestionType.CrossAnalogy]: {
+        enabled: true,
+        minNumOfPremises: 9,
+        maxNumOfPremises: 11,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,

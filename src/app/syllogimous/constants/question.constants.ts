@@ -91,6 +91,8 @@ export enum EnumQuestionType {
     SecondOrder = "Second-Order Analogy",
     ObliqueBasis = "Oblique Basis",
     PivotTransforms = "Pivot Transforms",
+    ContextShifts = "Context Shifts",
+    CrossAnalogy = "Cross-System Analogy",
 }
 
 export enum EnumArrangements {

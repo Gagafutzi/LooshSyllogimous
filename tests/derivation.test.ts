@@ -66,6 +66,8 @@ import { createPartialAnalogy } from "../src/app/syllogimous/generators/partial-
 import { createSecondOrder } from "../src/app/syllogimous/generators/second-order";
 import { createObliqueBasis } from "../src/app/syllogimous/generators/oblique-basis";
 import { createPivotTransforms } from "../src/app/syllogimous/generators/pivot-transforms";
+import { createContextShifts } from "../src/app/syllogimous/generators/context-shifts";
+import { createCrossAnalogy } from "../src/app/syllogimous/generators/cross-analogy";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
@@ -136,6 +138,8 @@ const MODES: Array<[EnumQuestionType, (c: GeneratorContext, n: number) => Questi
     [EnumQuestionType.SecondOrder, createSecondOrder],
     [EnumQuestionType.ObliqueBasis, createObliqueBasis],
     [EnumQuestionType.PivotTransforms, createPivotTransforms],
+    [EnumQuestionType.ContextShifts, createContextShifts],
+    [EnumQuestionType.CrossAnalogy, createCrossAnalogy],
     [EnumQuestionType.Deictic, createDeictic],
     [EnumQuestionType.Transformation, createTransformation],
     [EnumQuestionType.AnchorSpace, createAnchorSpace],

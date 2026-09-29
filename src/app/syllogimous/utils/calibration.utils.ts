@@ -255,6 +255,12 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // The model has to be updated mid-read: the early premises stop being
     // true and a reader who keeps them gets a consistent wrong answer.
     [EnumQuestionType.PivotTransforms]: { weight: 2.5, ceiling: 26 },
+    // A relation carried through a sequence of operations, where the sequence
+    // matters: reasoning about operations on structures rather than on things.
+    [EnumQuestionType.ContextShifts]: { weight: 2.7, ceiling: 27 },
+    // Two vocabularies and no translation given. The heaviest in the app: the
+    // dictionary has to be built before one relation can be carried across.
+    [EnumQuestionType.CrossAnalogy]: { weight: 2.9, ceiling: 28 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },
