@@ -59,6 +59,19 @@
     overflow: hidden;
 }
 
+/*
+ * The screens that are tables rather than questions.
+ *
+ * Nearly the whole viewport, with a gutter left so the card still reads as a
+ * card and the page behind it is visible at the edges. The cap is generous
+ * rather than absent: past about a hundred characters a line stops being
+ * readable, and the tiers matrix scrolls sideways anyway.
+ */
+.playcard--wide {
+    width: min(90rem, calc(100vw - 2rem));
+    height: calc(100svh - 2rem);
+}
+
 .playcard-body {
     position: relative;
     display: grid;
@@ -78,6 +91,18 @@
     background-image: linear-gradient(62deg,
         color-mix(in srgb, var(--th-accent, #8ec5fc) 10%, transparent) 0%,
         color-mix(in srgb, var(--th-accent-2, #e0c3fc) 10%, transparent) 100%);
+}
+
+/*
+ * Content from the top, filling the width.
+ *
+ * `place-items: center` is right for one question in a tall box and wrong for a
+ * table: centred, a dashboard's tiles sat in a column down the middle of an
+ * otherwise empty screen. Stretching also lets a child set its own max-width if
+ * it wants one, which centring made impossible.
+ */
+.playcard-body--wide {
+    place-items: start stretch;
 }
 
 @media(max-width: 768px) {

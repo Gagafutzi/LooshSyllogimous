@@ -1,4 +1,4 @@
-<div class="playcard card">
+<div class="playcard card" [class.playcard--wide]="wide">
     <div class="playcard-header card-header">
         <div class="playcard-toolbar">
             <div>
@@ -32,7 +32,7 @@
     </div>
 
     <div class="card-body p-0 overflow-hidden position-relative">
-        <div class="playcard-body">
+        <div class="playcard-body" [class.playcard-body--wide]="wide">
             <ng-content select="[body]"></ng-content>
         </div>
     </div>
