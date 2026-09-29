@@ -593,6 +593,7 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Pivot Transforms":         [],
     "Context Shifts":           [],
     "Cross-System Analogy":     [],
+    "Region Connection":        [],
     "Binary":                    ["negation", "retired-meta"],
     /*
      * Empty, and for a different reason from the two above.

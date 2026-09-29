@@ -93,6 +93,7 @@ export enum EnumQuestionType {
     PivotTransforms = "Pivot Transforms",
     ContextShifts = "Context Shifts",
     CrossAnalogy = "Cross-System Analogy",
+    Rcc8 = "Region Connection",
 }
 
 export enum EnumArrangements {

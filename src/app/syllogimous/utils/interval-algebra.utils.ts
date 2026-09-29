@@ -175,3 +175,181 @@ export function possibleBetween(states: Moments[], a: number, b: number): number
     for (const moment of states) seen.add(allenBetween(moment, a, b));
     return [...seen].sort((p, q) => p - q);
 }
+
+/* ------------------------------------------------------------------ *
+ * RCC8 over rectangular patches                                       *
+ * ------------------------------------------------------------------ */
+
+/**
+ * The eight ways two regions can stand, over the one domain this app can be
+ * exact about.
+ *
+ * ── Why rectangles, and why the card says so ──
+ *
+ * RCC8 proper is about arbitrary regions, and the mode's question — *select every
+ * relation still possible* — needs the answer to be exact. Two ways to get that
+ * were rejected. A composition table gives a superset, not the set, so the card
+ * would promise an exactness it could not deliver. Regions as blobs on a grid
+ * would need "touching the boundary" defined on discrete cells, where it is
+ * genuinely ambiguous, so the relations would stop meaning what they are called.
+ *
+ * Axis-aligned rectangles are the third way and the honest one. All eight
+ * relations are realisable, three mutually touching rectangles exist (which they
+ * do not on a line — the reason the interval version cannot wear this name), and
+ * the relation between two of them is *exactly* a function of the interval
+ * relation on each axis. So the answer is enumerable and correct, and the card
+ * says the regions are rectangular patches rather than implying it is talking
+ * about every region there could be.
+ *
+ * What is given up is stated too: the rectangle algebra is a restriction of
+ * RCC8, so a configuration needing a shape rectangles cannot make is not counted
+ * as possible. The card's claim is about what it says it is about.
+ */
+export const RCC8_NAMES = [
+    "is apart from", "touches the outside of", "partly overlaps",
+    "is inside, touching the edge of", "is deep inside", "holds, edge to edge,",
+    "holds deep inside it", "is identical to",
+] as const;
+
+/** What each one says, for the option that offers it. */
+export const RCC8_DEFINITIONS = [
+    "no point in common",
+    "they meet at an edge or a corner, and no further",
+    "each covers part of the other and part of neither",
+    "wholly within it, sharing at least one edge",
+    "wholly within it, sharing nothing",
+    "wholly contains it, sharing at least one edge",
+    "wholly contains it, sharing nothing",
+    "the very same patch",
+] as const;
+
+/** The relation that holds the other way round, by index. */
+export const RCC8_CONVERSE = [0, 1, 2, 5, 6, 3, 4, 7] as const;
+
+/* How each axis's interval relation bears on the region relation. */
+const axisApart = (r: number) => r === 0 || r === 12;          // before / after
+const axisTouches = (r: number) => r === 1 || r === 11;        // meets / met by
+const axisWithin = (r: number) => r >= 3 && r <= 6;            // starts…equals
+const axisHolds = (r: number) => r >= 6 && r <= 9;             // equals…started by
+
+/**
+ * The region relation, from the interval relation on each axis.
+ *
+ * Read off the two rather than looked up in a table of sixty-four, because the
+ * region relation *is* this reasoning: two rectangles are apart when their shadow
+ * on either axis is apart, touch when a shadow touches and neither is apart, and
+ * otherwise their interiors meet and the question is only which contains which.
+ */
+export function rcc8FromAllen(alongX: number, alongY: number): number {
+    if (axisApart(alongX) || axisApart(alongY)) return 0;              // apart
+    if (axisTouches(alongX) || axisTouches(alongY)) return 1;          // touching
+
+    // Interiors overlap on both axes from here, so one of the four remains.
+    if (alongX === 6 && alongY === 6) return 7;                        // identical
+    if (axisWithin(alongX) && axisWithin(alongY)) {
+        return alongX === 4 && alongY === 4 ? 4 : 3;                   // deep in / edge
+    }
+    if (axisHolds(alongX) && axisHolds(alongY)) {
+        return alongX === 8 && alongY === 8 ? 6 : 5;                   // holds deep / edge
+    }
+    return 2;                                                          // partly overlaps
+}
+
+/** One arrangement of rectangles: an interval arrangement per axis. */
+export interface Patches { alongX: Moments; alongY: Moments; }
+
+export const rcc8Between = (p: Patches, a: number, b: number) =>
+    rcc8FromAllen(allenBetween(p.alongX, a, b), allenBetween(p.alongY, a, b));
+
+/** One premise: `a` stands to `b` in one of `options`. */
+export interface PatchFact { a: number; b: number; options: number[]; }
+
+/**
+ * Every region relation some arrangement allowed by the premises realises.
+ *
+ * Walked over the whole space rather than composed, which is what makes the
+ * answer the exact set. For three patches that is 409 interval arrangements per
+ * axis and so 167,281 arrangements in all — enumerated once per item, and the
+ * reason the mode stays at three: four would be 23,917 squared.
+ */
+/**
+ * Each state's interval relation for each pair, worked out once.
+ *
+ * `rcc8Possible` walks 167,281 arrangements per item, and recomputing the endpoint
+ * comparisons inside that loop put two and a half minutes on the test suite — the
+ * broad checks build many items per mode. The relation between a pair in an
+ * arrangement does not depend on the item, so it is worked out once per size: 409
+ * arrangements by three pairs is a table of twelve hundred bytes.
+ */
+const relationTables = new Map<number, Uint8Array>();
+
+function pairRelations(n: number): Uint8Array {
+    const held = relationTables.get(n);
+    if (held) return held;
+    const states = intervalStates(n);
+    const pairs = (n * (n - 1)) / 2;
+    const out = new Uint8Array(states.length * pairs);
+    states.forEach((moment, s) => {
+        let at = 0;
+        for (let a = 0; a < n; a++) {
+            for (let b = a + 1; b < n; b++) out[s * pairs + at++] = allenBetween(moment, a, b);
+        }
+    });
+    relationTables.set(n, out);
+    return out;
+}
+
+/** Where a pair sits in the table's per-state row. `a` must be below `b`. */
+function pairSlot(n: number, a: number, b: number): number {
+    let at = 0;
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            if (i === a && j === b) return at;
+            at++;
+        }
+    }
+    throw new Error("no such pair");
+}
+
+/**
+ * Every region relation some arrangement allowed by the premises realises.
+ *
+ * Walked over the whole space rather than composed, which is what makes the answer
+ * the exact set. For three patches that is 409 interval arrangements per axis and
+ * so 167,281 arrangements in all, and the reason the mode stays at three: four
+ * would be 23,917 squared.
+ *
+ * Pairs are given with the lower index first, which is how the mode draws them —
+ * the table holds one entry per unordered pair, and a converse would be a second
+ * way of saying the same arrangement.
+ */
+export function rcc8Possible(
+    n: number,
+    said: PatchFact[],
+    x: number,
+    y: number,
+): { possible: number[]; survivors: number } {
+    const table = pairRelations(n);
+    const pairs = (n * (n - 1)) / 2;
+    const slots = said.map(f => pairSlot(n, Math.min(f.a, f.b), Math.max(f.a, f.b)));
+    const asked = pairSlot(n, Math.min(x, y), Math.max(x, y));
+    const total = intervalStates(n).length;
+
+    const seen = new Set<number>();
+    let survivors = 0;
+    for (let sx = 0; sx < total; sx++) {
+        const rowX = sx * pairs;
+        for (let sy = 0; sy < total; sy++) {
+            const rowY = sy * pairs;
+            let ok = true;
+            for (let i = 0; i < said.length; i++) {
+                const r = rcc8FromAllen(table[rowX + slots[i]], table[rowY + slots[i]]);
+                if (!said[i].options.includes(r)) { ok = false; break; }
+            }
+            if (!ok) continue;
+            survivors++;
+            seen.add(rcc8FromAllen(table[rowX + asked], table[rowY + asked]));
+        }
+    }
+    return { possible: [...seen].sort((p, q) => p - q), survivors };
+}

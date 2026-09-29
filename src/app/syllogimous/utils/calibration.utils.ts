@@ -261,6 +261,10 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // Two vocabularies and no translation given. The heaviest in the app: the
     // dictionary has to be built before one relation can be carried across.
     [EnumQuestionType.CrossAnalogy]: { weight: 2.9, ceiling: 28 },
+    // Eight relations over containment and contact, and almost nothing settles
+    // anything — a card of three patches, priced on the size of its answer
+    // rather than on the size of its reading.
+    [EnumQuestionType.Rcc8]: { weight: 2.2, ceiling: 24 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

@@ -441,6 +441,20 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 11,
         basic: false
     },
+    /*
+     * Two premises always — three patches have three pairs and one of them is the
+     * question — so the count is not the size of the card but how much the
+     * premises *say*. At two they name one relation each; at three and four one or
+     * both name two, which is true of fewer arrangements and leaves the reader
+     * both branches to carry. The space cannot grow: the answer is read by walking
+     * every arrangement, and a fourth patch is 23,917 squared.
+     */
+    [EnumQuestionType.Rcc8]: {
+        enabled: true,
+        minNumOfPremises: 2,
+        maxNumOfPremises: 4,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,
