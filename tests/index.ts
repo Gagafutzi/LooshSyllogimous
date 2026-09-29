@@ -72,6 +72,7 @@ import "./timer-budget.test";
 import "./binary-halves.test";
 import "./smooth-steps.test";
 import "./share.test";
+import "./concave-regions.test";
 import "./index-imports.test";
 import "./wide-card.test";
 import "./mirror-twins.test";
