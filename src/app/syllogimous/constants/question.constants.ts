@@ -87,6 +87,8 @@ export enum EnumQuestionType {
     MotifSearch = "Motif Search",
     PartialIsomorphism = "Partial Isomorphism",
     CommonSubsystem = "Common Sub-System",
+    PartialAnalogy = "Partial Analogy",
+    SecondOrder = "Second-Order Analogy",
 }
 
 export enum EnumArrangements {

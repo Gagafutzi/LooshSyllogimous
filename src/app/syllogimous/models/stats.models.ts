@@ -38,6 +38,8 @@ export class TypeBasedStats {
     [EnumQuestionType.MotifSearch] = new TypeBasedStatsInner(EnumQuestionType.MotifSearch);
     [EnumQuestionType.PartialIsomorphism] = new TypeBasedStatsInner(EnumQuestionType.PartialIsomorphism);
     [EnumQuestionType.CommonSubsystem] = new TypeBasedStatsInner(EnumQuestionType.CommonSubsystem);
+    [EnumQuestionType.PartialAnalogy] = new TypeBasedStatsInner(EnumQuestionType.PartialAnalogy);
+    [EnumQuestionType.SecondOrder] = new TypeBasedStatsInner(EnumQuestionType.SecondOrder);
     [EnumQuestionType.Binary] = new TypeBasedStatsInner(EnumQuestionType.Binary);
     [EnumQuestionType.Deictic] = new TypeBasedStatsInner(EnumQuestionType.Deictic);
     [EnumQuestionType.Transformation] = new TypeBasedStatsInner(EnumQuestionType.Transformation);

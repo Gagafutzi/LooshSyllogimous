@@ -80,6 +80,8 @@ import {
     createPartialIsomorphism,
     createCommonSubsystem,
 } from "../generators/isomorphism";
+import { createPartialAnalogy } from "../generators/partial-analogy";
+import { createSecondOrder } from "../generators/second-order";
 import { createAnchorSpace, createAnchorSpaceV2 } from "../generators/anchor";
 import { createArrangement } from "../generators/arrangement";
 import { createBinary } from "../generators/binary";
@@ -549,6 +551,8 @@ export class GameService implements GeneratorContext {
             [EnumQuestionType.MotifSearch]: () => createMotifSearch(this, numOfPremises),
             [EnumQuestionType.PartialIsomorphism]: () => createPartialIsomorphism(this, numOfPremises),
             [EnumQuestionType.CommonSubsystem]: () => createCommonSubsystem(this, numOfPremises),
+            [EnumQuestionType.PartialAnalogy]: () => createPartialAnalogy(this, numOfPremises),
+            [EnumQuestionType.SecondOrder]: () => createSecondOrder(this, numOfPremises),
             [EnumQuestionType.Binary]: () => createBinary(this, numOfPremises),
             [EnumQuestionType.Deictic]: () => createDeictic(this, numOfPremises),
             [EnumQuestionType.MutualMoves]: () => createMutualMoves(this, numOfPremises),

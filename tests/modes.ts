@@ -41,6 +41,8 @@ import {
     createPartialIsomorphism,
     createCommonSubsystem,
 } from "../src/app/syllogimous/generators/isomorphism";
+import { createPartialAnalogy } from "../src/app/syllogimous/generators/partial-analogy";
+import { createSecondOrder } from "../src/app/syllogimous/generators/second-order";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
@@ -95,6 +97,8 @@ export const BUILD: Record<string, Build> = {
     [EnumQuestionType.MotifSearch]: createMotifSearch,
     [EnumQuestionType.PartialIsomorphism]: createPartialIsomorphism,
     [EnumQuestionType.CommonSubsystem]: createCommonSubsystem,
+    [EnumQuestionType.PartialAnalogy]: createPartialAnalogy,
+    [EnumQuestionType.SecondOrder]: createSecondOrder,
     [EnumQuestionType.Deictic]: createDeictic,
     [EnumQuestionType.Transformation]: createTransformation,
     [EnumQuestionType.AnchorSpace]: createAnchorSpace,

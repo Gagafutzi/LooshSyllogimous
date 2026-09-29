@@ -71,6 +71,8 @@ const SELF_CONTAINED_TYPES = new Set<EnumQuestionType>([
     EnumQuestionType.MotifSearch,
     EnumQuestionType.PartialIsomorphism,
     EnumQuestionType.CommonSubsystem,
+    EnumQuestionType.PartialAnalogy,
+    EnumQuestionType.SecondOrder,
 ]);
 
 export function canGenerateQuestion(
@@ -218,6 +220,8 @@ export class Settings {
         this.initQuestionSettings(EnumQuestionType.MotifSearch);
         this.initQuestionSettings(EnumQuestionType.PartialIsomorphism);
         this.initQuestionSettings(EnumQuestionType.CommonSubsystem);
+        this.initQuestionSettings(EnumQuestionType.PartialAnalogy);
+        this.initQuestionSettings(EnumQuestionType.SecondOrder);
         this.initQuestionSettings(EnumQuestionType.Binary);
         this.initQuestionSettings(EnumQuestionType.Deictic);
         this.initQuestionSettings(EnumQuestionType.Transformation);

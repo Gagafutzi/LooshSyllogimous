@@ -587,6 +587,8 @@ export const RUNG_LADDERS: Record<string, string[]> = {
     "Motif Search":             [],
     "Partial Isomorphism":      [],
     "Common Sub-System":        [],
+    "Partial Analogy":          [],
+    "Second-Order Analogy":     [],
     "Binary":                    ["negation", "retired-meta"],
     /*
      * Empty, and for a different reason from the two above.

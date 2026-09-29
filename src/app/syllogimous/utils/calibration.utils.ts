@@ -243,6 +243,12 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     [EnumQuestionType.MotifSearch]: { weight: 2.5, ceiling: 26 },
     [EnumQuestionType.PartialIsomorphism]: { weight: 2.6, ceiling: 27 },
     [EnumQuestionType.CommonSubsystem]: { weight: 2.8, ceiling: 28 },
+    // Two systems that nearly agree, and the lining-up that survives most of
+    // the disagreement — with a second, plausible pairing offered as a lure.
+    [EnumQuestionType.PartialAnalogy]: { weight: 2.3, ceiling: 25 },
+    // Relations composed, then compared to each other: the operation has to
+    // be identified from one example before it can be applied.
+    [EnumQuestionType.SecondOrder]: { weight: 2.6, ceiling: 27 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

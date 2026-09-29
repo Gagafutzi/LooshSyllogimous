@@ -387,6 +387,23 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 9,
         basic: false
     },
+    /* The count is the arrows on each side; six is the fewest that leaves one
+       lining-up strictly better than every other. */
+    [EnumQuestionType.PartialAnalogy]: {
+        enabled: true,
+        minNumOfPremises: 6,
+        maxNumOfPremises: 10,
+        basic: false
+    },
+    /* Seven is the floor because the layout needs enough objects for three
+       composed relations over disjoint pairs, plus somewhere one axis away for
+       the decoy to stand. */
+    [EnumQuestionType.SecondOrder]: {
+        enabled: true,
+        minNumOfPremises: 7,
+        maxNumOfPremises: 10,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,
