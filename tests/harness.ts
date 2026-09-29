@@ -92,10 +92,11 @@ export function seeded<T>(seed: number, fn: () => T): T {
 /**
  * Run only the cases whose name matches, for iterating on one thing.
  *
- * `TEST_FILTER=dials npm run test:utils`. The whole suite is a hundred and
- * twenty-five seconds, which is the right price to pay before a commit and the
- * wrong one to pay after every edit — and paying it after every edit is what
- * actually happens without this.
+ * `TEST_FILTER=dials npm run test:utils`. The whole suite is a couple of minutes
+ * sharded and nearly six in one process, which is the right price to pay before a
+ * commit and the wrong one to pay after every edit — and paying it after every
+ * edit is what actually happens without this. A filtered run stays in one process:
+ * see `tools/shard-tests.mjs`.
  *
  * Substring, case-insensitive. Nothing is skipped without saying so, so a
  * filtered run cannot be mistaken for a clean one.

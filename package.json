@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "start": "ng serve",
-    "test:utils": "tsc -p tsconfig.node.json && NODE_PATH=.tmp-tests node .tmp-tests/tests/index.js",
+    "test:utils": "tsc -p tsconfig.node.json && node tools/shard-tests.mjs",
+    "test:utils:serial": "tsc -p tsconfig.node.json && NODE_PATH=.tmp-tests node .tmp-tests/tests/index.js",
     "prep-deploy:dev": "ng build --configuration=development --output-path docs --base-href /LooshSyllogimous/ && node -e \"require('fs').copyFileSync('docs/index.html', 'docs/404.html')\"",
     "prep-deploy:prod": "ng build --configuration=production --output-path docs --base-href /LooshSyllogimous/ && node -e \"require('fs').copyFileSync('docs/index.html', 'docs/404.html')\"",
     "apk": "ng build --configuration production && npx cap sync android && cd android && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ANDROID_HOME=$HOME/android-sdk ./gradlew assembleDebug"

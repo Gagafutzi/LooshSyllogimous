@@ -8,12 +8,18 @@ and wrapped as an Android app with Capacitor.
 ## Commands
 
 ```bash
-npm run test:utils                 # the whole suite, ~2 minutes
-TEST_FILTER="premise" npm run test:utils   # one slice, seconds
+npm run test:utils                 # the whole suite, ~2 minutes across 6 processes
+npm run test:utils:serial          # the same, in one — for debugging the runner
+TEST_FILTER="premise" npm run test:utils   # one slice, seconds, one process
 npx ng build --configuration production    # type-check + budgets
 npm run prep-deploy:prod           # rebuild docs/ for Pages
 npm run apk                        # debug APK via Capacitor
 ```
+
+The suite is sharded by file across processes (`tools/shard-tests.mjs`); serial it
+is nearly six minutes. Sharding by file, not by case, because the harness has no
+setup or teardown and a file's cases may share state. `TEST_SHARDS=n` overrides
+the process count.
 
 `TEST_FILTER` is a **case-insensitive literal substring of the test's name** —
 regex metacharacters are escaped, so `a|b` matches nothing. It does not match
