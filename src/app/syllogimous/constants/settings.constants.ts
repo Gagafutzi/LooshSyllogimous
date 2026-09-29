@@ -455,6 +455,22 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 4,
         basic: false
     },
+    /*
+     * Two premises always, as in Region Connection and for the same reason: the
+     * chain is three patches and the third pair is the question. So the count is
+     * the length of the *menu* — two gives three options, seven gives eight — and
+     * each one is another relation the reader has to find an argument about.
+     *
+     * It stops at seven because the supply of chains stops growing there: an
+     * eighth option would be the same items with a relation added that no rule was
+     * straining to exclude.
+     */
+    [EnumQuestionType.ConcaveRegions]: {
+        enabled: true,
+        minNumOfPremises: 2,
+        maxNumOfPremises: 7,
+        basic: false
+    },
     [EnumQuestionType.Binary]: {
         enabled: true,
         minNumOfPremises: 4,

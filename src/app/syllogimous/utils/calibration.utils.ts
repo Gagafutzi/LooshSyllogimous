@@ -265,6 +265,14 @@ export const MODE_SCALE: Record<EnumQuestionType, ModeScale> = {
     // anything — a card of three patches, priced on the size of its answer
     // rather than on the size of its reading.
     [EnumQuestionType.Rcc8]: { weight: 2.2, ceiling: 24 },
+    /*
+     * The same eight relations with the bays put back, so thirty-two — and a menu
+     * drawn from the answer's nearest neighbours, so nothing on it can be dropped
+     * without an argument. Heavier than Region Connection because the reader has to
+     * hold three components per relation rather than one, and because the
+     * distinctions are the ones the eight names cannot make.
+     */
+    [EnumQuestionType.ConcaveRegions]: { weight: 2.8, ceiling: 26 },
     [EnumQuestionType.Binary]: { weight: 1.5, ceiling: 20 },
     [EnumQuestionType.Deictic]: { weight: 1.6, ceiling: 20 },
     [EnumQuestionType.AnchorSpace]: { weight: 1.8, ceiling: 20 },

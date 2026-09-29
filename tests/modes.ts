@@ -48,6 +48,7 @@ import { createPivotTransforms } from "../src/app/syllogimous/generators/pivot-t
 import { createContextShifts } from "../src/app/syllogimous/generators/context-shifts";
 import { createCrossAnalogy } from "../src/app/syllogimous/generators/cross-analogy";
 import { createRcc8 } from "../src/app/syllogimous/generators/rcc8";
+import { createConcaveRegions } from "../src/app/syllogimous/generators/concave-regions";
 import { createBinary } from "../src/app/syllogimous/generators/binary";
 import { createSyllogism } from "../src/app/syllogimous/generators/syllogism";
 import { createInferRelation } from "../src/app/syllogimous/generators/infer-relation";
@@ -109,6 +110,7 @@ export const BUILD: Record<string, Build> = {
     [EnumQuestionType.ContextShifts]: createContextShifts,
     [EnumQuestionType.CrossAnalogy]: createCrossAnalogy,
     [EnumQuestionType.Rcc8]: createRcc8,
+    [EnumQuestionType.ConcaveRegions]: createConcaveRegions,
     [EnumQuestionType.Deictic]: createDeictic,
     [EnumQuestionType.Transformation]: createTransformation,
     [EnumQuestionType.AnchorSpace]: createAnchorSpace,

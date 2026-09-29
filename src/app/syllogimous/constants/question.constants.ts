@@ -94,6 +94,7 @@ export enum EnumQuestionType {
     ContextShifts = "Context Shifts",
     CrossAnalogy = "Cross-System Analogy",
     Rcc8 = "Region Connection",
+    ConcaveRegions = "Concave Regions",
 }
 
 export enum EnumArrangements {

@@ -208,7 +208,9 @@ export function possibleBetween(states: Moments[], a: number, b: number): number
 export const RCC8_NAMES = [
     "is apart from", "touches the outside of", "partly overlaps",
     "is inside, touching the edge of", "is deep inside", "holds, edge to edge,",
-    "holds deep inside it", "is identical to",
+    /* "holds deep inside it" read as a claim about two patches — the form every
+       card states it in — came out as "A holds deep inside it B". */
+    "holds, deep inside,", "is identical to",
 ] as const;
 
 /** What each one says, for the option that offers it. */

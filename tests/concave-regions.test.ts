@@ -191,7 +191,7 @@ test("every relation is named, and no two share a name", () => {
 /**
  * The shortlist is the nearest relations, and it is short.
  *
- * This is the whole reason a calculus of twenty-seven relations can go on a card:
+ * This is the whole reason a calculus of thirty-two relations can go on a card:
  * the answer plus its nearest neighbours, where "nearest" is the number of cells
  * two intersection matrices differ in. Chosen by measurement, not by anybody's
  * judgement of what looks confusable — which is what makes it scale to a
