@@ -77,6 +77,7 @@ import "./concave-composition.test";
 import "./index-imports.test";
 import "./wide-card.test";
 import "./answer-space.test";
+import "./first-rung.test";
 import "./mirror-twins.test";
 import "./rcc8.test";
 import "./context-cross.test";

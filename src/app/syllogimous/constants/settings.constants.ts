@@ -331,10 +331,15 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         basic: false
     },
     /*
-     * Six is the floor and it is the four claims that set it: the count is the
-     * layout's premises, and three axes need four of them before there are pairs
-     * enough two steps apart to draw eight distinct halves from. Nine is the
-     * ceiling because the card already carries four analogies under the layout.
+     * Six is the floor: the count is the layout's premises, and three axes need
+     * that many before there are pairs enough two steps apart to draw the
+     * analogies' halves from. Nine is the ceiling because the card already
+     * carries four analogies under the layout.
+     *
+     * The count also sets how many analogies there are — three at six, four above
+     * — so the bottom rung is a shorter card as well as a smaller space. See
+     * `analogyCount` in the generator for why four everywhere was too much to
+     * start on.
      */
     [EnumQuestionType.OddAnalogy]: {
         enabled: true,
@@ -395,12 +400,15 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         maxNumOfPremises: 10,
         basic: false
     },
-    /* Seven is the floor because the layout needs enough objects for three
-       composed relations over disjoint pairs, plus somewhere one axis away for
-       the decoy to stand. */
+    /* Six is the floor. Seven was, on the grounds that the layout needs enough
+       objects for three composed relations over disjoint pairs plus somewhere one
+       axis away for the decoy to stand — six supplies all of that, and the three
+       checks in `analogy-family.test.ts` that say so pass at it. What six buys is
+       two axes rather than three, which takes the floor card from 471 characters
+       to 360: the same question, stated in a third less. */
     [EnumQuestionType.SecondOrder]: {
         enabled: true,
-        minNumOfPremises: 7,
+        minNumOfPremises: 6,
         maxNumOfPremises: 10,
         basic: false
     },
@@ -416,28 +424,37 @@ export const QUESTION_TYPE_SETTING_PARAMS: Record<EnumQuestionType, ISettingPara
         basic: false
     },
     /* The count is split between the two phases — placements before the move and
-       after it — so seven is the fewest that leaves three and two with the move
-       between them. */
+       after it. Seven was the floor, said to be the fewest that leaves three and
+       two with the move between them; it is not, because both halves are clamped
+       from below, so six gives the same three and two. What it does not give is a
+       third axis, and that is the whole difference: six states the same
+       arrangement in 298 characters against seven's 399. */
     [EnumQuestionType.PivotTransforms]: {
+        enabled: true,
+        minNumOfPremises: 6,
+        maxNumOfPremises: 11,
+        basic: false
+    },
+    /* Seven is the floor: three axes, two composed base contexts and at least two
+       operations that each change the running value — and seven carries every one
+       of those, since both the axis count and the operation count are clamped from
+       below. Eight was the floor and bought none of them, only two more
+       statements: ten lines against seven's eight. */
+    [EnumQuestionType.ContextShifts]: {
         enabled: true,
         minNumOfPremises: 7,
         maxNumOfPremises: 11,
         basic: false
     },
-    /* Eight is the floor: three axes, two composed base contexts and at least two
-       operations that each change the running value. */
-    [EnumQuestionType.ContextShifts]: {
-        enabled: true,
-        minNumOfPremises: 8,
-        maxNumOfPremises: 11,
-        basic: false
-    },
-    /* Nine, because the card carries two arrangements, the pairings that pin the
-       dictionary, and the analogy — and the dictionary needs at least two pairings
-       before it is pinned at all. */
+    /* Eight. The card carries two arrangements, the pairings that pin the
+       dictionary, and the analogy, and the dictionary needs at least two pairings
+       before it is pinned at all — which eight supplies, checked by
+       `context-cross.test.ts` rather than assumed. Nine was the floor and made
+       this the highest first rung in the app; at eight the axes drop from three to
+       two and the floor card from 575 characters to 487. */
     [EnumQuestionType.CrossAnalogy]: {
         enabled: true,
-        minNumOfPremises: 9,
+        minNumOfPremises: 8,
         maxNumOfPremises: 11,
         basic: false
     },

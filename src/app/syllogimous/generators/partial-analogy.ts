@@ -89,6 +89,30 @@ function bestCorrespondences(a: Web, b: Web): { best: number; perms: number[][] 
     return { best, perms };
 }
 
+/**
+ * How many entities a side.
+ *
+ * Five was fixed, and the note beside it said four leaves too few
+ * correspondences for exactly one of them to be best. Measured over twenty
+ * thousand draws, that is not so: four a side yields a usable item once every
+ * six draws against five-a-side's once every five, and at the sparsest arrow
+ * count four is the *easier* of the two to draw — one in five against one in
+ * ten. The rejection loop was never the problem.
+ *
+ * What five costs is the card. The mode states two systems and then a complete
+ * kind pairing, one line per entity, so the size is roughly two lots of arrows
+ * plus `n`: at five a side the floor rung printed **sixteen and a half lines**
+ * while the ladder said six. A mode whose easiest item is sixteen statements has
+ * no bottom step, which is the same thing that was wrong with Odd Analogy's
+ * fixed four analogies.
+ *
+ * So the floor drops to four a side — fourteen lines — and everything above it
+ * keeps five. Not lower than four: three leaves six correspondences to choose
+ * between, which is few enough that the best one can be found by trying them
+ * rather than by reading the structure, and that is the whole task.
+ */
+const systemSize = (numOfPremises: number) => (numOfPremises <= 6 ? 4 : 5);
+
 export function createPartialAnalogy(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createPartialAnalogy");
 
@@ -97,10 +121,7 @@ export function createPartialAnalogy(ctx: GeneratorContext, numOfPremises: numbe
     if (!canGenerateQuestion(type, numOfPremises, settings)) throw new Error("Cannot generate.");
     numOfPremises = clampPremises(type, numOfPremises);
 
-    /* Five a side. Four leaves too few correspondences for exactly one to be
-       best; six is 720 to try per attempt, and the card is already two systems
-       plus a pairing. */
-    const n = 5;
+    const n = systemSize(numOfPremises);
     const wanted = Math.max(4, Math.min(n * (n - 1) - 2, numOfPremises - 2));
 
     for (let attempt = 0; attempt < 300; attempt++) {

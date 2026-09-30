@@ -1,5 +1,5 @@
 /**
- * Odd Analogy — three of these hold exactly, and one only looks as if it does.
+ * Odd Analogy — all of these hold exactly but one, which only looks as if it does.
  *
  * Isomorph's guide: *"Four analogies over one system; three hold exactly and one
  * only looks as if it does — it holds the other way round, or only if the
@@ -7,19 +7,24 @@
  * fails."*
  *
  * Analogy Completion asks which pair finishes an analogy, so one relation has to
- * be carried to one place. This asks which of four analogies is false, so all
- * four have to be worked out before any of them can be ruled out — and none of
- * them can be ruled out early, because the wrong one is wrong by a single axis
- * or by direction alone. A reader who checks three and stops has not answered
- * the question; they have guessed between the one they skipped and the one they
- * liked least.
+ * be carried to one place. This asks which of several analogies is false, so all
+ * of them have to be worked out before any of them can be ruled out — and none
+ * can be ruled out early, because the wrong one is wrong by a single axis or by
+ * direction alone. A reader who checks all but one and stops has not answered the
+ * question; they have guessed between the one they skipped and the one they liked
+ * least.
+ *
+ * How many there are is the ladder — three at the floor, four above it, see
+ * `analogyCount`. Isomorph's four is the top of it rather than the whole mode:
+ * each analogy is two chains to compose, and four of them was more than the rung
+ * a player first meets this on can carry.
  *
  * ── Every pair is composed, never stated ──
  *
  * The pairs come from `derivedPairs`, which offers only pairs at least two steps
  * apart in the premise graph. So no analogy names a relation any premise states:
- * both halves of all four have to be accumulated along a chain, which is the
- * work, and an analogy solvable by finding the premise that mentions its two
+ * both halves of every one of them have to be accumulated along a chain, which is
+ * the work, and an analogy solvable by finding the premise that mentions its two
  * objects would not be.
  *
  * ── Why the wrong one is wrong by a hair ──
@@ -33,15 +38,15 @@
  *
  * ── What makes an item well-formed ──
  *
- * Exactly one of the four is false, checked by comparing composed relations
- * rather than by trusting the construction. Each analogy names four distinct
- * objects, or a pair standing to itself would be true by inspection. And the
- * four are shown among the premises, so the options are claims the card makes:
- * that is the condition `registries.test.ts` allows a menu of four under, and
- * the reason nothing on it can be dismissed at a glance.
+ * Exactly one is false, whatever the count, checked by comparing composed
+ * relations rather than by trusting the construction. Each analogy names four
+ * distinct objects, or a pair standing to itself would be true by inspection. And
+ * they are all shown among the premises, so the options are claims the card makes:
+ * that is the condition `registries.test.ts` allows a menu longer than two under,
+ * and the reason nothing on it can be dismissed at a glance.
  */
 
-import { EnumQuestionType } from "../constants/question.constants";
+import { EnumQuestionType, NUMBER_WORDS } from "../constants/question.constants";
 import { Question } from "../models/question.models";
 import { canGenerateQuestion, clampPremises } from "../models/settings.models";
 import { getRandomSymbols, shuffle } from "../utils/question.utils";
@@ -89,6 +94,30 @@ const line = (an: Analogy) =>
 const axisCount = (numOfPremises: number) =>
     Math.max(2, Math.min(5, numOfPremises - 3));
 
+/**
+ * How many analogies the card carries.
+ *
+ * Four was fixed, and it made the mode's floor its ceiling. Every analogy is two
+ * relations that have to be composed along the chain before any of them can be
+ * ruled out, so four of them at three axes is twenty-four signs carried — which
+ * is the work this mode is *for*, and too much for the rung a player first meets
+ * it on. A mode whose easiest item is already its hardest has no bottom step.
+ *
+ * So the count is the ladder: three at the floor, four above it. Three is the
+ * floor and not two, because two is "which of these is false" — a true-or-false
+ * item with an extra sentence, and the menu would carry a one-in-two guess
+ * instead of a one-in-three. The ceiling stays at four: a fifth analogy is two
+ * more chains to compose and nothing new to learn from them, and the menu is
+ * exempt from the two-option rule only because every option is one of the card's
+ * own premises — a longer list of them starts to reward searching over
+ * composing, which is what that rule exists to stop.
+ *
+ * `guessRateFor` reads the option count, so dropping to three is already priced
+ * as the weaker evidence it is. Nothing has to be told twice.
+ */
+const analogyCount = (numOfPremises: number) =>
+    Math.max(3, Math.min(4, numOfPremises - 3));
+
 export function createOddAnalogy(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createOddAnalogy");
 
@@ -100,6 +129,7 @@ export function createOddAnalogy(ctx: GeneratorContext, numOfPremises: number): 
     }
     numOfPremises = clampPremises(type, numOfPremises);
 
+    const count = analogyCount(numOfPremises);
     const dims = axisCount(numOfPremises);
     const scales = ctx.settingsOverrideService.axesFor(dims) ?? axesForDimensions(dims);
     const axes: AxisSpec[] = scales.map(scale => ({ scale }));
@@ -110,9 +140,10 @@ export function createOddAnalogy(ctx: GeneratorContext, numOfPremises: number): 
         const layout = buildNdLayout(words, axes);
 
         const pairs = derivedPairs(layout);
-        if (pairs.length < 8) continue;
+        /* Two disjoint pairs per analogy, and none of them shared. */
+        if (pairs.length < count * 2) continue;
 
-        const drawn = drawAnalogies(layout, pairs);
+        const drawn = drawAnalogies(layout, pairs, count);
         if (!drawn) continue;
 
         const shown = shuffle(drawn);
@@ -141,11 +172,16 @@ export function createOddAnalogy(ctx: GeneratorContext, numOfPremises: number): 
         question.isValid = true;
         question.conclusion = "";
 
+        /* Said rather than assumed: the count moves with the rung, and a setup
+           line that still read "four" under three analogies would be the card
+           contradicting itself. */
+        const total = NUMBER_WORDS[count], exact = NUMBER_WORDS[count - 1];
         question.setup = [
-            `Four of these claim one pair stands as another does. ${hi("Three")} are `
+            `${total[0].toUpperCase()}${total.slice(1)} of these claim one pair stands `
+            + `as another does. ${hi(exact[0].toUpperCase() + exact.slice(1))} are `
             + "exact on <b>every</b> axis; one is not — it may hold the other way "
             + "round, or agree everywhere but one.",
-            "No pair is stated outright: both halves of all four have to be worked "
+            `No pair is stated outright: both halves of all ${total} have to be worked `
             + "out along the chain.",
         ];
 
@@ -157,14 +193,16 @@ export function createOddAnalogy(ctx: GeneratorContext, numOfPremises: number): 
 }
 
 /**
- * Three that hold and one that nearly does.
+ * All but one that hold, and one that nearly does.
  *
- * The true three are drawn from keys with two disjoint pairs to spare. The false
+ * The true ones are drawn from keys with two disjoint pairs to spare. The false
  * one is drawn last, from the pairs left over, so it cannot accidentally be one
- * of the three said again — and it is required to be a near miss, since the
+ * of the others said again — and it is required to be a near miss, since the
  * whole difficulty is that it cannot be seen without composing.
  */
-function drawAnalogies(layout: NdLayout, pairs: Pair[]): Analogy[] | null {
+function drawAnalogies(layout: NdLayout, pairs: Pair[], count: number): Analogy[] | null {
+    /* One of the count is the false one; the rest hold. */
+    const wanted = count - 1;
     const byKey = new Map<string, Pair[]>();
     for (const p of pairs) {
         const held = byKey.get(p.key) ?? [];
@@ -175,7 +213,7 @@ function drawAnalogies(layout: NdLayout, pairs: Pair[]): Analogy[] | null {
     const truths: Analogy[] = [];
     const used = new Set<string>();
     for (const group of shuffle([...byKey.values()])) {
-        if (truths.length === 3) break;
+        if (truths.length === wanted) break;
         const free = group.filter(p => !used.has(`${p.a}>${p.b}`));
         for (const left of shuffle(free)) {
             const right = free.find(p => p !== left && disjoint(left, p));
@@ -186,7 +224,7 @@ function drawAnalogies(layout: NdLayout, pairs: Pair[]): Analogy[] | null {
             break;
         }
     }
-    if (truths.length < 3) return null;
+    if (truths.length < wanted) return null;
 
     /*
      * The false one: the same pair the other way round, or one axis out.

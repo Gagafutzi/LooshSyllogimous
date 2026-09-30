@@ -365,7 +365,23 @@ export function createPartialIsomorphism(ctx: GeneratorContext, numOfPremises: n
     if (!canGenerateQuestion(type, numOfPremises, settings)) throw new Error("Cannot generate.");
     numOfPremises = clampPremises(type, numOfPremises);
 
-    const n = 5;
+    /*
+     * Four a side at the floor, five above it.
+     *
+     * Five everywhere made the easiest item of this mode a card of ten entities,
+     * sixteen arrow statements and a menu of ten to select from — which is the
+     * hardest shape in the family, offered as the first rung of it. Four a side
+     * is thirteen statements and a menu of eight, and it draws a well-formed item
+     * once in four attempts against five-a-side's one in two: rarer, and nowhere
+     * near the three hundred the loop allows.
+     *
+     * Four only at the floor, and this is why: the shared core of a four-a-side
+     * item saturates at six arrows — `(n - 1) * (n - 2)` with `n` four — so from
+     * eight premises up it would build the same item while the ladder printed a
+     * larger number. That is the exact failure the note below records, so the
+     * rung that would cause it is the rung that hands over to five.
+     */
+    const n = numOfPremises <= 6 ? 4 : 5;
     /*
      * The count is the arrows, and it has to be: drawn at a fixed density this
      * mode built the same item whether it was asked for six premises or ten,

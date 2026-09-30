@@ -246,6 +246,52 @@ test("Partial Isomorphism marks one entity from each system", () => {
  * several entities that could equally be the odd one out, and an item like that
  * marks one of several right answers wrong with nothing about it looking amiss.
  */
+/**
+ * **The floor is a smaller pair of systems than the ceiling.**
+ *
+ * Five a side was fixed, which made the first rung of this mode two systems of
+ * five, sixteen arrow statements, and a menu of ten to select from — the heaviest
+ * shape in the family offered as the way into it. Four a side is thirteen
+ * statements and a menu of eight.
+ *
+ * Four only at the floor, and the reason is in the generator: a four-a-side
+ * shared core saturates at six arrows, so from eight premises up it would build
+ * the same item while the ladder printed a larger number. Asserted as a step,
+ * read off the menu — every entity of both systems is offered, so the menu is
+ * twice the size of a side.
+ */
+test("Partial Isomorphism's floor is a smaller pair of systems than its ceiling", () => {
+    const ctx = context();
+    const range = QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.PartialIsomorphism];
+    const sides = new Map<number, Set<number>>();
+
+    seeded(20261903, () => {
+        for (let n = range.minNumOfPremises; n <= range.maxNumOfPremises; n++) {
+            for (let rep = 0; rep < 8; rep++) {
+                let q: Question;
+                try { q = createPartialIsomorphism(ctx, n); } catch { continue; }
+                const held = sides.get(n) ?? new Set<number>();
+                held.add(q.choices.length / 2);
+                sides.set(n, held);
+            }
+        }
+    });
+
+    const rungs = [...sides.entries()].sort((a, b) => a[0] - b[0]);
+    assert(rungs.length >= 2, "not enough rungs built to compare");
+    for (const [n, held] of rungs) {
+        equal(held.size, 1,
+            `${n} premises gave systems of ${[...held].join(" and ")} a side — the size `
+            + "is a function of the rung, so it cannot vary within one");
+    }
+
+    const floor = [...rungs[0][1]][0];
+    const ceiling = [...rungs[rungs.length - 1][1]][0];
+    assert(floor < ceiling,
+        `every rung is ${floor} entities a side, so the first card of this mode is a `
+        + `menu of ${floor * 2} and there is no bottom step`);
+});
+
 test("Partial Isomorphism leaves exactly one pair whose removal lines the rest up", () => {
     for (const q of partialItems()) {
         const { left, right } = twoSystems(q);

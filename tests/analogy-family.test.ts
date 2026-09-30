@@ -169,6 +169,51 @@ test("Partial Analogy offers the best correspondence and the kind pairing", () =
 });
 
 /**
+ * **The floor is a smaller system than the ceiling.**
+ *
+ * Five a side was fixed, and it made this mode's easiest item a card of two
+ * systems plus a complete kind pairing — sixteen and a half statements, while the
+ * ladder said six. Four a side at the floor is fourteen, and it draws a
+ * well-formed item about as often.
+ *
+ * Asserted as a step rather than as the number four, so the check is about the
+ * mode having a bottom rather than about a constant. It is read off the card —
+ * the entities of the first system are however many names its arrows use — which
+ * is also what a player would count.
+ */
+test("Partial Analogy's floor is fewer entities a side than its ceiling", () => {
+    const ctx = context();
+    const range = QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.PartialAnalogy];
+    const sides = new Map<number, Set<number>>();
+
+    seeded(20261203, () => {
+        for (let n = range.minNumOfPremises; n <= range.maxNumOfPremises; n++) {
+            for (let rep = 0; rep < 8; rep++) {
+                let q: Question;
+                try { q = createPartialAnalogy(ctx, n); } catch { continue; }
+                const held = sides.get(n) ?? new Set<number>();
+                held.add(readPartial(q).left.length);
+                sides.set(n, held);
+            }
+        }
+    });
+
+    const rungs = [...sides.entries()].sort((a, b) => a[0] - b[0]);
+    assert(rungs.length >= 2, "not enough rungs built to compare");
+    for (const [n, held] of rungs) {
+        equal(held.size, 1,
+            `${n} premises gave systems of ${[...held].join(" and ")} a side — the size `
+            + "is a function of the rung, so it cannot vary within one");
+    }
+
+    const floor = [...rungs[0][1]][0];
+    const ceiling = [...rungs[rungs.length - 1][1]][0];
+    assert(floor < ceiling,
+        `every rung is ${floor} entities a side, so the easiest item of this mode is `
+        + "its hardest and there is no bottom step");
+});
+
+/**
  * One correspondence keeps more than every other, and it is the marked one.
  *
  * Re-derived by trying all of them. "The correspondence that keeps the most" is
