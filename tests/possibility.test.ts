@@ -437,3 +437,22 @@ test("Cyclic Dominance marks exactly the outcomes its survivors have", () => {
         }
     }
 });
+
+/**
+ * More premises is a wider group, not a pair given away.
+ *
+ * The group was four people whatever the count, so eight premises stated most
+ * of the pairs there were and the asked pair was all but read off — the mode
+ * got easier as the ladder added premises to make it harder. The group now
+ * grows with the count, so the premises stay sparse over it.
+ */
+test("Cyclic Dominance: the group grows with the premises", () => {
+    const ctx = context();
+    seeded(4242, () => {
+        for (let n = 3; n <= 8; n++) {
+            const q = createCyclicDominance(ctx, n);
+            equal(q.bucket.length, Math.min(7, n + 1),
+                `${n} premises were drawn over ${q.bucket.length} people`);
+        }
+    });
+});

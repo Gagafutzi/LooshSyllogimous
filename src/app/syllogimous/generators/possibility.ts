@@ -127,12 +127,26 @@ export function buildPossibility(
     for (let attempt = 0; attempt < 300; attempt++) {
         const system = pickUniqueItems(pool, 1).picked[0];
         /*
-         * Entities are the width and premises are the reading. They are drawn
-         * apart because the state space is what has to stay enumerable: four or
-         * five entities is a few thousand arrangements to filter, and more
-         * premises narrow that rather than growing it.
+         * The group grows with the premises: one more entity than premises,
+         * up to what the system can enumerate.
+         *
+         * It used to be four, or five past five premises — so the premises
+         * were what grew and the group was what stayed. On four entities there
+         * are ten statable pairs, and eight premises state most of them: the
+         * pair asked about is all but read off, and almost nothing is left
+         * open to reason about. More premises made the item *easier*, the
+         * opposite of what the level ladder assumes when it adds one, and the
+         * share of outcomes left open fell from 2.4 of 3 at three premises to
+         * 1.3 at eight.
+         *
+         * What makes these items hard is how much the premises leave open, and
+         * that is their density over the group, not their count. Growing the
+         * group with them keeps the density falling as the count rises, so a
+         * premise is more to hold and not more given away. Seven over a circle
+         * of five is 78,125 arrangements — cached once, filtered in
+         * milliseconds.
          */
-        const n = Math.min(system.maxN, 4 + (numOfPremises > 5 ? 1 : 0));
+        const n = Math.min(system.maxN, Math.max(4, numOfPremises + 1));
         if (!everLeavesOpen(system, n)) continue;
         const words = getRandomSymbols(settings, n);
         if (new Set(words).size !== n) continue;
