@@ -62,6 +62,20 @@ function anotherReadingFits(system: RelationSystem, table: string, n: number): b
         && other.states(n).some(state => tableOf(other, state, n) === table));
 }
 
+/**
+ * Whether the list contains a two-step path, so chaining can be read off it.
+ *
+ * `A` to `B` and `B` to `C`, with `C` not `A` — the one shape that makes "does it
+ * chain?" a question about the list rather than about what else it could have
+ * been. The `C !== A` is the whole point: `A` to `B` and `B` back to `A` is the
+ * relation running both ways, which is a different property and is already
+ * visible without it.
+ */
+function chainIsVisible(table: string): boolean {
+    const pairs = table.split(",").map(p => p.split(">").map(Number));
+    return pairs.some(([a, b]) => pairs.some(([c, d]) => b === c && d !== a));
+}
+
 export function createHiddenAlgebra(ctx: GeneratorContext, numOfPremises: number): Question {
     ctx.logger.info("createHiddenAlgebra");
 
@@ -90,6 +104,23 @@ export function createHiddenAlgebra(ctx: GeneratorContext, numOfPremises: number
          */
         if (!table || table.split(",").length >= shownOver * (shownOver - 1)) continue;
         if (anotherReadingFits(system, table, shownOver)) continue;
+        /*
+         * **The list has to exercise chaining, not merely be consistent with it.**
+         *
+         * Uniqueness says one reading fits; it does not say the reader can see
+         * which. A complete list of "Glass brands Onion, Onion brands Glass"
+         * among four names is produced by sameness-of-group and by nothing else —
+         * but there is no two-step path in it, so whether the relation *chains* is
+         * never put to the test. The only route to the answer is to eliminate the
+         * seven other readings from memory, which is a catalogue the card does not
+         * give and a player has no reason to hold.
+         *
+         * With a two-step path in the list the induction is one the evidence
+         * supports: `A` to `B` and `B` to `C` are both there, so either `A` to `C`
+         * is there and it chains, or it is absent and it does not. Three quarters
+         * of the lists that pass the uniqueness check already have one.
+         */
+        if (!chainIsVisible(table)) continue;
 
         const word: InventedWord = INVENTED[Math.floor(Math.random() * INVENTED.length)];
         const first = getRandomSymbols(ctx.settings, shownOver);

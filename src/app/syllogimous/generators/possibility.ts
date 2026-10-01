@@ -261,9 +261,20 @@ function explain(
     return [
         `${hi(String(survivors))} arrangement${survivors === 1 ? "" : "s"} of these fit `
         + `every premise, since ${word} is ${system.meaning}`,
-        ...shown.map(o => `${o.text}: ${o.possible
-            ? "some of them have it, so it is still open"
-            : "none of them has it, so the premises rule it out"}`),
+        /*
+         * "Still open" is only true when something else is open beside it.
+         *
+         * With one outcome surviving, the derivation said "some of them have it,
+         * so it is still open" and then closed with "so the premises settle these
+         * two outright" — the same line calling the pair open and settled. The
+         * reader is left to work out which half to believe, and the one that reads
+         * as the answer is the wrong one.
+         */
+        ...shown.map(o => `${o.text}: ${!o.possible
+            ? "none of them has it, so the premises rule it out"
+            : open === 1
+            ? "every one of them has it, so this is what holds"
+            : "some of them have it, so it is still open"}`),
         open === 1
             ? `so the premises settle ${subj(words[x])} and ${subj(words[y])} outright`
             : open === 3

@@ -190,6 +190,56 @@ test("some items settle the pair and some leave it open", () => {
 });
 
 /**
+ * **The derivation does not call a settled pair open.**
+ *
+ * The lines that walk the three outcomes said, of every one that survives, "some
+ * of them have it, so it is still open". With one outcome surviving that is the
+ * same derivation calling the pair open on one line and settled on the next —
+ * and of the two, "still open" is the one that reads like the answer. A player
+ * reading it back after getting the item wrong is told the opposite of what the
+ * card marked.
+ *
+ * Checked on the derivation as shown, against the item's own marking, over every
+ * mode that builds on this explanation.
+ */
+test("a settled pair is not also called open", () => {
+    const muddled: string[] = [];
+    let settled = 0;
+
+    for (const q of items()) {
+        if (q.selectAnswer.length !== 1) continue;
+        settled++;
+
+        /*
+         * The lines that walk the outcomes, found by the three endings one of
+         * them must carry.
+         *
+         * Named rather than matched loosely: a filter of "has it" silently missed
+         * the line reading "some of them *have* it", so the only thing failing
+         * under the bug was the count below and the muddle itself went unchecked.
+         * Three literal endings cannot drift without this saying so.
+         */
+        const ENDINGS = [
+            "so the premises rule it out",
+            "so this is what holds",
+            "so it is still open",
+        ];
+        const walked = q.explanation.map(strip).filter(l => ENDINGS.some(e => l.endsWith(e)));
+        equal(walked.length, q.choices.length,
+            `the derivation walks ${walked.length} of ${q.choices.length} outcomes`);
+
+        const open = walked.filter(l => /still open/.test(l));
+        if (open.length) muddled.push(open[0]);
+    }
+
+    assert(settled > 5, `only ${settled} items settled the pair outright`);
+    assert(muddled.length === 0,
+        `${muddled.length} of ${settled} settled items call the surviving outcome still `
+        + `open, while the line below says the premises settle it:\n  `
+        + muddled.slice(0, 3).join("\n  "));
+});
+
+/**
  * And the option that can never be selected is not offered.
  *
  * A strict total order puts every pair one way or the other, so "neither" is

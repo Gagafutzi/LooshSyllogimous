@@ -136,6 +136,44 @@ test("the complete list has exactly one reading", () => {
  * with where they get to. The two come apart if the derivation is written from
  * the system the generator drew rather than from the list it printed.
  */
+/**
+ * **The list has to show whether it chains, not merely be consistent with it.**
+ *
+ * The uniqueness check says one reading fits. It does not say the reader can see
+ * which, and those are different claims. A complete list of "Glass brands Onion,
+ * Onion brands Glass" among four names is produced by sameness-of-group and by
+ * nothing else — but there is no two-step path anywhere in it, so whether the
+ * relation chains is never put to the test. The only route left is eliminating
+ * the seven other readings from memory, and the card gives no such catalogue.
+ *
+ * So the list must contain `A` to `B` and `B` to `C` with `C` not `A`. Then the
+ * induction is one the evidence supports: either `A` to `C` is in the list and it
+ * chains, or it is absent and it does not. `C !== A` is the point of the shape —
+ * `A` to `B` and `B` back to `A` is the relation running both ways, a different
+ * property, and one that is visible without any of this.
+ *
+ * Reported as a count rather than per item so a failure says how wide it is.
+ */
+test("the complete list shows a two-step path, so chaining can be read off it", () => {
+    const flat: string[] = [];
+    let seen = 0;
+
+    for (const q of items()) {
+        seen++;
+        const { pairs } = firstTable(q);
+        const chains = pairs.some(([a, b]) => pairs.some(([c, d]) => b === c && d !== a));
+        if (!chains) {
+            flat.push(pairs.map(([a, b]) => `${a}>${b}`).join(", "));
+        }
+    }
+
+    assert(seen > 10, `only ${seen} items were built`);
+    assert(flat.length === 0,
+        `${flat.length} of ${seen} lists never put two steps together, so whether the `
+        + "relation chains cannot be read off them and the reader is left eliminating "
+        + `readings the card never names:\n  ${flat.slice(0, 4).join("\n  ")}`);
+});
+
 test("the derivation names the relation the list identifies", () => {
     for (const q of items()) {
         const { pairs, names } = firstTable(q);
