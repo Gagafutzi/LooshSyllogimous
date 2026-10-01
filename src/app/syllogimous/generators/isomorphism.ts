@@ -272,7 +272,29 @@ export function createMotifSearch(ctx: GeneratorContext, numOfPremises: number):
         if (sites.length !== 1) continue;
         const site = sites[0];
         const pattern = induced(big, site);
-        if (edgesOf(pattern).length < 2) continue;    // a pattern with one arrow is no pattern
+        /*
+         * **Nobody in the pattern is left out of the pattern's own arrows.**
+         *
+         * `drawWeb` makes this true of the host, and it is not enough: the pattern
+         * is *cut out* of the host, so an entity with plenty of arrows in the big
+         * system can have none at all inside the three that were taken. It was then
+         * named in "A, B and C are the pattern" and appeared in no premise — the
+         * card introducing an entity it never says anything about, in one item in
+         * ten. A reader who goes looking for what it does finds nothing, which is
+         * not a hard item but an unanswerable-looking one.
+         *
+         * The same reasoning as `drawWeb`'s own check, applied where it was
+         * missing. It is not caught by "a conclusion names only what the premises
+         * name", because the entity is named in the *setup* rather than in the
+         * conclusion or the options.
+         *
+         * This also replaces the arrow count that used to stand here: three
+         * entities cannot all be touched by fewer than two arrows, so "at least
+         * two" was the weaker half of what this says.
+         */
+        const held = (v: number) =>
+            pattern.adj[v].some(Boolean) || pattern.adj.some(row => row[v]);
+        if (![...Array(pattern.n).keys()].every(held)) continue;
 
         /*
          * The decoy group is one arrow away from the pattern — the fewest
@@ -416,6 +438,24 @@ export function createPartialIsomorphism(ctx: GeneratorContext, numOfPremises: n
 
         const a = permuteWeb(grow(shared), randomPermutation(n));
         const b = permuteWeb(grow(permuteWeb(shared, randomPermutation(n - 1))), randomPermutation(n));
+
+        /*
+         * **The grown entity has at least one arrow.**
+         *
+         * `grow` wires the new entity to each of the others with probability .4
+         * either way, so it can come out wired to nothing — about one item in
+         * fourteen. That entity then appeared in no premise and was still offered
+         * in the menu, which asks the reader to decide whether a name the card
+         * never says anything about has a counterpart. It is also, every time, the
+         * odd one: an entity with no arrows cannot be matched by one that has
+         * some, so the item quietly became "spot the name that is missing".
+         *
+         * `drawWeb` makes this true of the webs it draws and `grow` is not one of
+         * them, which is how it was missed on both sides.
+         */
+        const wired = (w: Web, v: number) =>
+            w.adj[v].some(Boolean) || w.adj.some(row => row[v]);
+        if (![a, b].every(w => [...Array(w.n).keys()].every(v => wired(w, v)))) continue;
 
         const pairs = oddPairs(a, b);
         if (pairs.length !== 1) continue;                  // "exactly one" is checked

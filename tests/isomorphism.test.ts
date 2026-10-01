@@ -260,6 +260,61 @@ test("Partial Isomorphism marks one entity from each system", () => {
  * read off the menu — every entity of both systems is offered, so the menu is
  * twice the size of a side.
  */
+/**
+ * **Every entity this family names is one its premises say something about.**
+ *
+ * These four modes all introduce their entities by name in the setup — "A, B and
+ * C are the pattern", "these form one system; those form another" — and then say
+ * what they do in arrow premises. An entity with no arrow is named and then never
+ * mentioned again, and the card has introduced something it says nothing about.
+ *
+ * It happened two ways, and neither was caught by "a conclusion names only what
+ * the premises name", because the orphan is named in the *setup* rather than in
+ * the conclusion or the options.
+ *
+ * Motif Search cuts its pattern out of the host, so an entity with plenty of
+ * arrows in the big system could have none inside the three that were taken —
+ * one item in ten. Partial Isomorphism grows each system by an entity wired with
+ * probability .4 either way, which comes out wired to nothing about one item in
+ * fourteen; that one was then offered in the menu, and was always the odd one,
+ * since an entity with no arrows cannot be matched by one that has some.
+ *
+ * Swept over every rung of all four, because `drawWeb`'s own version of this
+ * check already existed and both of these went around it.
+ */
+test("no entity is named and then never mentioned", () => {
+    const ctx = context();
+    const orphans: string[] = [];
+
+    seeded(20261904, () => {
+        for (const [type, make] of [
+            [EnumQuestionType.StructureMatch, createStructureMatch],
+            [EnumQuestionType.MotifSearch, createMotifSearch],
+            [EnumQuestionType.PartialIsomorphism, createPartialIsomorphism],
+            [EnumQuestionType.CommonSubsystem, createCommonSubsystem],
+        ] as const) {
+            const range = QUESTION_TYPE_SETTING_PARAMS[type];
+            for (let n = range.minNumOfPremises; n <= range.maxNumOfPremises; n++) {
+                for (let rep = 0; rep < 10; rep++) {
+                    let q: Question;
+                    try { q = make(ctx, n); } catch { continue; }
+
+                    const named = (q.setup ?? []).flatMap(l => extractSubjects(l));
+                    const said = new Set(q.premises.flatMap(p => extractSubjects(p)));
+                    const missing = [...new Set(named.filter(w => !said.has(w)))];
+                    if (missing.length) {
+                        orphans.push(`${type} at ${n}: ${missing.join(", ")}`);
+                    }
+                }
+            }
+        }
+    });
+
+    assert(orphans.length === 0,
+        "the card names an entity and no premise says anything about it, so a reader "
+        + "who goes looking for what it does finds nothing:\n  " + orphans.join("\n  "));
+});
+
 test("Partial Isomorphism's floor is a smaller pair of systems than its ceiling", () => {
     const ctx = context();
     const range = QUESTION_TYPE_SETTING_PARAMS[EnumQuestionType.PartialIsomorphism];
